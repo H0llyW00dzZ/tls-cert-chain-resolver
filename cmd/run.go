@@ -11,6 +11,4 @@ import (
 
 var version = "0.1.0" // default version if not set
 
-func main() {
-	cli.Execute(version)
-}
+func main() { cli.Execute(version) }
