@@ -9,7 +9,6 @@ import (
 	"context"
 	"crypto/x509"
 	"net/http"
-	"time"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
@@ -21,21 +20,20 @@ import (
 type Chain struct {
 	Certs []*x509.Certificate
 	*x509certs.Certificate
+	Version string
 }
 
 // New creates a new Chain.
-func New(cert *x509.Certificate) *Chain {
+func New(cert *x509.Certificate, version string) *Chain {
 	return &Chain{
 		Certs:       []*x509.Certificate{cert},
 		Certificate: x509certs.New(),
+		Version:     version,
 	}
 }
 
 // FetchCertificate retrieves the certificate chain starting from the given certificate.
-func (ch *Chain) FetchCertificate() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
+func (ch *Chain) FetchCertificate(ctx context.Context) error {
 	for ch.Certs[len(ch.Certs)-1].IssuingCertificateURL != nil {
 		parentURL := ch.Certs[len(ch.Certs)-1].IssuingCertificateURL[0]
 
@@ -43,6 +41,10 @@ func (ch *Chain) FetchCertificate() error {
 		if err != nil {
 			return err
 		}
+
+		// Set the User-Agent header with version information and GitHub link
+		req.Header.Set("User-Agent", "TLS-Certificate-Chain-Resolver/"+ch.Version+" (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)")
+
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return err
