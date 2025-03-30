@@ -6,6 +6,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -22,13 +23,15 @@ var (
 )
 
 // Execute runs the root command, handling any errors that occur during execution.
-func Execute(version string) {
+func Execute(ctx context.Context, version string) {
 	rootCmd := &cobra.Command{
 		Use:     "tls-cert-chain-resolver [INPUT_FILE]",
 		Short:   "TLS certificate chain resolver",
 		Version: version,
 		Args:    cobra.ExactArgs(1),
-		Run:     execCli,
+		Run: func(cmd *cobra.Command, args []string) {
+			execCli(ctx, cmd, args)
+		},
 	}
 
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output to OUTPUT_FILE (default: stdout)")
@@ -46,7 +49,7 @@ func Execute(version string) {
 // It reads the input certificate file, decodes it, fetches the entire certificate chain, and optionally
 // adds the root CA. The output is then prepared in either DER or PEM format and written to the specified
 // output file or printed to stdout if no output file is specified.
-func execCli(cmd *cobra.Command, args []string) {
+func execCli(ctx context.Context, cmd *cobra.Command, args []string) {
 	inputFile := args[0]
 
 	// Read the input certificate
@@ -65,8 +68,8 @@ func execCli(cmd *cobra.Command, args []string) {
 	}
 
 	// Fetch the certificate chain
-	chain := x509chain.New(cert)
-	if err = chain.FetchCertificate(); err != nil {
+	chain := x509chain.New(cert, cmd.Version)
+	if err = chain.FetchCertificate(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "Error fetching certificate chain: %v\n", err)
 		os.Exit(1)
 	}

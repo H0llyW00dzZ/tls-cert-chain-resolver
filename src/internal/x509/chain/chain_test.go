@@ -6,9 +6,11 @@
 package x509chain_test
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
+	"time"
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
@@ -44,6 +46,8 @@ BAMCA0gAMEUCIQDZvkt1o9z268fmvTInaG72M2UXDCbWDmir1+GHxDHwwQIgPOkc
 -----END CERTIFICATE-----
 `
 
+var version = "1.3.3.7-testing"
+
 func TestFetchCertificateChain(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -71,9 +75,13 @@ func TestFetchCertificateChain(t *testing.T) {
 				t.Fatalf("failed to parse certificate: %v", err)
 			}
 
-			manager := x509chain.New(cert)
+			manager := x509chain.New(cert, version)
 
-			if err = manager.FetchCertificate(); (err != nil) != tt.expectError {
+			// Create a context with a timeout for the test
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			if err = manager.FetchCertificate(ctx); (err != nil) != tt.expectError {
 				t.Fatalf("FetchCertificate() error = %v, expectError %v", err, tt.expectError)
 			}
 
@@ -116,9 +124,13 @@ func TestAddRootCA(t *testing.T) {
 				t.Fatalf("failed to parse certificate: %v", err)
 			}
 
-			manager := x509chain.New(cert)
+			manager := x509chain.New(cert, version)
 
-			if err = manager.FetchCertificate(); err != nil {
+			// Create a context with a timeout for the test
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			if err = manager.FetchCertificate(ctx); err != nil {
 				t.Fatalf("FetchCertificate() error = %v", err)
 			}
 
@@ -161,10 +173,14 @@ func TestFilterIntermediates(t *testing.T) {
 				t.Fatalf("failed to parse certificate: %v", err)
 			}
 
-			manager := x509chain.New(cert)
+			manager := x509chain.New(cert, version)
+
+			// Create a context with a timeout for the test
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 
 			// Simulate fetching the certificate chain
-			if err = manager.FetchCertificate(); err != nil {
+			if err = manager.FetchCertificate(ctx); err != nil {
 				t.Fatalf("FetchCertificate() error = %v", err)
 			}
 
