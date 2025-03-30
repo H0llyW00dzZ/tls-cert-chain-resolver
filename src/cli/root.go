@@ -8,6 +8,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
@@ -55,30 +56,31 @@ func execCli(ctx context.Context, cmd *cobra.Command, args []string) {
 	// Read the input certificate
 	certData, err := os.ReadFile(inputFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading input file: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error reading input file: %v", err)
 	}
 
 	// Decode the certificate
 	decoder := x509certs.New()
 	cert, err := decoder.Decode(certData)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error decoding certificate: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error decoding certificate: %v", err)
 	}
 
 	// Fetch the certificate chain
 	chain := x509chain.New(cert, cmd.Version)
 	if err = chain.FetchCertificate(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "Error fetching certificate chain: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error fetching certificate chain: %v", err)
+	}
+
+	// Log each certificate in the chain
+	for i, c := range chain.Certs {
+		log.Printf("%d: %s", i+1, c.Subject.CommonName)
 	}
 
 	// Add root CA if needed
 	if includeSystem {
 		if err = chain.AddRootCA(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error adding root CA: %v\n", err)
-			os.Exit(1)
+			log.Fatalf("Error adding root CA: %v", err)
 		}
 	}
 
@@ -99,10 +101,11 @@ func execCli(ctx context.Context, cmd *cobra.Command, args []string) {
 	// Output the certificates
 	if outputFile != "" {
 		if err = os.WriteFile(outputFile, outputData, 0644); err != nil {
-			fmt.Fprintf(os.Stderr, "Error writing to output file: %v\n", err)
-			os.Exit(1)
+			log.Fatalf("Error writing to output file: %v", err)
 		}
 	} else {
 		fmt.Print(string(outputData))
 	}
+
+	log.Printf("Certificate chain complete. Total %d certificate(s) found.", len(certsToOutput))
 }
