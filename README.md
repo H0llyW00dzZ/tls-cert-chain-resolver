@@ -32,7 +32,7 @@ tls-cert-chain-resolver [INPUT_FILE] [OPTIONS]
 - `-s, --include-system`: Include root CA from the system in output
 
 > [!NOTE]
-> If you encounter issues installing with `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest`, try using `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd@latest` or build manually from source with `make build`.
+> If you encounter issues installing with `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest`, try using `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd@latest` or build manually from source with `make build-linux`, `make build-macos`, or `make build-windows`.
 
 ## Development
 
@@ -49,10 +49,22 @@ git clone https://github.com/H0llyW00dzZ/tls-cert-chain-resolver.git
 cd tls-cert-chain-resolver
 ```
 
-Build the project:
+Build the project for Linux:
 
 ```bash
-make build
+make build-linux
+```
+
+Build the project for macOS:
+
+```bash
+make build-macos
+```
+
+Build the project for Windows:
+
+```bash
+make build-windows
 ```
 
 ## Compatibility
@@ -62,7 +74,7 @@ This tool is compatible with Go 1.24.1 or later and works effectively across var
 ### Example with OpenSSL:
 
 ```bash
-h0llyw00dzz@ubuntu-pro:~/Workspace/git/tls-cert-chain-resolver$ ./bin/tls-cert-chain-resolver test-leaf.cer -o test-output-bundle.pem
+h0llyw00dzz@ubuntu-pro:~/Workspace/git/tls-cert-chain-resolver$ ./bin/linux/tls-cert-chain-resolver test-leaf.cer -o test-output-bundle.pem
 Starting TLS certificate chain resolver (v0.1.7)...
 Press CTRL+C to exit if incomplete.
 1: *.b0zal.io
