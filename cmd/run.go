@@ -33,14 +33,6 @@ func main() {
 	// Channel to signal completion
 	done := make(chan error, 1)
 
-	// Log start with version
-	log.Printf("Starting TLS certificate chain resolver (v%s)...", version)
-	log.Println(
-		"Note: Press CTRL+C or send a termination signal (e.g., SIGINT or SIGTERM)",
-		"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).",
-	)
-	log.Println()
-
 	// Run the CLI in a separate goroutine
 	go func() {
 		// Note: Avoid formatting or logging the error here to prevent duplicate messages,

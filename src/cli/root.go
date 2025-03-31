@@ -36,6 +36,13 @@ func Execute(ctx context.Context, version string) error {
 		Version: version,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Log start with version
+			log.Printf("Starting TLS certificate chain resolver (v%s)...", version)
+			log.Println(
+				"Note: Press CTRL+C or send a termination signal (e.g., SIGINT or SIGTERM)",
+				"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).",
+			)
+			log.Println()
 			OperationPerformed = true
 			return execCli(ctx, cmd, args)
 		},
