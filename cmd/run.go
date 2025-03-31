@@ -30,26 +30,31 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	// Channel to signal completion
+	done := make(chan struct{})
+
 	// Log start with version
 	log.Printf("Starting TLS certificate chain resolver (v%s)...", version)
-	log.Println("Press CTRL+C to exit.")
+	log.Println("Press CTRL+C to exit if incomplete.")
 
 	// Run the CLI in a separate goroutine
 	go func() {
-		cli.Execute(ctx, version)
+		if err := cli.Execute(ctx, version); err != nil {
+			log.Printf("Error: %v", err)
+		}
+		close(done)
 	}()
 
-	// Wait for a termination signal
-	<-sigs
-
-	// Log exit instruction
-	log.Println("\nReceived termination signal. Exiting...")
-
-	// Cancel the context to stop the CLI
-	cancel()
+	select {
+	case <-sigs:
+		log.Println("\nReceived termination signal. Exiting...")
+		cancel()
+	case <-done:
+		log.Println("Certificate chain resolution completed successfully.")
+	}
 
 	// Give some time for cleanup
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	// Log stop
 	log.Println("TLS certificate chain resolver stopped.")
