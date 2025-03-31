@@ -1,6 +1,6 @@
 # Variables
 BINARY_NAME = tls-cert-chain-resolver
-VERSION = $(shell git describe --tags --always --match "v*" 2>/dev/null || echo "0.0.0-$(shell git rev-parse --short HEAD)")
+VERSION = $(shell git describe --tags --always --match "v*" 2>/dev/null | sed 's/^v//' || echo "0.0.0-$(shell git rev-parse --short HEAD)")
 BUILD_DIR = ./bin
 
 # Default target
@@ -23,4 +23,3 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 .PHONY: all build install test clean
-
