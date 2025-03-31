@@ -34,12 +34,14 @@ func main() {
 	done := make(chan error, 1)
 
 	// Log start with version
-	log.Printf("Starting TLS certificate chain resolver (v%s)...", version)
-	log.Println(
-		"Note: Press CTRL+C or send a termination signal (e.g., SIGINT or SIGTERM)",
-		"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).",
-	)
-	log.Println()
+	if cli.OperationPerformed {
+		log.Printf("Starting TLS certificate chain resolver (v%s)...", version)
+		log.Println(
+			"Note: Press CTRL+C or send a termination signal (e.g., SIGINT or SIGTERM)",
+			"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).",
+		)
+		log.Println()
+	}
 
 	// Run the CLI in a separate goroutine
 	go func() {
@@ -57,14 +59,15 @@ func main() {
 		log.Println("\nReceived termination signal. Exiting...")
 		cancel()
 	case err := <-done:
-		if err == nil {
+		if err == nil && cli.OperationPerformed {
 			log.Println("Certificate chain resolution completed successfully.")
 		}
 	}
 
-	// Give some time for cleanup
-	time.Sleep(1 * time.Second)
-
-	// Log stop
-	log.Println("TLS certificate chain resolver stopped.")
+	// Log stop only if an operation was performed
+	if cli.OperationPerformed {
+		// Give some time for cleanup
+		time.Sleep(1 * time.Second)
+		log.Println("TLS certificate chain resolver stopped.")
+	}
 }

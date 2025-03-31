@@ -17,6 +17,11 @@ import (
 )
 
 var (
+	// OperationPerformed indicates whether the main certificate resolution operation was executed.
+	OperationPerformed bool
+)
+
+var (
 	outputFile       string
 	intermediateOnly bool
 	derFormat        bool
@@ -31,6 +36,7 @@ func Execute(ctx context.Context, version string) error {
 		Version: version,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			OperationPerformed = true
 			return execCli(ctx, cmd, args)
 		},
 	}
