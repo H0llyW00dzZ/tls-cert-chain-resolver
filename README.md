@@ -32,7 +32,7 @@ tls-cert-chain-resolver [INPUT_FILE] [OPTIONS]
 - `-s, --include-system`: Include root CA from the system in output
 
 > [!NOTE]
-> If you encounter issues installing with `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest`, try using `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd@latest` or build manually from source with `make build` or `make install`.
+> If you encounter issues installing with `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest`, try using `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd@latest` or build manually from source with `make build`.
 
 ## Development
 
@@ -53,12 +53,6 @@ Build the project:
 
 ```bash
 make build
-```
-
-Install the binary:
-
-```bash
-make install
 ```
 
 ## Compatibility
