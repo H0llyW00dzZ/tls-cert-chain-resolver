@@ -31,8 +31,10 @@ var (
 // Execute runs the root command, handling any errors that occur during execution.
 func Execute(ctx context.Context, version string) error {
 	rootCmd := &cobra.Command{
-		Use:     "tls-cert-chain-resolver [INPUT_FILE]",
-		Short:   "TLS certificate chain resolver",
+		Use:   "tls-cert-chain-resolver [INPUT_FILE]",
+		Short: "TLS certificate chain resolver",
+		Example: `  tls-cert-chain-resolver test-leaf.cer -o test-output-bundle.pem
+  tls-cert-chain-resolver another-cert.cer -o test-output-bundle.crt --der --include-system`,
 		Version: version,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
