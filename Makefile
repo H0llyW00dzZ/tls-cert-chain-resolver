@@ -19,18 +19,28 @@ all: build
 
 # Build the binary with version information
 build:
-	go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd
+	@echo "Building $(BINARY_NAME) version $(VERSION)..."
+	@mkdir -p $(BUILD_DIR)
+	@go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd
+	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
 
 # Install the binary
 install:
-	go install -ldflags="-X main.version=$(VERSION)" ./cmd
+	@echo "Installing $(BINARY_NAME)..."
+	@go install -ldflags="-X main.version=$(VERSION)" ./cmd
+	@echo "Installation complete."
 
 # Run tests
 test:
-	go test ./...
+	@echo "Running tests..."
+	@go test ./...
+	@echo "Tests completed."
 
 # Clean up build artifacts
 clean:
-	rm -rf $(BUILD_DIR)
+	@echo "Cleaning up build artifacts..."
+	@rm -rf $(BUILD_DIR)
+	@echo "Clean complete."
 
+# PHONY targets
 .PHONY: all build install test clean
