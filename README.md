@@ -65,6 +65,30 @@ make install
 
 This tool is compatible with Go 1.24.1 or later and works effectively across various clients (e.g., HTTP clients in Go, mobile browsers, OpenSSL). It resolves chaining issues, providing enhanced flexibility and control over certificate chain resolution.
 
+### Example with OpenSSL:
+
+```bash
+h0llyw00dzz@ubuntu-pro:~/Workspace/git/tls-cert-chain-resolver$ ./bin/tls-cert-chain-resolver test-leaf.cer -o test-output-bundle.pem
+Starting TLS certificate chain resolver (v0.1.7)...
+Press CTRL+C to exit if incomplete.
+1: *.b0zal.io
+2: Sectigo ECC Domain Validation Secure Server CA
+3: USERTrust ECC Certification Authority
+Output successfully written to test-output-bundle.pem.
+Certificate chain complete. Total 3 certificate(s) found.
+Certificate chain resolution completed successfully.
+TLS certificate chain resolver stopped.
+```
+
+- **Verification:**
+
+```bash
+h0llyw00dzz@ubuntu-pro:~/Workspace/git/tls-cert-chain-resolver$ openssl verify -CAfile /etc/ssl/certs/ca-certificates.crt -untrusted test-output-bundle.pem test-output-bundle.pem
+test-output-bundle.pem: OK
+```
+> [!NOTE]
+> These examples demonstrate the tool's effectiveness in resolving and verifying certificate chains using OpenSSL.
+
 ## Motivation
 
 This project was created to provide a more maintainable and actively maintained version of the original [zakjan/cert-chain-resolver](https://github.com/zakjan/cert-chain-resolver.git), which is no longer maintained.
