@@ -8,10 +8,17 @@ package x509chain
 import (
 	"context"
 	"crypto/x509"
+	"errors"
 	"net/http"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
+)
+
+// ErrCertificateChainVerificationFailed is returned when the verification of the certificate chain fails.
+// This error indicates that one or more certificates in the chain could not be validated against their issuer.
+var (
+	ErrCertificateChainVerificationFailed = errors.New("x509chain: certificate chain verification failed")
 )
 
 // Chain manages [X.509] certificates.
@@ -20,15 +27,21 @@ import (
 type Chain struct {
 	Certs []*x509.Certificate
 	*x509certs.Certificate
-	Version string
+	Version       string
+	Roots         *x509.CertPool
+	Intermediates *x509.CertPool
 }
 
 // New creates a new Chain.
 func New(cert *x509.Certificate, version string) *Chain {
+	roots := x509.NewCertPool()
+	intermediates := x509.NewCertPool()
 	return &Chain{
-		Certs:       []*x509.Certificate{cert},
-		Certificate: x509certs.New(),
-		Version:     version,
+		Certs:         []*x509.Certificate{cert},
+		Certificate:   x509certs.New(),
+		Version:       version,
+		Roots:         roots,
+		Intermediates: intermediates,
 	}
 }
 
@@ -77,14 +90,14 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 			return err
 		}
 
+		ch.Certs = append(ch.Certs, cert)
+
 		if ch.IsRootNode(cert) {
 			break
 		}
-
-		ch.Certs = append(ch.Certs, cert)
 	}
 
-	return nil
+	return ch.VerifyChain()
 }
 
 // AddRootCA adds a root CA to the certificate chain if necessary.
@@ -125,4 +138,27 @@ func (ch *Chain) FilterIntermediates() []*x509.Certificate {
 		return nil // No intermediates if 2 or fewer certs
 	}
 	return ch.Certs[1 : len(ch.Certs)-1] // Skip the first (leaf) and last (root)
+}
+
+// VerifyChain checks that each certificate in the chain is validly signed by its predecessor.
+func (ch *Chain) VerifyChain() error {
+	for i, cert := range ch.Certs {
+		if i == len(ch.Certs)-1 {
+			ch.Roots.AddCert(cert)
+		} else {
+			ch.Intermediates.AddCert(cert)
+		}
+	}
+
+	leaf := ch.Certs[0]
+	opts := x509.VerifyOptions{
+		Roots:         ch.Roots,
+		Intermediates: ch.Intermediates,
+	}
+
+	if _, err := leaf.Verify(opts); err != nil {
+		return ErrCertificateChainVerificationFailed
+	}
+
+	return nil
 }
