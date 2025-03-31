@@ -21,7 +21,7 @@ go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest
 ## Usage
 
 ```bash
-tls-cert-chain-resolver [OPTIONS] INPUT_FILE
+tls-cert-chain-resolver [INPUT_FILE] [OPTIONS]
 ```
 
 ### Options
@@ -57,6 +57,10 @@ Install the binary:
 ```bash
 make install
 ```
+
+## Compatibility
+
+This tool is compatible with Go 1.24.1 or later and works effectively across various clients (e.g., HTTP clients in Go, mobile browsers, OpenSSL). It resolves chaining issues, providing enhanced flexibility and control over certificate chain resolution.
 
 ## Motivation
 
