@@ -31,7 +31,7 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	// Channel to signal completion
-	done := make(chan struct{})
+	done := make(chan error, 1)
 
 	// Log start with version
 	log.Printf("Starting TLS certificate chain resolver (v%s)...", version)
@@ -39,18 +39,23 @@ func main() {
 
 	// Run the CLI in a separate goroutine
 	go func() {
+		// Note: Avoid formatting or logging the error here to prevent duplicate messages,
+		// as it is already captured.
 		if err := cli.Execute(ctx, version); err != nil {
-			log.Printf("Error: %v", err)
+			done <- err
+			return
 		}
-		close(done)
+		done <- nil
 	}()
 
 	select {
 	case <-sigs:
 		log.Println("\nReceived termination signal. Exiting...")
 		cancel()
-	case <-done:
-		log.Println("Certificate chain resolution completed successfully.")
+	case err := <-done:
+		if err == nil {
+			log.Println("Certificate chain resolution completed successfully.")
+		}
 	}
 
 	// Give some time for cleanup
