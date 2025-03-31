@@ -24,12 +24,6 @@ build:
 	@go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
 
-# Install the binary
-install:
-	@echo "Installing $(BINARY_NAME)..."
-	@go install -ldflags="-X main.version=$(VERSION)" ./cmd
-	@echo "Installation complete."
-
 # Run tests
 test:
 	@echo "Running tests..."
