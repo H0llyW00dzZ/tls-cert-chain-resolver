@@ -33,6 +33,12 @@ func New(cert *x509.Certificate, version string) *Chain {
 }
 
 // FetchCertificate retrieves the certificate chain starting from the given certificate.
+//
+// Note: This is most effective for chaining written in Go due to the power of the standard library.
+// Previously, I attempted to implement this in [Rust], but the results were different and buggy.
+// This might be because I am new to [Rust], or due to the challenges posed by [Rust]'s borrow checker.
+//
+// [Rust]: https://www.rust-lang.org/
 func (ch *Chain) FetchCertificate(ctx context.Context) error {
 	for ch.Certs[len(ch.Certs)-1].IssuingCertificateURL != nil {
 		parentURL := ch.Certs[len(ch.Certs)-1].IssuingCertificateURL[0]
