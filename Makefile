@@ -15,14 +15,28 @@ BINARY_NAME = tls-cert-chain-resolver
 BUILD_DIR = ./bin
 
 # Default target
-all: build
+all: build-linux build-macos build-windows
 
-# Build the binary with version information
-build:
-	@echo "Building $(BINARY_NAME) version $(VERSION)..."
-	@mkdir -p $(BUILD_DIR)
-	@go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd
-	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
+# Build the binary for Linux
+build-linux:
+	@echo "Building $(BINARY_NAME) for Linux version $(VERSION)..."
+	@mkdir -p $(BUILD_DIR)/linux
+	@GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/linux/$(BINARY_NAME) ./cmd
+	@echo "Build complete: $(BUILD_DIR)/linux/$(BINARY_NAME)"
+
+# Build the binary for macOS
+build-macos:
+	@echo "Building $(BINARY_NAME) for macOS version $(VERSION)..."
+	@mkdir -p $(BUILD_DIR)/macos
+	@GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/$(BINARY_NAME) ./cmd
+	@echo "Build complete: $(BUILD_DIR)/macos/$(BINARY_NAME)"
+
+# Build the binary for Windows
+build-windows:
+	@echo "Building $(BINARY_NAME) for Windows version $(VERSION)..."
+	@mkdir -p $(BUILD_DIR)/windows
+	@GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/windows/$(BINARY_NAME).exe ./cmd
+	@echo "Build complete: $(BUILD_DIR)/windows/$(BINARY_NAME).exe"
 
 # Run tests
 test:
@@ -37,4 +51,4 @@ clean:
 	@echo "Clean complete."
 
 # PHONY targets
-.PHONY: all build install test clean
+.PHONY: all build-linux build-macos build-windows test clean
