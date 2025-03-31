@@ -1,6 +1,17 @@
+# Get the latest tag or use v0.0.0 if no tag exists
+GIT_TAG := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+
+# Remove 'v' prefix from the tag
+VERSION_TAG := $(shell echo $(GIT_TAG) | sed 's/^v//')
+
+# Get the latest commit hash
+LAST_COMMIT := $(shell git rev-parse --short HEAD)
+
+# Determine version
+VERSION := $(shell if [ "$(VERSION_TAG)" = "0.0.0" ]; then echo "$(VERSION_TAG)-$(LAST_COMMIT)"; else echo "$(VERSION_TAG)"; fi)
+
 # Variables
 BINARY_NAME = tls-cert-chain-resolver
-VERSION = $(shell git describe --tags --always --match "v*" 2>/dev/null | sed 's/^v//' || echo "0.0.0-$(shell git rev-parse --short HEAD)")
 BUILD_DIR = ./bin
 
 # Default target
