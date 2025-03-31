@@ -31,6 +31,9 @@ tls-cert-chain-resolver [INPUT_FILE] [OPTIONS]
 - `-d, --der`: Output in DER format
 - `-s, --include-system`: Include root CA from the system in output
 
+> [!NOTE]
+> If you encounter issues installing with `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest`, try using `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd@latest` or build manually from source with `make build` or `make install`.
+
 ## Development
 
 ### Prerequisites
