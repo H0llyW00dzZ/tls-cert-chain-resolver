@@ -27,12 +27,18 @@ checkout:
 		git checkout $(LAST_COMMIT); \
 	fi
 
+# Return to the previous branch or commit
+return:
+	@git switch -
+	@echo "Returned to the previous branch or commit."
+
 # Build the binary for Linux
 build-linux: checkout
 	@echo "Building $(BINARY_NAME) for Linux version $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)/linux
 	@GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/linux/$(BINARY_NAME) ./cmd
 	@echo "Build complete: $(BUILD_DIR)/linux/$(BINARY_NAME)"
+	@$(MAKE) return
 
 # Build the binary for macOS (amd64)
 build-macos-amd64: checkout
@@ -40,6 +46,7 @@ build-macos-amd64: checkout
 	@mkdir -p $(BUILD_DIR)/macos/amd64
 	@GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/amd64/$(BINARY_NAME) ./cmd
 	@echo "Build complete: $(BUILD_DIR)/macos/amd64/$(BINARY_NAME)"
+	@$(MAKE) return
 
 # Build the binary for macOS (arm64)
 build-macos-arm64: checkout
@@ -47,6 +54,7 @@ build-macos-arm64: checkout
 	@mkdir -p $(BUILD_DIR)/macos/arm64
 	@GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/arm64/$(BINARY_NAME) ./cmd
 	@echo "Build complete: $(BUILD_DIR)/macos/arm64/$(BINARY_NAME)"
+	@$(MAKE) return
 
 # Build the binary for macOS (both architectures)
 build-macos: build-macos-amd64 build-macos-arm64
@@ -57,6 +65,7 @@ build-windows: checkout
 	@mkdir -p $(BUILD_DIR)/windows
 	@GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/windows/$(BINARY_NAME).exe ./cmd
 	@echo "Build complete: $(BUILD_DIR)/windows/$(BINARY_NAME).exe"
+	@$(MAKE) return
 
 # Run tests
 test:
@@ -71,4 +80,4 @@ clean:
 	@echo "Clean complete."
 
 # PHONY targets
-.PHONY: all checkout build-linux build-macos build-macos-amd64 build-macos-arm64 build-windows test clean
+.PHONY: all checkout return build-linux build-macos build-macos-amd64 build-macos-arm64 build-windows test clean
