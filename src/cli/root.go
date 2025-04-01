@@ -65,10 +65,11 @@ func Execute(ctx context.Context, version string) error {
 // certificateInfo represents the details of a single certificate,
 // including its subject, issuer, serial number, and PEM-encoded data.
 type certificateInfo struct {
-	Subject string `json:"subject"`
-	Issuer  string `json:"issuer"`
-	Serial  string `json:"serial"`
-	PEM     string `json:"pem"`
+	Subject            string `json:"subject"`
+	Issuer             string `json:"issuer"`
+	Serial             string `json:"serial"`
+	SignatureAlgorithm string `json:"signatureAlgorithm"`
+	PEM                string `json:"pem"`
 }
 
 // jsonOutput defines the structure for the JSON output format,
@@ -115,10 +116,10 @@ func execCli(ctx context.Context, cmd *cobra.Command, args []string) error {
 	for i, c := range chain.Certs {
 		log.Printf("%d: %s", i+1, c.Subject.CommonName)
 	}
+	log.Printf("Certificate chain complete. Total %d certificate(s) found.", len(chain.Certs))
 
 	// Filter certificates if needed
 	certsToOutput := filterCertificates(chain)
-	log.Printf("Certificate chain complete. Total %d certificate(s) found.", len(certsToOutput))
 
 	// Output in JSON format if specified
 	if jsonFormat {
@@ -185,11 +186,13 @@ func outputJSON(certsToOutput []*x509.Certificate, certManager *x509certs.Certif
 	certInfos := make([]certificateInfo, len(certsToOutput))
 	for i, cert := range certsToOutput {
 		pemData := certManager.EncodePEM(cert)
+		// TODO: Leverage this certificateInfo JSON data effectively
 		certInfos[i] = certificateInfo{
-			Subject: cert.Subject.CommonName,
-			Issuer:  cert.Issuer.CommonName,
-			Serial:  cert.SerialNumber.String(),
-			PEM:     string(pemData),
+			Subject:            cert.Subject.CommonName,
+			Issuer:             cert.Issuer.CommonName,
+			Serial:             cert.SerialNumber.String(),
+			SignatureAlgorithm: cert.SignatureAlgorithm.String(),
+			PEM:                string(pemData),
 		}
 	}
 
