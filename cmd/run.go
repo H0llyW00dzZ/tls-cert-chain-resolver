@@ -16,7 +16,7 @@ import (
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/cli"
 )
 
-var version = "0.2.0" // default version if not set
+var version = "0.2.1" // default version if not set
 
 func main() {
 	// Disable the default timestamp in log output
