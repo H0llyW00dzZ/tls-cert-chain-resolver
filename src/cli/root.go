@@ -21,6 +21,8 @@ import (
 var (
 	// OperationPerformed indicates whether the main certificate resolution operation was executed.
 	OperationPerformed bool
+	// OperationPerformedSuccessfully indicates whether the main certificate resolution operation was completed successfully.
+	OperationPerformedSuccessfully bool
 )
 
 var (
@@ -40,6 +42,8 @@ func Execute(ctx context.Context, version string) error {
   tls-cert-chain-resolver another-cert.cer -o test-output-bundle.crt --der --include-system`,
 		Version: version,
 		Args:    cobra.ExactArgs(1),
+		// TODO: This might need improvment however this doesn't actually important to improve even cobra has 3 function execute,
+		// because 2 function or 1 function execute its already enought.
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Log start with version
 			log.Printf("Starting TLS certificate chain resolver (v%s)...", version)
@@ -51,6 +55,7 @@ func Execute(ctx context.Context, version string) error {
 			OperationPerformed = true
 			return execCli(ctx, cmd, args)
 		},
+		PostRun: func(cmd *cobra.Command, args []string) { OperationPerformedSuccessfully = true },
 	}
 
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output to OUTPUT_FILE (default: stdout)")

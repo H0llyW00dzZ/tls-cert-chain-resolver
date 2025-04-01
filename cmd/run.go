@@ -54,8 +54,8 @@ func main() {
 		}
 	}
 
-	// Log stop only if an operation was performed
-	if cli.OperationPerformed {
+	// Log stop only if an operation was performed successfully
+	if cli.OperationPerformedSuccessfully {
 		// Give some time for cleanup
 		time.Sleep(1 * time.Second)
 		log.Println("TLS certificate chain resolver stopped.")
