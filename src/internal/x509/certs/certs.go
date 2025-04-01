@@ -23,9 +23,6 @@ var (
 	// ErrParseCertificate indicates a failure to parse the certificate from the provided data.
 	ErrParseCertificate = errors.New("x509certs: failed to parse certificate")
 
-	// ErrParsePKCS7 indicates a failure to parse PKCS7 formatted data.
-	ErrParsePKCS7 = errors.New("x509certs: failed to parse PKCS7 data")
-
 	// ErrNoCertificatesInPKCS indicates that no certificates were found in the PKCS7 data.
 	ErrNoCertificatesInPKCS = errors.New("x509certs: no certificates found in PKCS7 data")
 )
@@ -116,7 +113,7 @@ func (c *Certificate) Decode(data []byte) (*x509.Certificate, error) {
 	// Attempt to parse as PKCS7 using Cloudflare's library
 	p, err := pkcs7.ParsePKCS7(data)
 	if err != nil {
-		return nil, ErrParsePKCS7
+		return nil, ErrParseCertificate
 	}
 	if len(p.Content.SignedData.Certificates) == 0 {
 		return nil, ErrNoCertificatesInPKCS
