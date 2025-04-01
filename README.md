@@ -6,7 +6,7 @@ TLS Cert Chain Resolver is a CLI tool designed to resolve and manage TLS certifi
 ## Features
 
 - Resolve TLS certificate chains
-- Output in PEM or DER format
+- Output in PEM, DER, or JSON format. The JSON format includes PEM-encoded certificates with their chains.
 - Optionally include system root CAs
 - Efficient memory usage with buffer pooling
 
@@ -30,6 +30,7 @@ tls-cert-chain-resolver [INPUT_FILE] [OPTIONS]
 - `-i, --intermediate-only`: Output intermediate certificates only
 - `-d, --der`: Output in DER format
 - `-s, --include-system`: Include root CA from the system in output
+- `-j, --json`: Output in JSON format containing PEM for listed certificates with their chains
 
 > [!NOTE]
 > If you encounter issues installing with `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest`, try using `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd@latest` or build manually from source with `make build-linux`, `make build-macos`, or `make build-windows`.
