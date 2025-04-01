@@ -161,30 +161,45 @@ func TestDecodeCertificate(t *testing.T) {
 	}
 }
 
-const invalidPEM = `
+const (
+	invalidPEM = `
 -----BEGIN INVALID-----
 MIIEmTCCBD+gAwIBAgIRANFjRCmF+Y2bUYHbhxwkEpowCgYIKoZIzj0EAwIwgY8x
 -----END INVALID-----
 `
 
-func TestDecodeCertificate_InvalidPEM(t *testing.T) {
-	decoder := x509certs.New()
-	if _, err := decoder.Decode([]byte(invalidPEM)); err != x509certs.ErrInvalidBlockType {
-		t.Fatalf("expected ErrInvalidBlockType, got %v", err)
+	invalidCERT = `
+-----BEGIN CERTIFICATE-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz6e5VV5F8rF2sFJ0Q4vA
+-----END CERTIFICATE-----
+`
+)
+
+func TestDecodeCertificate_Invalid(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected error
+	}{
+		{
+			name:     "Invalid PEM Block",
+			input:    invalidPEM,
+			expected: x509certs.ErrInvalidBlockType,
+		},
+		{
+			name:     "Invalid Certificate",
+			input:    invalidCERT,
+			expected: x509certs.ErrParseCertificate,
+		},
 	}
-}
 
-func TestDecodeCertificate_InvalidBlockType(t *testing.T) {
-	decoder := x509certs.New()
-
-	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM")
-	}
-	block.Type = "INVALID"
-
-	if _, err := decoder.Decode(pem.EncodeToMemory(block)); err != x509certs.ErrInvalidBlockType {
-		t.Fatalf("expected ErrInvalidBlockType, got %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			decoder := x509certs.New()
+			if _, err := decoder.Decode([]byte(tt.input)); err != tt.expected {
+				t.Fatalf("expected %v, got %v", tt.expected, err)
+			}
+		})
 	}
 }
 
