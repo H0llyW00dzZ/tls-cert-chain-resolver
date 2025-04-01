@@ -148,9 +148,9 @@ func decodeCertificate(certData []byte, certManager *x509certs.Certificate) (*x5
 }
 
 // fetchCertificateChain retrieves the certificate chain starting from the given certificate.
-func fetchCertificateChain(ctx context.Context, certManager *x509.Certificate, version string) (*x509chain.Chain, error) {
+func fetchCertificateChain(ctx context.Context, cert *x509.Certificate, version string) (*x509chain.Chain, error) {
 	// Create a chain manager
-	chain := x509chain.New(certManager, version)
+	chain := x509chain.New(cert, version)
 
 	// Channel to signal completion or error
 	result := make(chan error, 1)
