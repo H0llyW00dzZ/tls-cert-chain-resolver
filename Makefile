@@ -19,13 +19,7 @@ all: build-linux build-macos build-windows
 
 # Checkout the latest tag or commit
 checkout:
-	@if [ "$(GIT_TAG)" != "v0.0.0" ]; then \
-		echo "Checking out latest tag: $(GIT_TAG)"; \
-		git checkout $(GIT_TAG); \
-	else \
-		echo "No tags found, using latest commit: $(LAST_COMMIT)"; \
-		git checkout $(LAST_COMMIT); \
-	fi
+	@git checkout $$( [ "$(GIT_TAG)" != "v0.0.0" ] && echo "$(GIT_TAG)" || echo "$(LAST_COMMIT)" )
 
 # Return to the previous branch or commit
 return:
