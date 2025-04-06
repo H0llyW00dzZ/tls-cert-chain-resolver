@@ -51,7 +51,6 @@ func Execute(ctx context.Context, version string) error {
 				"Note: Press CTRL+C or send a termination signal (e.g., SIGINT or SIGTERM)",
 				"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).",
 			)
-			log.Println()
 			OperationPerformed = true
 			return execCli(ctx, cmd, args)
 		},
