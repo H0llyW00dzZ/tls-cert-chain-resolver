@@ -1,4 +1,5 @@
 # TLS Cert Chain Resolver
+
 [![Go Reference](https://pkgo.dev/badge/github.com/H0llyW00dzZ/tls-cert-chain-resolver.svg)](https://pkgo.dev/github.com/H0llyW00dzZ/tls-cert-chain-resolver) [![Go Report Card](https://goreportcard.com/badge/github.com/H0llyW00dzZ/tls-cert-chain-resolver)](https://goreportcard.com/report/github.com/H0llyW00dzZ/tls-cert-chain-resolver)
 
 TLS Cert Chain Resolver is a CLI tool designed to resolve and manage TLS certificate chains efficiently. This tool is inspired by [zakjan/cert-chain-resolver](https://github.com/zakjan/cert-chain-resolver.git), but offers a more maintainable codebase and is actively maintained.
@@ -21,11 +22,12 @@ go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest
 ## Usage
 
 ```bash
-tls-cert-chain-resolver [INPUT_FILE] [OPTIONS]
+tls-cert-chain-resolver -f [INPUT_FILE] [FLAGS]
 ```
 
-### Options
+### Flags
 
+- `-f, --file`: Input certificate file (required)
 - `-o, --output`: Output to a specified file (default: stdout)
 - `-i, --intermediate-only`: Output intermediate certificates only
 - `-d, --der`: Output in DER format
@@ -39,7 +41,7 @@ tls-cert-chain-resolver [INPUT_FILE] [OPTIONS]
 
 ### Prerequisites
 
-- Go 1.24.1 or later
+- Go 1.24.2 or later
 
 ### Building from Source
 
@@ -75,9 +77,9 @@ This tool is compatible with Go 1.24.2 or later and works effectively across var
 ### Example with OpenSSL:
 
 ```bash
-h0llyw00dzz@ubuntu-pro:~/Workspace/git/tls-cert-chain-resolver$ ./bin/linux/tls-cert-chain-resolver test-leaf.cer -o test-output-bundle.pem
-Starting TLS certificate chain resolver (v0.1.7)...
-Press CTRL+C to exit if incomplete.
+h0llyw00dzz@ubuntu-pro:~/Workspace/git/tls-cert-chain-resolver$ ./bin/linux/tls-cert-chain-resolver -f test-leaf.cer -o test-output-bundle.pem
+Starting TLS certificate chain resolver (v0.2.5)...
+Note: Press CTRL+C or send a termination signal (e.g., SIGINT or SIGTERM) via your operating system to exit if incomplete (e.g., hanging while fetching certificates).
 1: *.b0zal.io
 2: Sectigo ECC Domain Validation Secure Server CA
 3: USERTrust ECC Certification Authority
