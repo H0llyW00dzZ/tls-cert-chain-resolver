@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -30,18 +31,29 @@ var (
 	intermediateOnly bool
 	derFormat        bool
 	includeSystem    bool
-	jsonFormat       bool // New flag for JSON output
+	jsonFormat       bool   // New flag for JSON output
+	inputFile        string // New variable for input file
+)
+
+var (
+	// ErrInputFileRequired is returned when no input file is specified.
+	ErrInputFileRequired = errors.New("input file must be specified with -f or --file")
 )
 
 // Execute runs the root command, handling any errors that occur during execution.
 func Execute(ctx context.Context, version string) error {
 	rootCmd := &cobra.Command{
-		Use:   "tls-cert-chain-resolver [INPUT_FILE]",
+		Use:   "tls-cert-chain-resolver",
 		Short: "TLS certificate chain resolver",
-		Example: `  tls-cert-chain-resolver test-leaf.cer -o test-output-bundle.pem
-  tls-cert-chain-resolver another-cert.cer -o test-output-bundle.crt --der --include-system`,
+		Example: `  tls-cert-chain-resolver -f test-leaf.cer -o test-output-bundle.pem
+  tls-cert-chain-resolver -f another-cert.cer -o test-output-bundle.crt --der --include-system`,
 		Version: version,
-		Args:    cobra.ExactArgs(1),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if inputFile == "" {
+				return ErrInputFileRequired
+			}
+			return nil
+		},
 		// TODO: This might need improvment however this doesn't actually important to improve even cobra has 3 function execute,
 		// because 2 function or 1 function execute its already enought.
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,11 +64,13 @@ func Execute(ctx context.Context, version string) error {
 				"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).",
 			)
 			OperationPerformed = true
-			return execCli(ctx, cmd, args)
+			return execCli(ctx, cmd)
 		},
-		PostRun: func(cmd *cobra.Command, args []string) { OperationPerformedSuccessfully = true },
+		PostRun:      func(cmd *cobra.Command, args []string) { OperationPerformedSuccessfully = true },
+		SilenceUsage: true,
 	}
 
+	rootCmd.Flags().StringVarP(&inputFile, "file", "f", "", "input certificate file")
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output to OUTPUT_FILE (default: stdout)")
 	rootCmd.Flags().BoolVarP(&intermediateOnly, "intermediate-only", "i", false, "output intermediate certificates only")
 	rootCmd.Flags().BoolVarP(&derFormat, "der", "d", false, "output DER format")
@@ -89,9 +103,9 @@ type jsonOutput struct {
 // It reads the input certificate file, decodes it, fetches the entire certificate chain, and optionally
 // adds the root CA. The output is then prepared in either DER or PEM format and written to the specified
 // output file or printed to stdout if no output file is specified.
-func execCli(ctx context.Context, cmd *cobra.Command, args []string) error {
+func execCli(ctx context.Context, cmd *cobra.Command) error {
 	// Read the input certificate file
-	certData, err := readCertificateFile(args[0])
+	certData, err := readCertificateFile(inputFile)
 	if err != nil {
 		return err
 	}
@@ -236,7 +250,7 @@ func writeOutput(data []byte) error {
 		}
 		log.Printf("Output successfully written to %s.", outputFile)
 	} else {
-		fmt.Print(string(data))
+		fmt.Println(string(data))
 		log.Println("Output successfully written to stdout.")
 	}
 	return nil
