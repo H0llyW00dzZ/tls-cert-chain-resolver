@@ -15,7 +15,7 @@ import (
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/cli"
 )
 
-var version = "0.2.5" // default version if not set
+var version = "0.2.6" // default version if not set
 
 func main() {
 	// Disable the default timestamp in log output
@@ -29,25 +29,31 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	// Channel to signal completion
+	// Channel to signal completion with buffer size 1
 	done := make(chan error, 1)
 
 	// Run the CLI in a separate goroutine
 	go func() {
-		// Note: Avoid formatting or logging the error here to prevent duplicate messages,
-		// as it is already captured.
-		if err := cli.Execute(ctx, version); err != nil {
-			done <- err
-			return
+		err := cli.Execute(ctx, version)
+		// Use a select to prevent blocking if context is cancelled
+		select {
+		case done <- err:
+			// Successfully sent the error
+		case <-ctx.Done():
+			// Context was cancelled, don't try to send on done channel
+			log.Println("Operation cancelled, cleaning up...")
 		}
-		done <- nil
 	}()
 
+	// Wait for either a signal or completion
 	select {
 	case <-sigs:
 		log.Println("\nReceived termination signal. Exiting...")
 		cancel()
+		// We don't need to wait for the goroutine to finish
+		// The buffered channel and select in the goroutine prevent blocking
 	case err := <-done:
+		// Only log successful completion, not errors (Cobra already logs them)
 		if err == nil && cli.OperationPerformed {
 			log.Println("Certificate chain resolution completed successfully.")
 		}
