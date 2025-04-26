@@ -30,7 +30,7 @@ return:
 build-linux: checkout
 	@echo "Building $(BINARY_NAME) for Linux version $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)/linux
-	@GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/linux/$(BINARY_NAME) ./cmd
+	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(BINARY_NAME) ./cmd
 	@echo "Build complete: $(BUILD_DIR)/linux/$(BINARY_NAME)"
 	@$(MAKE) return
 
