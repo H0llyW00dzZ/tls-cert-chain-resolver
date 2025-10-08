@@ -41,7 +41,7 @@ tls-cert-chain-resolver -f [INPUT_FILE] [FLAGS]
 
 ### Prerequisites
 
-- Go 1.24.2 or later
+- Go 1.25.2 or later
 
 ### Building from Source
 
