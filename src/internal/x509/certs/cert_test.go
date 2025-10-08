@@ -13,6 +13,7 @@ import (
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 )
 
+// TODO: Replace test certificate PEM as it has been revoked due to expiration
 const testCertPEM = `
 -----BEGIN CERTIFICATE-----
 MIIEmTCCBD+gAwIBAgIRANFjRCmF+Y2bUYHbhxwkEpowCgYIKoZIzj0EAwIwgY8x
