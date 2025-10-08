@@ -8,17 +8,10 @@ package x509chain
 import (
 	"context"
 	"crypto/x509"
-	"errors"
 	"net/http"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
-)
-
-// ErrCertificateChainVerificationFailed is returned when the verification of the certificate chain fails.
-// This error indicates that one or more certificates in the chain could not be validated against their issuer.
-var (
-	ErrCertificateChainVerificationFailed = errors.New("x509chain: certificate chain verification failed")
 )
 
 // Chain manages [X.509] certificates.
@@ -157,7 +150,9 @@ func (ch *Chain) VerifyChain() error {
 	}
 
 	if _, err := leaf.Verify(opts); err != nil {
-		return ErrCertificateChainVerificationFailed
+		// Return the original error from the verification process to preserve
+		// detailed diagnostic information (e.g., expiration, unknown authority).
+		return err
 	}
 
 	return nil
