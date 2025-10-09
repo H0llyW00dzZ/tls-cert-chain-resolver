@@ -688,6 +688,34 @@ func main() {
 
 This project was created to provide a more maintainable and actively maintained version of the original [zakjan/cert-chain-resolver](https://github.com/zakjan/cert-chain-resolver.git), which is no longer maintained.
 
+## TODO List
+
+### MCP Integration Enhancements
+
+#### Library Support
+- [ ] Maintain compatibility with `github.com/mark3labs/mcp-go`
+- [ ] Create abstraction layer for both MCP libraries
+- [ ] Document differences and use cases for each library
+
+#### Implementation
+- [ ] Create standalone MCP server binary in `cmd/mcp-server/`
+- [ ] Add configuration file support for MCP server settings
+- [ ] Implement streaming support for large certificate chains
+- [ ] Add MCP server tests with mock certificate data
+- [ ] Add metrics and logging for MCP server operations
+
+#### Features
+- [ ] Add support for certificate validation through MCP tool
+- [ ] Implement certificate expiry checking via MCP
+- [ ] Add batch certificate resolution support
+- [ ] Support for remote certificate fetching via URL/hostname
+
+#### Documentation & Deployment
+- [ ] Document MCP server deployment options (Docker, systemd, etc.)
+- [ ] Create example MCP client implementations for both libraries
+- [ ] Create MCP server configuration examples for different platforms
+- [ ] Add troubleshooting guide for MCP integration
+
 ## License
 
 This project is licensed under the BSD 3-Clause License. See the [LICENSE](LICENSE) file for details.
