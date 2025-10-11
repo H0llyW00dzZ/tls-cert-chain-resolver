@@ -19,7 +19,9 @@
 - Context: Pass `context.Context` as first parameter for cancellable operations
 - Testing: Use table-driven tests with descriptive test names
 
-## MCP Tools (gopls)
+## [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) Tools
+
+### gopls
 - Use `gopls_go_diagnostics` to check for parse/build errors across the workspace
 - Use `gopls_go_workspace` to get workspace structure summary
 - Use `gopls_go_file_context` to summarize file dependencies
@@ -27,3 +29,9 @@
 - Use `gopls_go_search` for fuzzy symbol search (case-insensitive, matches partial names)
 - Use `gopls_go_symbol_references` to find references to package-level symbols (supports qualified names like `pkg.Symbol`, and field/method selection like `T.M` or `pkg.T.M`)
 - Run diagnostics before committing changes to catch errors early
+
+### DeepWiki
+- Use `deepwiki_read_wiki_structure` to get documentation topics for a GitHub repository (format: `owner/repo`)
+- Use `deepwiki_read_wiki_contents` to view repository documentation
+- Use `deepwiki_ask_question` to ask questions about a GitHub repository's implementation, architecture, or features
+- Helpful for understanding third-party dependencies, researching similar implementations, or learning from established patterns
