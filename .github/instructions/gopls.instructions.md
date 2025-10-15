@@ -9,11 +9,12 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 **Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
 **Go Version**: 1.25.2 or later  
 **Key Packages**:
-- `cmd/` - Main CLI entry point
-- `src/cli/` - Cobra CLI implementation
-- `src/internal/x509/certs/` - Certificate encoding/decoding operations
-- `src/internal/x509/chain/` - Certificate chain resolution logic
-- `src/internal/helper/gc/` - Memory management utilities
+- **`cmd/`** — Main CLI entry point
+- **`src/cli/`** — Cobra CLI implementation
+- **`src/logger/`** — Logger abstraction (CLI/MCP)
+- **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
+- **`src/internal/x509/chain/`** — Certificate chain resolution logic
+- **`src/internal/helper/gc/`** — Memory management utilities
 
 ## Core Workflows
 
@@ -72,6 +73,7 @@ Go Version: 1.25.2
 Packages:
 - cmd (main)
 - src/cli
+- src/logger
 - src/internal/x509/certs
 - src/internal/x509/chain
 - src/internal/helper/gc
@@ -308,8 +310,13 @@ if err != nil {
 ### Logging
 
 ```go
-// Use log.Printf for CLI output
-log.Printf("Certificate chain complete. Total %d certificate(s) found.", len(chain.Certs))
+// Use logger abstraction (CLI/MCP mode)
+globalLogger.Printf("Certificate chain complete. Total %d certificate(s) found.", len(chain.Certs))
+
+// Initialize logger based on mode
+logger := logger.NewCLILogger()  // For CLI mode
+// or
+logger := logger.NewMCPLogger()  // For MCP mode
 ```
 
 ## Integration with Other Tools
