@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md",
+    ".github/instructions/gopls.instructions.md",
+    ".github/instructions/deepwiki.instructions.md",
+    ".github/instructions/filesystem.instructions.md",
+    ".github/instructions/memory.instructions.md",
+    ".github/instructions/opencode.instructions.md"
+  ]
+}
