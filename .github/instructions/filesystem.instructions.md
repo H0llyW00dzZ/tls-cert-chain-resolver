@@ -9,36 +9,42 @@ Built-in filesystem tools for reading, writing, editing, listing, and searching 
 ```
 tls-cert-chain-resolver/
 ├── .github/
+│   ├── instructions/                          # Agent instruction files
+│   │   ├── deepwiki.instructions.md          # External library research
+│   │   ├── filesystem.instructions.md        # THIS FILE - File operations
+│   │   ├── gopls.instructions.md             # Go language intelligence
+│   │   ├── memory.instructions.md            # Memory/context management
+│   │   └── opencode.instructions.md          # OpenCode configuration
 │   ├── workflows/
-│   │   └── coverage.yml
-│   ├── instructions/      # THIS DIRECTORY
-│   └── dependabot.yml
+│   │   └── coverage.yml                      # CI/CD coverage workflow
+│   └── dependabot.yml                        # Dependency updates config
 ├── cmd/
-│   └── run.go            # Main entry point
+│   └── run.go                                # Main entry point
 ├── src/
 │   ├── cli/
-│   │   ├── root.go       # Cobra CLI implementation
-│   │   └── root_test.go
+│   │   ├── root.go                           # Cobra CLI implementation
+│   │   └── root_test.go                      # CLI tests
 │   └── internal/
 │       ├── helper/
 │       │   └── gc/
-│       │       └── reduce_overhead.go
+│       │       └── reduce_overhead.go        # GC optimization
 │       └── x509/
 │           ├── certs/
-│           │   ├── certs.go      # Certificate encoding/decoding
-│           │   └── cert_test.go
+│           │   ├── certs.go                  # Certificate encoding/decoding
+│           │   └── cert_test.go              # Certificate tests
 │           └── chain/
-│               ├── chain.go      # Chain resolution logic
-│               └── chain_test.go
-├── bin/                  # Build artifacts (ignored)
-├── .gitignore
-├── .ignore              # Tool ignore patterns
-├── AGENTS.md            # Agent guidelines
-├── go.mod
-├── go.sum
-├── LICENSE
-├── Makefile
-└── README.md
+│               ├── chain.go                  # Chain resolution logic
+│               └── chain_test.go             # Chain tests
+├── bin/                                      # Build artifacts (ignored)
+├── .gitignore                                # Git ignore patterns
+├── .ignore                                   # Tool ignore patterns (glob/grep)
+├── AGENTS.md                                 # Primary agent guidelines
+├── opencode.json                             # OpenCode configuration
+├── go.mod                                    # Go module definition
+├── go.sum                                    # Go dependency checksums
+├── LICENSE                                   # BSD 3-Clause License
+├── Makefile                                  # Build commands
+└── README.md                                 # Project documentation
 ```
 
 ## Available Tools
@@ -578,6 +584,17 @@ go.sum
 README.md
 AGENTS.md
 LICENSE
+
+# Configuration
+opencode.json
+.ignore
+
+# Agent instructions
+.github/instructions/gopls.instructions.md
+.github/instructions/deepwiki.instructions.md
+.github/instructions/filesystem.instructions.md
+.github/instructions/memory.instructions.md
+.github/instructions/opencode.instructions.md
 ```
 
 ### Common Search Patterns
