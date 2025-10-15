@@ -10,6 +10,7 @@ Built-in filesystem tools for reading, writing, editing, listing, and searching 
 tls-cert-chain-resolver/
 ├── .github/
 │   ├── instructions/                         # Agent instruction files
+│   │   ├── README.md                         # Instructions overview (for humans)
 │   │   ├── deepwiki.instructions.md          # External library research
 │   │   ├── filesystem.instructions.md        # THIS FILE - File operations
 │   │   ├── gopls.instructions.md             # Go language intelligence
@@ -597,6 +598,7 @@ opencode.json
 .ignore
 
 # Agent instructions
+.github/instructions/README.md
 .github/instructions/gopls.instructions.md
 .github/instructions/deepwiki.instructions.md
 .github/instructions/filesystem.instructions.md
