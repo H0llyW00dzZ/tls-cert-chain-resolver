@@ -11,11 +11,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -31,8 +31,9 @@ var (
 	intermediateOnly bool
 	derFormat        bool
 	includeSystem    bool
-	jsonFormat       bool   // New flag for JSON output
-	inputFile        string // New variable for input file
+	jsonFormat       bool          // New flag for JSON output
+	inputFile        string        // New variable for input file
+	globalLogger     logger.Logger // Global logger instance
 )
 
 var (
@@ -41,7 +42,8 @@ var (
 )
 
 // Execute runs the root command, handling any errors that occur during execution.
-func Execute(ctx context.Context, version string) error {
+func Execute(ctx context.Context, version string, log logger.Logger) error {
+	globalLogger = log
 	rootCmd := &cobra.Command{
 		Use:   "tls-cert-chain-resolver",
 		Short: "TLS certificate chain resolver",
@@ -58,8 +60,8 @@ func Execute(ctx context.Context, version string) error {
 		// because 2 function or 1 function execute its already enought.
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Log start with version
-			log.Printf("Starting TLS certificate chain resolver (v%s)...", version)
-			log.Println(
+			globalLogger.Printf("Starting TLS certificate chain resolver (v%s)...", version)
+			globalLogger.Println(
 				"Note: Press CTRL+C or send a termination signal (e.g., SIGINT or SIGTERM)",
 				"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).",
 			)
@@ -132,9 +134,9 @@ func execCli(ctx context.Context, cmd *cobra.Command) error {
 
 	// Log each certificate in the chain
 	for i, c := range chain.Certs {
-		log.Printf("%d: %s", i+1, c.Subject.CommonName)
+		globalLogger.Printf("%d: %s", i+1, c.Subject.CommonName)
 	}
-	log.Printf("Certificate chain complete. Total %d certificate(s) found.", len(chain.Certs))
+	globalLogger.Printf("Certificate chain complete. Total %d certificate(s) found.", len(chain.Certs))
 
 	// Filter certificates if needed
 	certsToOutput := filterCertificates(chain)
@@ -248,10 +250,10 @@ func writeOutput(data []byte) error {
 		if err := os.WriteFile(outputFile, data, 0644); err != nil {
 			return fmt.Errorf("error writing to output file: %w", err)
 		}
-		log.Printf("Output successfully written to %s.", outputFile)
+		globalLogger.Printf("Output successfully written to %s.", outputFile)
 	} else {
 		fmt.Println(string(data))
-		log.Println("Output successfully written to stdout.")
+		globalLogger.Println("Output successfully written to stdout.")
 	}
 	return nil
 }
