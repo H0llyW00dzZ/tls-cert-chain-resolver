@@ -24,6 +24,9 @@ tls-cert-chain-resolver/
 │   ├── cli/
 │   │   ├── root.go                           # Cobra CLI implementation
 │   │   └── root_test.go                      # CLI tests
+│   ├── logger/
+│   │   ├── logger.go                         # Logger abstraction (CLI/MCP)
+│   │   └── logger_test.go                    # Logger tests
 │   └── internal/
 │       ├── helper/
 │       │   └── gc/
@@ -564,6 +567,10 @@ cmd/run.go
 src/cli/root.go
 src/cli/root_test.go
 
+# Logger abstraction
+src/logger/logger.go
+src/logger/logger_test.go
+
 # Certificate operations
 src/internal/x509/certs/certs.go
 src/internal/x509/certs/cert_test.go
@@ -614,6 +621,12 @@ grep("Encode.*PEM", include="*.go")
 
 # Find chain methods
 grep("func (c \\*Chain)", include="*.go")
+
+# Find logger usage
+grep("logger\\.Logger", include="*.go")
+
+# Find logger implementations
+grep("NewCLILogger\\|NewMCPLogger", include="*.go")
 ```
 
 ### Common Edit Patterns
@@ -625,10 +638,10 @@ edit("file.go",
   newString='return fmt.Errorf("new message: %w", err)'
 )
 
-# Update log output
+# Update logger output
 edit("file.go",
-  oldString='log.Printf("old format")',
-  newString='log.Printf("new format")'
+  oldString='globalLogger.Printf("old format")',
+  newString='globalLogger.Printf("new format")'
 )
 
 # Refactor function calls

@@ -7,19 +7,19 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/cli"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
 )
 
 var version = "0.2.9" // default version if not set
 
 func main() {
-	// Disable the default timestamp in log output
-	log.SetFlags(0)
+	// Create CLI logger
+	log := logger.NewCLILogger()
 
 	// Create a context that can be cancelled
 	ctx, cancel := context.WithCancel(context.Background())
@@ -34,7 +34,7 @@ func main() {
 
 	// Run the CLI in a separate goroutine
 	go func() {
-		err := cli.Execute(ctx, version)
+		err := cli.Execute(ctx, version, log)
 		// Use a select to prevent blocking if context is cancelled
 		select {
 		case done <- err:
