@@ -375,7 +375,7 @@ New to repository?
 ### Package Structure
 
 ```
-cmd/                    → Main entry point
+cmd/                   → Main entry point
 src/cli/               → CLI implementation (cobra)
 src/internal/x509/     → Certificate operations
   ├── certs/           → Encoding/decoding
