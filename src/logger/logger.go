@@ -15,6 +15,11 @@ import (
 
 // Logger defines the interface for logging operations.
 // It provides methods for different log levels and formatted output.
+//
+// This interface supports both CLI and [MCP] server modes, allowing seamless
+// switching between human-readable output and structured logging.
+//
+// [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 type Logger interface {
 	// Printf formats and prints a log message.
 	Printf(format string, v ...any)
@@ -44,17 +49,21 @@ func (c *CLILogger) Println(v ...any) { c.logger.Println(v...) }
 // SetOutput sets the output destination for the CLI logger.
 func (c *CLILogger) SetOutput(w io.Writer) { c.logger.SetOutput(w) }
 
-// MCPLogger implements Logger for MCP server mode.
+// MCPLogger implements Logger for [MCP] server mode.
 // It suppresses output by default since MCP communication happens over stdio,
 // but can be configured to write structured logs to a separate destination.
+//
+// [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 type MCPLogger struct {
 	writer io.Writer
 	silent bool
 }
 
-// NewMCPLogger creates a new MCP logger.
-// By default, it's silent (output suppressed) to avoid interfering with MCP stdio protocol.
+// NewMCPLogger creates a new [MCP] logger.
+// By default, it's silent (output suppressed) to avoid interfering with [MCP] stdio protocol.
 // Set silent=false and provide a writer to enable structured logging to a file or stderr.
+//
+// [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 func NewMCPLogger(writer io.Writer, silent bool) *MCPLogger {
 	if writer == nil {
 		writer = io.Discard
@@ -67,6 +76,10 @@ func NewMCPLogger(writer io.Writer, silent bool) *MCPLogger {
 
 // Printf formats and logs a structured message in JSON format.
 // Output is suppressed if silent mode is enabled.
+//
+// The JSON format is compatible with [MCP] protocol logging requirements.
+//
+// [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 func (m *MCPLogger) Printf(format string, v ...any) {
 	if m.silent {
 		return
@@ -84,6 +97,10 @@ func (m *MCPLogger) Printf(format string, v ...any) {
 
 // Println logs a structured message in JSON format.
 // Output is suppressed if silent mode is enabled.
+//
+// The JSON format is compatible with [MCP] protocol logging requirements.
+//
+// [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 func (m *MCPLogger) Println(v ...any) {
 	if m.silent {
 		return
