@@ -1,0 +1,79 @@
+# .ignore file for MCP tools (glob, grep, etc.)
+# Organized by reliability: directories first (most reliable), then file patterns
+
+# ============================================================================
+# DIRECTORIES (Most reliable - always excluded)
+# ============================================================================
+
+# Build artifacts
+bin/
+
+# Version control
+.git/
+
+# IDE and editor directories
+.vscode/
+.idea/
+.idx/
+
+# Temporary directories
+tmp/
+
+# Dependency directories (if vendor is used)
+vendor/
+
+# ============================================================================
+# FILE PATTERNS (Less reliable - may need explicit path checking)
+# ============================================================================
+
+# Compiled binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Coverage output
+*.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# Environment files
+.env
+.env.*
+
+# Test certificate files (project-specific)
+test-leaf.cer
+test-output-bundle.pem
+test-output-bundle.crt
+*.cer
+*.pem
+*.crt
+*.key
+*.der
+*.p7b
+*.pfx
+
+# IDE configuration files
+.vscode
+.idea
+.idx
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Log files
+*.log
+
+# Backup files
+*.bak
+*.swp
+*.swo
+*~
