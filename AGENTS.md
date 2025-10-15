@@ -169,7 +169,6 @@ task("Search for certificate parsing patterns", "Find all certificate parsing im
 
 **Project Knowledge**:
 - `.github/instructions/*.md`: Instruction files for Gopls, DeepWiki, Filesystem, Memory
-- `mcp/docs/README.md`: Internal MCP server documentation
 
 ### MCP Connection Patterns
 
