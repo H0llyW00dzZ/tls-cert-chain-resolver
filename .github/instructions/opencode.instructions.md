@@ -366,7 +366,7 @@ New to repository?
 ### Module Information
 
 **Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
-**Go Version**: 1.25.2+  
+**Go Version**: 1.25.3+  
 **Key Dependencies**:
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/cloudflare/cfssl` - Certificate utilities

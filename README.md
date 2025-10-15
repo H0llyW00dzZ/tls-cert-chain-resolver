@@ -42,7 +42,7 @@ tls-cert-chain-resolver -f [INPUT_FILE] [FLAGS]
 
 ### Prerequisites
 
-- Go 1.25.2 or later
+- Go 1.25.3 or later
 
 ### Building from Source
 
@@ -73,7 +73,7 @@ make build-windows
 
 ## Compatibility
 
-This tool is compatible with Go 1.25.2 or later and works effectively across various clients (e.g., HTTP clients in Go, mobile browsers, OpenSSL). It resolves chaining issues, providing enhanced flexibility and control over certificate chain resolution.
+This tool is compatible with Go 1.25.3 or later and works effectively across various clients (e.g., HTTP clients in Go, mobile browsers, OpenSSL). It resolves chaining issues, providing enhanced flexibility and control over certificate chain resolution.
 
 ### Example with OpenSSL:
 
