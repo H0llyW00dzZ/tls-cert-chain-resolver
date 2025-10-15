@@ -9,7 +9,7 @@ Built-in filesystem tools for reading, writing, editing, listing, and searching 
 ```
 tls-cert-chain-resolver/
 ├── .github/
-│   ├── instructions/                          # Agent instruction files
+│   ├── instructions/                         # Agent instruction files
 │   │   ├── deepwiki.instructions.md          # External library research
 │   │   ├── filesystem.instructions.md        # THIS FILE - File operations
 │   │   ├── gopls.instructions.md             # Go language intelligence
