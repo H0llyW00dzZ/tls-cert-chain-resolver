@@ -1,0 +1,70 @@
+# Agent Instructions
+
+## ⚠️ Important Notice
+
+**These files are NOT intended for human developers.**
+
+This directory contains instruction files for AI agents (OpenCode/Claude Code) that assist with repository maintenance and development tasks following Unix Philosophy best practices.
+
+## Purpose
+
+These instruction files provide:
+- Tool-specific usage guidelines for AI agents
+- Repository-specific patterns and conventions
+- Automated workflow instructions
+- Memory and resource management guidelines
+- Unix Philosophy best practices (composable tools, do one thing well)
+
+## Files in This Directory
+
+| File | Purpose |
+|------|---------|
+| `deepwiki.instructions.md` | External library research and documentation access |
+| `filesystem.instructions.md` | File operations (read, write, edit, glob, grep) |
+| `gopls.instructions.md` | Go language intelligence and workspace operations |
+| `memory.instructions.md` | Memory, context, and resource management |
+| `opencode.instructions.md` | OpenCode configuration and instruction hierarchy |
+
+## For Human Developers
+
+If you're a human developer looking for project documentation, please refer to:
+
+- **[`/README.md`](../../README.md)** - Project overview and usage
+- **[`/AGENTS.md`](../../AGENTS.md)** - High-level repository guidelines (also used by agents)
+- **[`/LICENSE`](../../LICENSE)** - BSD 3-Clause License
+- **Code comments** - Inline documentation in source files
+
+## How These Instructions Work
+
+1. AI agents load these files at session start via `opencode.json`
+2. Instructions provide context-specific guidance for development tasks
+3. Files reference repository structure, actual file paths, and code patterns
+4. Guidelines ensure consistent agent behavior across sessions
+
+## Configuration
+
+These instruction files are loaded via `/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md",
+    ".github/instructions/*.md"
+  ]
+}
+```
+
+## Maintenance
+
+These files should be updated when:
+- New features or patterns are established
+- Dependencies change
+- Build process modifications occur
+- Common agent mistakes are identified
+
+**Note**: These instructions are versioned with the code to ensure agents have accurate, up-to-date guidance.
+
+---
+
+**TL;DR**: This directory is for AI agents. Human developers should use `/README.md` and code comments instead.
