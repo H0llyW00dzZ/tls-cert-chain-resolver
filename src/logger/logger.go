@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 )
 
 // Logger defines the interface for logging operations.
@@ -53,8 +54,11 @@ func (c *CLILogger) SetOutput(w io.Writer) { c.logger.SetOutput(w) }
 // It suppresses output by default since MCP communication happens over stdio,
 // but can be configured to write structured logs to a separate destination.
 //
+// MCPLogger is safe for concurrent use by multiple goroutines.
+//
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 type MCPLogger struct {
+	mu     sync.Mutex
 	writer io.Writer
 	silent bool
 }
@@ -79,6 +83,8 @@ func NewMCPLogger(writer io.Writer, silent bool) *MCPLogger {
 //
 // The JSON format is compatible with [MCP] protocol logging requirements.
 //
+// Printf is safe for concurrent use by multiple goroutines.
+//
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 func (m *MCPLogger) Printf(format string, v ...any) {
 	if m.silent {
@@ -92,13 +98,18 @@ func (m *MCPLogger) Printf(format string, v ...any) {
 	}
 
 	data, _ := json.Marshal(logEntry)
+
+	m.mu.Lock()
 	fmt.Fprintln(m.writer, string(data))
+	m.mu.Unlock()
 }
 
 // Println logs a structured message in JSON format.
 // Output is suppressed if silent mode is enabled.
 //
 // The JSON format is compatible with [MCP] protocol logging requirements.
+//
+// Println is safe for concurrent use by multiple goroutines.
 //
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 func (m *MCPLogger) Println(v ...any) {
@@ -113,11 +124,19 @@ func (m *MCPLogger) Println(v ...any) {
 	}
 
 	data, _ := json.Marshal(logEntry)
+
+	m.mu.Lock()
 	fmt.Fprintln(m.writer, string(data))
+	m.mu.Unlock()
 }
 
 // SetOutput sets the output destination for the MCP logger.
+//
+// SetOutput is safe for concurrent use by multiple goroutines.
 func (m *MCPLogger) SetOutput(w io.Writer) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if w == nil {
 		m.writer = io.Discard
 	} else {

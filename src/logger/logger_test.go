@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
@@ -218,5 +219,248 @@ func TestMCPLogger_SilentMode_NoSideEffects(t *testing.T) {
 
 	if buf.Len() != 0 {
 		t.Errorf("expected no output in silent mode after 200 calls, got %d bytes", buf.Len())
+	}
+}
+
+func TestMCPLogger_ConcurrentPrintf(t *testing.T) {
+	var buf bytes.Buffer
+	log := logger.NewMCPLogger(&buf, false)
+
+	const numGoroutines = 100
+	const messagesPerGoroutine = 10
+
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	for i := range numGoroutines {
+		go func(id int) {
+			defer wg.Done()
+			for j := range messagesPerGoroutine {
+				log.Printf("goroutine %d message %d", id, j)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	output := buf.String()
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	expectedLines := numGoroutines * messagesPerGoroutine
+	if len(lines) != expectedLines {
+		t.Errorf("expected %d log lines, got %d", expectedLines, len(lines))
+	}
+
+	for i, line := range lines {
+		var logEntry map[string]any
+		if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
+			t.Errorf("line %d: failed to parse JSON: %v\nLine content: %s", i+1, err, line)
+		}
+
+		if logEntry["level"] != "info" {
+			t.Errorf("line %d: expected level 'info', got %v", i+1, logEntry["level"])
+		}
+
+		msg, ok := logEntry["message"].(string)
+		if !ok {
+			t.Errorf("line %d: message is not a string", i+1)
+			continue
+		}
+
+		if !strings.Contains(msg, "goroutine") || !strings.Contains(msg, "message") {
+			t.Errorf("line %d: unexpected message format: %s", i+1, msg)
+		}
+	}
+}
+
+func TestMCPLogger_ConcurrentPrintln(t *testing.T) {
+	var buf bytes.Buffer
+	log := logger.NewMCPLogger(&buf, false)
+
+	const numGoroutines = 100
+	const messagesPerGoroutine = 10
+
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	for i := range numGoroutines {
+		go func(id int) {
+			defer wg.Done()
+			for j := range messagesPerGoroutine {
+				log.Println("goroutine", id, "message", j)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	output := buf.String()
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	expectedLines := numGoroutines * messagesPerGoroutine
+	if len(lines) != expectedLines {
+		t.Errorf("expected %d log lines, got %d", expectedLines, len(lines))
+	}
+
+	for i, line := range lines {
+		var logEntry map[string]any
+		if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
+			t.Errorf("line %d: failed to parse JSON: %v\nLine content: %s", i+1, err, line)
+		}
+	}
+}
+
+func TestMCPLogger_ConcurrentMixed(t *testing.T) {
+	var buf bytes.Buffer
+	log := logger.NewMCPLogger(&buf, false)
+
+	const numGoroutines = 50
+	const messagesPerGoroutine = 10
+
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines * 2)
+
+	for i := range numGoroutines {
+		go func(id int) {
+			defer wg.Done()
+			for j := range messagesPerGoroutine {
+				log.Printf("Printf goroutine %d message %d", id, j)
+			}
+		}(i)
+
+		go func(id int) {
+			defer wg.Done()
+			for j := range messagesPerGoroutine {
+				log.Println("Println goroutine", id, "message", j)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	output := buf.String()
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	expectedLines := numGoroutines * 2 * messagesPerGoroutine
+	if len(lines) != expectedLines {
+		t.Errorf("expected %d log lines, got %d", expectedLines, len(lines))
+	}
+
+	printfCount := 0
+	printlnCount := 0
+
+	for i, line := range lines {
+		var logEntry map[string]any
+		if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
+			t.Errorf("line %d: failed to parse JSON: %v", i+1, err)
+			continue
+		}
+
+		msg, ok := logEntry["message"].(string)
+		if !ok {
+			t.Errorf("line %d: message is not a string", i+1)
+			continue
+		}
+
+		if strings.HasPrefix(msg, "Printf") {
+			printfCount++
+		} else if strings.HasPrefix(msg, "Println") {
+			printlnCount++
+		}
+	}
+
+	expectedPrintfCount := numGoroutines * messagesPerGoroutine
+	expectedPrintlnCount := numGoroutines * messagesPerGoroutine
+
+	if printfCount != expectedPrintfCount {
+		t.Errorf("expected %d Printf messages, got %d", expectedPrintfCount, printfCount)
+	}
+
+	if printlnCount != expectedPrintlnCount {
+		t.Errorf("expected %d Println messages, got %d", expectedPrintlnCount, printlnCount)
+	}
+}
+
+func TestMCPLogger_ConcurrentSetOutput(t *testing.T) {
+	var buf1, buf2 bytes.Buffer
+	log := logger.NewMCPLogger(&buf1, false)
+
+	const numGoroutines = 10
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines * 2)
+
+	for i := range numGoroutines {
+		go func(id int) {
+			defer wg.Done()
+			log.Printf("writer1 message %d", id)
+		}(i)
+
+		go func(id int) {
+			defer wg.Done()
+			if id == 5 {
+				log.SetOutput(&buf2)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	totalOutput := buf1.Len() + buf2.Len()
+	if totalOutput == 0 {
+		t.Error("expected some output across both buffers")
+	}
+}
+
+func TestCLILogger_ConcurrentUsage(t *testing.T) {
+	var buf bytes.Buffer
+	log := logger.NewCLILogger()
+	log.SetOutput(&buf)
+
+	const numGoroutines = 100
+	const messagesPerGoroutine = 10
+
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	for i := range numGoroutines {
+		go func(id int) {
+			defer wg.Done()
+			for j := range messagesPerGoroutine {
+				log.Printf("goroutine %d message %d", id, j)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	output := buf.String()
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	expectedLines := numGoroutines * messagesPerGoroutine
+	if len(lines) != expectedLines {
+		t.Errorf("expected %d log lines, got %d", expectedLines, len(lines))
+	}
+}
+
+func TestMCPLogger_SilentModeConcurrent(t *testing.T) {
+	var buf bytes.Buffer
+	log := logger.NewMCPLogger(&buf, true)
+
+	const numGoroutines = 50
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	for i := range numGoroutines {
+		go func(id int) {
+			defer wg.Done()
+			log.Printf("message %d", id)
+			log.Println("message", id)
+		}(i)
+	}
+
+	wg.Wait()
+
+	if buf.Len() != 0 {
+		t.Errorf("expected no output in silent mode, got %d bytes", buf.Len())
 	}
 }
