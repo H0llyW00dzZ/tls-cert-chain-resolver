@@ -148,6 +148,48 @@ func main() {
 - Use context for passing request-scoped values (use parameters)
 ```
 
+### 4. Thread-Safe Logger Pattern
+
+**Pattern**: Logger with mutex protection (see `src/logger/logger.go`)
+
+```go
+// Thread-safe logger implementation
+type MCPLogger struct {
+    mu     sync.Mutex  // Protects concurrent writes
+    writer io.Writer
+    silent bool
+}
+
+// Thread-safe Printf - safe to call from multiple goroutines
+func (m *MCPLogger) Printf(format string, v ...any) {
+    if m.silent {
+        return
+    }
+    
+    // Prepare data outside lock
+    msg := fmt.Sprintf(format, v...)
+    logEntry := map[string]any{
+        "level":   "info",
+        "message": msg,
+    }
+    data, _ := json.Marshal(logEntry)
+    
+    // Lock only for write operation
+    m.mu.Lock()
+    fmt.Fprintln(m.writer, string(data))
+    m.mu.Unlock()
+}
+
+// All logger methods use same mutex protection pattern
+// This ensures safe concurrent logging from multiple goroutines
+```
+
+**Key Points**:
+- Use `sync.Mutex` to protect shared mutable state (writer)
+- Minimize critical section - only lock for actual write
+- Prepare data outside lock to reduce contention
+- Document thread-safety in type/function comments
+
 ## Memory Management
 
 ### 1. Buffer Pooling
@@ -494,6 +536,7 @@ func debugGoroutines() {
 2. **Avoid unbounded growth** - set limits on certificate chains
 3. **Stream processing** - don't load entire files into memory
 4. **Proper cleanup** - defer Close() calls
+5. **Thread-safe logging** - Use `src/logger` package with `sync.Mutex` for concurrent access
 
 ### Goroutine Management
 1. **Buffered channels** (size 1) prevent goroutine leaks
@@ -524,4 +567,24 @@ case <-ctx.Done():
 case err := <-result:
     return err
 }
+```
+
+**Thread-Safe Logging Pattern** (see `src/logger/logger.go`):
+```go
+// Use logger package for concurrent logging
+import "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
+
+// Initialize logger based on mode
+var globalLogger logger.Logger
+globalLogger = logger.NewMCPLogger(os.Stderr, false)  // Thread-safe
+
+// Safe to call from multiple goroutines
+go func() {
+    globalLogger.Printf("Goroutine 1: Processing certificate %d", id)
+}()
+
+go func() {
+    globalLogger.Printf("Goroutine 2: Processing certificate %d", id)
+}()
+// MCPLogger uses sync.Mutex internally - no races
 ```

@@ -376,6 +376,7 @@ New to repository?
 ```
 cmd/                   → Main entry point
 src/cli/               → CLI implementation (cobra)
+src/logger/            → Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex)
 src/internal/x509/     → Certificate operations
   ├── certs/           → Encoding/decoding
   └── chain/           → Chain resolution
@@ -425,6 +426,18 @@ Workflow:
 4. filesystem.instructions.md → Read and modify code
 5. gopls.instructions.md → Run diagnostics
 6. AGENTS.md → Run tests with race detection
+```
+
+```
+Task: "Add thread-safe logging to new package"
+
+Workflow:
+1. gopls.instructions.md → Search logger package: gopls_go_search("logger.Logger")
+2. filesystem.instructions.md → Read implementation: read("src/logger/logger.go")
+3. memory.instructions.md → Learn thread-safe pattern with sync.Mutex
+4. filesystem.instructions.md → Implement in new code with edit()
+5. gopls.instructions.md → Run diagnostics: gopls_go_diagnostics()
+6. AGENTS.md → Test with race detection: go test -race ./...
 ```
 
 ### Performance Optimization

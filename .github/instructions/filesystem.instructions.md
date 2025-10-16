@@ -629,6 +629,12 @@ grep("logger\\.Logger", include="*.go")
 
 # Find logger implementations
 grep("NewCLILogger\\|NewMCPLogger", include="*.go")
+
+# Find thread-safety patterns
+grep("sync\\.Mutex", include="*.go")
+
+# Find logger tests
+grep("TestMCPLogger\\|TestCLILogger", include="*_test.go")
 ```
 
 ### Common Edit Patterns

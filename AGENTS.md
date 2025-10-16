@@ -21,8 +21,9 @@
 **Build all**: `make all` (builds for all platforms)  
 **Test all**: `go test -v ./...` or `make test`  
 **Test single**: `go test -run TestName ./package -v`  
-**Test package**: `go test -v ./src/internal/x509/certs` or `go test -v ./src/internal/x509/chain`  
+**Test package**: `go test -v ./src/internal/x509/certs`, `go test -v ./src/internal/x509/chain`, or `go test -v ./src/logger`  
 **Test race**: `go test -race ./...` (recommended before merges)  
+**Test coverage**: `go test -cover ./...` (view test coverage)  
 **Clean**: `make clean` (removes build artifacts from `./bin/`)
 
 ## Code Style
@@ -33,7 +34,7 @@
 **Line length**: Max 120 chars  
 **Comments**: Every exported function/interface must have a comment starting with its name in complete sentences  
 **Error handling**: Return wrapped errors with context using `fmt.Errorf("context: %w", err)`. Each error is processed once (returned OR logged, never both). Prefer `err != nil` checks.  
-**Logging**: Use standard `log` package from `log` with `log.Printf()` for formatted output. `log.SetFlags(0)` is used to disable timestamps in CLI output.  
+**Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection.  
 **Context**: Always pass and use `context.Context` for lifecycle management, especially for certificate fetching operations  
 **CLI Framework**: Use `github.com/spf13/cobra` for command-line interface  
 **Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race ./...` before merging.  
@@ -43,6 +44,12 @@
 ## Concurrency
 
 Multiple agents may modify code simultaneously. Preserve others' changes and report only irreconcilable conflicts.
+
+**Thread Safety**: When implementing concurrent code:
+- Use `sync.Mutex` for protecting shared mutable state (see `src/logger/logger.go` MCPLogger example)
+- Document thread-safety guarantees in function/type comments
+- All methods on MCPLogger are safe for concurrent use
+- Run `go test -race ./...` to detect race conditions before merging
 
 ## MCP Server Instructions
 

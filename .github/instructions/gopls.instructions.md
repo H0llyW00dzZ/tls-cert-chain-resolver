@@ -10,8 +10,8 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 **Go Version**: 1.25.3 or later  
 **Key Packages**:
 - **`cmd/`** — Main CLI entry point
-- **`src/cli/`** — Cobra CLI implementation
-- **`src/logger/`** — Logger abstraction (CLI/MCP)
+- **`src/cli/`** — Cobra CLI implementation  
+- **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex)
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
 - **`src/internal/helper/gc/`** — Memory management utilities
@@ -73,7 +73,7 @@ Go Version: 1.25.3
 Packages:
 - cmd (main)
 - src/cli
-- src/logger
+- src/logger (CLI/MCP logger abstraction, thread-safe)
 - src/internal/x509/certs
 - src/internal/x509/chain
 - src/internal/helper/gc
@@ -311,12 +311,22 @@ if err != nil {
 
 ```go
 // Use logger abstraction (CLI/MCP mode)
-globalLogger.Printf("Certificate chain complete. Total %d certificate(s) found.", len(chain.Certs))
+// Import: "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
 
 // Initialize logger based on mode
-logger := logger.NewCLILogger()  // For CLI mode
-// or
-logger := logger.NewMCPLogger()  // For MCP mode
+var globalLogger logger.Logger
+
+// CLI mode - human-readable output
+globalLogger = logger.NewCLILogger()
+
+// MCP mode - structured JSON output, thread-safe
+globalLogger = logger.NewMCPLogger(os.Stderr, false)  // false = not silent
+
+// Use logger throughout code
+globalLogger.Printf("Certificate chain complete. Total %d certificate(s) found.", len(chain.Certs))
+
+// MCPLogger is thread-safe - safe to call from multiple goroutines
+// All methods (Printf, Println, SetOutput) use sync.Mutex internally
 ```
 
 ## Integration with Other Tools
