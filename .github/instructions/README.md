@@ -49,7 +49,6 @@ These instruction files are loaded via `/opencode.json`:
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
-    "AGENTS.md",
     ".github/instructions/*.md"
   ]
 }
