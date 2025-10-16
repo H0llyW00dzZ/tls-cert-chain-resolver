@@ -183,10 +183,10 @@ task("Search for certificate parsing patterns", "Find all certificate parsing im
 
 MCP servers exhibit different connection behaviors based on their implementation:
 
-| MCP Server | Connection Type | Behavior | Recovery |
-|------------|----------------|----------|----------|
-| **Gopls** | Stateful (Short-lived) | Closes after 3-5 operations or brief inactivity | ✅ Auto-reconnects |
-| **DeepWiki** | Stateful (Long-lived) | Maintains persistent connection | N/A (no closure) |
+| MCP Server | Connection Type | Behavior | Recovery | Retry Delay |
+|------------|----------------|----------|----------|-------------|
+| **Gopls** | Stateful (Short-lived) | Closes after 3-5 operations or brief inactivity | ✅ Auto-reconnects | ~1-2s |
+| **DeepWiki** | Stateful (Long-lived) | Maintains persistent connection | N/A (no closure) | N/A |
 
 **Best Practices for Short-lived Connections (Gopls):**
 - Batch related operations when possible (e.g., multiple `gopls_go_search` calls in sequence)
