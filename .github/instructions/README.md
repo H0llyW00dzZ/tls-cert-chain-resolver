@@ -15,6 +15,12 @@ These instruction files provide:
 - Memory and resource management guidelines
 - Unix Philosophy best practices (composable tools, do one thing well)
 
+## Related Directories
+
+- **`.github/instructions/`** (this directory) - Tool-specific instructions for AI agents
+- **`.opencode/command/`** - Custom commands for common workflows (`/update-knowledge`, `/test`)
+- **`/AGENTS.md`** - High-level repository guidelines
+
 ## Files in This Directory
 
 | File | Purpose |
@@ -63,6 +69,8 @@ These files should be updated when:
 - Common agent mistakes are identified
 
 **Note**: These instructions are versioned with the code to ensure agents have accurate, up-to-date guidance.
+
+**To update**: Run `/update-knowledge` command in OpenCode sessions after making code changes.
 
 ---
 

@@ -19,6 +19,11 @@ tls-cert-chain-resolver/
 │   ├── workflows/
 │   │   └── coverage.yml                      # CI/CD coverage workflow
 │   └── dependabot.yml                        # Dependency updates config
+├── .opencode/
+│   ├── command/
+│   │   ├── test.md                           # Test command workflow
+│   │   └── update-knowledge.md               # Update instruction files workflow
+│   └── README.md                             # Custom commands documentation
 ├── cmd/
 │   └── run.go                                # Main entry point
 ├── src/
@@ -26,7 +31,7 @@ tls-cert-chain-resolver/
 │   │   ├── root.go                           # Cobra CLI implementation
 │   │   └── root_test.go                      # CLI tests
 │   ├── logger/
-│   │   ├── logger.go                         # Logger abstraction (CLI/MCP)
+│   │   ├── logger.go                         # Logger abstraction (CLI/MCP, thread-safe)
 │   │   └── logger_test.go                    # Logger tests
 │   └── internal/
 │       ├── helper/
@@ -44,7 +49,7 @@ tls-cert-chain-resolver/
 ├── .ignore                                   # Tool ignore patterns (glob/grep)
 ├── AGENTS.md                                 # Primary agent guidelines
 ├── opencode.json                             # OpenCode configuration
-├── go.mod                                    # Go module definition
+├── go.mod                                    # Go module definition (Go 1.25.3)
 ├── go.sum                                    # Go dependency checksums
 ├── LICENSE                                   # BSD 3-Clause License
 ├── Makefile                                  # Build commands
@@ -568,7 +573,7 @@ cmd/run.go
 src/cli/root.go
 src/cli/root_test.go
 
-# Logger abstraction
+# Logger abstraction (thread-safe with sync.Mutex)
 src/logger/logger.go
 src/logger/logger_test.go
 
@@ -596,6 +601,11 @@ LICENSE
 # Configuration
 opencode.json
 .ignore
+
+# Custom commands
+.opencode/README.md
+.opencode/command/test.md
+.opencode/command/update-knowledge.md
 
 # Agent instructions
 .github/instructions/README.md
