@@ -40,7 +40,31 @@ This file explains the OpenCode configuration and how to use the instruction fil
 - When unsure about conventions
 - Before running build/test commands
 
-### 2. Specialized Instruction Files
+### 2. Custom Commands
+
+**Location**: `.opencode/command/*.md`  
+**Purpose**: Task-specific workflows for common maintenance operations  
+**Scope**: Reusable agent workflows
+
+**Available Commands**:
+- `/update-knowledge` - Update instruction files when code changes
+- `/test` - Run tests with coverage and analyze failures
+
+**When to use**:
+- After making code changes (`/update-knowledge` then `/test`)
+- Before committing changes (`/test`)
+- When updating dependencies or architecture
+
+**Structure**: Each command is a markdown file with frontmatter:
+```markdown
+---
+description: Brief description
+agent: general
+---
+# Command instructions...
+```
+
+### 3. Specialized Instruction Files
 
 **Location**: `.github/instructions/*.md`  
 **Purpose**: Detailed tool-specific instructions  
@@ -155,7 +179,8 @@ This file explains the OpenCode configuration and how to use the instruction fil
 When an agent session starts:
 1. Load `AGENTS.md` for overall guidelines
 2. Load all `.github/instructions/*.md` files for specific capabilities
-3. Make instructions available as context throughout session
+3. Make custom commands (`.opencode/command/*.md`) available for common workflows
+4. Make instructions available as context throughout session
 
 ### 2. Tool Selection
 
@@ -173,6 +198,9 @@ Task: "Fix certificate encoding bug"
 → Reference: gopls.instructions.md (symbol_references, diagnostics)
 → Reference: filesystem.instructions.md (read, edit)
 → Reference: AGENTS.md (code style, error handling)
+
+Task: "Update documentation after code changes"
+→ Run: /update-knowledge command
 ```
 
 ### 3. Workflow Execution
@@ -216,6 +244,12 @@ AGENTS.md (HIGH LEVEL)
 ├── Code Style (how to write)
 ├── Testing (how to verify)
 └── Tool Overview (what's available)
+
+Custom Commands (WORKFLOWS)
+├── .opencode/command/update-knowledge.md
+│   └── Update instructions after code changes
+└── .opencode/command/test.md
+    └── Run tests with coverage analysis
 
 Specific Instructions (DETAILED)
 ├── gopls.instructions.md
