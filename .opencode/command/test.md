@@ -39,6 +39,33 @@ Run the full test suite with coverage report and analyze any failures.
    go test -race ./...
    ```
 
+## Error Handling
+
+### Tool Abort During Tests
+
+When test execution is aborted (e.g., due to timeout, resource constraints, or interruption):
+
+1. **Manual Retry Required**: Agent must manually retry the same `go test` command
+2. **No Automatic Recovery**: The system does NOT automatically retry aborted tools
+3. **Timeout Strategy**: If timeout persists, use alternative approaches:
+   - Run package-specific tests: `go test -v ./src/internal/x509/certs`
+   - Use `-short` flag for faster iteration: `go test -short -v ./...`
+   - Run tests without verbose output: `go test -cover ./...`
+4. **Race Detection Timeout**: If `go test -race` times out, test packages individually
+
+**Examples**:
+```bash
+# Full test suite aborted
+go test -v -cover ./...  # ❌ Aborted (timeout)
+go test -v -cover ./...  # ✅ Retry with same command
+
+# If retry also times out, use package-specific approach
+go test -v -cover ./src/internal/x509/certs
+go test -v -cover ./src/internal/x509/chain
+go test -v -cover ./src/cli
+go test -v -cover ./src/logger
+```
+
 ## Important Notes
 
 - **Do NOT generate coverage files** (`coverage.out`, `coverage.html`) unless explicitly requested by the user

@@ -10,6 +10,22 @@ Guidelines for efficient memory usage, context management, and resource optimiza
 **Current Usage Tracking**: Monitor via system warnings  
 **Critical Threshold**: 80% usage (160,000 tokens)
 
+**Monitoring Triggers**:
+- **50% (100K tokens)**: Consider windowed reading for remaining operations
+  - Start using `read(file, offset, limit)` instead of full file reads
+  - Cache grep results to avoid repeated searches
+  - Batch tool calls when possible
+- **80% (160K tokens)**: CRITICAL - Use minimal reads, cache aggressively
+  - ONLY read files you will modify
+  - Use windowed reading with small limits (10-30 lines)
+  - Reuse information from earlier in session
+  - Avoid verbose bash outputs
+- **90% (180K tokens)**: EMERGENCY - Stop new file reads, use cached information only
+  - Do NOT read new files unless absolutely critical
+  - Use only cached/remembered information from session
+  - Complete current task and avoid starting new complex operations
+  - Consider asking user to start new session for additional work
+
 ### Token Usage Best Practices
 
 #### 1. Efficient Tool Usage
