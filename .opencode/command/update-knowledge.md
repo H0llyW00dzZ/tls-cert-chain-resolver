@@ -41,6 +41,25 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
 - **New patterns**: Add to AGENTS.md and relevant specific instruction files
 - **Build changes**: Update commands in AGENTS.md
 
+## Error Handling
+
+### Tool Abort Errors
+
+When tools are aborted during execution (e.g., due to timeout, resource constraints, or interruption):
+
+1. **Manual Retry Required**: Agent must manually retry the tool call with the same parameters
+2. **No Automatic Recovery**: The system does NOT automatically retry aborted tools
+3. **Context Preservation**: Use identical input parameters when retrying
+4. **Failure Strategy**: If retry also fails, use alternative approaches (e.g., windowed reading, batch operations)
+
+**Examples**:
+
+```
+# Bash command aborted
+bash("go test -v ./...")  # ❌ Aborted (timeout)
+bash("go test -v ./...")  # ✅ Retry with same command
+```
+
 ## Output Format
 
 For each updated instruction file, provide:
