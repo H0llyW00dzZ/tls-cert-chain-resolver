@@ -12,7 +12,6 @@ This file explains the OpenCode configuration and how to use the instruction fil
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
-    "AGENTS.md",
     ".github/instructions/*.md"
   ]
 }
