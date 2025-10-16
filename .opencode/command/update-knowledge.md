@@ -10,7 +10,10 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
 ## Tasks
 
 1. **Analyze Recent Changes**:
-   - Check git log for recent commits
+   - Check git log for recent commits: `git log -10 --oneline`
+   - View detailed commit messages: `git log -10 --pretty=format:"%h - %s%n%b%n"`
+   - Check files changed in recent commits: `git diff HEAD~10..HEAD --name-only`
+   - Review commit messages for context on why changes were made
    - Identify modified files and new patterns
    - Review AGENTS.md for affected guidelines
 
