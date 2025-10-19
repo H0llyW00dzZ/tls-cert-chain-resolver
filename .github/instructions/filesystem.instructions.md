@@ -413,7 +413,7 @@ edit("/path/to/file.go", oldString="...", newString="...")
 gopls_go_diagnostics(["/path/to/file.go"])
 
 # Run tests
-bash("go test -v ./package")
+bash("go test -v ./package 2>&1 | cat")
 ```
 
 ## Best Practices for This Repository

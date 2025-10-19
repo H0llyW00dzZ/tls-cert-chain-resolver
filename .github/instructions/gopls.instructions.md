@@ -55,7 +55,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 
 5. Fix any issues found
 
-6. bash("go test -v ./src/internal/x509/certs")
+6. bash("go test -v ./src/internal/x509/certs 2>&1 | cat")
    → Verify tests pass
 ```
 
@@ -189,7 +189,7 @@ REQUIRED workflow:
 1. Edit code
 2. gopls_go_diagnostics(files)
 3. If errors → fix → repeat step 2
-4. If clean → run tests: bash("go test -v ./...")
+4. If clean → run tests: bash("go test -v ./... 2>&1 | cat")
 ```
 
 ### Test After Successful Diagnostics
@@ -197,10 +197,12 @@ REQUIRED workflow:
 ```
 After go_diagnostics passes:
 
-1. bash("go test -v ./src/internal/x509/certs")  # Package-specific
-2. bash("go test -v ./src/internal/x509/chain")  # Package-specific
-3. bash("go test -v ./...")                       # All tests
-4. bash("go test -race ./...")                    # Race detection (before merges)
+1. bash("go test -v ./src/internal/x509/certs 2>&1 | cat")  # Package-specific
+2. bash("go test -v ./src/internal/x509/chain 2>&1 | cat")  # Package-specific
+3. bash("go test -v ./... 2>&1 | cat")                      # All tests
+4. bash("go test -race ./... 2>&1 | cat")                   # Race detection (before merges)
+
+Note: Piping to `cat` (e.g., `2>&1 | cat`) ensures bash tool captures and displays all test output.
 ```
 
 ## Connection Behavior
@@ -257,7 +259,7 @@ edit(...)
 gopls_go_diagnostics(["src/internal/x509/chain/chain.go"])
 
 # Run tests
-bash("go test -v ./src/internal/x509/chain")
+bash("go test -v ./src/internal/x509/chain 2>&1 | cat")
 ```
 
 ### 3. Adding New CLI Flags
@@ -339,13 +341,13 @@ globalLogger.Printf("Certificate chain complete. Total %d certificate(s) found."
 
 **Example Combined Workflow**:
 ```
-1. gopls_go_workspace()                    # Understand structure
-2. gopls_go_search("EncodePEM")            # Find implementations
+1. gopls_go_workspace()                     # Understand structure
+2. gopls_go_search("EncodePEM")             # Find implementations
 3. read("src/internal/x509/certs/certs.go") # Read full implementation
-4. gopls_go_symbol_references(...)         # Check usage
+4. gopls_go_symbol_references(...)          # Check usage
 5. edit(...)                                # Make changes
-6. gopls_go_diagnostics(...)               # Verify no errors
-7. bash("go test -v ./...")                # Run tests
+6. gopls_go_diagnostics(...)                # Verify no errors
+7. bash("go test -v ./... 2>&1 | cat")      # Run tests
 ```
 
 ## Troubleshooting

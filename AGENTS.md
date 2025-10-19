@@ -19,12 +19,14 @@
 **Build macOS**: `make build-macos` or `make build-macos-amd64` / `make build-macos-arm64` (builds to `./bin/macos/`)  
 **Build Windows**: `make build-windows` (builds to `./bin/windows/`)  
 **Build all**: `make all` (builds for all platforms)  
-**Test all**: `go test -v ./...` or `make test`  
-**Test single**: `go test -run TestName ./package -v`  
-**Test package**: `go test -v ./src/internal/x509/certs`, `go test -v ./src/internal/x509/chain`, or `go test -v ./src/logger`  
-**Test race**: `go test -race ./...` (recommended before merges)  
-**Test coverage**: `go test -cover ./...` (view test coverage)  
+**Test all**: `go test -v ./... 2>&1 | cat` or `make test`  
+**Test single**: `go test -run TestName ./package -v 2>&1 | cat`  
+**Test package**: `go test -v ./src/internal/x509/certs 2>&1 | cat`, `go test -v ./src/internal/x509/chain 2>&1 | cat`, or `go test -v ./src/logger 2>&1 | cat`  
+**Test race**: `go test -race ./... 2>&1 | cat` (recommended before merges)  
+**Test coverage**: `go test -cover ./... 2>&1 | cat` (view test coverage)  
 **Clean**: `make clean` (removes build artifacts from `./bin/`)
+
+**Note**: Piping test commands to `cat` (e.g., `2>&1 | cat`) ensures bash tool captures and displays all test output.
 
 ## Code Style
 
@@ -337,11 +339,12 @@ bash("ls -la directory/")                    # Use list instead
 
 **✅ Good: Use bash only for operations built-in tools can't do**
 ```bash
-# GOOD - These are appropriate bash uses:
-bash("go test -v ./...")                     # Running tests
-bash("make build-linux")                     # Build operations
-bash("git status")                           # Git operations
-bash("make clean")                           # Cleaning build artifacts
+# GOOD - These are appropriate bash uses (pipe to cat for output):
+bash("go test -v ./... 2>&1 | cat")              # Running tests
+bash("go test -race ./... 2>&1 | cat")           # Race detection
+bash("make build-linux")                         # Build operations
+bash("git status")                               # Git operations
+bash("make clean")                               # Cleaning build artifacts
 ```
 
 #### 6. **Performance Anti-Patterns**
@@ -386,10 +389,11 @@ gopls_go_symbol_references(file, "ProcessRequest")
 
 - All bug fixes and features require updated unit tests
 - Test files follow the pattern `*_test.go` and are placed in the same package
-- Run specific tests: `go test -run TestName ./package -v`
-- Run package tests: `go test -v ./src/internal/x509/certs` or `go test -v ./src/internal/x509/chain`
-- Run all tests: `go test -v ./...` or `make test`
-- Run race detection: `go test -race ./...` (recommended before merges)
+- Run specific tests: `go test -run TestName ./package -v 2>&1 | cat`
+- Run package tests: `go test -v ./src/internal/x509/certs 2>&1 | cat` or `go test -v ./src/internal/x509/chain 2>&1 | cat`
+- Run all tests: `go test -v ./... 2>&1 | cat` or `make test`
+- Run race detection: `go test -race ./... 2>&1 | cat` (recommended before merges)
+- **Piping to `cat`**: Use `2>&1 | cat` with test commands to ensure bash tool captures and displays all output
 - Test certificate operations with both PEM and DER formats
 - Test with real certificate data when possible (use test fixtures)
 - Verify certificate chain resolution with various chain lengths
