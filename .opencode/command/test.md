@@ -11,10 +11,10 @@ Run the full test suite with coverage report and analyze any failures.
 
 1. **Run Full Test Suite with Coverage**:
    ```bash
-   go test -v -cover ./...
+   go test -v -cover ./... 2>&1
    ```
    
-   Note: Output coverage percentages directly to stdout, do not generate coverage files unless explicitly requested.
+   Note: Using `2>&1` redirects stderr to stdout to capture all test output (including failures) in a single stream. This prevents the need for multiple tool calls to retrieve output. Do not generate coverage files unless explicitly requested.
 
 2. **Analyze Failures**:
    - Identify failing tests
@@ -36,7 +36,7 @@ Run the full test suite with coverage report and analyze any failures.
 
 5. **Run Race Detection** (if failures involve concurrency):
    ```bash
-   go test -race ./...
+   go test -race ./... 2>&1
    ```
 
 ## Error Handling
@@ -56,14 +56,14 @@ When test execution is aborted (e.g., due to timeout, resource constraints, or i
 **Examples**:
 ```bash
 # Full test suite aborted
-go test -v -cover ./...  # ❌ Aborted (timeout)
-go test -v -cover ./...  # ✅ Retry with same command
+go test -v -cover ./... 2>&1  # ❌ Aborted (timeout)
+go test -v -cover ./... 2>&1  # ✅ Retry with same command
 
 # If retry also times out, use package-specific approach
-go test -v -cover ./src/internal/x509/certs
-go test -v -cover ./src/internal/x509/chain
-go test -v -cover ./src/cli
-go test -v -cover ./src/logger
+go test -v -cover ./src/internal/x509/certs 2>&1
+go test -v -cover ./src/internal/x509/chain 2>&1
+go test -v -cover ./src/cli 2>&1
+go test -v -cover ./src/logger 2>&1
 ```
 
 ## Important Notes
