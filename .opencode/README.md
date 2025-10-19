@@ -36,7 +36,7 @@ Detailed instructions for the agent...
 
 ## Creating New Commands
 
-1. Create a new markdown file in `commands/` directory
+1. Create a new markdown file in `command/` directory
 2. Add frontmatter with `description`, `agent`, and `model`
 3. Write detailed instructions for the agent
 4. Include specific tasks, expected outputs, and examples
@@ -56,7 +56,7 @@ Commands work alongside instruction files:
 
 - **AGENTS.md**: High-level guidelines and conventions
 - **.github/instructions/*.md**: Detailed tool-specific instructions
-- **.opencode/commands/*.md**: Task-specific workflows
+- **.opencode/command/*.md**: Task-specific workflows
 
 Commands should reference and follow patterns from instruction files.
 
