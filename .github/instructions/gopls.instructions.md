@@ -11,7 +11,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 **Key Packages**:
 - **`cmd/`** — Main CLI entry point
 - **`src/cli/`** — Cobra CLI implementation  
-- **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex)
+- **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and bytebufferpool)
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
 - **`src/internal/helper/gc/`** — Memory management utilities
@@ -73,7 +73,7 @@ Go Version: 1.25.3
 Packages:
 - cmd (main)
 - src/cli
-- src/logger (CLI/MCP logger abstraction, thread-safe)
+- src/logger (CLI/MCP logger abstraction, thread-safe with bytebufferpool)
 - src/internal/x509/certs
 - src/internal/x509/chain
 - src/internal/helper/gc
@@ -321,14 +321,15 @@ var globalLogger logger.Logger
 // CLI mode - human-readable output
 globalLogger = logger.NewCLILogger()
 
-// MCP mode - structured JSON output, thread-safe
+// MCP mode - structured JSON output, thread-safe with buffer pooling
 globalLogger = logger.NewMCPLogger(os.Stderr, false)  // false = not silent
 
 // Use logger throughout code
 globalLogger.Printf("Certificate chain complete. Total %d certificate(s) found.", len(chain.Certs))
 
 // MCPLogger is thread-safe - safe to call from multiple goroutines
-// All methods (Printf, Println, SetOutput) use sync.Mutex internally
+// All methods (Printf, Println, SetOutput) use sync.Mutex + bytebufferpool internally
+// Buffer pooling minimizes allocations under high concurrency
 ```
 
 ## Integration with Other Tools

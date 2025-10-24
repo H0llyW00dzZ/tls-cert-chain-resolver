@@ -166,14 +166,15 @@ func main() {
 
 ### 4. Thread-Safe Logger Pattern
 
-**Pattern**: Logger with mutex protection (see `src/logger/logger.go`)
+**Pattern**: Logger with mutex protection and buffer pooling (see `src/logger/logger.go`)
 
 ```go
-// Thread-safe logger implementation
+// Thread-safe logger implementation with buffer pooling
 type MCPLogger struct {
-    mu     sync.Mutex  // Protects concurrent writes
-    writer io.Writer
-    silent bool
+    mu      sync.Mutex                // Protects concurrent writes
+    writer  io.Writer
+    silent  bool
+    bufPool bytebufferpool.Pool       // Buffer pool for efficient memory usage
 }
 
 // Thread-safe Printf - safe to call from multiple goroutines
@@ -182,28 +183,37 @@ func (m *MCPLogger) Printf(format string, v ...any) {
         return
     }
     
-    // Prepare data outside lock
+    // Get buffer from pool
+    buf := m.bufPool.Get()
+    defer func() {
+        buf.Reset()                   // Reset buffer before returning to pool
+        m.bufPool.Put(buf)
+    }()
+    
+    // Build JSON directly in buffer (no intermediate allocations)
     msg := fmt.Sprintf(format, v...)
-    logEntry := map[string]any{
-        "level":   "info",
-        "message": msg,
-    }
-    data, _ := json.Marshal(logEntry)
+    buf.WriteString(`{"level":"info","message":"`)
+    writeJSONString(buf, msg)         // Custom JSON escaping
+    buf.WriteString(`"}`)
+    buf.WriteByte('\n')
     
     // Lock only for write operation
     m.mu.Lock()
-    fmt.Fprintln(m.writer, string(data))
+    m.writer.Write(buf.Bytes())
     m.mu.Unlock()
 }
 
-// All logger methods use same mutex protection pattern
-// This ensures safe concurrent logging from multiple goroutines
+// All logger methods use same mutex protection + buffer pooling pattern
+// This ensures safe concurrent logging with minimal allocations
 ```
 
 **Key Points**:
 - Use `sync.Mutex` to protect shared mutable state (writer)
+- Use `bytebufferpool.Pool` for efficient memory usage under high concurrency
+- **IMPORTANT**: Always `Reset()` buffer before returning to pool to prevent memory leaks
 - Minimize critical section - only lock for actual write
 - Prepare data outside lock to reduce contention
+- Build JSON directly in buffer to avoid intermediate string allocations
 - Document thread-safety in type/function comments
 
 ## Memory Management
@@ -592,7 +602,7 @@ import "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
 
 // Initialize logger based on mode
 var globalLogger logger.Logger
-globalLogger = logger.NewMCPLogger(os.Stderr, false)  // Thread-safe
+globalLogger = logger.NewMCPLogger(os.Stderr, false)  // Thread-safe with buffer pooling
 
 // Safe to call from multiple goroutines
 go func() {
@@ -602,5 +612,5 @@ go func() {
 go func() {
     globalLogger.Printf("Goroutine 2: Processing certificate %d", id)
 }()
-// MCPLogger uses sync.Mutex internally - no races
+// MCPLogger uses sync.Mutex + bytebufferpool internally - no races, efficient memory
 ```
