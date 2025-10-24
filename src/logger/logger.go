@@ -12,7 +12,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/valyala/bytebufferpool"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 )
 
 // Logger defines the interface for logging operations.
@@ -64,7 +64,7 @@ type MCPLogger struct {
 	mu      sync.Mutex
 	writer  io.Writer
 	silent  bool
-	bufPool bytebufferpool.Pool
+	bufPool gc.Pool
 }
 
 // NewMCPLogger creates a new [MCP] logger.
@@ -77,8 +77,9 @@ func NewMCPLogger(writer io.Writer, silent bool) *MCPLogger {
 		writer = io.Discard
 	}
 	return &MCPLogger{
-		writer: writer,
-		silent: silent,
+		writer:  writer,
+		silent:  silent,
+		bufPool: gc.Default,
 	}
 }
 
@@ -148,7 +149,7 @@ func (m *MCPLogger) Println(v ...any) {
 
 // writeJSONString writes a string to the buffer with proper JSON escaping.
 // It escapes special characters that need escaping in JSON strings.
-func writeJSONString(buf *bytebufferpool.ByteBuffer, s string) {
+func writeJSONString(buf gc.Buffer, s string) {
 	for i := 0; i < len(s); i++ {
 		c := s[i]
 		switch c {
