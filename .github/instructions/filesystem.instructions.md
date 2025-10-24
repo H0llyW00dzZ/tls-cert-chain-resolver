@@ -31,8 +31,9 @@ tls-cert-chain-resolver/
 │   │   ├── root.go                           # Cobra CLI implementation
 │   │   └── root_test.go                      # CLI tests
 │   ├── logger/
-│   │   ├── logger.go                         # Logger abstraction (CLI/MCP, thread-safe)
-│   │   └── logger_test.go                    # Logger tests
+│   │   ├── logger.go                         # Logger abstraction (CLI/MCP, thread-safe with bytebufferpool)
+│   │   ├── logger_test.go                    # Logger tests
+│   │   └── benchmark_test.go                 # Logger benchmarks
 │   └── internal/
 │       ├── helper/
 │       │   └── gc/
@@ -573,9 +574,10 @@ cmd/run.go
 src/cli/root.go
 src/cli/root_test.go
 
-# Logger abstraction (thread-safe with sync.Mutex)
+# Logger abstraction (thread-safe with sync.Mutex and bytebufferpool)
 src/logger/logger.go
 src/logger/logger_test.go
+src/logger/benchmark_test.go
 
 # Certificate operations
 src/internal/x509/certs/certs.go
@@ -645,6 +647,12 @@ grep("sync\\.Mutex", include="*.go")
 
 # Find logger tests
 grep("TestMCPLogger\\|TestCLILogger", include="*_test.go")
+
+# Find logger benchmarks
+grep("BenchmarkMCPLogger\\|BenchmarkCLILogger", include="*_test.go")
+
+# Find buffer pooling usage
+grep("bytebufferpool", include="*.go")
 ```
 
 ### Common Edit Patterns

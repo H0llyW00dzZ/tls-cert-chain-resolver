@@ -24,6 +24,7 @@
 **Test package**: `go test -v ./src/internal/x509/certs 2>&1 | cat`, `go test -v ./src/internal/x509/chain 2>&1 | cat`, or `go test -v ./src/logger 2>&1 | cat`  
 **Test race**: `go test -race ./... 2>&1 | cat` (recommended before merges)  
 **Test coverage**: `go test -cover ./... 2>&1 | cat` (view test coverage)  
+**Benchmark**: `go test -bench=. ./src/logger 2>&1 | cat` (performance testing)  
 **Clean**: `make clean` (removes build artifacts from `./bin/`)
 
 **Note**: Piping test commands to `cat` (e.g., `2>&1 | cat`) ensures bash tool captures and displays all test output.
@@ -36,11 +37,11 @@
 **Line length**: Max 120 chars  
 **Comments**: Every exported function/interface must have a comment starting with its name in complete sentences  
 **Error handling**: Return wrapped errors with context using `fmt.Errorf("context: %w", err)`. Each error is processed once (returned OR logged, never both). Prefer `err != nil` checks.  
-**Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection.  
+**Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection and uses `bytebufferpool` for efficient memory usage under high concurrency.  
 **Context**: Always pass and use `context.Context` for lifecycle management, especially for certificate fetching operations  
 **CLI Framework**: Use `github.com/spf13/cobra` for command-line interface  
 **Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race ./...` before merging.  
-**Memory Management**: Use buffer pooling (`github.com/valyala/bytebufferpool`) for efficient memory usage with certificates  
+**Memory Management**: Use buffer pooling (`github.com/valyala/bytebufferpool`) for efficient memory usage with certificates and logging. Always call `Reset()` on buffers before returning them to the pool.  
 **Certificate Operations**: Use internal packages `x509certs` and `x509chain` for certificate handling
 
 ## Concurrency
@@ -390,10 +391,12 @@ gopls_go_symbol_references(file, "ProcessRequest")
 - All bug fixes and features require updated unit tests
 - Test files follow the pattern `*_test.go` and are placed in the same package
 - Run specific tests: `go test -run TestName ./package -v 2>&1 | cat`
-- Run package tests: `go test -v ./src/internal/x509/certs 2>&1 | cat` or `go test -v ./src/internal/x509/chain 2>&1 | cat`
+- Run package tests: `go test -v ./src/internal/x509/certs 2>&1 | cat` or `go test -v ./src/internal/x509/chain 2>&1 | cat` or `go test -v ./src/logger 2>&1 | cat`
 - Run all tests: `go test -v ./... 2>&1 | cat` or `make test`
 - Run race detection: `go test -race ./... 2>&1 | cat` (recommended before merges)
+- Run benchmarks: `go test -bench=. ./src/logger 2>&1 | cat` (for performance testing)
 - **Piping to `cat`**: Use `2>&1 | cat` with test commands to ensure bash tool captures and displays all output
 - Test certificate operations with both PEM and DER formats
 - Test with real certificate data when possible (use test fixtures)
 - Verify certificate chain resolution with various chain lengths
+- Benchmark concurrent operations to verify performance under load (see `src/logger/benchmark_test.go` for examples)
