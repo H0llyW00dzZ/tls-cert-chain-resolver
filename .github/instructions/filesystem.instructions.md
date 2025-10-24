@@ -37,7 +37,8 @@ tls-cert-chain-resolver/
 │   └── internal/
 │       ├── helper/
 │       │   └── gc/
-│       │       └── reduce_overhead.go        # GC optimization
+│       │       ├── reduce_overhead.go        # Buffer pool abstraction (gc.Pool interface)
+│       │       └── reduce_overhead_test.go   # Buffer pool tests
 │       └── x509/
 │           ├── certs/
 │           │   ├── certs.go                  # Certificate encoding/decoding
@@ -574,7 +575,7 @@ cmd/run.go
 src/cli/root.go
 src/cli/root_test.go
 
-# Logger abstraction (thread-safe with sync.Mutex and bytebufferpool)
+# Logger abstraction (thread-safe with sync.Mutex and gc.Pool)
 src/logger/logger.go
 src/logger/logger_test.go
 src/logger/benchmark_test.go
@@ -587,8 +588,9 @@ src/internal/x509/certs/cert_test.go
 src/internal/x509/chain/chain.go
 src/internal/x509/chain/chain_test.go
 
-# Helper utilities
+# Helper utilities (buffer pool abstraction)
 src/internal/helper/gc/reduce_overhead.go
+src/internal/helper/gc/reduce_overhead_test.go
 
 # Build configuration
 Makefile
@@ -652,7 +654,10 @@ grep("TestMCPLogger\\|TestCLILogger", include="*_test.go")
 grep("BenchmarkMCPLogger\\|BenchmarkCLILogger", include="*_test.go")
 
 # Find buffer pooling usage
-grep("bytebufferpool", include="*.go")
+grep("gc\\.Pool\\|gc\\.Default", include="*.go")
+
+# Find buffer pool tests
+grep("TestBuffer\\|TestPool", include="*_test.go")
 ```
 
 ### Common Edit Patterns

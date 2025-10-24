@@ -37,11 +37,11 @@
 **Line length**: Max 120 chars  
 **Comments**: Every exported function/interface must have a comment starting with its name in complete sentences  
 **Error handling**: Return wrapped errors with context using `fmt.Errorf("context: %w", err)`. Each error is processed once (returned OR logged, never both). Prefer `err != nil` checks.  
-**Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection and uses `bytebufferpool` for efficient memory usage under high concurrency.  
+**Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection and uses `gc.Pool` for efficient memory usage under high concurrency.  
 **Context**: Always pass and use `context.Context` for lifecycle management, especially for certificate fetching operations  
 **CLI Framework**: Use `github.com/spf13/cobra` for command-line interface  
 **Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race ./...` before merging.  
-**Memory Management**: Use buffer pooling (`github.com/valyala/bytebufferpool`) for efficient memory usage with certificates and logging. Always call `Reset()` on buffers before returning them to the pool.  
+**Memory Management**: Use buffer pooling via `gc.Pool` interface (`src/internal/helper/gc/`) for efficient memory usage with certificates and logging. The `gc` package abstracts `bytebufferpool` to avoid direct dependencies. Always call `Reset()` on buffers before returning them to the pool. Use `gc.Default` for the default buffer pool.  
 **Certificate Operations**: Use internal packages `x509certs` and `x509chain` for certificate handling
 
 ## Concurrency

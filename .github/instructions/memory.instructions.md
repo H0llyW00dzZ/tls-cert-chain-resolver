@@ -174,7 +174,7 @@ type MCPLogger struct {
     mu      sync.Mutex                // Protects concurrent writes
     writer  io.Writer
     silent  bool
-    bufPool bytebufferpool.Pool       // Buffer pool for efficient memory usage
+    bufPool gc.Pool                   // Buffer pool for efficient memory usage
 }
 
 // Thread-safe Printf - safe to call from multiple goroutines
@@ -209,7 +209,7 @@ func (m *MCPLogger) Printf(format string, v ...any) {
 
 **Key Points**:
 - Use `sync.Mutex` to protect shared mutable state (writer)
-- Use `bytebufferpool.Pool` for efficient memory usage under high concurrency
+- Use `gc.Pool` interface for efficient memory usage under high concurrency
 - **IMPORTANT**: Always `Reset()` buffer before returning to pool to prevent memory leaks
 - Minimize critical section - only lock for actual write
 - Prepare data outside lock to reduce contention
@@ -220,16 +220,22 @@ func (m *MCPLogger) Printf(format string, v ...any) {
 
 ### 1. Buffer Pooling
 
-**Library**: `github.com/valyala/bytebufferpool`  
-**Purpose**: Efficient memory usage with certificates
+**Package**: `src/internal/helper/gc`  
+**Interface**: `gc.Pool` and `gc.Buffer`  
+**Purpose**: Efficient memory usage with certificates and logging
+
+The `gc` package provides buffer pool abstraction that wraps `bytebufferpool` to avoid direct dependencies.
 
 ```go
-// Good - using buffer pool for certificate data
-var bufPool bytebufferpool.Pool
+// Good - using gc.Default buffer pool for certificate data
+import "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 
 func processCertificates(certs []*x509.Certificate) []byte {
-    buf := bufPool.Get()
-    defer bufPool.Put(buf)
+    buf := gc.Default.Get()
+    defer func() {
+        buf.Reset()         // Reset buffer before returning to pool
+        gc.Default.Put(buf) // Return buffer to pool for reuse
+    }()
     
     // Use buf for operations
     for _, cert := range certs {
@@ -240,10 +246,31 @@ func processCertificates(certs []*x509.Certificate) []byte {
     }
     
     // Copy result before returning (buf will be pooled)
-    result := make([]byte, buf.Len())
+    result := make([]byte, len(buf.Bytes()))
     copy(result, buf.Bytes())
     return result
 }
+```
+
+**gc.Pool Interface**:
+```go
+// Pool is safe for concurrent use by multiple goroutines
+type Pool interface {
+    Get() Buffer
+    Put(b Buffer)
+}
+
+// Buffer provides reusable byte buffer operations
+type Buffer interface {
+    WriteString(s string) (int, error)
+    WriteByte(c byte) error
+    Bytes() []byte
+    Reset()
+    ReadFrom(r io.Reader) (int64, error)
+}
+
+// Default pool available via gc.Default
+var Default Pool
 ```
 
 ### 2. Avoid Memory Leaks
@@ -612,5 +639,5 @@ go func() {
 go func() {
     globalLogger.Printf("Goroutine 2: Processing certificate %d", id)
 }()
-// MCPLogger uses sync.Mutex + bytebufferpool internally - no races, efficient memory
+// MCPLogger uses sync.Mutex + gc.Pool internally - no races, efficient memory
 ```
