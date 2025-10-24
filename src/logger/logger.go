@@ -6,12 +6,13 @@
 package logger
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"sync"
+
+	"github.com/valyala/bytebufferpool"
 )
 
 // Logger defines the interface for logging operations.
@@ -54,13 +55,16 @@ func (c *CLILogger) SetOutput(w io.Writer) { c.logger.SetOutput(w) }
 // It suppresses output by default since MCP communication happens over stdio,
 // but can be configured to write structured logs to a separate destination.
 //
+// MCPLogger uses buffer pooling for efficient memory usage under high concurrency.
+//
 // MCPLogger is safe for concurrent use by multiple goroutines.
 //
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 type MCPLogger struct {
-	mu     sync.Mutex
-	writer io.Writer
-	silent bool
+	mu      sync.Mutex
+	writer  io.Writer
+	silent  bool
+	bufPool bytebufferpool.Pool
 }
 
 // NewMCPLogger creates a new [MCP] logger.
@@ -84,6 +88,7 @@ func NewMCPLogger(writer io.Writer, silent bool) *MCPLogger {
 // The JSON format is compatible with [MCP] protocol logging requirements.
 //
 // Printf is safe for concurrent use by multiple goroutines.
+// It uses buffer pooling to minimize memory allocations under high concurrency.
 //
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 func (m *MCPLogger) Printf(format string, v ...any) {
@@ -91,16 +96,18 @@ func (m *MCPLogger) Printf(format string, v ...any) {
 		return
 	}
 
-	msg := fmt.Sprintf(format, v...)
-	logEntry := map[string]any{
-		"level":   "info",
-		"message": msg,
-	}
+	buf := m.bufPool.Get()
+	defer m.bufPool.Put(buf)
 
-	data, _ := json.Marshal(logEntry)
+	msg := fmt.Sprintf(format, v...)
+
+	buf.WriteString(`{"level":"info","message":"`)
+	writeJSONString(buf, msg)
+	buf.WriteString(`"}`)
+	buf.WriteByte('\n')
 
 	m.mu.Lock()
-	fmt.Fprintln(m.writer, string(data))
+	m.writer.Write(buf.Bytes())
 	m.mu.Unlock()
 }
 
@@ -110,6 +117,7 @@ func (m *MCPLogger) Printf(format string, v ...any) {
 // The JSON format is compatible with [MCP] protocol logging requirements.
 //
 // Println is safe for concurrent use by multiple goroutines.
+// It uses buffer pooling to minimize memory allocations under high concurrency.
 //
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 func (m *MCPLogger) Println(v ...any) {
@@ -117,17 +125,49 @@ func (m *MCPLogger) Println(v ...any) {
 		return
 	}
 
-	msg := fmt.Sprint(v...)
-	logEntry := map[string]any{
-		"level":   "info",
-		"message": msg,
-	}
+	buf := m.bufPool.Get()
+	defer m.bufPool.Put(buf)
 
-	data, _ := json.Marshal(logEntry)
+	msg := fmt.Sprint(v...)
+
+	buf.WriteString(`{"level":"info","message":"`)
+	writeJSONString(buf, msg)
+	buf.WriteString(`"}`)
+	buf.WriteByte('\n')
 
 	m.mu.Lock()
-	fmt.Fprintln(m.writer, string(data))
+	m.writer.Write(buf.Bytes())
 	m.mu.Unlock()
+}
+
+// writeJSONString writes a string to the buffer with proper JSON escaping.
+// It escapes special characters that need escaping in JSON strings.
+func writeJSONString(buf *bytebufferpool.ByteBuffer, s string) {
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch c {
+		case '"':
+			buf.WriteString(`\"`)
+		case '\\':
+			buf.WriteString(`\\`)
+		case '\n':
+			buf.WriteString(`\n`)
+		case '\r':
+			buf.WriteString(`\r`)
+		case '\t':
+			buf.WriteString(`\t`)
+		case '\b':
+			buf.WriteString(`\b`)
+		case '\f':
+			buf.WriteString(`\f`)
+		default:
+			if c < 0x20 {
+				buf.WriteString(fmt.Sprintf(`\u%04x`, c))
+			} else {
+				buf.WriteByte(c)
+			}
+		}
+	}
 }
 
 // SetOutput sets the output destination for the MCP logger.
