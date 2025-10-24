@@ -114,10 +114,10 @@ func TestPoolConcurrency(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(goroutines)
 
-	for i := 0; i < goroutines; i++ {
+	for i := range goroutines {
 		go func(id int) {
 			defer wg.Done()
-			for j := 0; j < iterations; j++ {
+			for range iterations {
 				buf := Default.Get()
 
 				// Write some data
@@ -179,7 +179,7 @@ func TestBufferOperationsSequence(t *testing.T) {
 
 // TestMultipleGetPutCycles verifies multiple Get/Put cycles work correctly
 func TestMultipleGetPutCycles(t *testing.T) {
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		buf := Default.Get()
 
 		// Write unique data
@@ -254,7 +254,7 @@ func TestBufferResetMultipleTimes(t *testing.T) {
 		Default.Put(buf)
 	}()
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		buf.WriteString("test")
 		buf.Reset()
 		if len(buf.Bytes()) != 0 {
