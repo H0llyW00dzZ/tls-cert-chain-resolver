@@ -97,7 +97,10 @@ func (m *MCPLogger) Printf(format string, v ...any) {
 	}
 
 	buf := m.bufPool.Get()
-	defer m.bufPool.Put(buf)
+	defer func() {
+		buf.Reset()
+		m.bufPool.Put(buf)
+	}()
 
 	msg := fmt.Sprintf(format, v...)
 
@@ -126,7 +129,10 @@ func (m *MCPLogger) Println(v ...any) {
 	}
 
 	buf := m.bufPool.Get()
-	defer m.bufPool.Put(buf)
+	defer func() {
+		buf.Reset()
+		m.bufPool.Put(buf)
+	}()
 
 	msg := fmt.Sprint(v...)
 
