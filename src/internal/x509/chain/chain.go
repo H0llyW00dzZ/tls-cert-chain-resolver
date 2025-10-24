@@ -64,11 +64,11 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 		defer resp.Body.Close()
 
 		// Get a buffer from the pool
-		buf := gc.BufferPool.Get()
+		buf := gc.Default.Get()
 
 		defer func() {
-			buf.Reset()            // Reset the buffer to prevent data leaks
-			gc.BufferPool.Put(buf) // Return the buffer to the pool for reuse
+			buf.Reset()         // Reset the buffer to prevent data leaks
+			gc.Default.Put(buf) // Return the buffer to the pool for reuse
 		}()
 
 		// Read the response body into the buffer

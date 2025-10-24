@@ -6,19 +6,53 @@
 package gc
 
 import (
+	"io"
+
 	"github.com/valyala/bytebufferpool"
 )
 
-// BufferPool is used for efficient memory reuse in I/O operations.
+// Buffer defines the interface for a reusable byte buffer.
+// It abstracts the [bytebufferpool.ByteBuffer] type to avoid direct dependencies.
+type Buffer interface {
+	WriteString(s string) (int, error)
+	WriteByte(c byte) error
+	Bytes() []byte
+	Reset()
+	ReadFrom(r io.Reader) (int64, error)
+}
+
+// Pool defines the interface for buffer pooling.
+// It abstracts the [bytebufferpool.Pool] type to avoid direct dependencies.
+//
+// Pool implementations must be safe for concurrent use by multiple goroutines.
+type Pool interface {
+	Get() Buffer
+	Put(b Buffer)
+}
+
+// pool wraps [bytebufferpool.Pool] to implement Pool interface.
+type pool struct{ p *bytebufferpool.Pool }
+
+// Get returns a buffer from the pool.
+func (p *pool) Get() Buffer { return p.p.Get() }
+
+// Put returns a buffer to the pool.
+func (p *pool) Put(b Buffer) {
+	if buf, ok := b.(*bytebufferpool.ByteBuffer); ok {
+		p.p.Put(buf)
+	}
+}
+
+// Default is the default buffer pool used for efficient memory reuse in I/O operations.
 //
 // Example usage for replacing I/O operations like ReadAll/ReadFull with Fiber's custom JSON encoder/decoder:
 //
 //	// Get a buffer from the pool
-//	buf := gc.BufferPool.Get()
+//	buf := gc.Default.Get()
 //
 //	defer func() {
-//		buf.Reset()            // Reset the buffer to prevent data leaks
-//		gc.BufferPool.Put(buf) // Return the buffer to the pool for reuse
+//		buf.Reset()         // Reset the buffer to prevent data leaks
+//		gc.Default.Put(buf) // Return the buffer to the pool for reuse
 //	}()
 //
 //	if _, err := buf.ReadFrom(resp.Body); err != nil {
@@ -32,13 +66,13 @@ import (
 //
 // Example usage for rendering HTMX + TEMPL components:
 //
-//	buf := gc.BufferPool.Get()
+//	buf := gc.Default.Get()
 //
 //	// Use defer to guarantee buffer cleanup (reset and return to the pool)
 //	// even if an error occurs during rendering.
 //	defer func() {
-//		buf.Reset()            // Reset the buffer to prevent data leaks.
-//		gc.BufferPool.Put(buf) // Return the buffer to the pool for reuse.
+//		buf.Reset()         // Reset the buffer to prevent data leaks.
+//		gc.Default.Put(buf) // Return the buffer to the pool for reuse.
 //	}()
 //
 //	// Render the HTMX component into the byte buffer.
@@ -60,11 +94,11 @@ import (
 // Example usage for efficient file reading:
 //
 //	// Get a buffer from the pool
-//	buf := gc.BufferPool.Get()
+//	buf := gc.Default.Get()
 //
 //	defer func() {
-//		buf.Reset()            // Reset the buffer to prevent data leaks
-//		gc.BufferPool.Put(buf) // Return the buffer to the pool for reuse
+//		buf.Reset()         // Reset the buffer to prevent data leaks
+//		gc.Default.Put(buf) // Return the buffer to the pool for reuse
 //	}()
 //
 //	// Open the file for reading
@@ -86,11 +120,11 @@ import (
 //
 //	http.HandleFunc("/example", func(w http.ResponseWriter, r *http.Request) {
 //		// Get a buffer from the pool
-//		buf := gc.BufferPool.Get()
+//		buf := gc.Default.Get()
 //
 //		defer func() {
-//			buf.Reset()            // Reset the buffer to prevent data leaks
-//			gc.BufferPool.Put(buf) // Return the buffer to the pool for reuse
+//			buf.Reset()         // Reset the buffer to prevent data leaks
+//			gc.Default.Put(buf) // Return the buffer to the pool for reuse
 //		}()
 //
 //		// Read request body into the buffer
@@ -116,4 +150,4 @@ import (
 // Note: These examples demonstrate various I/O operations, such as JSON responses, rendering HTML components, reading files, and handling HTTP requests.
 // Efficient memory usage is achieved by leveraging a buffer pool, which is especially beneficial in high-concurrency environments.
 // For example, using 8 cores while keeping memory usage under 100MiB maintains high CPU efficiency with low memory consumption it's better.
-var BufferPool = bytebufferpool.Pool{}
+var Default Pool = &pool{p: &bytebufferpool.Pool{}}
