@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"runtime"
 	"testing"
 	"time"
 
@@ -101,6 +102,10 @@ func TestFetchCertificateChain(t *testing.T) {
 }
 
 func TestAddRootCA(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("Skipping on macOS: system certificate validation has stricter EKU constraints")
+	}
+
 	tests := []struct {
 		name        string
 		certPEM     string
