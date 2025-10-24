@@ -8,8 +8,18 @@ name: 🧪 Test Coverage
 on:
   push:
     branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.ignore'
   pull_request:
     branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.ignore'
 
 jobs:
   coverage:
