@@ -8,6 +8,7 @@ package logger_test
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -462,5 +463,143 @@ func TestMCPLogger_SilentModeConcurrent(t *testing.T) {
 
 	if buf.Len() != 0 {
 		t.Errorf("expected no output in silent mode, got %d bytes", buf.Len())
+	}
+}
+
+func TestMCPLogger_WriteToFile(t *testing.T) {
+	tmpFile := t.TempDir() + "/mcp-test.log"
+
+	file, err := os.Create(tmpFile)
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer file.Close()
+
+	log := logger.NewMCPLogger(file, false)
+
+	log.Printf("test message 1: %s", "hello")
+	log.Println("test message 2")
+	log.Printf("test message 3: %d", 42)
+
+	if err := file.Sync(); err != nil {
+		t.Fatalf("failed to sync file: %v", err)
+	}
+
+	content, err := os.ReadFile(tmpFile)
+	if err != nil {
+		t.Fatalf("failed to read temp file: %v", err)
+	}
+
+	output := string(content)
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	if len(lines) != 3 {
+		t.Errorf("expected 3 lines in file, got %d", len(lines))
+	}
+
+	for i, line := range lines {
+		var logEntry map[string]any
+		if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
+			t.Errorf("line %d: failed to parse JSON: %v", i+1, err)
+			continue
+		}
+
+		if logEntry["level"] != "info" {
+			t.Errorf("line %d: expected level 'info', got %v", i+1, logEntry["level"])
+		}
+	}
+
+	var firstEntry map[string]any
+	if err := json.Unmarshal([]byte(lines[0]), &firstEntry); err != nil {
+		t.Fatalf("failed to parse first log entry: %v", err)
+	}
+
+	if firstEntry["message"] != "test message 1: hello" {
+		t.Errorf("expected message 'test message 1: hello', got %v", firstEntry["message"])
+	}
+
+	var secondEntry map[string]any
+	if err := json.Unmarshal([]byte(lines[1]), &secondEntry); err != nil {
+		t.Fatalf("failed to parse second log entry: %v", err)
+	}
+
+	if secondEntry["message"] != "test message 2" {
+		t.Errorf("expected message 'test message 2', got %v", secondEntry["message"])
+	}
+
+	var thirdEntry map[string]any
+	if err := json.Unmarshal([]byte(lines[2]), &thirdEntry); err != nil {
+		t.Fatalf("failed to parse third log entry: %v", err)
+	}
+
+	if thirdEntry["message"] != "test message 3: 42" {
+		t.Errorf("expected message 'test message 3: 42', got %v", thirdEntry["message"])
+	}
+}
+
+func TestMCPLogger_WriteToFileConcurrent(t *testing.T) {
+	tmpFile := t.TempDir() + "/mcp-concurrent-test.log"
+
+	file, err := os.Create(tmpFile)
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer file.Close()
+
+	log := logger.NewMCPLogger(file, false)
+
+	const numGoroutines = 50
+	const messagesPerGoroutine = 10
+
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	for i := range numGoroutines {
+		go func(id int) {
+			defer wg.Done()
+			for j := range messagesPerGoroutine {
+				log.Printf("goroutine %d message %d", id, j)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	if err := file.Sync(); err != nil {
+		t.Fatalf("failed to sync file: %v", err)
+	}
+
+	content, err := os.ReadFile(tmpFile)
+	if err != nil {
+		t.Fatalf("failed to read temp file: %v", err)
+	}
+
+	output := string(content)
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	expectedLines := numGoroutines * messagesPerGoroutine
+	if len(lines) != expectedLines {
+		t.Errorf("expected %d log lines, got %d", expectedLines, len(lines))
+	}
+
+	for i, line := range lines {
+		var logEntry map[string]any
+		if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
+			t.Errorf("line %d: failed to parse JSON: %v\nLine content: %s", i+1, err, line)
+		}
+
+		if logEntry["level"] != "info" {
+			t.Errorf("line %d: expected level 'info', got %v", i+1, logEntry["level"])
+		}
+
+		msg, ok := logEntry["message"].(string)
+		if !ok {
+			t.Errorf("line %d: message is not a string", i+1)
+			continue
+		}
+
+		if !strings.Contains(msg, "goroutine") || !strings.Contains(msg, "message") {
+			t.Errorf("line %d: unexpected message format: %s", i+1, msg)
+		}
 	}
 }
