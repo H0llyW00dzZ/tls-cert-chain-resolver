@@ -217,3 +217,211 @@ func TestDecodeCertificate_Invalid(t *testing.T) {
 		})
 	}
 }
+
+func TestCertificate_IsPEM(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []byte
+		expected bool
+	}{
+		{
+			name:     "Valid PEM",
+			input:    []byte(testCertPEM),
+			expected: true,
+		},
+		{
+			name:     "Invalid PEM",
+			input:    []byte("not a pem block"),
+			expected: false,
+		},
+		{
+			name:     "Empty Input",
+			input:    []byte(""),
+			expected: false,
+		},
+	}
+
+	decoder := x509certs.New()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := decoder.IsPEM(tt.input)
+			if result != tt.expected {
+				t.Errorf("IsPEM() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCertificate_EncodeMultiplePEM(t *testing.T) {
+	decoder := x509certs.New()
+
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	tests := []struct {
+		name         string
+		certs        []*x509.Certificate
+		expectBlocks int
+	}{
+		{
+			name:         "Single Certificate",
+			certs:        []*x509.Certificate{cert},
+			expectBlocks: 1,
+		},
+		{
+			name:         "Multiple Certificates",
+			certs:        []*x509.Certificate{cert, cert},
+			expectBlocks: 2,
+		},
+		{
+			name:         "Empty List",
+			certs:        []*x509.Certificate{},
+			expectBlocks: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			encoded := decoder.EncodeMultiplePEM(tt.certs)
+
+			if tt.expectBlocks == 0 {
+				if len(encoded) != 0 {
+					t.Errorf("expected empty result, got %d bytes", len(encoded))
+				}
+				return
+			}
+
+			blockCount := 0
+			rest := encoded
+			for len(rest) > 0 {
+				block, remainder := pem.Decode(rest)
+				if block == nil {
+					break
+				}
+				blockCount++
+				rest = remainder
+			}
+
+			if blockCount != tt.expectBlocks {
+				t.Errorf("expected %d PEM blocks, got %d", tt.expectBlocks, blockCount)
+			}
+		})
+	}
+}
+
+func TestCertificate_DecodeMultiple(t *testing.T) {
+	decoder := x509certs.New()
+
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		input       []byte
+		expectCount int
+		expectError error
+	}{
+		{
+			name:        "Single PEM Certificate",
+			input:       []byte(testCertPEM),
+			expectCount: 1,
+			expectError: nil,
+		},
+		{
+			name:        "Multiple PEM Certificates",
+			input:       decoder.EncodeMultiplePEM([]*x509.Certificate{cert, cert}),
+			expectCount: 2,
+			expectError: nil,
+		},
+		{
+			name:        "DER Format",
+			input:       cert.Raw,
+			expectCount: 1,
+			expectError: nil,
+		},
+		{
+			name:        "Invalid PEM Type",
+			input:       []byte(invalidPEM),
+			expectCount: 0,
+			expectError: x509certs.ErrInvalidBlockType,
+		},
+		{
+			name:        "Invalid Certificate Data",
+			input:       []byte(invalidCERT),
+			expectCount: 0,
+			expectError: x509certs.ErrParseCertificate,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			certs, err := decoder.DecodeMultiple(tt.input)
+
+			if tt.expectError != nil {
+				if err != tt.expectError {
+					t.Errorf("expected error %v, got %v", tt.expectError, err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if len(certs) != tt.expectCount {
+				t.Errorf("expected %d certificates, got %d", tt.expectCount, len(certs))
+			}
+		})
+	}
+}
+
+func TestCertificate_EncodePEM(t *testing.T) {
+	decoder := x509certs.New()
+
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	encoded := decoder.EncodePEM(cert)
+	if len(encoded) == 0 {
+		t.Fatal("EncodePEM() returned empty result")
+	}
+
+	decodedBlock, _ := pem.Decode(encoded)
+	if decodedBlock == nil {
+		t.Fatal("failed to decode encoded PEM")
+	}
+
+	if decodedBlock.Type != "CERTIFICATE" {
+		t.Errorf("expected block type CERTIFICATE, got %s", decodedBlock.Type)
+	}
+
+	decodedCert, err := x509.ParseCertificate(decodedBlock.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse decoded certificate: %v", err)
+	}
+
+	if !cert.Equal(decodedCert) {
+		t.Error("original and decoded certificates are not equal")
+	}
+}
