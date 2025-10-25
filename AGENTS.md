@@ -400,3 +400,4 @@ gopls_go_symbol_references(file, "ProcessRequest")
 - Test with real certificate data when possible (use test fixtures)
 - Verify certificate chain resolution with various chain lengths
 - Benchmark concurrent operations to verify performance under load (see `src/logger/benchmark_test.go` for examples)
+- **Platform-specific test skipping**: Use `runtime.GOOS` to skip tests on specific platforms when OS behavior differs (e.g., macOS has stricter EKU constraints for certificate validation). See `src/internal/x509/chain/chain_test.go` for examples.
