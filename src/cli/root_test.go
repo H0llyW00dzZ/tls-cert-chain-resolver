@@ -210,6 +210,10 @@ func TestExecute_ValidCertificate(t *testing.T) {
 			if err := os.WriteFile(inputFile, []byte(testCertPEM), 0644); err != nil {
 				t.Fatal(err)
 			}
+			t.Cleanup(func() {
+				os.Remove(inputFile)
+				os.Remove(outputFile)
+			})
 
 			args := []string{"cmd", "-f", inputFile, "-o", outputFile}
 			args = append(args, tt.args...)
@@ -262,6 +266,9 @@ func TestExecute_ContextCancellation(t *testing.T) {
 	if err := os.WriteFile(inputFile, []byte(testCertPEM), 0644); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		os.Remove(inputFile)
+	})
 
 	cancel()
 
@@ -270,5 +277,130 @@ func TestExecute_ContextCancellation(t *testing.T) {
 	err := cli.Execute(ctx, version, log)
 	if err == nil {
 		t.Error("expected error due to context cancellation")
+	}
+}
+
+func TestExecute_StdoutOutput(t *testing.T) {
+	tests := []struct {
+		name           string
+		args           []string
+		validateStdout func(t *testing.T, output string)
+	}{
+		{
+			name: "PEM to Stdout",
+			args: []string{},
+			validateStdout: func(t *testing.T, output string) {
+				if !strings.Contains(output, "BEGIN CERTIFICATE") {
+					t.Error("expected PEM format in stdout")
+				}
+				if !strings.Contains(output, "END CERTIFICATE") {
+					t.Error("expected complete PEM certificate in stdout")
+				}
+			},
+		},
+		{
+			name: "JSON to Stdout",
+			args: []string{"--json"},
+			validateStdout: func(t *testing.T, output string) {
+				var jsonData map[string]any
+				if err := json.Unmarshal([]byte(output), &jsonData); err != nil {
+					t.Fatalf("failed to parse JSON output from stdout: %v", err)
+				}
+
+				if title, ok := jsonData["title"].(string); !ok || title != "TLS Certificate Resolver" {
+					t.Errorf("expected title 'TLS Certificate Resolver', got %v", jsonData["title"])
+				}
+
+				if _, ok := jsonData["totalChained"].(float64); !ok {
+					t.Error("expected totalChained field in JSON stdout output")
+				}
+
+				if certs, ok := jsonData["listCertificates"].([]any); !ok || len(certs) == 0 {
+					t.Error("expected non-empty listCertificates array in JSON stdout output")
+				}
+			},
+		},
+		{
+			name: "Intermediate Only to Stdout",
+			args: []string{"--intermediate-only"},
+			validateStdout: func(t *testing.T, output string) {
+				if len(output) == 0 {
+					t.Error("expected non-empty stdout output")
+				}
+				if !strings.Contains(output, "BEGIN CERTIFICATE") {
+					t.Error("expected PEM format in stdout for intermediate certificates")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			log := logger.NewMCPLogger(io.Discard, true)
+
+			tmpDir := t.TempDir()
+			inputFile := filepath.Join(tmpDir, "google.cer")
+
+			if err := os.WriteFile(inputFile, []byte(testCertPEM), 0644); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				os.Remove(inputFile)
+			})
+
+			// Redirect stdout to capture output
+			oldStdout := os.Stdout
+			r, w, err := os.Pipe()
+			if err != nil {
+				t.Fatal(err)
+			}
+			os.Stdout = w
+
+			// Build args without -o flag to write to stdout
+			args := []string{"cmd", "-f", inputFile}
+			args = append(args, tt.args...)
+			os.Args = args
+
+			cli.OperationPerformed = false
+			cli.OperationPerformedSuccessfully = false
+
+			// Capture stdout in goroutine
+			outputChan := make(chan string, 1)
+			go func() {
+				var buf strings.Builder
+				io.Copy(&buf, r)
+				outputChan <- buf.String()
+			}()
+
+			// Execute command
+			err = cli.Execute(ctx, version, log)
+
+			// Restore stdout
+			w.Close()
+			os.Stdout = oldStdout
+
+			// Get captured output
+			output := <-outputChan
+			r.Close()
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if !cli.OperationPerformed {
+				t.Error("expected OperationPerformed to be true")
+			}
+
+			if !cli.OperationPerformedSuccessfully {
+				t.Error("expected OperationPerformedSuccessfully to be true")
+			}
+
+			if tt.validateStdout != nil {
+				tt.validateStdout(t, output)
+			}
+		})
 	}
 }

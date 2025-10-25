@@ -50,125 +50,95 @@ tXHHbX1dudpKfHM=
 
 var version = "1.3.3.7-testing"
 
-func TestFetchCertificateChain(t *testing.T) {
-	tests := []struct {
-		name           string
-		certPEM        string
-		expectChainLen int
-		expectError    bool
-	}{
-		{
-			name:           "Valid Leaf Certificate",
-			certPEM:        testCertPEM,
-			expectChainLen: 3,
-			expectError:    false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			block, _ := pem.Decode([]byte(tt.certPEM))
-			if block == nil {
-				t.Fatal("failed to parse certificate PEM")
-			}
-
-			cert, err := x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				t.Fatalf("failed to parse certificate: %v", err)
-			}
-
-			manager := x509chain.New(cert, version)
-
-			// Create a context with a timeout for the test
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			if err = manager.FetchCertificate(ctx); (err != nil) != tt.expectError {
-				t.Fatalf("FetchCertificate() error = %v, expectError %v", err, tt.expectError)
-			}
-
-			if len(manager.Certs) != tt.expectChainLen {
-				t.Errorf("expected chain length %d, got %d", tt.expectChainLen, len(manager.Certs))
-			}
-
-			decoder := x509certs.New()
-			for _, c := range manager.Certs {
-				t.Logf("Certificate Subject: %s", c.Subject.CommonName)
-				pemData := decoder.EncodePEM(c)
-				t.Logf("Certificate PEM:\n%s", pemData)
-			}
-		})
-	}
-}
-
-func TestAddRootCA(t *testing.T) {
-	if runtime.GOOS == "darwin" {
-		t.Skip("Skipping on macOS: system certificate validation has stricter EKU constraints")
-	}
-
+func TestChainOperations(t *testing.T) {
 	tests := []struct {
 		name        string
 		certPEM     string
-		expectError bool
+		skipOnMacOS bool
+		testFunc    func(t *testing.T, manager *x509chain.Chain)
 	}{
+		{
+			name:    "Fetch Certificate Chain",
+			certPEM: testCertPEM,
+			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				if err := manager.FetchCertificate(ctx); err != nil {
+					t.Fatalf("FetchCertificate() error = %v", err)
+				}
+
+				expectedChainLen := 3
+				if len(manager.Certs) != expectedChainLen {
+					t.Errorf("expected chain length %d, got %d", expectedChainLen, len(manager.Certs))
+				}
+
+				decoder := x509certs.New()
+				for _, c := range manager.Certs {
+					t.Logf("Certificate Subject: %s", c.Subject.CommonName)
+					pemData := decoder.EncodePEM(c)
+					t.Logf("Certificate PEM:\n%s", pemData)
+				}
+			},
+		},
 		{
 			name:        "Add Root CA",
 			certPEM:     testCertPEM,
-			expectError: false,
+			skipOnMacOS: true,
+			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				if err := manager.FetchCertificate(ctx); err != nil {
+					t.Fatalf("FetchCertificate() error = %v", err)
+				}
+
+				if err := manager.AddRootCA(); err != nil {
+					t.Fatalf("AddRootCA() error = %v", err)
+				}
+
+				decoder := x509certs.New()
+				for _, c := range manager.Certs {
+					t.Logf("Certificate Subject: %s", c.Subject.CommonName)
+					pemData := decoder.EncodePEM(c)
+					t.Logf("Certificate PEM:\n%s", pemData)
+				}
+			},
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			block, _ := pem.Decode([]byte(tt.certPEM))
-			if block == nil {
-				t.Fatal("failed to parse certificate PEM")
-			}
-
-			cert, err := x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				t.Fatalf("failed to parse certificate: %v", err)
-			}
-
-			manager := x509chain.New(cert, version)
-
-			// Create a context with a timeout for the test
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			if err = manager.FetchCertificate(ctx); err != nil {
-				t.Fatalf("FetchCertificate() error = %v", err)
-			}
-
-			if err = manager.AddRootCA(); (err != nil) != tt.expectError {
-				t.Fatalf("AddRootCA() error = %v, expectError %v", err, tt.expectError)
-			}
-
-			decoder := x509certs.New()
-			for _, c := range manager.Certs {
-				t.Logf("Certificate Subject: %s", c.Subject.CommonName)
-				pemData := decoder.EncodePEM(c)
-				t.Logf("Certificate PEM:\n%s", pemData)
-			}
-		})
-	}
-}
-
-func TestFilterIntermediates(t *testing.T) {
-	tests := []struct {
-		name                  string
-		certPEM               string
-		expectedIntermediates int
-	}{
 		{
-			name:                  "Valid Chain with Intermediates",
-			certPEM:               testCertPEM,
-			expectedIntermediates: 1, // Assuming the test chain has one intermediate
+			name:    "Filter Intermediates",
+			certPEM: testCertPEM,
+			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				if err := manager.FetchCertificate(ctx); err != nil {
+					t.Fatalf("FetchCertificate() error = %v", err)
+				}
+
+				intermediates := manager.FilterIntermediates()
+
+				expectedIntermediates := 1
+				if len(intermediates) != expectedIntermediates {
+					t.Errorf("expected %d intermediates, got %d", expectedIntermediates, len(intermediates))
+				}
+
+				decoder := x509certs.New()
+				for _, c := range intermediates {
+					t.Logf("Intermediate Certificate Subject: %s", c.Subject.CommonName)
+					pemData := decoder.EncodePEM(c)
+					t.Logf("Intermediate Certificate PEM:\n%s", pemData)
+				}
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnMacOS && runtime.GOOS == "darwin" {
+				t.Skip("Skipping on macOS: system certificate validation has stricter EKU constraints")
+			}
+
 			block, _ := pem.Decode([]byte(tt.certPEM))
 			if block == nil {
 				t.Fatal("failed to parse certificate PEM")
@@ -180,29 +150,7 @@ func TestFilterIntermediates(t *testing.T) {
 			}
 
 			manager := x509chain.New(cert, version)
-
-			// Create a context with a timeout for the test
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			// Simulate fetching the certificate chain
-			if err = manager.FetchCertificate(ctx); err != nil {
-				t.Fatalf("FetchCertificate() error = %v", err)
-			}
-
-			// Filter intermediates
-			intermediates := manager.FilterIntermediates()
-
-			if len(intermediates) != tt.expectedIntermediates {
-				t.Errorf("expected %d intermediates, got %d", tt.expectedIntermediates, len(intermediates))
-			}
-
-			decoder := x509certs.New()
-			for _, c := range intermediates {
-				t.Logf("Intermediate Certificate Subject: %s", c.Subject.CommonName)
-				pemData := decoder.EncodePEM(c)
-				t.Logf("Intermediate Certificate PEM:\n%s", pemData)
-			}
+			tt.testFunc(t, manager)
 		})
 	}
 }
