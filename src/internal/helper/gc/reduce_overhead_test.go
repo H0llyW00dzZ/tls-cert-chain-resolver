@@ -21,13 +21,22 @@ func TestBufferInterface(t *testing.T) {
 		Default.Put(buf)
 	}()
 
+	// Test Write
+	n, err := buf.Write([]byte("hello"))
+	if err != nil {
+		t.Errorf("Write failed: %v", err)
+	}
+	if n != 5 {
+		t.Errorf("Write returned %d, want 5", n)
+	}
+
 	// Test WriteString
-	n, err := buf.WriteString("test")
+	n, err = buf.WriteString(" test")
 	if err != nil {
 		t.Errorf("WriteString failed: %v", err)
 	}
-	if n != 4 {
-		t.Errorf("WriteString returned %d, want 4", n)
+	if n != 5 {
+		t.Errorf("WriteString returned %d, want 5", n)
 	}
 
 	// Test WriteByte
@@ -36,16 +45,39 @@ func TestBufferInterface(t *testing.T) {
 		t.Errorf("WriteByte failed: %v", err)
 	}
 
+	// Test String
+	result := buf.String()
+	expected := "hello test!"
+	if result != expected {
+		t.Errorf("String() = %q, want %q", result, expected)
+	}
+
 	// Test Bytes
-	result := buf.Bytes()
-	expected := []byte("test!")
-	if !bytes.Equal(result, expected) {
-		t.Errorf("Bytes() = %q, want %q", result, expected)
+	resultBytes := buf.Bytes()
+	if !bytes.Equal(resultBytes, []byte(expected)) {
+		t.Errorf("Bytes() = %q, want %q", resultBytes, expected)
+	}
+
+	// Test Len
+	if buf.Len() != len(expected) {
+		t.Errorf("Len() = %d, want %d", buf.Len(), len(expected))
+	}
+
+	// Test Set
+	buf.Set([]byte("replaced"))
+	if buf.String() != "replaced" {
+		t.Errorf("Set() failed, got %q, want %q", buf.String(), "replaced")
+	}
+
+	// Test SetString
+	buf.SetString("new content")
+	if buf.String() != "new content" {
+		t.Errorf("SetString() failed, got %q, want %q", buf.String(), "new content")
 	}
 
 	// Test Reset
 	buf.Reset()
-	if len(buf.Bytes()) != 0 {
+	if buf.Len() != 0 {
 		t.Errorf("Reset() failed, buffer still contains data: %q", buf.Bytes())
 	}
 }
@@ -289,36 +321,96 @@ func TestBufferReadFromError(t *testing.T) {
 	}
 }
 
-// mockBuffer is a mock implementation of Buffer interface for testing
-type mockBuffer struct {
-	buf *bytes.Buffer
+// TestBufferWriteTo verifies WriteTo functionality
+func TestBufferWriteTo(t *testing.T) {
+	buf := Default.Get()
+	defer func() {
+		buf.Reset()
+		Default.Put(buf)
+	}()
+
+	// Write test data to buffer
+	testData := "Hello, World! Testing WriteTo."
+	buf.WriteString(testData)
+
+	// Write buffer contents to output
+	var output bytes.Buffer
+	n, err := buf.WriteTo(&output)
+	if err != nil {
+		t.Errorf("WriteTo failed: %v", err)
+	}
+
+	if n != int64(len(testData)) {
+		t.Errorf("WriteTo wrote %d bytes, want %d", n, len(testData))
+	}
+
+	if output.String() != testData {
+		t.Errorf("WriteTo output = %q, want %q", output.String(), testData)
+	}
 }
 
-func (m *mockBuffer) WriteString(s string) (int, error) {
-	return m.buf.WriteString(s)
+// TestBufferSetMethods verifies Set and SetString functionality
+func TestBufferSetMethods(t *testing.T) {
+	buf := Default.Get()
+	defer func() {
+		buf.Reset()
+		Default.Put(buf)
+	}()
+
+	// Initial data
+	buf.WriteString("initial data")
+
+	// Test Set
+	newData := []byte("replaced with Set")
+	buf.Set(newData)
+	if buf.String() != string(newData) {
+		t.Errorf("Set() = %q, want %q", buf.String(), string(newData))
+	}
+	if buf.Len() != len(newData) {
+		t.Errorf("Set() length = %d, want %d", buf.Len(), len(newData))
+	}
+
+	// Test SetString
+	newString := "replaced with SetString"
+	buf.SetString(newString)
+	if buf.String() != newString {
+		t.Errorf("SetString() = %q, want %q", buf.String(), newString)
+	}
+	if buf.Len() != len(newString) {
+		t.Errorf("SetString() length = %d, want %d", buf.Len(), len(newString))
+	}
 }
 
-func (m *mockBuffer) WriteByte(c byte) error {
-	return m.buf.WriteByte(c)
-}
+// TestBufferLenMethod verifies Len returns correct length
+func TestBufferLenMethod(t *testing.T) {
+	buf := Default.Get()
+	defer func() {
+		buf.Reset()
+		Default.Put(buf)
+	}()
 
-func (m *mockBuffer) Bytes() []byte {
-	return m.buf.Bytes()
-}
+	// Empty buffer
+	if buf.Len() != 0 {
+		t.Errorf("Empty buffer Len() = %d, want 0", buf.Len())
+	}
 
-func (m *mockBuffer) Reset() {
-	m.buf.Reset()
-}
+	// After writing
+	testData := "test data"
+	buf.WriteString(testData)
+	if buf.Len() != len(testData) {
+		t.Errorf("After WriteString Len() = %d, want %d", buf.Len(), len(testData))
+	}
 
-func (m *mockBuffer) ReadFrom(r io.Reader) (int64, error) {
-	return m.buf.ReadFrom(r)
-}
+	// After appending
+	buf.WriteString(" more")
+	expected := testData + " more"
+	if buf.Len() != len(expected) {
+		t.Errorf("After append Len() = %d, want %d", buf.Len(), len(expected))
+	}
 
-// errorReader is a mock io.Reader that always returns an error
-type errorReader struct {
-	err error
-}
-
-func (e *errorReader) Read(p []byte) (n int, err error) {
-	return 0, e.err
+	// After reset
+	buf.Reset()
+	if buf.Len() != 0 {
+		t.Errorf("After Reset Len() = %d, want 0", buf.Len())
+	}
 }

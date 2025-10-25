@@ -14,11 +14,38 @@ import (
 // Buffer defines the interface for a reusable byte buffer.
 // It abstracts the [bytebufferpool.ByteBuffer] type to avoid direct dependencies.
 type Buffer interface {
+	// Write appends the contents of p to the buffer.
+	Write(p []byte) (int, error)
+
+	// WriteString appends the string s to the buffer.
 	WriteString(s string) (int, error)
+
+	// WriteByte appends the byte c to the buffer.
 	WriteByte(c byte) error
-	Bytes() []byte
-	Reset()
+
+	// WriteTo writes data to w until the buffer is drained or an error occurs.
+	WriteTo(w io.Writer) (int64, error)
+
+	// ReadFrom reads data from r until EOF and appends it to the buffer.
 	ReadFrom(r io.Reader) (int64, error)
+
+	// Bytes returns the accumulated bytes in the buffer.
+	Bytes() []byte
+
+	// String returns the accumulated string in the buffer.
+	String() string
+
+	// Len returns the number of bytes in the buffer.
+	Len() int
+
+	// Set replaces the buffer contents with p.
+	Set(p []byte)
+
+	// SetString replaces the buffer contents with s.
+	SetString(s string)
+
+	// Reset clears the buffer, retaining the underlying storage for reuse.
+	Reset()
 }
 
 // Pool defines the interface for buffer pooling.
