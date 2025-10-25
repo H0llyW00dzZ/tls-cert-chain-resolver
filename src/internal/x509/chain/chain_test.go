@@ -131,6 +131,103 @@ func TestChainOperations(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:    "IsSelfSigned - Root Certificate",
+			certPEM: testCertPEM,
+			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				if err := manager.FetchCertificate(ctx); err != nil {
+					t.Fatalf("FetchCertificate() error = %v", err)
+				}
+
+				rootCert := manager.Certs[len(manager.Certs)-1]
+				if !manager.IsSelfSigned(rootCert) {
+					t.Error("expected root certificate to be self-signed")
+				}
+
+				leafCert := manager.Certs[0]
+				if manager.IsSelfSigned(leafCert) {
+					t.Error("expected leaf certificate to not be self-signed")
+				}
+			},
+		},
+		{
+			name:    "IsRootNode",
+			certPEM: testCertPEM,
+			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				if err := manager.FetchCertificate(ctx); err != nil {
+					t.Fatalf("FetchCertificate() error = %v", err)
+				}
+
+				rootCert := manager.Certs[len(manager.Certs)-1]
+				if !manager.IsRootNode(rootCert) {
+					t.Error("expected last certificate to be root node")
+				}
+
+				leafCert := manager.Certs[0]
+				if manager.IsRootNode(leafCert) {
+					t.Error("expected first certificate to not be root node")
+				}
+			},
+		},
+		{
+			name:    "FilterIntermediates - No Intermediates",
+			certPEM: testCertPEM,
+			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+				manager.Certs = manager.Certs[:1]
+
+				intermediates := manager.FilterIntermediates()
+				if intermediates != nil {
+					t.Errorf("expected nil for single certificate, got %d intermediates", len(intermediates))
+				}
+			},
+		},
+		{
+			name:    "VerifyChain - Valid Chain",
+			certPEM: testCertPEM,
+			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				if err := manager.FetchCertificate(ctx); err != nil {
+					t.Fatalf("FetchCertificate() error = %v", err)
+				}
+
+				if err := manager.VerifyChain(); err != nil {
+					t.Errorf("VerifyChain() error = %v", err)
+				}
+			},
+		},
+		{
+			name:    "New Chain Creation",
+			certPEM: testCertPEM,
+			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+				if manager.Version != version {
+					t.Errorf("expected version %s, got %s", version, manager.Version)
+				}
+
+				if len(manager.Certs) != 1 {
+					t.Errorf("expected 1 initial certificate, got %d", len(manager.Certs))
+				}
+
+				if manager.Roots == nil {
+					t.Error("expected Roots pool to be initialized")
+				}
+
+				if manager.Intermediates == nil {
+					t.Error("expected Intermediates pool to be initialized")
+				}
+
+				if manager.Certificate == nil {
+					t.Error("expected Certificate decoder to be initialized")
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -152,5 +249,27 @@ func TestChainOperations(t *testing.T) {
 			manager := x509chain.New(cert, version)
 			tt.testFunc(t, manager)
 		})
+	}
+}
+
+func TestChain_ContextCancellation(t *testing.T) {
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	manager := x509chain.New(cert, version)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err = manager.FetchCertificate(ctx)
+	if err == nil {
+		t.Error("expected error from cancelled context")
 	}
 }
