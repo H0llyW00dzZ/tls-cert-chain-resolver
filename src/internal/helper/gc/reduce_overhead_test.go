@@ -215,22 +215,34 @@ func TestBufferReadFrom(t *testing.T) {
 
 // TestPoolGetPut verifies pool Get/Put operations
 func TestPoolGetPut(t *testing.T) {
+	// Test 1: Get returns non-nil buffer
 	buf1 := Default.Get()
 	if buf1 == nil {
 		t.Fatal("Get() returned nil buffer")
 	}
 
+	// Test 2: Buffer can be written to and reset
 	buf1.WriteString("test data")
+	if buf1.Len() != 9 {
+		t.Errorf("WriteString() length = %d, want 9", buf1.Len())
+	}
 	buf1.Reset()
+	if buf1.Len() != 0 {
+		t.Errorf("Reset() failed, length = %d, want 0", buf1.Len())
+	}
+
+	// Return to pool (buf1 must not be accessed after this)
 	Default.Put(buf1)
 
+	// Test 3: Pool can provide another buffer after Put
 	buf2 := Default.Get()
 	if buf2 == nil {
 		t.Fatal("Get() returned nil buffer after Put()")
 	}
 
-	if len(buf2.Bytes()) != 0 {
-		t.Errorf("Buffer from pool not empty: %q", buf2.Bytes())
+	// Test 4: New buffer from pool should be empty (Reset called before Put)
+	if buf2.Len() != 0 {
+		t.Errorf("Buffer from pool not empty, length = %d, want 0", buf2.Len())
 	}
 
 	buf2.Reset()
@@ -529,10 +541,6 @@ func TestBufferWriteTo(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := Default.Get()
-			defer func() {
-				buf.Reset()
-				Default.Put(buf)
-			}()
 
 			buf.WriteString(tt.data)
 
@@ -549,6 +557,10 @@ func TestBufferWriteTo(t *testing.T) {
 			if output.String() != tt.data {
 				t.Errorf("WriteTo() output = %q, want %q", output.String(), tt.data)
 			}
+
+			// Return to pool only after all assertions complete
+			buf.Reset()
+			Default.Put(buf)
 		})
 	}
 }
