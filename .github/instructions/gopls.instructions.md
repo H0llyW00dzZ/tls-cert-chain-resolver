@@ -332,6 +332,34 @@ globalLogger.Printf("Certificate chain complete. Total %d certificate(s) found."
 // Buffer pooling minimizes allocations under high concurrency
 ```
 
+### Buffer Pool Testing
+
+```go
+// Use gc.Pool for buffer pooling (see src/internal/helper/gc/)
+// Import: "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
+
+// Standard buffer pool usage pattern
+buf := gc.Default.Get()
+defer func() {
+    buf.Reset()         // Always reset before returning to pool
+    gc.Default.Put(buf)
+}()
+
+// Use buffer methods
+buf.WriteString("data")
+buf.WriteByte('\n')
+buf.Write([]byte("more data"))
+
+// Mock buffer for testing (see mock_buffer_test.go)
+type mockBuffer struct {
+    buf *bytes.Buffer
+}
+
+// Implement gc.Buffer interface methods:
+// Write, WriteString, WriteByte, WriteTo, ReadFrom,
+// Bytes, String, Len, Set, SetString, Reset
+```
+
 ## Integration with Other Tools
 
 **After Gopls operations, use**:
@@ -388,6 +416,44 @@ gopls_go_symbol_references("file.go", "func FunctionName")  # ❌ Wrong
 gopls_go_symbol_references("file.go", "Chain.FetchCertificate")  # ✅
 ```
 
+## Platform-Specific Testing Patterns
+
+### macOS Test Skipping
+
+Some tests may need to be skipped on specific platforms due to OS-specific behavior:
+
+```go
+// Example from src/internal/x509/chain/chain_test.go
+import "runtime"
+
+func TestCertificateValidation(t *testing.T) {
+    if runtime.GOOS == "darwin" {
+        t.Skip("Skipping on macOS: system certificate validation has stricter EKU constraints")
+    }
+    // Test implementation...
+}
+```
+
+**When to use**:
+- Platform-specific certificate validation behavior (macOS has stricter EKU constraints)
+- OS-specific filesystem operations
+- Platform-dependent network behavior
+
+**Pattern**:
+```go
+import "runtime"
+
+if runtime.GOOS == "darwin" {    // macOS
+    t.Skip("reason for skipping")
+}
+if runtime.GOOS == "windows" {   // Windows
+    t.Skip("reason for skipping")
+}
+if runtime.GOOS == "linux" {     // Linux
+    t.Skip("reason for skipping")
+}
+```
+
 ## Summary
 
 1. **Always start with `go_workspace`** to understand project structure
@@ -397,3 +463,4 @@ gopls_go_symbol_references("file.go", "Chain.FetchCertificate")  # ✅
 5. **Run tests** after diagnostics pass
 6. **Retry once** if connection errors occur (auto-reconnects)
 7. **Follow repository conventions** for error handling, logging, and package usage
+8. **Use platform-specific test skips** when OS behavior differs (e.g., macOS EKU constraints)
