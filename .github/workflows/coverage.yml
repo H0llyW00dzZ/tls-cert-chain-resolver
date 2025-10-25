@@ -39,8 +39,15 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
 
-    - name: Run tests with coverage
+    - name: Run tests with coverage (with race detector)
+      if: matrix.os != 'windows-11-arm'
       run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+      shell: bash
+      continue-on-error: true
+
+    - name: Run tests with coverage (without race detector)
+      if: matrix.os == 'windows-11-arm'
+      run: go test -v -coverprofile=coverage.txt -covermode=atomic ./...
       shell: bash
       continue-on-error: true
 
