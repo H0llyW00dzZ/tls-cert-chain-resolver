@@ -262,15 +262,60 @@ type Pool interface {
 
 // Buffer provides reusable byte buffer operations
 type Buffer interface {
+    Write(p []byte) (int, error)
     WriteString(s string) (int, error)
     WriteByte(c byte) error
-    Bytes() []byte
-    Reset()
+    WriteTo(w io.Writer) (int64, error)
     ReadFrom(r io.Reader) (int64, error)
+    Bytes() []byte
+    String() string
+    Len() int
+    Set(p []byte)
+    SetString(s string)
+    Reset()
 }
 
 // Default pool available via gc.Default
 var Default Pool
+```
+
+**Buffer Methods**:
+- `Write(p []byte)` - Append byte slice to buffer
+- `WriteString(s string)` - Append string to buffer
+- `WriteByte(c byte)` - Append single byte to buffer
+- `WriteTo(w io.Writer)` - Write buffer contents to writer (drains buffer)
+- `ReadFrom(r io.Reader)` - Read from reader into buffer until EOF
+- `Bytes()` - Get buffer contents as byte slice
+- `String()` - Get buffer contents as string
+- `Len()` - Get current buffer length
+- `Set(p []byte)` - Replace buffer contents with byte slice
+- `SetString(s string)` - Replace buffer contents with string
+- `Reset()` - Clear buffer for reuse
+
+**Usage Examples**:
+```go
+// Write methods for building content
+buf := gc.Default.Get()
+buf.Write([]byte("header"))
+buf.WriteString(": value\n")
+buf.WriteByte('\n')
+
+// String/Len for inspection
+fmt.Printf("Buffer contains %d bytes: %s", buf.Len(), buf.String())
+
+// Set methods for replacing content
+buf.Set([]byte("new content"))  // Replace entire buffer
+buf.SetString("another value")  // Replace with string
+
+// I/O operations
+buf.ReadFrom(reader)       // Read file/response into buffer
+buf.WriteTo(writer)        // Write buffer to file/response
+
+// Always reset before returning to pool
+defer func() {
+    buf.Reset()
+    gc.Default.Put(buf)
+}()
 ```
 
 ### 2. Avoid Memory Leaks

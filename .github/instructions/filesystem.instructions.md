@@ -38,7 +38,8 @@ tls-cert-chain-resolver/
 │       ├── helper/
 │       │   └── gc/
 │       │       ├── reduce_overhead.go        # Buffer pool abstraction (gc.Pool interface)
-│       │       └── reduce_overhead_test.go   # Buffer pool tests
+│       │       ├── reduce_overhead_test.go   # Buffer pool tests
+│       │       └── mock_buffer_test.go       # Mock buffer for testing
 │       └── x509/
 │           ├── certs/
 │           │   ├── certs.go                  # Certificate encoding/decoding
@@ -591,6 +592,7 @@ src/internal/x509/chain/chain_test.go
 # Helper utilities (buffer pool abstraction)
 src/internal/helper/gc/reduce_overhead.go
 src/internal/helper/gc/reduce_overhead_test.go
+src/internal/helper/gc/mock_buffer_test.go
 
 # Build configuration
 Makefile
@@ -658,6 +660,12 @@ grep("gc\\.Pool\\|gc\\.Default", include="*.go")
 
 # Find buffer pool tests
 grep("TestBuffer\\|TestPool", include="*_test.go")
+
+# Find buffer interface methods
+grep("WriteString\\|WriteByte\\|ReadFrom\\|WriteTo", include="*.go")
+
+# Find buffer Set methods
+grep("buf\\.Set\\|buf\\.SetString", include="*.go")
 ```
 
 ### Common Edit Patterns
