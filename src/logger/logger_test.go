@@ -299,6 +299,92 @@ func TestMCPLogger(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "JSONEscaping_SpecialChars",
+			testFunc: func(t *testing.T) {
+				var buf bytes.Buffer
+				log := logger.NewMCPLogger(&buf, false)
+
+				// Test all JSON escape characters
+				testCases := []struct {
+					input           string
+					expectedMessage string
+				}{
+					{`test"quote`, `test"quote`},
+					{`test\backslash`, `test\backslash`},
+					{"test\nnewline", "test\nnewline"},
+					{"test\rcarriage", "test\rcarriage"},
+					{"test\ttab", "test\ttab"},
+					{"test\bbackspace", "test\bbackspace"},
+					{"test\fformfeed", "test\fformfeed"},
+					{"test\x01control", "test\x01control"},
+					{"test\x1fcontrol", "test\x1fcontrol"},
+					{`mixed"test\with` + "\nspecial\tchars", `mixed"test\with` + "\nspecial\tchars"},
+				}
+
+				for _, tc := range testCases {
+					buf.Reset()
+					log.Printf("%s", tc.input)
+
+					output := buf.String()
+					var logEntry map[string]any
+					if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry); err != nil {
+						t.Errorf("input %q: failed to parse JSON: %v\nOutput: %s", tc.input, err, output)
+						continue
+					}
+
+					msg, ok := logEntry["message"].(string)
+					if !ok {
+						t.Errorf("input %q: message is not a string", tc.input)
+						continue
+					}
+
+					if msg != tc.expectedMessage {
+						t.Errorf("input %q: expected message %q, got %q", tc.input, tc.expectedMessage, msg)
+					}
+				}
+			},
+		},
+		{
+			name: "JSONEscaping_Println",
+			testFunc: func(t *testing.T) {
+				var buf bytes.Buffer
+				log := logger.NewMCPLogger(&buf, false)
+
+				// Test escape characters with Println
+				testCases := []struct {
+					input           string
+					expectedMessage string
+				}{
+					{`quote"test`, `quote"test`},
+					{"newline\ntest", "newline\ntest"},
+					{"tab\ttest", "tab\ttest"},
+					{"control\x01test", "control\x01test"},
+				}
+
+				for _, tc := range testCases {
+					buf.Reset()
+					log.Println(tc.input)
+
+					output := buf.String()
+					var logEntry map[string]any
+					if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry); err != nil {
+						t.Errorf("input %q: failed to parse JSON: %v\nOutput: %s", tc.input, err, output)
+						continue
+					}
+
+					msg, ok := logEntry["message"].(string)
+					if !ok {
+						t.Errorf("input %q: message is not a string", tc.input)
+						continue
+					}
+
+					if msg != tc.expectedMessage {
+						t.Errorf("input %q: expected message %q, got %q", tc.input, tc.expectedMessage, msg)
+					}
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
