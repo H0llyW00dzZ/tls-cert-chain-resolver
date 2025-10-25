@@ -15,89 +15,220 @@ import (
 
 // TestBufferInterface verifies that bytebufferpool.ByteBuffer satisfies Buffer interface
 func TestBufferInterface(t *testing.T) {
-	buf := Default.Get()
-	defer func() {
-		buf.Reset()
-		Default.Put(buf)
-	}()
-
-	// Test WriteString
-	n, err := buf.WriteString("test")
-	if err != nil {
-		t.Errorf("WriteString failed: %v", err)
+	tests := []struct {
+		name  string
+		setup func(buf Buffer)
+		check func(t *testing.T, buf Buffer)
+	}{
+		{
+			name: "Write byte slice",
+			setup: func(buf Buffer) {
+				buf.Write([]byte("hello"))
+			},
+			check: func(t *testing.T, buf Buffer) {
+				if buf.String() != "hello" {
+					t.Errorf("Write() result = %q, want %q", buf.String(), "hello")
+				}
+				if buf.Len() != 5 {
+					t.Errorf("Write() length = %d, want 5", buf.Len())
+				}
+			},
+		},
+		{
+			name: "WriteString",
+			setup: func(buf Buffer) {
+				buf.WriteString("test string")
+			},
+			check: func(t *testing.T, buf Buffer) {
+				if buf.String() != "test string" {
+					t.Errorf("WriteString() result = %q, want %q", buf.String(), "test string")
+				}
+			},
+		},
+		{
+			name: "WriteByte",
+			setup: func(buf Buffer) {
+				buf.WriteByte('A')
+			},
+			check: func(t *testing.T, buf Buffer) {
+				if buf.String() != "A" {
+					t.Errorf("WriteByte() result = %q, want %q", buf.String(), "A")
+				}
+			},
+		},
+		{
+			name: "Multiple operations",
+			setup: func(buf Buffer) {
+				buf.Write([]byte("hello"))
+				buf.WriteString(" test")
+				buf.WriteByte('!')
+			},
+			check: func(t *testing.T, buf Buffer) {
+				expected := "hello test!"
+				if buf.String() != expected {
+					t.Errorf("String() = %q, want %q", buf.String(), expected)
+				}
+				if !bytes.Equal(buf.Bytes(), []byte(expected)) {
+					t.Errorf("Bytes() = %q, want %q", buf.Bytes(), expected)
+				}
+				if buf.Len() != len(expected) {
+					t.Errorf("Len() = %d, want %d", buf.Len(), len(expected))
+				}
+			},
+		},
+		{
+			name: "Set byte slice",
+			setup: func(buf Buffer) {
+				buf.WriteString("initial")
+				buf.Set([]byte("replaced"))
+			},
+			check: func(t *testing.T, buf Buffer) {
+				if buf.String() != "replaced" {
+					t.Errorf("Set() result = %q, want %q", buf.String(), "replaced")
+				}
+			},
+		},
+		{
+			name: "SetString",
+			setup: func(buf Buffer) {
+				buf.WriteString("initial")
+				buf.SetString("new content")
+			},
+			check: func(t *testing.T, buf Buffer) {
+				if buf.String() != "new content" {
+					t.Errorf("SetString() result = %q, want %q", buf.String(), "new content")
+				}
+			},
+		},
+		{
+			name: "Reset clears buffer",
+			setup: func(buf Buffer) {
+				buf.WriteString("data to clear")
+				buf.Reset()
+			},
+			check: func(t *testing.T, buf Buffer) {
+				if buf.Len() != 0 {
+					t.Errorf("Reset() failed, buffer still contains data: %q", buf.Bytes())
+				}
+			},
+		},
+		{
+			name:  "Empty buffer",
+			setup: func(buf Buffer) {},
+			check: func(t *testing.T, buf Buffer) {
+				if buf.Len() != 0 {
+					t.Errorf("Empty buffer Len() = %d, want 0", buf.Len())
+				}
+				if buf.String() != "" {
+					t.Errorf("Empty buffer String() = %q, want empty", buf.String())
+				}
+			},
+		},
 	}
-	if n != 4 {
-		t.Errorf("WriteString returned %d, want 4", n)
-	}
 
-	// Test WriteByte
-	err = buf.WriteByte('!')
-	if err != nil {
-		t.Errorf("WriteByte failed: %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := Default.Get()
+			defer func() {
+				buf.Reset()
+				Default.Put(buf)
+			}()
 
-	// Test Bytes
-	result := buf.Bytes()
-	expected := []byte("test!")
-	if !bytes.Equal(result, expected) {
-		t.Errorf("Bytes() = %q, want %q", result, expected)
-	}
-
-	// Test Reset
-	buf.Reset()
-	if len(buf.Bytes()) != 0 {
-		t.Errorf("Reset() failed, buffer still contains data: %q", buf.Bytes())
+			tt.setup(buf)
+			tt.check(t, buf)
+		})
 	}
 }
 
 // TestBufferReadFrom verifies ReadFrom functionality
 func TestBufferReadFrom(t *testing.T) {
-	buf := Default.Get()
-	defer func() {
-		buf.Reset()
-		Default.Put(buf)
-	}()
-
-	testData := "Hello, World! This is a test."
-	reader := strings.NewReader(testData)
-
-	n, err := buf.ReadFrom(reader)
-	if err != nil {
-		t.Errorf("ReadFrom failed: %v", err)
+	tests := []struct {
+		name     string
+		data     string
+		wantLen  int64
+		wantData string
+		wantErr  bool
+	}{
+		{
+			name:     "Small data",
+			data:     "Hello, World!",
+			wantLen:  13,
+			wantData: "Hello, World!",
+		},
+		{
+			name:     "Medium data",
+			data:     "Hello, World! This is a test.",
+			wantLen:  29,
+			wantData: "Hello, World! This is a test.",
+		},
+		{
+			name:     "Empty reader",
+			data:     "",
+			wantLen:  0,
+			wantData: "",
+		},
+		{
+			name:     "Large data (10KB)",
+			data:     strings.Repeat("0123456789", 1024),
+			wantLen:  10240,
+			wantData: strings.Repeat("0123456789", 1024),
+		},
+		{
+			name:     "Multiline data",
+			data:     "Line 1\nLine 2\nLine 3\n",
+			wantLen:  21,
+			wantData: "Line 1\nLine 2\nLine 3\n",
+		},
 	}
 
-	if n != int64(len(testData)) {
-		t.Errorf("ReadFrom read %d bytes, want %d", n, len(testData))
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := Default.Get()
+			defer func() {
+				buf.Reset()
+				Default.Put(buf)
+			}()
 
-	result := string(buf.Bytes())
-	if result != testData {
-		t.Errorf("ReadFrom result = %q, want %q", result, testData)
+			reader := strings.NewReader(tt.data)
+			n, err := buf.ReadFrom(reader)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReadFrom() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if n != tt.wantLen {
+				t.Errorf("ReadFrom() read %d bytes, want %d", n, tt.wantLen)
+			}
+
+			result := buf.String()
+			if result != tt.wantData {
+				if len(result) != len(tt.wantData) {
+					t.Errorf("ReadFrom() length mismatch: got %d, want %d", len(result), len(tt.wantData))
+				} else {
+					t.Errorf("ReadFrom() = %q, want %q", result, tt.wantData)
+				}
+			}
+		})
 	}
 }
 
 // TestPoolGetPut verifies pool Get/Put operations
 func TestPoolGetPut(t *testing.T) {
-	// Get a buffer
 	buf1 := Default.Get()
 	if buf1 == nil {
 		t.Fatal("Get() returned nil buffer")
 	}
 
-	// Write some data
 	buf1.WriteString("test data")
-
-	// Reset and return to pool
 	buf1.Reset()
 	Default.Put(buf1)
 
-	// Get another buffer (might be the same one from pool)
 	buf2 := Default.Get()
 	if buf2 == nil {
 		t.Fatal("Get() returned nil buffer after Put()")
 	}
 
-	// Should be empty (Reset was called)
 	if len(buf2.Bytes()) != 0 {
 		t.Errorf("Buffer from pool not empty: %q", buf2.Bytes())
 	}
@@ -120,16 +251,13 @@ func TestPoolConcurrency(t *testing.T) {
 			for range iterations {
 				buf := Default.Get()
 
-				// Write some data
 				buf.WriteString("goroutine ")
 				buf.WriteByte(byte('0' + (id % 10)))
 
-				// Verify data
 				if len(buf.Bytes()) < 10 {
 					t.Errorf("Buffer too small: %d bytes", len(buf.Bytes()))
 				}
 
-				// Reset and return
 				buf.Reset()
 				Default.Put(buf)
 			}
@@ -141,10 +269,7 @@ func TestPoolConcurrency(t *testing.T) {
 
 // TestPoolPutNonByteBuffer verifies Put handles non-ByteBuffer types gracefully
 func TestPoolPutNonByteBuffer(t *testing.T) {
-	// Create a mock buffer that implements Buffer interface but isn't *bytebufferpool.ByteBuffer
 	mockBuf := &mockBuffer{buf: bytes.NewBuffer(nil)}
-
-	// This should not panic
 	Default.Put(mockBuf)
 }
 
@@ -156,7 +281,6 @@ func TestBufferOperationsSequence(t *testing.T) {
 		Default.Put(buf)
 	}()
 
-	// Sequence of operations
 	buf.WriteString("Line 1\n")
 	buf.WriteString("Line 2\n")
 	buf.WriteByte('\n')
@@ -171,7 +295,6 @@ func TestBufferOperationsSequence(t *testing.T) {
 		t.Errorf("Buffer sequence result = %q, want %q", result, expected)
 	}
 
-	// Verify length matches
 	if len(buf.Bytes()) != len(expected) {
 		t.Errorf("Buffer length = %d, want %d", len(buf.Bytes()), len(expected))
 	}
@@ -182,84 +305,164 @@ func TestMultipleGetPutCycles(t *testing.T) {
 	for i := range 10 {
 		buf := Default.Get()
 
-		// Write unique data
 		buf.WriteString("cycle ")
 		for j := 0; j < i; j++ {
 			buf.WriteByte('*')
 		}
 
-		// Verify data
 		expected := "cycle " + strings.Repeat("*", i)
 		if string(buf.Bytes()) != expected {
 			t.Errorf("Cycle %d: got %q, want %q", i, buf.Bytes(), expected)
 		}
 
-		// Reset and return
 		buf.Reset()
 		Default.Put(buf)
 	}
 }
 
-// TestBufferReadFromLargeData verifies ReadFrom with larger data
-func TestBufferReadFromLargeData(t *testing.T) {
-	buf := Default.Get()
-	defer func() {
-		buf.Reset()
-		Default.Put(buf)
-	}()
-
-	// Create large test data (10KB)
-	largeData := strings.Repeat("0123456789", 1024)
-	reader := strings.NewReader(largeData)
-
-	n, err := buf.ReadFrom(reader)
-	if err != nil {
-		t.Errorf("ReadFrom large data failed: %v", err)
+// TestBufferWriteMethods verifies various write operations
+func TestBufferWriteMethods(t *testing.T) {
+	tests := []struct {
+		name       string
+		operation  func(buf Buffer) (int, error)
+		wantLen    int
+		wantResult string
+	}{
+		{
+			name: "WriteString empty",
+			operation: func(buf Buffer) (int, error) {
+				return buf.WriteString("")
+			},
+			wantLen:    0,
+			wantResult: "",
+		},
+		{
+			name: "WriteString normal",
+			operation: func(buf Buffer) (int, error) {
+				return buf.WriteString("test")
+			},
+			wantLen:    4,
+			wantResult: "test",
+		},
+		{
+			name: "Write empty slice",
+			operation: func(buf Buffer) (int, error) {
+				return buf.Write([]byte{})
+			},
+			wantLen:    0,
+			wantResult: "",
+		},
+		{
+			name: "Write normal slice",
+			operation: func(buf Buffer) (int, error) {
+				return buf.Write([]byte("hello"))
+			},
+			wantLen:    5,
+			wantResult: "hello",
+		},
+		{
+			name: "WriteByte",
+			operation: func(buf Buffer) (int, error) {
+				err := buf.WriteByte('X')
+				return 1, err
+			},
+			wantLen:    1,
+			wantResult: "X",
+		},
 	}
 
-	if n != int64(len(largeData)) {
-		t.Errorf("ReadFrom read %d bytes, want %d", n, len(largeData))
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := Default.Get()
+			defer func() {
+				buf.Reset()
+				Default.Put(buf)
+			}()
 
-	if string(buf.Bytes()) != largeData {
-		t.Errorf("Large data mismatch (length: got %d, want %d)", len(buf.Bytes()), len(largeData))
+			n, err := tt.operation(buf)
+			if err != nil {
+				t.Errorf("%s failed: %v", tt.name, err)
+			}
+
+			if n != tt.wantLen {
+				t.Errorf("%s returned %d, want %d", tt.name, n, tt.wantLen)
+			}
+
+			if buf.String() != tt.wantResult {
+				t.Errorf("%s result = %q, want %q", tt.name, buf.String(), tt.wantResult)
+			}
+		})
 	}
 }
 
-// TestBufferWriteStringEmpty verifies WriteString with empty string
-func TestBufferWriteStringEmpty(t *testing.T) {
-	buf := Default.Get()
-	defer func() {
-		buf.Reset()
-		Default.Put(buf)
-	}()
-
-	n, err := buf.WriteString("")
-	if err != nil {
-		t.Errorf("WriteString empty failed: %v", err)
+// TestBufferResetBehavior verifies Reset behavior in various scenarios
+func TestBufferResetBehavior(t *testing.T) {
+	tests := []struct {
+		name       string
+		operations func(buf Buffer)
+		wantLen    int
+	}{
+		{
+			name: "Reset after WriteString",
+			operations: func(buf Buffer) {
+				buf.WriteString("test")
+				buf.Reset()
+			},
+			wantLen: 0,
+		},
+		{
+			name: "Reset after Write",
+			operations: func(buf Buffer) {
+				buf.Write([]byte("data"))
+				buf.Reset()
+			},
+			wantLen: 0,
+		},
+		{
+			name: "Multiple Reset calls",
+			operations: func(buf Buffer) {
+				for range 5 {
+					buf.WriteString("test")
+					buf.Reset()
+				}
+			},
+			wantLen: 0,
+		},
+		{
+			name: "Reset empty buffer",
+			operations: func(buf Buffer) {
+				buf.Reset()
+			},
+			wantLen: 0,
+		},
+		{
+			name: "Reset after large write",
+			operations: func(buf Buffer) {
+				buf.WriteString(strings.Repeat("x", 10000))
+				buf.Reset()
+			},
+			wantLen: 0,
+		},
 	}
-	if n != 0 {
-		t.Errorf("WriteString empty returned %d, want 0", n)
-	}
-	if len(buf.Bytes()) != 0 {
-		t.Errorf("Buffer not empty after WriteString empty: %q", buf.Bytes())
-	}
-}
 
-// TestBufferResetMultipleTimes verifies Reset can be called multiple times
-func TestBufferResetMultipleTimes(t *testing.T) {
-	buf := Default.Get()
-	defer func() {
-		buf.Reset()
-		Default.Put(buf)
-	}()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := Default.Get()
+			defer func() {
+				buf.Reset()
+				Default.Put(buf)
+			}()
 
-	for i := range 5 {
-		buf.WriteString("test")
-		buf.Reset()
-		if len(buf.Bytes()) != 0 {
-			t.Errorf("Reset %d failed, buffer contains: %q", i, buf.Bytes())
-		}
+			tt.operations(buf)
+
+			if buf.Len() != tt.wantLen {
+				t.Errorf("After operations Len() = %d, want %d (buffer: %q)", buf.Len(), tt.wantLen, buf.Bytes())
+			}
+
+			if buf.String() != "" {
+				t.Errorf("After operations String() = %q, want empty", buf.String())
+			}
+		})
 	}
 }
 
@@ -277,7 +480,6 @@ func TestBufferReadFromError(t *testing.T) {
 		Default.Put(buf)
 	}()
 
-	// Create a reader that returns an error
 	errReader := &errorReader{err: io.ErrUnexpectedEOF}
 
 	_, err := buf.ReadFrom(errReader)
@@ -289,36 +491,219 @@ func TestBufferReadFromError(t *testing.T) {
 	}
 }
 
-// mockBuffer is a mock implementation of Buffer interface for testing
-type mockBuffer struct {
-	buf *bytes.Buffer
+// TestBufferWriteTo verifies WriteTo functionality
+func TestBufferWriteTo(t *testing.T) {
+	tests := []struct {
+		name    string
+		data    string
+		wantLen int64
+	}{
+		{
+			name:    "Small data",
+			data:    "Hello",
+			wantLen: 5,
+		},
+		{
+			name:    "Medium data",
+			data:    "Hello, World! Testing WriteTo.",
+			wantLen: 30,
+		},
+		{
+			name:    "Empty buffer",
+			data:    "",
+			wantLen: 0,
+		},
+		{
+			name:    "Large data",
+			data:    strings.Repeat("test", 100),
+			wantLen: 400,
+		},
+		{
+			name:    "Multiline data",
+			data:    "Line 1\nLine 2\nLine 3",
+			wantLen: 20,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := Default.Get()
+			defer func() {
+				buf.Reset()
+				Default.Put(buf)
+			}()
+
+			buf.WriteString(tt.data)
+
+			var output bytes.Buffer
+			n, err := buf.WriteTo(&output)
+			if err != nil {
+				t.Errorf("WriteTo() error = %v", err)
+			}
+
+			if n != tt.wantLen {
+				t.Errorf("WriteTo() wrote %d bytes, want %d", n, tt.wantLen)
+			}
+
+			if output.String() != tt.data {
+				t.Errorf("WriteTo() output = %q, want %q", output.String(), tt.data)
+			}
+		})
+	}
 }
 
-func (m *mockBuffer) WriteString(s string) (int, error) {
-	return m.buf.WriteString(s)
+// TestBufferSetMethods verifies Set and SetString functionality
+func TestBufferSetMethods(t *testing.T) {
+	tests := []struct {
+		name        string
+		initialData string
+		operation   func(buf Buffer)
+		wantData    string
+		wantLen     int
+	}{
+		{
+			name:        "Set byte slice",
+			initialData: "initial data",
+			operation: func(buf Buffer) {
+				buf.Set([]byte("replaced with Set"))
+			},
+			wantData: "replaced with Set",
+			wantLen:  17,
+		},
+		{
+			name:        "SetString",
+			initialData: "initial data",
+			operation: func(buf Buffer) {
+				buf.SetString("replaced with SetString")
+			},
+			wantData: "replaced with SetString",
+			wantLen:  23,
+		},
+		{
+			name:        "Set empty slice",
+			initialData: "some data",
+			operation: func(buf Buffer) {
+				buf.Set([]byte{})
+			},
+			wantData: "",
+			wantLen:  0,
+		},
+		{
+			name:        "SetString empty",
+			initialData: "some data",
+			operation: func(buf Buffer) {
+				buf.SetString("")
+			},
+			wantData: "",
+			wantLen:  0,
+		},
+		{
+			name:        "Set on empty buffer",
+			initialData: "",
+			operation: func(buf Buffer) {
+				buf.Set([]byte("new data"))
+			},
+			wantData: "new data",
+			wantLen:  8,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := Default.Get()
+			defer func() {
+				buf.Reset()
+				Default.Put(buf)
+			}()
+
+			buf.WriteString(tt.initialData)
+			tt.operation(buf)
+
+			if buf.String() != tt.wantData {
+				t.Errorf("operation result = %q, want %q", buf.String(), tt.wantData)
+			}
+
+			if buf.Len() != tt.wantLen {
+				t.Errorf("operation length = %d, want %d", buf.Len(), tt.wantLen)
+			}
+		})
+	}
 }
 
-func (m *mockBuffer) WriteByte(c byte) error {
-	return m.buf.WriteByte(c)
-}
+// TestBufferLenMethod verifies Len returns correct length
+func TestBufferLenMethod(t *testing.T) {
+	tests := []struct {
+		name       string
+		operations func(buf Buffer)
+		wantLen    int
+	}{
+		{
+			name:       "Empty buffer",
+			operations: func(buf Buffer) {},
+			wantLen:    0,
+		},
+		{
+			name: "After WriteString",
+			operations: func(buf Buffer) {
+				buf.WriteString("test data")
+			},
+			wantLen: 9,
+		},
+		{
+			name: "After multiple writes",
+			operations: func(buf Buffer) {
+				buf.WriteString("test")
+				buf.WriteString(" more")
+			},
+			wantLen: 9,
+		},
+		{
+			name: "After Write byte slice",
+			operations: func(buf Buffer) {
+				buf.Write([]byte("hello world"))
+			},
+			wantLen: 11,
+		},
+		{
+			name: "After WriteByte",
+			operations: func(buf Buffer) {
+				buf.WriteByte('A')
+				buf.WriteByte('B')
+				buf.WriteByte('C')
+			},
+			wantLen: 3,
+		},
+		{
+			name: "After Set",
+			operations: func(buf Buffer) {
+				buf.WriteString("initial")
+				buf.Set([]byte("replaced"))
+			},
+			wantLen: 8,
+		},
+		{
+			name: "After Reset",
+			operations: func(buf Buffer) {
+				buf.WriteString("data")
+				buf.Reset()
+			},
+			wantLen: 0,
+		},
+	}
 
-func (m *mockBuffer) Bytes() []byte {
-	return m.buf.Bytes()
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := Default.Get()
+			defer func() {
+				buf.Reset()
+				Default.Put(buf)
+			}()
 
-func (m *mockBuffer) Reset() {
-	m.buf.Reset()
-}
+			tt.operations(buf)
 
-func (m *mockBuffer) ReadFrom(r io.Reader) (int64, error) {
-	return m.buf.ReadFrom(r)
-}
-
-// errorReader is a mock io.Reader that always returns an error
-type errorReader struct {
-	err error
-}
-
-func (e *errorReader) Read(p []byte) (n int, err error) {
-	return 0, e.err
+			if buf.Len() != tt.wantLen {
+				t.Errorf("Len() = %d, want %d", buf.Len(), tt.wantLen)
+			}
+		})
+	}
 }
