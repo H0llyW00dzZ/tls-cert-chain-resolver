@@ -237,8 +237,8 @@ func TestPoolGetPut(t *testing.T) {
 	Default.Put(buf2)
 }
 
-// TestPoolConcurrency verifies pool is safe for concurrent use
-func TestPoolConcurrency(t *testing.T) {
+// TestGoroutineCooking verifies the pool is safe for concurrent use (with 100 goroutines sizzling!)
+func TestGoroutineCooking(t *testing.T) {
 	const goroutines = 100
 	const iterations = 1000
 
@@ -251,8 +251,9 @@ func TestPoolConcurrency(t *testing.T) {
 			for range iterations {
 				buf := Default.Get()
 
-				buf.WriteString("goroutine ")
+				buf.WriteString("goroutine #")
 				buf.WriteByte(byte('0' + (id % 10)))
+				buf.WriteString(" is sizzling on the CPU like a perfectly grilled steak 🥩")
 
 				if len(buf.Bytes()) < 10 {
 					t.Errorf("Buffer too small: %d bytes", len(buf.Bytes()))
