@@ -558,7 +558,10 @@ func TestMCPLogger_WriteToFile(t *testing.T) {
 				if err != nil {
 					t.Fatalf("failed to create temp file: %v", err)
 				}
-				defer file.Close()
+				t.Cleanup(func() {
+					file.Close()
+					os.Remove(tmpFile)
+				})
 
 				log := logger.NewMCPLogger(file, false)
 
@@ -631,7 +634,10 @@ func TestMCPLogger_WriteToFile(t *testing.T) {
 				if err != nil {
 					t.Fatalf("failed to create temp file: %v", err)
 				}
-				defer file.Close()
+				t.Cleanup(func() {
+					file.Close()
+					os.Remove(tmpFile)
+				})
 
 				log := logger.NewMCPLogger(file, false)
 
