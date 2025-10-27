@@ -1,8 +1,7 @@
 # Agent Instructions
 
-## ⚠️ Important Notice
-
-**These files are NOT intended for human developers.**
+> [!IMPORTANT]
+> **These files are NOT intended for human developers.**
 
 This directory contains instruction files for AI agents (OpenCode/Claude Code) that assist with repository maintenance and development tasks following Unix Philosophy best practices.
 
