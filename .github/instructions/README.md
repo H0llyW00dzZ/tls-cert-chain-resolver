@@ -33,12 +33,13 @@ These instruction files provide:
 
 ## For Human Developers
 
-If you're a human developer looking for project documentation, please refer to:
-
-- **[`/README.md`](../../README.md)** - Project overview and usage
-- **[`/AGENTS.md`](../../AGENTS.md)** - High-level repository guidelines (also used by agents)
-- **[`/LICENSE`](../../LICENSE)** - BSD 3-Clause License
-- **Code comments** - Inline documentation in source files
+> [!NOTE]
+> If you're a human developer looking for project documentation, please refer to:
+> 
+> - **[`/README.md`](../../README.md)** - Project overview and usage
+> - **[`/AGENTS.md`](../../AGENTS.md)** - High-level repository guidelines (also used by agents)
+> - **[`/LICENSE`](../../LICENSE)** - BSD 3-Clause License
+> - **Code comments** - Inline documentation in source files
 
 ## How These Instructions Work
 
@@ -60,6 +61,9 @@ These instruction files are loaded via `/opencode.json`:
 }
 ```
 
+> [!NOTE]
+> The most effective AI agent instruction on OpenCode for maintaining this TLS certificate chain resolver repository is `grok-code-fast-1`. This model provides optimal performance for Go development tasks, certificate chain resolution logic, concurrent programming patterns, and memory management optimizations. Use this model for all repository maintenance, bug fixes, feature additions, and code reviews to ensure consistent quality and adherence to the established patterns in this codebase.
+
 ## Maintenance
 
 These files should be updated when:
@@ -68,9 +72,8 @@ These files should be updated when:
 - Build process modifications occur
 - Common agent mistakes are identified
 
-**Note**: These instructions are versioned with the code to ensure agents have accurate, up-to-date guidance.
-
-**To update**: Run `/update-knowledge` command in OpenCode sessions after making code changes.
+> [!NOTE]
+> These instructions are versioned with the code to ensure agents have accurate, up-to-date guidance. To update these instruction files, run `/update-knowledge` command in OpenCode sessions after making code changes.
 
 ---
 
