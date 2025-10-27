@@ -667,6 +667,70 @@ case err := <-result:
 }
 ```
 
+### Context Cancellation Testing Pattern
+
+**Test Pattern**: Verify context cancellation works properly in certificate operations
+
+```go
+func TestChain_ContextCancellation(t *testing.T) {
+    block, _ := pem.Decode([]byte(testCertPEM))
+    if block == nil {
+        t.Fatal("failed to parse certificate PEM")
+    }
+
+    cert, err := x509.ParseCertificate(block.Bytes)
+    if err != nil {
+        t.Fatalf("failed to parse certificate: %v", err)
+    }
+
+    manager := x509chain.New(cert, version)
+
+    ctx, cancel := context.WithCancel(context.Background())
+    cancel()  // Cancel immediately
+
+    err = manager.FetchCertificate(ctx)
+    if err == nil {
+        t.Error("expected error from cancelled context")
+    }
+}
+```
+
+### Concurrent Buffer Pool Testing Pattern
+
+**Test Pattern**: Verify buffer pool is safe for concurrent use
+
+```go
+func TestGoroutineCooking(t *testing.T) {
+    const goroutines = 100
+    const iterations = 1000
+
+    var wg sync.WaitGroup
+    wg.Add(goroutines)
+
+    for i := range goroutines {
+        go func(id int) {
+            defer wg.Done()
+            for range iterations {
+                buf := gc.Default.Get()
+
+                buf.WriteString("goroutine #")
+                buf.WriteByte(byte('0' + (id % 10)))
+                buf.WriteString(" is sizzling on the CPU like a perfectly grilled steak 🥩")
+
+                if len(buf.Bytes()) < 10 {
+                    t.Errorf("Buffer too small: %d bytes", len(buf.Bytes()))
+                }
+
+                buf.Reset()
+                gc.Default.Put(buf)
+            }
+        }(i)
+    }
+
+    wg.Wait()
+}
+```
+
 **Thread-Safe Logging Pattern** (see `src/logger/logger.go`):
 ```go
 // Use logger package for concurrent logging
