@@ -60,6 +60,9 @@ These instruction files are loaded via `/opencode.json`:
 }
 ```
 
+> [!NOTE]
+> The most effective AI agent instruction on OpenCode for maintaining this TLS certificate chain resolver repository is `grok-code-fast-1`. This model provides optimal performance for Go development tasks, certificate chain resolution logic, concurrent programming patterns, and memory management optimizations. Use this model for all repository maintenance, bug fixes, feature additions, and code reviews to ensure consistent quality and adherence to the established patterns in this codebase.
+
 ## Maintenance
 
 These files should be updated when:
