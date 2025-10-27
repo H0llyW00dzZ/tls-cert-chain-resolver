@@ -6,8 +6,8 @@ This directory contains custom commands for OpenCode agents to assist with repos
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `update-knowledge` | Update agent instruction files when code changes | `/update-knowledge` |
-| `test` | Run tests with coverage and analyze failures | `/test` |
+| [`update-knowledge`](./command/update-knowledge.md) | Update agent instruction files when code changes | `/update-knowledge` |
+| [`test`](./command/test.md) | Run tests with coverage and analyze failures | `/test` |
 
 ## Command Usage
 
