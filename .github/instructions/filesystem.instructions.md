@@ -666,6 +666,24 @@ grep("WriteString\\|WriteByte\\|ReadFrom\\|WriteTo", include="*.go")
 
 # Find buffer Set methods
 grep("buf\\.Set\\|buf\\.SetString", include="*.go")
+
+# Find context cancellation tests
+grep("context\\.WithCancel\\|ctx\\.Done", include="*_test.go")
+
+# Find table-driven tests
+grep("tests := \\[\\]struct", include="*_test.go")
+
+# Find platform-specific test skips
+grep("runtime\\.GOOS", include="*_test.go")
+
+# Find test cleanup patterns
+grep("t\\.TempDir\\|t\\.Cleanup", include="*_test.go")
+
+# Find JSON escaping tests
+grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
+
+# Find concurrent test patterns
+grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
 ```
 
 ### Common Edit Patterns

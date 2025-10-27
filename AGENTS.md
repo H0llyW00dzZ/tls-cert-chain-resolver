@@ -394,13 +394,16 @@ gopls_go_symbol_references(file, "ProcessRequest")
 - Run package tests: `go test -v ./src/internal/x509/certs 2>&1 | cat` or `go test -v ./src/internal/x509/chain 2>&1 | cat` or `go test -v ./src/logger 2>&1 | cat`
 - Run all tests: `go test -v ./... 2>&1 | cat` or `make test`
 - Run race detection: `go test -race ./... 2>&1 | cat` (recommended before merges)
-- Run benchmarks: `go test -bench=. ./src/logger 2>&1 | cat` (for performance testing)
-- **Piping to `cat`**: Use `2>&1 | cat` with test commands to ensure bash tool captures and displays all output
+- Run benchmarks: `go test -bench=. ./src/logger 2>&1 | cat` (performance testing)
+- **Piping to `cat`**: Use `2>&1 | cat` with test commands to ensure bash tool captures and displays all test output
 - Test certificate operations with both PEM and DER formats
 - Test with real certificate data when possible (use test fixtures)
 - Verify certificate chain resolution with various chain lengths
 - Benchmark concurrent operations to verify performance under load (see `src/logger/benchmark_test.go` for examples)
 - **Platform-specific test skipping**: Use `runtime.GOOS` to skip tests on specific platforms when OS behavior differs (e.g., macOS has stricter EKU constraints for certificate validation). See `src/internal/x509/chain/chain_test.go` for examples.
-- **Test cleanup**: Use `t.TempDir()` for temporary directories (auto-cleaned) and `t.Cleanup()` for explicit cleanup functions. See `src/cli/root_test.go` for examples.
-- **Table-driven tests**: Use struct slices with `name`, `testFunc`, and validation functions for comprehensive test coverage. See `src/internal/x509/certs/cert_test.go` for examples.
+- **Test cleanup**: Use `t.TempDir()` for temporary directories (auto-cleaned) and `t.Cleanup()` for explicit cleanup functions. See `src/cli/root_test.go` and `src/logger/logger_test.go` for examples.
+- **Table-driven tests**: Use struct slices with `name`, `testFunc`, and validation functions for comprehensive test coverage. See `src/internal/x509/certs/cert_test.go` and `src/logger/logger_test.go` for examples.
 - **Test organization**: Group related test cases in table-driven tests with descriptive names (e.g., "PEM Output", "DER Output", "JSON Output").
+- **Context cancellation testing**: Test context cancellation in certificate operations (see `src/internal/x509/chain/chain_test.go` for examples)
+- **JSON escaping tests**: Test special character escaping in JSON output for MCP loggers (see `src/logger/logger_test.go` for examples)
+- **Concurrent testing**: Test concurrent usage with multiple goroutines (see `src/logger/logger_test.go` and `src/internal/helper/gc/reduce_overhead_test.go` for examples)
