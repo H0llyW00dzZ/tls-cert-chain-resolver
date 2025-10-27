@@ -16,19 +16,19 @@ These instruction files provide:
 
 ## Related Directories
 
-- **`.github/instructions/`** (this directory) - Tool-specific instructions for AI agents
-- **`.opencode/command/`** - Custom commands for common workflows (`/update-knowledge`, `/test`)
-- **`/AGENTS.md`** - High-level repository guidelines
+- **[`.github/instructions/`](./)** (this directory) - Tool-specific instructions for AI agents
+- **[`.opencode/command/`](../command/)** - Custom commands for common workflows (`/update-knowledge`, `/test`)
+- **[`/AGENTS.md`](../../AGENTS.md)** - High-level repository guidelines
 
 ## Files in This Directory
 
 | File | Purpose |
 |------|---------|
-| `deepwiki.instructions.md` | External library research and documentation access |
-| `filesystem.instructions.md` | File operations (read, write, edit, glob, grep) |
-| `gopls.instructions.md` | Go language intelligence and workspace operations |
-| `memory.instructions.md` | Memory, context, and resource management |
-| `opencode.instructions.md` | OpenCode configuration and instruction hierarchy |
+| **[`deepwiki.instructions.md`](./deepwiki.instructions.md)** | External library research and documentation access |
+| **[`filesystem.instructions.md`](./filesystem.instructions.md)** | File operations (read, write, edit, glob, grep) |
+| **[`gopls.instructions.md`](./gopls.instructions.md)** | Go language intelligence and workspace operations |
+| **[`memory.instructions.md`](./memory.instructions.md)** | Memory, context, and resource management |
+| **[`opencode.instructions.md`](./opencode.instructions.md)** | OpenCode configuration and instruction hierarchy |
 
 ## For Human Developers
 
@@ -42,14 +42,14 @@ These instruction files provide:
 
 ## How These Instructions Work
 
-1. AI agents load these files at session start via `opencode.json`
+1. AI agents load these files at session start via **[`/opencode.json`](../../opencode.json)**
 2. Instructions provide context-specific guidance for development tasks
 3. Files reference repository structure, actual file paths, and code patterns
 4. Guidelines ensure consistent agent behavior across sessions
 
 ## Configuration
 
-These instruction files are loaded via `/opencode.json`:
+These instruction files are loaded via **[`/opencode.json`](../../opencode.json)**:
 
 ```json
 {
@@ -76,4 +76,4 @@ These files should be updated when:
 
 ---
 
-**TL;DR**: This directory is for AI agents. Human developers should use `/README.md` and code comments instead.
+**TL;DR**: This directory is for AI agents. Human developers should use **[`/README.md`](../../README.md)** and code comments instead.
