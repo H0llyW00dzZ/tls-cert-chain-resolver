@@ -10,8 +10,18 @@
      - [1. Gopls MCP Server](#1-gopls-mcp-server)
      - [2. DeepWiki MCP Server](#2-deepwiki-mcp-server)
    - [Built-in Tools (Not MCP)](#built-in-tools-not-mcp)
+   - [MCP Connection Patterns](#mcp-connection-patterns)
    - [MCP & Tool Usage Best Practices](#mcp--tool-usage-best-practices)
-5. [Testing Guidelines](#testing-guidelines)
+5. [Bad Practices to Avoid](#bad-practices-to-avoid)
+   - [1. Incorrect Tool Usage](#incorrect-tool-usage)
+   - [2. Inefficient File Operations](#inefficient-file-operations)
+   - [3. Tool Misuse Patterns](#tool-misuse-patterns)
+   - [4. Ignoring .ignore File](#ignoring-ignore-file)
+   - [5. Bash Command Anti-Patterns](#bash-command-anti-patterns)
+   - [6. Performance Anti-Patterns](#performance-anti-patterns)
+   - [7. MCP Tool Misuse](#mcp-tool-misuse)
+6. [Testing Guidelines](#testing-guidelines)
+7. [For Human Developers](#for-human-developers)
 
 ## Commands
 
@@ -59,6 +69,11 @@ Multiple agents may modify code simultaneously. Preserve others' changes and rep
 This repository integrates multiple MCP servers accessible in agent sessions. Each provides specialized capabilities for development workflows.
 
 ### Available MCP Servers
+
+| Server | Purpose | Instructions |
+|--------|---------|--------------|
+| 1. [Gopls MCP Server](#1-gopls-mcp-server) | Go language intelligence and workspace operations | [`.github/instructions/gopls.instructions.md`](./.github/instructions/gopls.instructions.md) |
+| 2. [DeepWiki MCP Server](#2-deepwiki-mcp-server) | External repository documentation and API research | [`.github/instructions/deepwiki.instructions.md`](./.github/instructions/deepwiki.instructions.md) |
 
 #### 1. Gopls MCP Server
 **Purpose**: Go language intelligence and workspace operations  
@@ -407,3 +422,18 @@ gopls_go_symbol_references(file, "ProcessRequest")
 - **Context cancellation testing**: Test context cancellation in certificate operations (see `src/internal/x509/chain/chain_test.go` for examples)
 - **JSON escaping tests**: Test special character escaping in JSON output for MCP loggers (see `src/logger/logger_test.go` for examples)
 - **Concurrent testing**: Test concurrent usage with multiple goroutines (see `src/logger/logger_test.go` and `src/internal/helper/gc/reduce_overhead_test.go` for examples)
+
+## For Human Developers
+
+> [!NOTE]
+> If you're a human developer looking for project documentation, please refer to:
+> 
+> - **[`/README.md`](./README.md)** - Project overview and usage
+> - **[`/LICENSE`](./LICENSE)** - BSD 3-Clause License
+> - **Code comments** - Inline documentation in source files
+
+For AI agent instructions, see **[`.github/instructions/`](./.github/instructions/)** and this file.
+
+---
+
+**TL;DR**: This file provides high-level guidelines for AI agents. Human developers should use **[`/README.md`](./README.md)** and code comments instead.
