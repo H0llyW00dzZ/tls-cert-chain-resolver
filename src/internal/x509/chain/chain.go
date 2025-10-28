@@ -16,7 +16,7 @@ import (
 
 // Chain manages [X.509] certificates.
 //
-// [X.509]: https://en.wikipedia.org/wiki/X.509
+// [X.509]: https://grokipedia.com/page/X.509
 type Chain struct {
 	Certs []*x509.Certificate
 	*x509certs.Certificate

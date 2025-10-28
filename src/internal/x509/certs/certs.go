@@ -30,7 +30,7 @@ var (
 // Certificate provides methods to decode and encode [X.509] certificates.
 // It maintains internal configuration such as the certificate block type.
 //
-// [X.509]: https://en.wikipedia.org/wiki/X.509
+// [X.509]: https://grokipedia.com/page/X.509
 type Certificate struct {
 	certBlockType string
 }
