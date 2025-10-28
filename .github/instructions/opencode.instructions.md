@@ -31,8 +31,10 @@ This file explains the OpenCode configuration and how to use the instruction fil
 - Concurrency rules
 - MCP server overview
 - Built-in tools reference
-- Testing guidelines
+- MCP connection patterns
 - Bad practices to avoid
+- Comprehensive testing guidelines
+- Human developer notes
 
 **When to reference**: 
 - Start of every agent session
@@ -242,8 +244,22 @@ Example: Adding timeout to certificate fetching
 AGENTS.md (HIGH LEVEL)
 ├── Commands (what to run)
 ├── Code Style (how to write)
-├── Testing (how to verify)
-└── Tool Overview (what's available)
+├── Concurrency (thread safety, mutex usage)
+├── MCP Server Instructions
+│   ├── Available MCP Servers
+│   ├── Built-in Tools (Not MCP)
+│   ├── MCP Connection Patterns
+│   └── MCP & Tool Usage Best Practices
+├── Bad Practices to Avoid
+│   ├── Incorrect Tool Usage
+│   ├── Inefficient File Operations
+│   ├── Tool Misuse Patterns
+│   ├── Ignoring .ignore File
+│   ├── Bash Command Anti-Patterns
+│   ├── Performance Anti-Patterns
+│   └── MCP Tool Misuse
+├── Testing Guidelines
+└── For Human Developers
 
 Custom Commands (WORKFLOWS)
 ├── .opencode/command/update-knowledge.md
