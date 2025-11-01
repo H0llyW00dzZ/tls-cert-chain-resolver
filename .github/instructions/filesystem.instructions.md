@@ -712,6 +712,9 @@ grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults", include="*.go")
 
 # Find MCP tool handlers
 grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert", include="*.go")
+
+# Find MCP resources and prompts
+grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats", include="*.go")
 ```
 
 ### Common Edit Patterns

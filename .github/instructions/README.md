@@ -74,6 +74,16 @@ These instruction files are loaded via **[`/opencode.json`](../../opencode.json)
       "type": "remote",
       "url": "https://mcp.deepwiki.com/sse",
       "enabled": true
+    },
+    "x509-cert-chain-resolver": {
+      "type": "local",
+      "command": [
+        "./bin/x509-cert-chain-resolver"
+      ],
+      "environment": {
+        "MCP_X509_CONFIG_FILE": "./src/mcp-server/config.example.json"
+      },
+      "enabled": true
     }
   }
 }

@@ -94,7 +94,8 @@ gopls_go_search("Chain")           → Find chain-related types/functions
 gopls_go_search("FetchCertificate") → Find specific function
 gopls_go_search("MCP")             → Find MCP-related implementations
 gopls_go_search("handleResolveCertChain") → Find MCP server tool handlers
-gopls_go_search("resolve_cert_chain") → Find certificate chain resolution tools
+gopls_go_search("addResources") → Find MCP server resource implementations
+gopls_go_search("addPrompts") → Find MCP server prompt implementations
 ```
 
 ### gopls_go_file_context(file)
@@ -261,6 +262,11 @@ gopls_go_search("validate_cert_chain")
 gopls_go_search("check_cert_expiry")
 gopls_go_search("batch_resolve_cert_chain")
 gopls_go_search("fetch_remote_cert")
+gopls_go_search("addResources") → Find MCP server resource implementations
+gopls_go_search("addPrompts") → Find MCP server prompt implementations
+gopls_go_search("configResource") → Find configuration resource
+gopls_go_search("versionResource") → Find version information resource
+gopls_go_search("formatsResource") → Find certificate formats documentation resource
 
 # Understand MCP server package API
 gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])

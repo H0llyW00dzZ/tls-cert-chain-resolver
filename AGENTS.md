@@ -200,7 +200,9 @@ task("Search for certificate parsing patterns", "Find all certificate parsing im
 **Project Knowledge**:
 - `.github/instructions/*.md`: Instruction files for Gopls, DeepWiki, Filesystem, Memory
 - `.opencode/command/*.md`: Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`)
-- **MCP Server**: X509 certificate chain resolver with tools: `resolve_cert_chain`, `validate_cert_chain`, `check_cert_expiry`, `batch_resolve_cert_chain`, `fetch_remote_cert`
+- **MCP Server**: X509 certificate chain resolver with tools: `resolve_cert_chain`, `validate_cert_chain`, `check_cert_expiry`, `batch_resolve_cert_chain`, `fetch_remote_cert`; resources: `config://template`, `info://version`, `docs://certificate-formats`; prompts: `certificate-analysis`, `expiry-monitoring`, `security-audit`, `troubleshooting`
+- **Resources**: Static resources including server configuration template, version information, and certificate format documentation
+- **Prompts**: Predefined prompts for certificate analysis, expiry monitoring, security audit, and troubleshooting workflows and resources/prompts for certificate analysis workflows
 - **Configuration**: Set `MCP_X509_CONFIG_FILE` environment variable for MCP server config
 
 ### MCP Connection Patterns
