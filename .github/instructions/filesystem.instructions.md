@@ -26,7 +26,9 @@ tls-cert-chain-resolver/
 │   │   └── update-knowledge.md               # Update instruction files workflow
 │   └── README.md                             # Custom commands documentation
 ├── cmd/
-│   └── run.go                                # Main entry point
+│   ├── mcp-server/
+│   │   └── main.go                           # MCP server entry point
+│   └── run.go                                # Main CLI entry point
 ├── src/
 │   ├── cli/
 │   │   ├── root.go                           # Cobra CLI implementation
@@ -38,7 +40,7 @@ tls-cert-chain-resolver/
 │   ├── mcp-server/
 │   │   ├── config.example.json               # MCP server configuration example
 │   │   ├── config.go                         # MCP server configuration
-│   │   ├── handlers.go                       # MCP tool handlers for certificate operations
+│   │   ├── handlers.go                       # MCP tool handlers for X509 certificate operations
 │   │   ├── main.go                           # MCP server main implementation
 │   │   └── main_test.go                      # MCP server tests
 │   └── internal/
@@ -579,6 +581,9 @@ write("new_test.go", ...)       # Create new test files when needed
 # Main entry point
 cmd/run.go
 
+# MCP server entry point
+cmd/mcp-server/main.go
+
 # CLI implementation
 src/cli/root.go
 src/cli/root_test.go
@@ -700,13 +705,13 @@ grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
 
 # Find MCP server tools
-grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry", include="*.go")
+grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert", include="*.go")
 
 # Find MCP server configuration
-grep("MCP_CONFIG_FILE\\|config\\.Defaults", include="*.go")
+grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults", include="*.go")
 
 # Find MCP tool handlers
-grep("handleResolveCertChain\\|handleValidateCertChain", include="*.go")
+grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert", include="*.go")
 ```
 
 ### Common Edit Patterns

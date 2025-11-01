@@ -465,6 +465,7 @@ src/internal/helper/   → Utilities
 4. Modify code → Use filesystem.instructions.md
 5. Optimize resources → Use memory.instructions.md
 6. Test → Use AGENTS.md test commands
+7. Build → Use AGENTS.md build commands (includes MCP server builds)
 ```
 
 ## Integration with Git

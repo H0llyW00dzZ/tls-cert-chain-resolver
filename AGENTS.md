@@ -29,6 +29,10 @@
 **Build macOS**: `make build-macos` or `make build-macos-amd64` / `make build-macos-arm64` (builds to `./bin/macos/`)  
 **Build Windows**: `make build-windows` (builds to `./bin/windows/`)  
 **Build all**: `make all` (builds for all platforms)  
+**Build MCP Linux**: `make build-mcp-linux` (builds MCP server to `./bin/linux/`)  
+**Build MCP macOS**: `make build-mcp-macos` or `make build-mcp-macos-amd64` / `make build-mcp-macos-arm64` (builds MCP server to `./bin/macos/`)  
+**Build MCP Windows**: `make build-mcp-windows` (builds MCP server to `./bin/windows/`)  
+**Build all MCP**: `make build-mcp` (builds MCP server for all platforms)  
 **Test all**: `go test -v ./... 2>&1 | cat` or `make test`  
 **Test single**: `go test -run TestName ./package -v 2>&1 | cat`  
 **Test package**: `go test -v ./src/internal/x509/certs 2>&1 | cat`, `go test -v ./src/internal/x509/chain 2>&1 | cat`, or `go test -v ./src/logger 2>&1 | cat`  
@@ -195,6 +199,8 @@ task("Search for certificate parsing patterns", "Find all certificate parsing im
 **Project Knowledge**:
 - `.github/instructions/*.md`: Instruction files for Gopls, DeepWiki, Filesystem, Memory
 - `.opencode/command/*.md`: Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`)
+- **MCP Server**: X509 certificate chain resolver with tools: `resolve_cert_chain`, `validate_cert_chain`, `check_cert_expiry`, `batch_resolve_cert_chain`, `fetch_remote_cert`
+- **Configuration**: Set `MCP_X509_CONFIG_FILE` environment variable for MCP server config
 
 ### MCP Connection Patterns
 

@@ -12,7 +12,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 - **`cmd/`** — Main CLI entry point and MCP server binaries
 - **`src/cli/`** — Cobra CLI implementation  
 - **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and gc.Pool)
-- **`src/mcp-server/`** — MCP server implementation with TLS/SSL certificate tools
+- **`src/mcp-server/`** — MCP server implementation with X509 certificate tools
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
 - **`src/internal/helper/gc/`** — Memory management utilities
@@ -94,6 +94,7 @@ gopls_go_search("Chain")           → Find chain-related types/functions
 gopls_go_search("FetchCertificate") → Find specific function
 gopls_go_search("MCP")             → Find MCP-related implementations
 gopls_go_search("handleResolveCertChain") → Find MCP server tool handlers
+gopls_go_search("resolve_cert_chain") → Find certificate chain resolution tools
 ```
 
 ### gopls_go_file_context(file)
@@ -257,6 +258,9 @@ gopls_go_workspace()
 # Find MCP server tool implementations
 gopls_go_search("resolve_cert_chain")
 gopls_go_search("validate_cert_chain")
+gopls_go_search("check_cert_expiry")
+gopls_go_search("batch_resolve_cert_chain")
+gopls_go_search("fetch_remote_cert")
 
 # Understand MCP server package API
 gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
