@@ -593,27 +593,27 @@ func addPrompts(s *server.MCPServer) {
 Let's start with the basic chain resolution:`, certPath)),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`1. First, let's resolve the complete certificate chain to see all certificates in the hierarchy.`),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`Use the "resolve_cert_chain" tool to get the full certificate chain including all intermediates and optionally the root CA.`),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`2. Next, validate the certificate chain to ensure it's properly formed and trusted.`),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`Use the "validate_cert_chain" tool to check the chain's validity and trust status.`),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`3. Check for upcoming certificate expirations.`),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`Use the "check_cert_expiry" tool to identify certificates that are expired or expiring soon.`),
 			),
 			mcp.NewPromptMessage(
@@ -650,7 +650,7 @@ Let's start with the basic chain resolution:`, certPath)),
 				mcp.NewTextContent(fmt.Sprintf(`I'll help you monitor certificate expiration for: %s with %s-day alert threshold.`, certPath, alertDays)),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`Use the "check_cert_expiry" tool to analyze expiration dates and identify certificates requiring attention.`),
 			),
 			mcp.NewPromptMessage(
@@ -695,27 +695,27 @@ Let's start with the basic chain resolution:`, certPath)),
 				mcp.NewTextContent(fmt.Sprintf(`I'll perform a comprehensive SSL/TLS security audit for %s:%s.`, hostname, port)),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`1. First, fetch the server's certificate chain.`),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`Use the "fetch_remote_cert" tool to retrieve the certificate chain presented by the server.`),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`2. Validate the certificate chain.`),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`Use the "validate_cert_chain" tool to verify the chain's validity and trust status.`),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`3. Check certificate expiration dates.`),
 			),
 			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
+				mcp.RoleUser,
 				mcp.NewTextContent(`Use the "check_cert_expiry" tool to identify any expired or soon-to-expire certificates.`),
 			),
 			mcp.NewPromptMessage(
@@ -775,7 +775,7 @@ Let's start with the basic chain resolution:`, certPath)),
 • Certificate authority not recognized`),
 				),
 				mcp.NewPromptMessage(
-					mcp.RoleAssistant,
+					mcp.RoleUser,
 					mcp.NewTextContent(`Let's resolve the certificate chain to see what's available.`),
 				),
 			}
@@ -796,7 +796,7 @@ Let's start with the basic chain resolution:`, certPath)),
 • Invalid certificate signature`),
 				),
 				mcp.NewPromptMessage(
-					mcp.RoleAssistant,
+					mcp.RoleUser,
 					mcp.NewTextContent(`Let's validate the certificate chain to identify specific issues.`),
 				),
 			}
@@ -815,7 +815,7 @@ Let's start with the basic chain resolution:`, certPath)),
 • Certificate not updated after renewal`),
 				),
 				mcp.NewPromptMessage(
-					mcp.RoleAssistant,
+					mcp.RoleUser,
 					mcp.NewTextContent(`Let's check the expiration dates to identify certificates needing attention.`),
 				),
 			}
@@ -836,7 +836,7 @@ Let's start with the basic chain resolution:`, certPath)),
 • Incorrect port number`),
 				),
 				mcp.NewPromptMessage(
-					mcp.RoleAssistant,
+					mcp.RoleUser,
 					mcp.NewTextContent(`Let's try to fetch the certificate chain from the remote server.`),
 				),
 			}
