@@ -249,7 +249,7 @@ gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/intern
 read("src/internal/x509/certs/certs.go")
 ```
 
-### 3. Understanding MCP Server Operations
+### 2. Understanding MCP Server Operations
 
 ```
 # Start with workspace
