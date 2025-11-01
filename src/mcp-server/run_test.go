@@ -13,6 +13,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -343,6 +344,35 @@ func TestRun_ValidConfig(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		// It didn't return immediately, which is good for a server that should block
 		t.Log("Run() started successfully and is blocking as expected")
+	}
+}
+
+func TestRun_GracefulShutdown(t *testing.T) {
+	// Use default config
+	os.Unsetenv("MCP_X509_CONFIG_FILE")
+
+	// Run the server in a goroutine
+	done := make(chan error, 1)
+	go func() {
+		done <- Run()
+	}()
+
+	// Give it time to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Send SIGINT to trigger graceful shutdown
+	if err := syscall.Kill(syscall.Getpid(), syscall.SIGINT); err != nil {
+		t.Fatalf("Failed to send SIGINT: %v", err)
+	}
+
+	// Wait for graceful shutdown with timeout
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("Expected Run() to return nil on graceful shutdown, got error: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Run() did not shut down gracefully within 5 seconds")
 	}
 }
 

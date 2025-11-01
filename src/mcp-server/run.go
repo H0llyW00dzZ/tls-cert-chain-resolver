@@ -10,6 +10,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -27,6 +29,18 @@ func Run() error {
 	if err != nil {
 		return fmt.Errorf("config error: %w", err)
 	}
+
+	// Create cancellable context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Set up signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		cancel()
+	}()
 
 	// Create MCP server
 	s := server.NewMCPServer(
@@ -145,6 +159,17 @@ func Run() error {
 	// Add prompts
 	addPrompts(s)
 
-	// Start server
-	return server.ServeStdio(s)
+	// Start server with graceful shutdown support
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- server.ServeStdio(s)
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-ctx.Done():
+		// Graceful shutdown triggered by signal
+		return fmt.Errorf("server shutdown: %w", ctx.Err())
+	}
 }
