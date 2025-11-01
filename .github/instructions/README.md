@@ -3,7 +3,7 @@
 > [!IMPORTANT]
 > **These files are NOT intended for human developers.**
 
-This directory contains instruction files for AI agents ([OpenCode](https://opencode.ai/)) that assist with repository maintenance and development tasks following Unix Philosophy best practices.
+This directory contains instruction files for AI agents ([OpenCode](https://opencode.ai/)) that assist with repository maintenance and development tasks following [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy) best practices.
 
 ## Purpose
 
@@ -12,7 +12,7 @@ These instruction files provide:
 - Repository-specific patterns and conventions
 - Automated workflow instructions
 - Memory and resource management guidelines
-- Unix Philosophy best practices (composable tools, do one thing well)
+- [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy) best practices (composable tools, do one thing well)
 
 ## Related Directories
 
