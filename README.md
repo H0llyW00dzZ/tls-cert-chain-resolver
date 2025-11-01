@@ -128,7 +128,7 @@ import (
 func main() {
 	// Create MCP server
 	s := server.NewMCPServer(
-		"TLS/SSL Certificate Chain Resolver",
+		"X509 Certificate Chain Resolver",
 		"0.2.9",
 		server.WithToolCapabilities(true),
 	)
