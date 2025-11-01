@@ -1,6 +1,32 @@
 # [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP Server Instructions
 
-## Purpose
+## Table of Contents
+
+- [Purpose](#purpose)
+- [Repository Context](#repository-context)
+- [Available Tools](#available-tools)
+  - [x509_resolver_resolve_cert_chain(certificate)](#x509_resolver_resolve_cert_chaincertificate)
+  - [x509_resolver_validate_cert_chain(certificate)](#x509_resolver_validate_cert_chaincertificate)
+  - [x509_resolver_check_cert_expiry(certificate, warn_days?)](#x509_resolver_check_cert_expirycertificate-warn_days)
+  - [x509_resolver_batch_resolve_cert_chain(certificates)](#x509_resolver_batch_resolve_cert_chain-certificates)
+  - [x509_resolver_fetch_remote_cert(hostname, port?)](#x509_resolver_fetch_remote_certhostname-port)
+- [MCP Resources](#mcp-resources)
+  - [config://template](#configtemplate)
+  - [info://version](#infoversion)
+  - [docs://certificate-formats](#docscertificate-formats)
+- [MCP Prompts](#mcp-prompts)
+  - [certificate-analysis](#certificate-analysis)
+  - [expiry-monitoring](#expiry-monitoring)
+  - [security-audit](#security-audit)
+  - [troubleshooting](#troubleshooting)
+- [Usage Guidelines](#usage-guidelines)
+- [Integration with Repository Workflow](#integration-with-repository-workflow)
+- [Connection Behavior](#connection-behavior)
+- [Best Practices](#best-practices)
+- [Integration with Other Tools](#integration-with-other-tools)
+- [Common Use Cases](#common-use-cases)
+- [Troubleshooting](#troubleshooting)
+- [Summary](#summary)
 
 The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP server provides specialized tools for certificate chain resolution, validation, expiry checking, batch processing, and remote certificate fetching operations.
 
@@ -105,7 +131,7 @@ The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP ser
 # Via MCP client
 Read resource: config://template
 
-# Returns JSON configuration template:
+# Returns the following JSON configuration template:
 {
   "defaults": {
     "format": "pem",
@@ -129,7 +155,7 @@ Read resource: config://template
 # Via MCP client
 Read resource: info://version
 
-# Returns server information:
+# Returns the following server information:
 {
   "name": "X509 Certificate Chain Resolver",
   "version": "0.2.9",
@@ -155,6 +181,7 @@ Read resource: info://version
 Read resource: docs://certificate-formats
 
 # Returns markdown content from templates/certificate-formats.md
+# Contains detailed information about supported certificate formats (PEM, DER, etc.)
 ```
 
 ## MCP Prompts
@@ -247,34 +274,36 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 
 ### Typical Certificate Operations Flow
 
-```
-1. Fetch or load certificate data
-   └→ Use x509_resolver_fetch_remote_cert() for remote certs
+1. **Fetch or load certificate data**
+   - Use `x509_resolver_fetch_remote_cert()` for remote certificates
 
-2. Resolve certificate chain
-   └→ Use x509_resolver_resolve_cert_chain()
+2. **Resolve certificate chain**
+   - Use `x509_resolver_resolve_cert_chain()` to build complete chains
 
-3. Validate certificate chain
-   └→ Use x509_resolver_validate_cert_chain()
+3. **Validate certificate chain**
+   - Use `x509_resolver_validate_cert_chain()` to verify trust
 
-4. Check expiry status
-   └→ Use x509_resolver_check_cert_expiry()
+4. **Check expiry status**
+   - Use `x509_resolver_check_cert_expiry()` to monitor expiration
 
-5. Process results
-   └→ Handle validation results and expiry warnings
-```
+5. **Process results**
+   - Handle validation results and expiry warnings in application logic
 
 ### Batch Processing Workflow
 
+1. **Process multiple certificates**
+```go
+// For multiple certificates
+certs := "cert1.pem,cert2.pem,cert3.pem"
+chains := x509_resolver_batch_resolve_cert_chain(certs)
+// Returns: Array of resolved certificate chains
 ```
-# For multiple certificates
-x509_resolver_batch_resolve_cert_chain("cert1.pem,cert2.pem,cert3.pem")
-# Returns: Array of resolved certificate chains
 
-# Then validate each chain
+2. **Validate each chain**
+```go
 for each chain in results:
-    x509_resolver_validate_cert_chain(chain)
-    x509_resolver_check_cert_expiry(chain)
+   validation := x509_resolver_validate_cert_chain(chain)
+   expiry := x509_resolver_check_cert_expiry(chain)
 ```
 
 ## Connection Behavior
@@ -337,20 +366,28 @@ x509_resolver_batch_resolve_cert_chain("google.pem,github.pem") # Different chai
 - Built-in tools - Process certificate files
 
 **Example Combined Workflow**:
-```
-1. Fetch remote certificate for analysis
+1. **Fetch remote certificate for analysis**
+```bash
    x509_resolver_fetch_remote_cert("example.com")
+```
 
-2. Validate the certificate chain
+2. **Validate the certificate chain**
+```bash
    x509_resolver_validate_cert_chain("example.com.pem")
+```
 
-3. Check expiry status
+3. **Check expiry status**
+```bash
    x509_resolver_check_cert_expiry("example.com.pem", warn_days=30)
+```
 
-4. Process results in application code
+4. **Process results in application code**
+```bash
    edit("src/internal/x509/chain/chain.go", ...)
+```
 
-5. Run tests to verify integration
+5. **Run tests to verify integration**
+```bash
    bash("go test -v ./src/internal/x509/chain 2>&1 | cat")
 ```
 
@@ -402,7 +439,7 @@ for i, chain := range chains {
 ### Certificate Resolution Issues
 
 **Problem**: "Certificate chain incomplete"
-**Solution**: Ensure intermediate certificates are available or use resolve_cert_chain first
+**Solution**: Ensure intermediate certificates are available or use `resolve_cert_chain` first
 
 **Problem**: "Certificate not trusted"
 **Solution**: Check if root CA is included or trusted by system
@@ -412,7 +449,7 @@ for i, chain := range chains {
 **Problem**: "Connection failed"
 **Solution**: Verify hostname and port are correct, check network connectivity
 
-**Problem**: "Certificate not found"
+**Problem**: "Certificate not found"  
 **Solution**: Some services may not present certificates on standard ports
 
 ### Configuration Issues
@@ -422,13 +459,13 @@ for i, chain := range chains {
 
 ## Summary
 
-1. **Use x509_resolver_resolve_cert_chain** for building complete certificate chains
-2. **Use x509_resolver_validate_cert_chain** to verify certificate trust and validity
-3. **Use x509_resolver_check_cert_expiry** to monitor certificate expiration dates
-4. **Use x509_resolver_batch_resolve_cert_chain** for efficient multi-certificate processing
-5. **Use x509_resolver_fetch_remote_cert** to retrieve certificates from remote servers
-6. **Configure MCP_X509_CONFIG_FILE** environment variable for server configuration
-7. **Access MCP resources** for configuration templates, version info, and documentation
-8. **Use MCP prompts** for guided certificate analysis workflows
+1. **Use [`x509_resolver_resolve_cert_chain`](#x509_resolver_resolve_cert_chaincertificate)** for building complete certificate chains
+2. **Use [`x509_resolver_validate_cert_chain`](#x509_resolver_validate_cert_chaincertificate)** to verify certificate trust and validity
+3. **Use [`x509_resolver_check_cert_expiry`](#x509_resolver_check_cert_expirycertificate-warn_days)** to monitor certificate expiration dates
+4. **Use [`x509_resolver_batch_resolve_cert_chain`](#x509_resolver_batch_resolve_cert_chain-certificates)** for efficient multi-certificate processing
+5. **Use [`x509_resolver_fetch_remote_cert`](#x509_resolver_fetch_remote_certhostname-port)** to retrieve certificates from remote servers
+6. **Configure [`MCP_X509_CONFIG_FILE`](#2-configuration)** environment variable for server configuration
+7. **Access [MCP resources](#mcp-resources)** for configuration templates, version info, and documentation
+8. **Use [MCP prompts](#mcp-prompts)** for guided certificate analysis workflows
 9. **Handle errors appropriately** - check return values and handle common certificate issues
-10. **Follow certificate operation workflows** - resolve → validate → check expiry
+10. **Follow [certificate operation workflows](#integration-with-repository-workflow)** - resolve → validate → check expiry
