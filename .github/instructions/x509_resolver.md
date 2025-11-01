@@ -1,8 +1,8 @@
-# X509 Certificate Chain Resolver MCP Server Instructions
+# [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP Server Instructions
 
 ## Purpose
 
-The X509 Certificate Chain Resolver MCP server provides specialized tools for certificate chain resolution, validation, expiry checking, batch processing, and remote certificate fetching operations.
+The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP server provides specialized tools for certificate chain resolution, validation, expiry checking, batch processing, and remote certificate fetching operations.
 
 ## Repository Context
 
