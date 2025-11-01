@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/base64"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -210,6 +211,7 @@ func TestMCPTools(t *testing.T) {
 		args           map[string]any
 		expectError    bool
 		expectContains []string
+		skipOnMacOS    bool
 	}{
 		{
 			name:     "resolve_cert_chain with base64 data",
@@ -229,6 +231,7 @@ func TestMCPTools(t *testing.T) {
 			},
 			expectError:    false,
 			expectContains: []string{"validation"},
+			skipOnMacOS:    true,
 		},
 		{
 			name:     "check_cert_expiry",
@@ -254,6 +257,9 @@ func TestMCPTools(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnMacOS && runtime.GOOS == "darwin" {
+				t.Skip("Skipping on macOS: system certificate validation has stricter EKU constraints")
+			}
 			req := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name:      tt.toolName,
