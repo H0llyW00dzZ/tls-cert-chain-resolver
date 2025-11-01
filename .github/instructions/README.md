@@ -24,11 +24,13 @@ These instruction files provide:
 
 | File | Purpose |
 |------|---------|
+| **[`README.md`](./README.md)** | Overview of agent instructions and configuration |
 | **[`deepwiki.instructions.md`](./deepwiki.instructions.md)** | External library research and documentation access |
 | **[`filesystem.instructions.md`](./filesystem.instructions.md)** | File operations (read, write, edit, glob, grep) |
 | **[`gopls.instructions.md`](./gopls.instructions.md)** | Go language intelligence and workspace operations |
 | **[`memory.instructions.md`](./memory.instructions.md)** | Memory, context, and resource management |
 | **[`opencode.instructions.md`](./opencode.instructions.md)** | OpenCode configuration and instruction hierarchy |
+| **[`x509_resolver.md`](./x509_resolver.md)** | X509 certificate chain resolver MCP server operations |
 
 ## For Human Developers
 
@@ -75,7 +77,7 @@ These instruction files are loaded via **[`/opencode.json`](../../opencode.json)
       "url": "https://mcp.deepwiki.com/sse",
       "enabled": true
     },
-    "x509-cert-chain-resolver": {
+    "x509_resolver": {
       "type": "local",
       "command": [
         "./bin/x509-cert-chain-resolver"

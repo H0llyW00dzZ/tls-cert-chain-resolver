@@ -32,7 +32,7 @@ This file explains the OpenCode configuration and how to use the instruction fil
       "url": "https://mcp.deepwiki.com/sse",
       "enabled": true
     },
-    "x509-cert-chain-resolver": {
+    "x509_resolver": {
       "type": "local",
       "command": [
         "./bin/x509-cert-chain-resolver"
