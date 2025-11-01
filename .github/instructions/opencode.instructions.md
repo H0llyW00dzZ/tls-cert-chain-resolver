@@ -70,6 +70,7 @@ This file explains the OpenCode configuration and how to use the instruction fil
 **Available Commands**:
 - `/update-knowledge` - Update instruction files when code changes
 - `/test` - Run tests with coverage and analyze failures
+- `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools
 
 **When to use**:
 - After making code changes (`/update-knowledge` then `/test`)
