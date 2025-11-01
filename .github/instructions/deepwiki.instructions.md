@@ -192,7 +192,21 @@ deepwiki_read_wiki_contents("valyala/bytebufferpool")
 deepwiki_ask_question("valyala/bytebufferpool", "How do I efficiently pool buffers for varying sizes?")
 ```
 
-### 4. Learning from Similar Projects
+### 4. MCP Server Implementation
+
+**Scenario**: Adding new MCP tools, resources, or prompts
+
+```
+# Research MCP patterns
+deepwiki_read_wiki_structure("mark3labs/mcp-go")
+deepwiki_ask_question("mark3labs/mcp-go", "How do I implement dynamic resources in MCP?")
+deepwiki_ask_question("mark3labs/mcp-go", "What's the difference between static and dynamic resources?")
+
+# Understand prompt handling
+deepwiki_ask_question("mark3labs/mcp-go", "How do I create interactive prompts with arguments?")
+```
+
+### 5. Learning from Similar Projects
 
 **Scenario**: Finding certificate chain resolver implementations
 
@@ -344,6 +358,7 @@ Current external dependencies to research:
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/cloudflare/cfssl` - Certificate utilities
 - `github.com/valyala/bytebufferpool` - Memory pooling
+- `github.com/mark3labs/mcp-go` - MCP server implementation
 
 ### Useful Queries for This Project
 
@@ -358,6 +373,10 @@ deepwiki_ask_question("cloudflare/cfssl", "What's the difference between PEM and
 
 # Buffer pooling
 deepwiki_ask_question("valyala/bytebufferpool", "When should I use bytebufferpool vs sync.Pool?")
+
+# MCP server implementation
+deepwiki_ask_question("mark3labs/mcp-go", "How do I implement MCP resources in a Go server?")
+deepwiki_ask_question("mark3labs/mcp-go", "How do I add prompts to an MCP server?")
 
 # Go standard library
 deepwiki_ask_question("golang/go", "How do I handle certificate verification errors in crypto/x509?")
@@ -413,4 +432,5 @@ Solutions:
 - `spf13/cobra` - For CLI improvements
 - `cloudflare/cfssl` - For certificate handling
 - `valyala/bytebufferpool` - For memory optimization
+- `mark3labs/mcp-go` - For MCP server features
 - `golang/go` - For standard library best practices
