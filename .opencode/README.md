@@ -8,6 +8,7 @@ This directory contains custom commands for OpenCode agents to assist with repos
 |---------|-------------|-------|
 | [`update-knowledge`](./command/update-knowledge.md) | Update agent instruction files when code changes | `/update-knowledge` |
 | [`test`](./command/test.md) | Run tests with coverage and analyze failures | `/test` |
+| [`test-capabilities`](./command/test-capabilities.md) | Test agent capabilities including MCP servers and built-in tools | `/test-capabilities` |
 
 ## Command Usage
 
@@ -16,6 +17,7 @@ Commands are invoked in OpenCode sessions using the `/command-name` syntax:
 ```
 /test
 /update-knowledge
+/test-capabilities
 ```
 
 ## Command Structure
@@ -26,7 +28,6 @@ Each command is defined in a markdown file with:
 ---
 description: Brief description of what the command does
 agent: general
-model: anthropic/claude-3-5-sonnet-20241022
 ---
 
 # Command Title
@@ -64,8 +65,9 @@ Commands should reference and follow patterns from instruction files.
 
 ### After Making Code Changes
 ```
-/update-knowledge
-/test
+1. /update-knowledge
+2. /test
+3. /test-capabilities
 ```
 
 ### Verifying Changes
