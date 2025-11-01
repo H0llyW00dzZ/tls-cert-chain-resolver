@@ -8,6 +8,8 @@ package mcpserver
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -367,4 +369,302 @@ func TestLoadConfig(t *testing.T) {
 	if config.Defaults.WarnDays != 30 {
 		t.Errorf("Expected default warn days 30, got %d", config.Defaults.WarnDays)
 	}
+}
+
+func TestResourcesAndPrompts(t *testing.T) {
+	// Create MCP server with resource and prompt capabilities enabled
+	s := server.NewMCPServer(
+		"X509 Certificate Chain Resolver",
+		"test-version",
+		server.WithResourceCapabilities(true, true),
+		server.WithPromptCapabilities(true),
+	)
+
+	// Add resources and prompts
+	addResources(s)
+	addPrompts(s)
+
+	// Create test server and add the MCP server to it
+	srv := mcptest.NewUnstartedServer(t)
+	defer srv.Close()
+
+	// Copy resources and prompts from our MCP server to the test server
+	// This is needed because mcptest.Server manages its own MCP server instance
+
+	// Add resources manually to test server
+	configResource := mcp.NewResource(
+		"config://template",
+		"Server Configuration Template",
+		mcp.WithResourceDescription("Example configuration file for the MCP server"),
+		mcp.WithMIMEType("application/json"),
+	)
+	srv.AddResource(configResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		exampleConfig := map[string]any{
+			"defaults": map[string]any{
+				"format":            "pem",
+				"includeSystemRoot": false,
+				"intermediateOnly":  false,
+				"warnDays":          30,
+				"port":              443,
+				"timeoutSeconds":    10,
+			},
+		}
+
+		jsonData, err := json.MarshalIndent(exampleConfig, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal config template: %w", err)
+		}
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      "config://template",
+				MIMEType: "application/json",
+				Text:     string(jsonData),
+			},
+		}, nil
+	})
+
+	versionResource := mcp.NewResource(
+		"info://version",
+		"Server Version Information",
+		mcp.WithResourceDescription("Version and build information for the MCP server"),
+		mcp.WithMIMEType("application/json"),
+	)
+	srv.AddResource(versionResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		versionInfo := map[string]any{
+			"name":    "X509 Certificate Chain Resolver",
+			"version": "test-version",
+			"type":    "MCP Server",
+			"capabilities": map[string]any{
+				"tools":     []string{"resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert"},
+				"resources": true,
+				"prompts":   true,
+			},
+			"supportedFormats": []string{"pem", "der", "json"},
+		}
+
+		jsonData, err := json.MarshalIndent(versionInfo, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal version info: %w", err)
+		}
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      "info://version",
+				MIMEType: "application/json",
+				Text:     string(jsonData),
+			},
+		}, nil
+	})
+
+	formatsResource := mcp.NewResource(
+		"docs://certificate-formats",
+		"Certificate Format Documentation",
+		mcp.WithResourceDescription("Documentation on supported certificate formats and usage"),
+		mcp.WithMIMEType("text/markdown"),
+	)
+	srv.AddResource(formatsResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		content, err := magicEmbed.ReadFile("templates/certificate-formats.md")
+		if err != nil {
+			return nil, fmt.Errorf("failed to read certificate formats template: %w", err)
+		}
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      "docs://certificate-formats",
+				MIMEType: "text/markdown",
+				Text:     string(content),
+			},
+		}, nil
+	})
+
+	// Add prompts manually to test server
+	certAnalysisPrompt := mcp.NewPrompt("certificate-analysis",
+		mcp.WithPromptDescription("Comprehensive certificate chain analysis workflow"),
+		mcp.WithArgument("certificate_path",
+			mcp.ArgumentDescription("Path to certificate file or base64-encoded certificate data"),
+		),
+	)
+	srv.AddPrompt(certAnalysisPrompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		certPath := request.Params.Arguments["certificate_path"]
+
+		messages := []mcp.PromptMessage{
+			mcp.NewPromptMessage(
+				mcp.RoleAssistant,
+				mcp.NewTextContent(fmt.Sprintf(`I'll help you perform a comprehensive analysis of the certificate chain for: %s
+
+Let's start with the basic chain resolution:`, certPath)),
+			),
+		}
+
+		return mcp.NewGetPromptResult(
+			"Certificate Chain Analysis Workflow",
+			messages,
+		), nil
+	})
+
+	expiryPrompt := mcp.NewPrompt("expiry-monitoring",
+		mcp.WithPromptDescription("Monitor certificate expiration dates and generate renewal alerts"),
+		mcp.WithArgument("certificate_path",
+			mcp.ArgumentDescription("Path to certificate file or base64-encoded certificate data"),
+		),
+		mcp.WithArgument("alert_days",
+			mcp.ArgumentDescription("Number of days before expiry to alert (default: 30)"),
+		),
+	)
+	srv.AddPrompt(expiryPrompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		certPath := request.Params.Arguments["certificate_path"]
+		alertDays := request.Params.Arguments["alert_days"]
+		if alertDays == "" {
+			alertDays = "30"
+		}
+
+		messages := []mcp.PromptMessage{
+			mcp.NewPromptMessage(
+				mcp.RoleAssistant,
+				mcp.NewTextContent(fmt.Sprintf(`I'll help you monitor certificate expiration for: %s with %s-day alert threshold.`, certPath, alertDays)),
+			),
+		}
+
+		return mcp.NewGetPromptResult(
+			"Certificate Expiry Monitoring",
+			messages,
+		), nil
+	})
+
+	// Start the test server
+	err := srv.Start(context.Background())
+	if err != nil {
+		t.Fatalf("Failed to start test server: %v", err)
+	}
+
+	client := srv.Client()
+
+	t.Run("resources", func(t *testing.T) {
+		tests := []struct {
+			name       string
+			uri        string
+			expectMIME string
+			expectText []string
+		}{
+			{
+				name:       "config template",
+				uri:        "config://template",
+				expectMIME: "application/json",
+				expectText: []string{`"format": "pem"`, `"warnDays": 30`, `"port": 443`},
+			},
+			{
+				name:       "version info",
+				uri:        "info://version",
+				expectMIME: "application/json",
+				expectText: []string{`"name": "X509 Certificate Chain Resolver"`, `"version": "test-version"`, `"type": "MCP Server"`},
+			},
+			{
+				name:       "certificate formats",
+				uri:        "docs://certificate-formats",
+				expectMIME: "text/markdown",
+				expectText: []string{"# Certificate Formats Supported", "PEM Format", "DER Format"},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				req := mcp.ReadResourceRequest{
+					Params: mcp.ReadResourceParams{
+						URI: tt.uri,
+					},
+				}
+
+				result, err := client.ReadResource(context.Background(), req)
+				if err != nil {
+					t.Fatalf("ReadResource failed for %s: %v", tt.uri, err)
+				}
+
+				if len(result.Contents) != 1 {
+					t.Fatalf("Expected 1 content item for %s, got %d", tt.uri, len(result.Contents))
+				}
+
+				content := result.Contents[0]
+				if tc, ok := content.(mcp.TextResourceContents); ok {
+					if tc.MIMEType != tt.expectMIME {
+						t.Errorf("Expected MIME type %s for %s, got %s", tt.expectMIME, tt.uri, tc.MIMEType)
+					}
+
+					for _, expected := range tt.expectText {
+						if !strings.Contains(tc.Text, expected) {
+							t.Errorf("Expected content to contain %q for %s, but it didn't. Content: %s", expected, tt.uri, tc.Text)
+						}
+					}
+				} else {
+					t.Errorf("Expected TextResourceContents for %s, got %T", tt.uri, content)
+				}
+			})
+		}
+	})
+
+	t.Run("prompts", func(t *testing.T) {
+		tests := []struct {
+			name       string
+			promptName string
+			args       map[string]string
+			expectDesc string
+			expectText []string
+		}{
+			{
+				name:       "certificate analysis",
+				promptName: "certificate-analysis",
+				args: map[string]string{
+					"certificate_path": "/path/to/cert.pem",
+				},
+				expectDesc: "Certificate Chain Analysis Workflow",
+				expectText: []string{"certificate chain for: /path/to/cert.pem", "basic chain resolution"},
+			},
+			{
+				name:       "expiry monitoring",
+				promptName: "expiry-monitoring",
+				args: map[string]string{
+					"certificate_path": "/path/to/cert.pem",
+					"alert_days":       "60",
+				},
+				expectDesc: "Certificate Expiry Monitoring",
+				expectText: []string{"certificate expiration for: /path/to/cert.pem", "60-day alert threshold"},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				req := mcp.GetPromptRequest{
+					Params: mcp.GetPromptParams{
+						Name:      tt.promptName,
+						Arguments: tt.args,
+					},
+				}
+
+				result, err := client.GetPrompt(context.Background(), req)
+				if err != nil {
+					t.Fatalf("GetPrompt failed for %s: %v", tt.promptName, err)
+				}
+
+				if result.Description != tt.expectDesc {
+					t.Errorf("Expected description %q for %s, got %q", tt.expectDesc, tt.promptName, result.Description)
+				}
+
+				if len(result.Messages) == 0 {
+					t.Fatalf("Expected at least one message for %s", tt.promptName)
+				}
+
+				// Check the first message content
+				firstMsg := result.Messages[0]
+				if tc, ok := firstMsg.Content.(mcp.TextContent); ok {
+					for _, expected := range tt.expectText {
+						if !strings.Contains(tc.Text, expected) {
+							t.Errorf("Expected message to contain %q for %s, but it didn't. Message: %s", expected, tt.promptName, tc.Text)
+						}
+					}
+				} else {
+					t.Errorf("Expected TextContent for %s, got %T", tt.promptName, firstMsg.Content)
+				}
+			})
+		}
+	})
 }

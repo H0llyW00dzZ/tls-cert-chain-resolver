@@ -33,6 +33,8 @@ func Run() error {
 		serverName,
 		appVersion,
 		server.WithToolCapabilities(true),
+		server.WithResourceCapabilities(true, true), // Enable resource capabilities (static and dynamic)
+		server.WithPromptCapabilities(true),         // Enable prompt capabilities
 	)
 
 	// Define certificate chain resolution tool
@@ -136,6 +138,12 @@ func Run() error {
 	s.AddTool(fetchRemoteCertTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		return handleFetchRemoteCert(ctx, request, config)
 	})
+
+	// Add resources
+	addResources(s)
+
+	// Add prompts
+	addPrompts(s)
 
 	// Start server
 	return server.ServeStdio(s)
