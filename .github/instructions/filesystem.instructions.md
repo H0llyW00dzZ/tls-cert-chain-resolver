@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Built-in filesystem tools for reading, writing, editing, listing, and searching files in the TLS certificate chain resolver repository.
+Built-in filesystem tools for reading, writing, editing, listing, and searching files in the X509 certificate chain resolver repository.
 
 ## Repository Structure
 
@@ -26,7 +26,9 @@ tls-cert-chain-resolver/
 │   │   └── update-knowledge.md               # Update instruction files workflow
 │   └── README.md                             # Custom commands documentation
 ├── cmd/
-│   └── run.go                                # Main entry point
+│   ├── mcp-server/
+│   │   └── run.go                            # MCP server entry point
+│   └── run.go                                # Main CLI entry point
 ├── src/
 │   ├── cli/
 │   │   ├── root.go                           # Cobra CLI implementation
@@ -35,6 +37,12 @@ tls-cert-chain-resolver/
 │   │   ├── logger.go                         # Logger abstraction (CLI/MCP, thread-safe with bytebufferpool)
 │   │   ├── logger_test.go                    # Logger tests
 │   │   └── benchmark_test.go                 # Logger benchmarks
+│   ├── mcp-server/
+│   │   ├── config.example.json               # MCP server configuration example
+│   │   ├── config.go                         # MCP server configuration
+│   │   ├── handlers.go                       # MCP tool handlers for X509 certificate operations
+│   │   ├── run.go                            # MCP server main implementation
+│   │   └── run_test.go                       # MCP server tests
 │   └── internal/
 │       ├── helper/
 │       │   └── gc/
@@ -573,6 +581,9 @@ write("new_test.go", ...)       # Create new test files when needed
 # Main entry point
 cmd/run.go
 
+# MCP server entry point
+cmd/mcp-server/run.go
+
 # CLI implementation
 src/cli/root.go
 src/cli/root_test.go
@@ -581,6 +592,13 @@ src/cli/root_test.go
 src/logger/logger.go
 src/logger/logger_test.go
 src/logger/benchmark_test.go
+
+# MCP server implementation
+src/mcp-server/config.example.json
+src/mcp-server/config.go
+src/mcp-server/handlers.go
+src/mcp-server/run.go
+src/mcp-server/run_test.go
 
 # Certificate operations
 src/internal/x509/certs/certs.go
@@ -685,6 +703,18 @@ grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
 
 # Find concurrent test patterns
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
+
+# Find MCP server tools
+grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert", include="*.go")
+
+# Find MCP server configuration
+grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults", include="*.go")
+
+# Find MCP tool handlers
+grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert", include="*.go")
+
+# Find MCP resources and prompts
+grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats", include="*.go")
 ```
 
 ### Common Edit Patterns

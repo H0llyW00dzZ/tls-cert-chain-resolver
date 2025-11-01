@@ -2,16 +2,17 @@
 
 ## Purpose
 
-The Gopls MCP server provides Go language intelligence and workspace operations for this TLS certificate chain resolver repository.
+The Gopls MCP server provides Go language intelligence and workspace operations for this X509 certificate chain resolver repository.
 
 ## Repository Context
 
 **Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
 **Go Version**: 1.25.3 or later  
 **Key Packages**:
-- **`cmd/`** — Main CLI entry point
+- **`cmd/`** — Main CLI entry point and MCP server binaries
 - **`src/cli/`** — Cobra CLI implementation  
 - **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and gc.Pool)
+- **`src/mcp-server/`** — MCP server implementation with X509 certificate tools
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
 - **`src/internal/helper/gc/`** — Memory management utilities
@@ -74,6 +75,7 @@ Packages:
 - cmd (main)
 - src/cli
 - src/logger (CLI/MCP logger abstraction, thread-safe with bytebufferpool)
+- src/mcp-server (MCP server tools for certificate operations)
 - src/internal/x509/certs
 - src/internal/x509/chain
 - src/internal/helper/gc
@@ -90,6 +92,10 @@ gopls_go_search("Certificate")     → Find all Certificate-related symbols
 gopls_go_search("Encode")          → Find encoding functions
 gopls_go_search("Chain")           → Find chain-related types/functions
 gopls_go_search("FetchCertificate") → Find specific function
+gopls_go_search("MCP")             → Find MCP-related implementations
+gopls_go_search("handleResolveCertChain") → Find MCP server tool handlers
+gopls_go_search("addResources") → Find MCP server resource implementations
+gopls_go_search("addPrompts") → Find MCP server prompt implementations
 ```
 
 ### gopls_go_file_context(file)
@@ -244,23 +250,30 @@ gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/intern
 read("src/internal/x509/certs/certs.go")
 ```
 
-### 2. Modifying Chain Resolution Logic
+### 2. Understanding MCP Server Operations
 
 ```
-# Search for chain-related code
-gopls_go_search("FetchCertificate")
+# Start with workspace
+gopls_go_workspace()
 
-# Check all references before modifying
-gopls_go_symbol_references("src/internal/x509/chain/chain.go", "FetchCertificate")
+# Find MCP server tool implementations
+gopls_go_search("resolve_cert_chain")
+gopls_go_search("validate_cert_chain")
+gopls_go_search("check_cert_expiry")
+gopls_go_search("batch_resolve_cert_chain")
+gopls_go_search("fetch_remote_cert")
+gopls_go_search("addResources") → Find MCP server resource implementations
+gopls_go_search("addPrompts") → Find MCP server prompt implementations
+gopls_go_search("configResource") → Find configuration resource
+gopls_go_search("versionResource") → Find version information resource
+gopls_go_search("formatsResource") → Find certificate formats documentation resource
 
-# Make changes using edit tool
-edit(...)
+# Understand MCP server package API
+gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
 
-# Run diagnostics
-gopls_go_diagnostics(["src/internal/x509/chain/chain.go"])
-
-# Run tests
-bash("go test -v ./src/internal/x509/chain 2>&1 | cat")
+# Read MCP server implementations
+read("src/mcp-server/handlers.go")
+read("src/mcp-server/run.go")
 ```
 
 ### 3. Adding New CLI Flags
@@ -417,42 +430,22 @@ gopls_go_symbol_references("file.go", "func FunctionName")  # ❌ Wrong
 gopls_go_symbol_references("file.go", "Chain.FetchCertificate")  # ✅
 ```
 
-## Platform-Specific Testing Patterns
+## Repository-Specific Patterns
 
-### macOS Test Skipping
-
-Some tests may need to be skipped on specific platforms due to OS-specific behavior:
+### Common MCP Server Patterns
 
 ```go
-// Example from src/internal/x509/chain/chain_test.go
-import "runtime"
+# Find MCP server tools
+grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert", include="*.go")
 
-func TestCertificateValidation(t *testing.T) {
-    if runtime.GOOS == "darwin" {
-        t.Skip("Skipping on macOS: system certificate validation has stricter EKU constraints")
-    }
-    // Test implementation...
-}
-```
+# Find MCP server configuration
+grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults", include="*.go")
 
-**When to use**:
-- Platform-specific certificate validation behavior (macOS has stricter EKU constraints)
-- OS-specific filesystem operations
-- Platform-dependent network behavior
+# Find MCP tool handlers
+grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert", include="*.go")
 
-**Pattern**:
-```go
-import "runtime"
-
-if runtime.GOOS == "darwin" {    // macOS
-    t.Skip("reason for skipping")
-}
-if runtime.GOOS == "windows" {   // Windows
-    t.Skip("reason for skipping")
-}
-if runtime.GOOS == "linux" {     // Linux
-    t.Skip("reason for skipping")
-}
+# Find MCP resources and prompts
+grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats", include="*.go")
 ```
 
 ## Summary

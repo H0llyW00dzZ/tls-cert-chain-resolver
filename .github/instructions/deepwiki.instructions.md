@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The DeepWiki MCP server provides access to external repository documentation and API research for libraries and frameworks not in the current codebase.
+The DeepWiki MCP server provides access to external repository documentation and API research for libraries and frameworks not in the current X509 certificate chain resolver codebase.
 
 ## When to Use DeepWiki
 

@@ -1,0 +1,10 @@
+{
+  "defaults": {
+    "format": "pem",
+    "includeSystemRoot": false,
+    "intermediateOnly": false,
+    "warnDays": 30,
+    "port": 443,
+    "timeoutSeconds": 10
+  }
+}

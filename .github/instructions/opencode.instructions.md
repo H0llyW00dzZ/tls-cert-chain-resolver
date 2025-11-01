@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This file explains the OpenCode configuration and how to use the instruction files for maintaining the TLS certificate chain resolver repository.
+This file explains the OpenCode configuration and how to use the instruction files for maintaining the X509 certificate chain resolver repository.
 
 ## Configuration Overview
 
@@ -30,6 +30,16 @@ This file explains the OpenCode configuration and how to use the instruction fil
     "deepwiki": {
       "type": "remote",
       "url": "https://mcp.deepwiki.com/sse",
+      "enabled": true
+    },
+    "x509_resolver": {
+      "type": "local",
+      "command": [
+        "./bin/x509-cert-chain-resolver"
+      ],
+      "environment": {
+        "MCP_X509_CONFIG_FILE": "./src/mcp-server/config.example.json"
+      },
       "enabled": true
     }
   }
@@ -465,6 +475,7 @@ src/internal/helper/   → Utilities
 4. Modify code → Use filesystem.instructions.md
 5. Optimize resources → Use memory.instructions.md
 6. Test → Use AGENTS.md test commands
+7. Build → Use AGENTS.md build commands (includes MCP server builds)
 ```
 
 ## Integration with Git

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Guidelines for efficient memory usage, context management, and resource optimization when working with the TLS certificate chain resolver.
+Guidelines for efficient memory usage, context management, and resource optimization when working with the X509 certificate chain resolver.
 
 ## Token Budget Management
 
@@ -691,6 +691,84 @@ func TestChain_ContextCancellation(t *testing.T) {
     err = manager.FetchCertificate(ctx)
     if err == nil {
         t.Error("expected error from cancelled context")
+    }
+}
+```
+
+### Graceful Shutdown Pattern
+
+**Pattern**: Handle signal-based graceful shutdown in servers (see MCP server implementation)
+
+```go
+// Server graceful shutdown with signal handling
+func Run(ctx context.Context, serverName, appVersion string) error {
+    // Create cancellable context for graceful shutdown
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+
+    // Set up signal handling for graceful shutdown
+    sigChan := make(chan os.Signal, 1)
+    signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+    go func() {
+        <-sigChan
+        cancel()  // Cancel context on signal
+    }()
+
+    // Start server in goroutine
+    errChan := make(chan error, 1)
+    go func() {
+        errChan <- server.ServeStdio(s)  // Your server start function
+    }()
+
+    // Wait for either error or shutdown signal
+    select {
+    case err := <-errChan:
+        return err  // Server error
+    case <-ctx.Done():
+        // Graceful shutdown triggered by signal
+        return fmt.Errorf("server shutdown: %w", ctx.Err())
+    }
+}
+```
+
+**Key Elements**:
+- `context.WithCancel()` creates cancellable context
+- `signal.Notify()` catches SIGINT/SIGTERM
+- Goroutine monitors signals and calls `cancel()`
+- `select` waits for either server completion or cancellation
+- Proper error wrapping with context
+
+**Testing Graceful Shutdown**:
+
+```go
+func TestGracefulShutdown(t *testing.T) {
+    // Skip on Windows as syscall.Kill is not available and signal handling differs
+    if runtime.GOOS == "windows" {
+        t.Skip("Skipping signal test on Windows - signals work differently")
+    }
+
+    // Start server in background
+    go func() {
+        err := Run(context.Background(), "test-server", "1.0.0")
+        // Should return context.Canceled error on graceful shutdown
+        if err == nil || !strings.Contains(err.Error(), "shutdown") {
+            t.Errorf("Expected shutdown error, got: %v", err)
+        }
+    }()
+
+    // Give server time to start
+    time.Sleep(100 * time.Millisecond)
+
+    // Send SIGINT to trigger graceful shutdown
+    if err := syscall.Kill(syscall.Getpid(), syscall.SIGINT); err != nil {
+        t.Fatalf("Failed to send SIGINT: %v", err)
+    }
+
+    // Wait for shutdown to complete
+    select {
+    case <-time.After(5 * time.Second):
+        t.Fatal("Server did not shut down gracefully within 5 seconds")
+    case <-done: // Assuming done channel is signaled when shutdown completes
     }
 }
 ```

@@ -29,6 +29,10 @@
 **Build macOS**: `make build-macos` or `make build-macos-amd64` / `make build-macos-arm64` (builds to `./bin/macos/`)  
 **Build Windows**: `make build-windows` (builds to `./bin/windows/`)  
 **Build all**: `make all` (builds for all platforms)  
+**Build MCP Linux**: `make build-mcp-linux` (builds MCP server to `./bin/linux/`)  
+**Build MCP macOS**: `make build-mcp-macos` or `make build-mcp-macos-amd64` / `make build-mcp-macos-arm64` (builds MCP server to `./bin/macos/`)  
+**Build MCP Windows**: `make build-mcp-windows` (builds MCP server to `./bin/windows/`)  
+**Build all MCP**: `make build-mcp` (builds MCP server for all platforms)  
 **Test all**: `go test -v ./... 2>&1 | cat` or `make test`  
 **Test single**: `go test -run TestName ./package -v 2>&1 | cat`  
 **Test package**: `go test -v ./src/internal/x509/certs 2>&1 | cat`, `go test -v ./src/internal/x509/chain 2>&1 | cat`, or `go test -v ./src/logger 2>&1 | cat`  
@@ -45,6 +49,7 @@
 **Imports**: Use `goimports` with standard formatting  
 **Formatting**: Use `gofmt -s`  
 **Line length**: Max 120 chars  
+**Type aliases**: Use `any` instead of `interface{}` for type parameters (Go 1.18+ generics)  
 **Comments**: Every exported function/interface must have a comment starting with its name in complete sentences  
 **Error handling**: Return wrapped errors with context using `fmt.Errorf("context: %w", err)`. Each error is processed once (returned OR logged, never both). Prefer `err != nil` checks.  
 **Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection and uses `gc.Pool` for efficient memory usage under high concurrency.  
@@ -74,6 +79,7 @@ This repository integrates multiple MCP servers accessible in agent sessions. Ea
 |--------|---------|--------------|
 | 1. [Gopls MCP Server](#1-gopls-mcp-server) | Go language intelligence and workspace operations | [`.github/instructions/gopls.instructions.md`](./.github/instructions/gopls.instructions.md) |
 | 2. [DeepWiki MCP Server](#2-deepwiki-mcp-server) | External repository documentation and API research | [`.github/instructions/deepwiki.instructions.md`](./.github/instructions/deepwiki.instructions.md) |
+| 3. [X509 Certificate Chain Resolver MCP Server](#3-x509-certificate-chain-resolver-mcp-server) | Certificate chain resolution and validation operations | [`.github/instructions/x509_resolver.md`](./.github/instructions/x509_resolver.md) |
 
 #### 1. Gopls MCP Server
 **Purpose**: Go language intelligence and workspace operations  
@@ -130,6 +136,39 @@ This repository integrates multiple MCP servers accessible in agent sessions. Ea
 deepwiki_read_wiki_structure("openai/openai-python")
 deepwiki_ask_question("vercel/ai", "How do I implement streaming chat completions?")
 deepwiki_read_wiki_contents("microsoft/typescript")
+```
+
+#### 3. X509 Certificate Chain Resolver MCP Server
+**Purpose**: Certificate chain resolution and validation operations  
+**Instructions**: [`.github/instructions/x509_resolver.md`](./.github/instructions/x509_resolver.md)
+
+**Core Tools**:
+- `x509_resolver_resolve_cert_chain(certificate)`: Resolve X509 certificate chain from file or base64 data
+- `x509_resolver_validate_cert_chain(certificate)`: Validate certificate chain for correctness and trust
+- `x509_resolver_check_cert_expiry(certificate, warn_days?)`: Check certificate expiry dates
+- `x509_resolver_batch_resolve_cert_chain(certificates)`: Resolve multiple certificate chains in batch
+- `x509_resolver_fetch_remote_cert(hostname, port?)`: Fetch certificate chain from remote hostname/port
+
+**Usage Guidelines**:
+- Use for certificate chain analysis and validation
+- Supports both PEM and DER formats
+- Provides batch processing for multiple certificates
+- Includes remote certificate fetching capabilities
+- Use configuration file via `MCP_X509_CONFIG_FILE` environment variable
+
+**Example Usage**:
+```
+# Resolve a certificate chain from file
+x509_resolver_resolve_cert_chain("path/to/cert.pem")
+
+# Validate certificate chain
+x509_resolver_validate_cert_chain("base64-encoded-cert")
+
+# Check expiry with warning threshold
+x509_resolver_check_cert_expiry("cert.pem", warn_days=30)
+
+# Fetch remote certificate
+x509_resolver_fetch_remote_cert("example.com", port=443)
 ```
 
 ### Built-in Tools (Not MCP)
@@ -193,8 +232,12 @@ task("Search for certificate parsing patterns", "Find all certificate parsing im
 ```
 
 **Project Knowledge**:
-- `.github/instructions/*.md`: Instruction files for Gopls, DeepWiki, Filesystem, Memory
+- `.github/instructions/*.md`: Instruction files for Gopls, DeepWiki, Filesystem, Memory, OpenCode configuration
 - `.opencode/command/*.md`: Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`)
+- **MCP Server**: X509 certificate chain resolver with tools: `resolve_cert_chain`, `validate_cert_chain`, `check_cert_expiry`, `batch_resolve_cert_chain`, `fetch_remote_cert`; resources: `config://template`, `info://version`, `docs://certificate-formats`; prompts: `certificate-analysis`, `expiry-monitoring`, `security-audit`, `troubleshooting`
+- **Resources**: Static resources including server configuration template, version information, and certificate format documentation
+- **Prompts**: Predefined prompts for certificate analysis, expiry monitoring, security audit, and troubleshooting workflows and resources/prompts for certificate analysis workflows
+- **Configuration**: Set `MCP_X509_CONFIG_FILE` environment variable for MCP server config
 
 ### MCP Connection Patterns
 
@@ -206,6 +249,7 @@ MCP servers exhibit different connection behaviors based on their implementation
 |------------|----------------|----------|----------|-------------|
 | **Gopls** | Stateful (Short-lived) | Closes after 3-5 operations or brief inactivity | ✅ Auto-reconnects | ~1-2s |
 | **DeepWiki** | Stateful (Long-lived) | Maintains persistent connection | N/A (no closure) | N/A |
+| **X509 Certificate Chain Resolver** | Local (Long-lived) | Runs as local binary, maintains connection | N/A (no closure) | N/A |
 
 **Best Practices for Short-lived Connections (Gopls):**
 - Batch related operations when possible (e.g., multiple `gopls_go_search` calls in sequence)
@@ -225,12 +269,13 @@ gopls_go_search("MyFunction")  # ✅ Returns results
 ### MCP & Tool Usage Best Practices
 
 1. **Tool Selection**: Choose the right tool for each task:
-   - Go code intelligence → Gopls MCP
-   - External API research → DeepWiki MCP
-   - Complex multi-step tasks → Task management tools (todowrite/task)
-   - File operations → Built-in read/write/edit/list tools
-   - Code search → Built-in grep/glob tools
-   - Build/test/git → Built-in bash tool
+    - Go code intelligence → Gopls MCP
+    - External API research → DeepWiki MCP
+    - Certificate chain operations → X509 Certificate Chain Resolver MCP
+    - Complex multi-step tasks → Task management tools (todowrite/task)
+    - File operations → Built-in read/write/edit/list tools
+    - Code search → Built-in grep/glob tools
+    - Build/test/git → Built-in bash tool
 
 2. **Workflow Integration**:
    - Start Go sessions with `gopls_go_workspace` for context
@@ -243,10 +288,11 @@ gopls_go_search("MyFunction")  # ✅ Returns results
    - Consult instruction files (`.github/instructions/*.md`) for architectural patterns
 
 3. **Error Handling**:
-   - **MCP Connection Errors**: Gopls MCP connections are self-healing - if you encounter "Connection closed" or "Attempted to send a request from a closed client" errors, simply retry the operation
-   - Gopls tools may fail gracefully - check return values
-   - DeepWiki requires valid GitHub repository names
-   - Always verify file operations by reading after write/edit
+    - **MCP Connection Errors**: Gopls MCP connections are self-healing - if you encounter "Connection closed" or "Attempted to send a request from a closed client" errors, simply retry the operation
+    - Gopls tools may fail gracefully - check return values
+    - DeepWiki requires valid GitHub repository names
+    - X509 Certificate Chain Resolver requires valid certificate data and configuration
+    - Always verify file operations by reading after write/edit
 
 4. **Performance** ([Unix Philosophy](https://grokipedia.com/page/Unix_philosophy)):
    - **Do one thing well**: `grep` searches content, `glob` matches file patterns
@@ -416,7 +462,7 @@ gopls_go_symbol_references(file, "ProcessRequest")
 - Test with real certificate data when possible (use test fixtures)
 - Verify certificate chain resolution with various chain lengths
 - Benchmark concurrent operations to verify performance under load (see `src/logger/benchmark_test.go` for examples)
-- **Platform-specific test skipping**: Use `runtime.GOOS` to skip tests on specific platforms when OS behavior differs (e.g., macOS has stricter EKU constraints for certificate validation). See `src/internal/x509/chain/chain_test.go` for examples.
+- **Platform-specific test skipping**: Use `runtime.GOOS` to skip tests on specific platforms when OS behavior differs (e.g., macOS has stricter EKU constraints for certificate validation, Windows has different signal handling for graceful shutdown). See `src/internal/x509/chain/chain_test.go` and `src/mcp-server/run_test.go` for examples.
 - **Test cleanup**: Use `t.TempDir()` for temporary directories (auto-cleaned) and `t.Cleanup()` for explicit cleanup functions. See `src/cli/root_test.go` and `src/logger/logger_test.go` for examples.
 - **Table-driven tests**: Use struct slices with `name`, `testFunc`, and validation functions for comprehensive test coverage. See `src/internal/x509/certs/cert_test.go` and `src/logger/logger_test.go` for examples.
 - **Test organization**: Group related test cases in table-driven tests with descriptive names (e.g., "PEM Output", "DER Output", "JSON Output").
