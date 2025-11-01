@@ -27,7 +27,7 @@ tls-cert-chain-resolver/
 │   └── README.md                             # Custom commands documentation
 ├── cmd/
 │   ├── mcp-server/
-│   │   └── main.go                           # MCP server entry point
+│   │   └── run.go                            # MCP server entry point
 │   └── run.go                                # Main CLI entry point
 ├── src/
 │   ├── cli/
