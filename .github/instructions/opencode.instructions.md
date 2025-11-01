@@ -13,7 +13,26 @@ This file explains the OpenCode configuration and how to use the instruction fil
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
     ".github/instructions/*.md"
-  ]
+  ],
+  "mcp": {
+    "gopls": {
+      "type": "local",
+      "command": [
+        "gopls",
+        "mcp"
+      ],
+      "environment": {
+        "GOPLS_MCP_PORT": "8096",
+        "GOPLS_MCP_HOST": "localhost"
+      },
+      "enabled": true
+    },
+    "deepwiki": {
+      "type": "remote",
+      "url": "https://mcp.deepwiki.com/sse",
+      "enabled": true
+    }
+  }
 }
 ```
 
