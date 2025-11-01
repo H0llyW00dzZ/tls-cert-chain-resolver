@@ -3,7 +3,7 @@
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
 
-// Package mcpserver provides MCP server implementation for TLS certificate chain resolution
+// Package mcpserver provides MCP server implementation for TLS/SSL certificate chain resolution
 package mcpserver
 
 import (
@@ -19,7 +19,7 @@ import (
 var serverName = "TLS/SSL Certificate Chain Resolver" // MCP server name
 var appVersion = version.Version                      // default version
 
-// Run starts the MCP server with TLS certificate chain resolution tools.
+// Run starts the MCP server with TLS/SSL certificate chain resolution tools.
 // It loads configuration from the MCP_CONFIG_FILE environment variable.
 func Run() error {
 	// Load configuration
@@ -37,7 +37,7 @@ func Run() error {
 
 	// Define certificate chain resolution tool
 	resolveCertChainTool := mcp.NewTool("resolve_cert_chain",
-		mcp.WithDescription("Resolve TLS certificate chain from a certificate file or base64-encoded certificate data"),
+		mcp.WithDescription("Resolve TLS/SSL certificate chain from a certificate file or base64-encoded certificate data"),
 		mcp.WithString("certificate",
 			mcp.Required(),
 			mcp.Description("Certificate file path or base64-encoded certificate data"),
@@ -58,7 +58,7 @@ func Run() error {
 
 	// Define batch certificate chain resolution tool
 	batchResolveCertChainTool := mcp.NewTool("batch_resolve_cert_chain",
-		mcp.WithDescription("Resolve TLS certificate chains for multiple certificates in batch"),
+		mcp.WithDescription("Resolve TLS/SSL certificate chains for multiple certificates in batch"),
 		mcp.WithString("certificates",
 			mcp.Required(),
 			mcp.Description("Comma-separated list of certificate file paths or base64-encoded certificate data"),
@@ -77,7 +77,7 @@ func Run() error {
 
 	// Define certificate validation tool
 	validateCertChainTool := mcp.NewTool("validate_cert_chain",
-		mcp.WithDescription("Validate a TLS certificate chain for correctness and trust"),
+		mcp.WithDescription("Validate a TLS/SSL certificate chain for correctness and trust"),
 		mcp.WithString("certificate",
 			mcp.Required(),
 			mcp.Description("Certificate file path or base64-encoded certificate data"),
@@ -103,7 +103,7 @@ func Run() error {
 
 	// Define remote certificate fetching tool
 	fetchRemoteCertTool := mcp.NewTool("fetch_remote_cert",
-		mcp.WithDescription("Fetch TLS certificate chain from a remote hostname/port"),
+		mcp.WithDescription("Fetch TLS/SSL certificate chain from a remote hostname/port"),
 		mcp.WithString("hostname",
 			mcp.Required(),
 			mcp.Description("Remote hostname to connect to"),
