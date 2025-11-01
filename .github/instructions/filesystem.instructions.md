@@ -41,8 +41,8 @@ tls-cert-chain-resolver/
 │   │   ├── config.example.json               # MCP server configuration example
 │   │   ├── config.go                         # MCP server configuration
 │   │   ├── handlers.go                       # MCP tool handlers for X509 certificate operations
-│   │   ├── main.go                           # MCP server main implementation
-│   │   └── main_test.go                      # MCP server tests
+│   │   ├── run.go                           # MCP server main implementation
+│   │   └── run_test.go                      # MCP server tests
 │   └── internal/
 │       ├── helper/
 │       │   └── gc/
