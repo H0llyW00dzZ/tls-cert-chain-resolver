@@ -348,6 +348,11 @@ func TestRun_ValidConfig(t *testing.T) {
 }
 
 func TestRun_GracefulShutdown(t *testing.T) {
+	// Skip on Windows as syscall.Kill is not available and signal handling differs
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping signal test on Windows - signals work differently")
+	}
+
 	// Use default config
 	os.Unsetenv("MCP_X509_CONFIG_FILE")
 
