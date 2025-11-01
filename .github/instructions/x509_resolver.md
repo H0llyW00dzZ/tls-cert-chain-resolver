@@ -400,31 +400,31 @@ x509_resolver_batch_resolve_cert_chain("google.pem,github.pem") # Different chai
 
 1. **Fetch remote certificate for analysis**
 
-```bash
-   x509_resolver_fetch_remote_cert("example.com")
+```
+x509_resolver_fetch_remote_cert("example.com")
 ```
 
 2. **Validate the certificate chain**
 
-```bash
-   x509_resolver_validate_cert_chain("example.com.pem")
+```
+x509_resolver_validate_cert_chain("example.com.pem")
 ```
 
 3. **Check expiry status**
 
-```bash
+```
 x509_resolver_check_cert_expiry("example.com.pem", warn_days=30)
 ```
 
 4. **Process results in application code**
 
-```bash
+```
 edit("src/internal/x509/chain/chain.go", ...)
 ```
 
 5. **Run tests to verify integration**
 
-```bash
+```
 bash("go test -v ./src/internal/x509/chain 2>&1 | cat")
 ```
 
