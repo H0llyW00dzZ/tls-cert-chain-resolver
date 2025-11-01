@@ -438,9 +438,9 @@ edit("/path/to/file.go", ...)
 ❌ BAD:
 grep("Certificate")  # Searches everything, slow
 
-✅ GOOD:
-glob("src/internal/**/*.go")  # Filter files first
-grep("Certificate", path="src/internal", include="*.go")
+✅ GOOD: Filter early, compose tools Unix Philosophy
+glob("src/internal/**/*.go")  # Get source files only
+grep("Certificate", path="src/internal", include="*.go")  # Search filtered set
 ```
 
 ### 3. Selective Reading for Large Files
@@ -711,7 +711,7 @@ edit("file.go",
 ## Summary
 
 1. **Always read before edit** - Required for edit tool
-2. **Use glob/grep over bash** - Respects .ignore, structured output
+2. **Use glob/grep over bash** - Respects .ignore, structured output, follows [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy)
 3. **Preserve indentation** - Match exact whitespace in edits
 4. **Selective reading** - Use offset/limit for large files
 5. **Verify operations** - Read after write, diagnostics after edit
