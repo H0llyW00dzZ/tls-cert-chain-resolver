@@ -462,7 +462,7 @@ gopls_go_symbol_references(file, "ProcessRequest")
 - Test with real certificate data when possible (use test fixtures)
 - Verify certificate chain resolution with various chain lengths
 - Benchmark concurrent operations to verify performance under load (see `src/logger/benchmark_test.go` for examples)
-- **Platform-specific test skipping**: Use `runtime.GOOS` to skip tests on specific platforms when OS behavior differs (e.g., macOS has stricter EKU constraints for certificate validation). See `src/internal/x509/chain/chain_test.go` for examples.
+- **Platform-specific test skipping**: Use `runtime.GOOS` to skip tests on specific platforms when OS behavior differs (e.g., macOS has stricter EKU constraints for certificate validation, Windows has different signal handling for graceful shutdown). See `src/internal/x509/chain/chain_test.go` and `src/mcp-server/run_test.go` for examples.
 - **Test cleanup**: Use `t.TempDir()` for temporary directories (auto-cleaned) and `t.Cleanup()` for explicit cleanup functions. See `src/cli/root_test.go` and `src/logger/logger_test.go` for examples.
 - **Table-driven tests**: Use struct slices with `name`, `testFunc`, and validation functions for comprehensive test coverage. See `src/internal/x509/certs/cert_test.go` and `src/logger/logger_test.go` for examples.
 - **Test organization**: Group related test cases in table-driven tests with descriptive names (e.g., "PEM Output", "DER Output", "JSON Output").

@@ -742,6 +742,11 @@ func Run(ctx context.Context, serverName, appVersion string) error {
 
 ```go
 func TestGracefulShutdown(t *testing.T) {
+    // Skip on Windows as syscall.Kill is not available and signal handling differs
+    if runtime.GOOS == "windows" {
+        t.Skip("Skipping signal test on Windows - signals work differently")
+    }
+
     // Start server in background
     go func() {
         err := Run(context.Background(), "test-server", "1.0.0")
@@ -755,10 +760,16 @@ func TestGracefulShutdown(t *testing.T) {
     time.Sleep(100 * time.Millisecond)
 
     // Send SIGINT to trigger graceful shutdown
-    syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+    if err := syscall.Kill(syscall.Getpid(), syscall.SIGINT); err != nil {
+        t.Fatalf("Failed to send SIGINT: %v", err)
+    }
 
     // Wait for shutdown to complete
-    time.Sleep(100 * time.Millisecond)
+    select {
+    case <-time.After(5 * time.Second):
+        t.Fatal("Server did not shut down gracefully within 5 seconds")
+    case <-done: // Assuming done channel is signaled when shutdown completes
+    }
 }
 ```
 

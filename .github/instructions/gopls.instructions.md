@@ -430,42 +430,22 @@ gopls_go_symbol_references("file.go", "func FunctionName")  # ❌ Wrong
 gopls_go_symbol_references("file.go", "Chain.FetchCertificate")  # ✅
 ```
 
-## Platform-Specific Testing Patterns
+## Repository-Specific Patterns
 
-### macOS Test Skipping
-
-Some tests may need to be skipped on specific platforms due to OS-specific behavior:
+### Common MCP Server Patterns
 
 ```go
-// Example from src/internal/x509/chain/chain_test.go
-import "runtime"
+# Find MCP server tools
+grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert", include="*.go")
 
-func TestCertificateValidation(t *testing.T) {
-    if runtime.GOOS == "darwin" {
-        t.Skip("Skipping on macOS: system certificate validation has stricter EKU constraints")
-    }
-    // Test implementation...
-}
-```
+# Find MCP server configuration
+grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults", include="*.go")
 
-**When to use**:
-- Platform-specific certificate validation behavior (macOS has stricter EKU constraints)
-- OS-specific filesystem operations
-- Platform-dependent network behavior
+# Find MCP tool handlers
+grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert", include="*.go")
 
-**Pattern**:
-```go
-import "runtime"
-
-if runtime.GOOS == "darwin" {    // macOS
-    t.Skip("reason for skipping")
-}
-if runtime.GOOS == "windows" {   // Windows
-    t.Skip("reason for skipping")
-}
-if runtime.GOOS == "linux" {     // Linux
-    t.Skip("reason for skipping")
-}
+# Find MCP resources and prompts
+grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats", include="*.go")
 ```
 
 ## Summary
