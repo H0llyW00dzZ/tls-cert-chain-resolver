@@ -159,10 +159,13 @@ func Run() error {
 	// Add prompts
 	addPrompts(s)
 
+	// Create stdio server to connect with our context
+	stdioServer := server.NewStdioServer(s)
+
 	// Start server with graceful shutdown support
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- server.ServeStdio(s)
+		errChan <- stdioServer.Listen(ctx, os.Stdin, os.Stdout)
 	}()
 
 	select {
