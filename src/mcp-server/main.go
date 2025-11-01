@@ -16,8 +16,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-var serverName = "TLS/SSL Certificate Chain Resolver" // MCP server name
-var appVersion = version.Version                      // default version
+var serverName = "X509 Certificate Chain Resolver" // MCP server name
+var appVersion = version.Version                   // default version
 
 // Run starts the MCP server with X509 certificate chain resolution tools.
 // It loads configuration from the MCP_X509_CONFIG_FILE environment variable.
