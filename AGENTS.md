@@ -49,6 +49,7 @@
 **Imports**: Use `goimports` with standard formatting  
 **Formatting**: Use `gofmt -s`  
 **Line length**: Max 120 chars  
+**Type aliases**: Use `any` instead of `interface{}` for type parameters (Go 1.18+ generics)  
 **Comments**: Every exported function/interface must have a comment starting with its name in complete sentences  
 **Error handling**: Return wrapped errors with context using `fmt.Errorf("context: %w", err)`. Each error is processed once (returned OR logged, never both). Prefer `err != nil` checks.  
 **Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection and uses `gc.Pool` for efficient memory usage under high concurrency.  
