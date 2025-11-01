@@ -90,6 +90,129 @@ x509_resolver_fetch_remote_cert("example.com", port=443)
 x509_resolver_fetch_remote_cert("mail.google.com", port=993)
 ```
 
+## MCP Resources
+
+The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP server provides static resources for configuration and documentation access:
+
+### config://template
+
+**Purpose**: Server configuration template  
+**Returns**: Example JSON configuration for the MCP server  
+**Content**: Default settings for format, timeouts, and processing options
+
+**Access**:
+```
+# Via MCP client
+Read resource: config://template
+
+# Returns JSON configuration template:
+{
+  "defaults": {
+    "format": "pem",
+    "includeSystemRoot": false,
+    "intermediateOnly": false,
+    "warnDays": 30,
+    "port": 443,
+    "timeoutSeconds": 10
+  }
+}
+```
+
+### info://version
+
+**Purpose**: Server version and capabilities information  
+**Returns**: Version, name, and supported features of the MCP server  
+**Content**: Server metadata including supported tools and formats
+
+**Access**:
+```
+# Via MCP client
+Read resource: info://version
+
+# Returns server information:
+{
+  "name": "X509 Certificate Chain Resolver",
+  "version": "0.2.9",
+  "type": "MCP Server",
+  "capabilities": {
+    "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert"],
+    "resources": true,
+    "prompts": true
+  },
+  "supportedFormats": ["pem", "der", "json"]
+}
+```
+
+### docs://certificate-formats
+
+**Purpose**: Certificate format documentation  
+**Returns**: Markdown documentation on supported certificate formats  
+**Content**: Detailed information about PEM, DER, and other certificate formats
+
+**Access**:
+```
+# Via MCP client
+Read resource: docs://certificate-formats
+
+# Returns markdown content from templates/certificate-formats.md
+```
+
+## MCP Prompts
+
+The server provides predefined prompts for common certificate analysis workflows:
+
+### certificate-analysis
+
+**Purpose**: Comprehensive certificate chain analysis workflow  
+**Arguments**:
+- `certificate_path`: Path to certificate file or base64-encoded certificate data
+
+**Workflow**:
+1. Resolve complete certificate chain
+2. Validate chain trust and correctness  
+3. Check certificate expiry dates
+4. Analyze results and provide recommendations
+
+### expiry-monitoring
+
+**Purpose**: Monitor certificate expiration dates and generate renewal alerts  
+**Arguments**:
+- `certificate_path`: Path to certificate file or base64-encoded certificate data
+- `alert_days`: Number of days before expiry to alert (default: 30)
+
+**Workflow**:
+1. Analyze expiration dates for all certificates in chain
+2. Identify certificates expiring within alert window
+3. Provide specific renewal recommendations
+
+### security-audit
+
+**Purpose**: Perform comprehensive SSL/TLS security audit on a server  
+**Arguments**:
+- `hostname`: Target hostname to audit
+- `port`: Port number (default: 443)
+
+**Workflow**:
+1. Fetch server's certificate chain
+2. Validate chain trust and correctness
+3. Check certificate expiry dates
+4. Analyze security implications and provide recommendations
+
+### troubleshooting
+
+**Purpose**: Troubleshoot common certificate and TLS issues  
+**Arguments**:
+- `issue_type`: Type of issue ('chain', 'validation', 'expiry', 'connection')
+- `certificate_path`: Path to certificate file (for chain/validation/expiry issues)
+- `hostname`: Target hostname (for connection issues)
+
+**Workflow**:
+Provides targeted troubleshooting guidance based on issue type:
+- **chain**: Missing intermediates, incorrect order, self-signed certificates
+- **validation**: Expired certificates, untrusted CAs, hostname mismatches
+- **expiry**: Certificates nearing expiration, renewal issues
+- **connection**: Handshake failures, incomplete chains, network issues
+
 ## Usage Guidelines
 
 ### 1. Certificate Formats Supported
@@ -305,5 +428,7 @@ for i, chain := range chains {
 4. **Use x509_resolver_batch_resolve_cert_chain** for efficient multi-certificate processing
 5. **Use x509_resolver_fetch_remote_cert** to retrieve certificates from remote servers
 6. **Configure MCP_X509_CONFIG_FILE** environment variable for server configuration
-7. **Handle errors appropriately** - check return values and handle common certificate issues
-8. **Follow certificate operation workflows** - resolve → validate → check expiry
+7. **Access MCP resources** for configuration templates, version info, and documentation
+8. **Use MCP prompts** for guided certificate analysis workflows
+9. **Handle errors appropriately** - check return values and handle common certificate issues
+10. **Follow certificate operation workflows** - resolve → validate → check expiry
