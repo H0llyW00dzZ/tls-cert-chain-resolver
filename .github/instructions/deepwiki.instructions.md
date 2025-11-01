@@ -207,6 +207,7 @@ deepwiki_ask_question("zakjan/cert-chain-resolver", "How does it handle intermed
 **Type**: Stateful (Long-lived)  
 **Behavior**: Maintains persistent connection throughout session  
 **Recovery**: N/A (no connection closure issues)
+**Configuration**: MCP server configured in `opencode.json` with remote URL `https://mcp.deepwiki.com/sse`
 
 Unlike Gopls MCP, DeepWiki connections are stable and don't require retry logic.
 

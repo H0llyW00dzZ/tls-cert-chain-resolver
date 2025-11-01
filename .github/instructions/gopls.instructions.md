@@ -210,6 +210,7 @@ Note: Piping to `cat` (e.g., `2>&1 | cat`) ensures bash tool captures and displa
 **Type**: Stateful (Short-lived)  
 **Behavior**: Closes after 3-5 operations or brief inactivity  
 **Recovery**: Automatic reconnection
+**Configuration**: MCP server configured in `opencode.json` with port 8096 on localhost
 
 ### Handling Connection Errors
 
