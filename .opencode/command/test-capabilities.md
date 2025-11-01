@@ -63,24 +63,29 @@ If operations timeout:
 
 ## Output Format
 
-**CRITICAL**: Display the exact output from each tool/MCP call to verify functionality. Do NOT summarize or transform output.
+**CRITICAL**: Display the output from each tool/MCP call to verify functionality. For large outputs, show a truncated version (first few lines + "... [truncated]" + last few lines) or key success indicators. Do NOT summarize functionality assessment, but you may truncate raw output to keep responses manageable.
 
 For each test:
 - Show the tool/MCP call
-- Show the exact response (success or error)
+- Show the response (truncated if very large)
 - Provide brief analysis of whether it worked
 
-Example:
+Example for normal-sized output:
+```
+Testing DeepWiki: deepwiki_read_wiki_structure("spf13/cobra")
+Response: Available documentation topics: [Getting Started, User Guide, Commands, Flags, Configuration]
+Status: ✅ Working
+```
+
+Example for large output (like Gopls workspace):
 ```
 Testing Gopls workspace: gopls_go_workspace()
 Response: Module: github.com/H0llyW00dzZ/tls-cert-chain-resolver
 Go Version: 1.25.3
-Packages: [cmd, src/cli, src/logger, ...]
-Status: ✅ Working
-
-Testing DeepWiki: deepwiki_read_wiki_structure("spf13/cobra")
-Response: Available documentation topics: [Getting Started, User Guide, ...]
-Status: ✅ Working
+Packages: cmd, src/cli, src/logger, src/internal/x509/certs, src/internal/x509/chain, src/internal/helper/gc
+Top symbol matches: Certificate, decodeCertificate, ErrParseCertificate, Chain.FetchCertificate, ...
+... [output truncated for brevity - full response contained expected project structure]
+Status: ✅ Working - Returned module info, packages, and symbol matches as expected
 ```
 
 ## Important Notes
