@@ -194,6 +194,7 @@ task("Search for certificate parsing patterns", "Find all certificate parsing im
 
 **Project Knowledge**:
 - `.github/instructions/*.md`: Instruction files for Gopls, DeepWiki, Filesystem, Memory
+- `.opencode/command/*.md`: Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`)
 
 ### MCP Connection Patterns
 

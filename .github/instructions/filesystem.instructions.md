@@ -21,9 +21,10 @@ tls-cert-chain-resolver/
 │   └── dependabot.yml                        # Dependency updates config
 ├── .opencode/
 │   ├── command/
-│   │   ├── test.md                           # Test command workflow
-│   │   └── update-knowledge.md               # Update instruction files workflow
-│   └── README.md                             # Custom commands documentation
+│   │   ├── test-capabilities.md          # Test agent capabilities workflow
+│   │   ├── test.md                       # Test command workflow
+│   │   └── update-knowledge.md           # Update instruction files workflow
+│   └── README.md                         # Custom commands documentation
 ├── cmd/
 │   └── run.go                                # Main entry point
 ├── src/
