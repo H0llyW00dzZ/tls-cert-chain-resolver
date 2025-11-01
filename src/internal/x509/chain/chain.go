@@ -55,7 +55,7 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 		}
 
 		// Set the User-Agent header with version information and GitHub link
-		req.Header.Set("User-Agent", "TLS-Certificate-Chain-Resolver/"+ch.Version+" (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)")
+		req.Header.Set("User-Agent", "X.509-Certificate-Chain-Resolver/"+ch.Version+" (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)")
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
