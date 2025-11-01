@@ -267,7 +267,7 @@ gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-se
 
 # Read MCP server implementations
 read("src/mcp-server/handlers.go")
-read("src/mcp-server/main.go")
+read("src/mcp-server/run.go")
 ```
 
 ### 3. Adding New CLI Flags

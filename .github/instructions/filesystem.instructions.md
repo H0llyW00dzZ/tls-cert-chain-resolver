@@ -582,7 +582,7 @@ write("new_test.go", ...)       # Create new test files when needed
 cmd/run.go
 
 # MCP server entry point
-cmd/mcp-server/main.go
+cmd/mcp-server/run.go
 
 # CLI implementation
 src/cli/root.go
@@ -597,8 +597,8 @@ src/logger/benchmark_test.go
 src/mcp-server/config.example.json
 src/mcp-server/config.go
 src/mcp-server/handlers.go
-src/mcp-server/main.go
-src/mcp-server/main_test.go
+src/mcp-server/run.go
+src/mcp-server/run_test.go
 
 # Certificate operations
 src/internal/x509/certs/certs.go
