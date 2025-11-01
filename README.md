@@ -692,7 +692,7 @@ Build and run:
 
 ```bash
 docker build -t tls-cert-mcp-server .
-docker run -p 8080:8080 -e MCP_CONFIG_FILE=/root/config.json tls-cert-mcp-server
+docker run -p 8080:8080 -e MCP_X509_CONFIG_FILE=/root/config.json tls-cert-mcp-server
 ```
 
 ### Systemd Service
@@ -710,7 +710,7 @@ User=tls-cert
 Group=tls-cert
 WorkingDirectory=/opt/tls-cert-mcp
 ExecStart=/opt/tls-cert-mcp/mcp-server
-Environment=MCP_CONFIG_FILE=/opt/tls-cert-mcp/config.json
+Environment=MCP_X509_CONFIG_FILE=/opt/tls-cert-mcp/config.json
 Restart=always
 RestartSec=5
 
@@ -926,7 +926,7 @@ Build and run:
 
 ```bash
 docker build -t tls-cert-mcp-server .
-docker run -p 8080:8080 -e MCP_CONFIG_FILE=/root/config.json tls-cert-mcp-server
+docker run -p 8080:8080 -e MCP_X509_CONFIG_FILE=/root/config.json tls-cert-mcp-server
 ```
 
 ### Systemd Service
@@ -944,7 +944,7 @@ User=tls-cert
 Group=tls-cert
 WorkingDirectory=/opt/tls-cert-mcp
 ExecStart=/opt/tls-cert-mcp/mcp-server
-Environment=MCP_CONFIG_FILE=/opt/tls-cert-mcp/config.json
+Environment=MCP_X509_CONFIG_FILE=/opt/tls-cert-mcp/config.json
 Restart=always
 RestartSec=5
 
