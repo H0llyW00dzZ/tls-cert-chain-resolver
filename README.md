@@ -128,8 +128,8 @@ import (
 func main() {
 	// Create MCP server
 	s := server.NewMCPServer(
-		"TLS Certificate Chain Resolver",
-		"1.0.0",
+		"TLS/SSL Certificate Chain Resolver",
+		"0.2.9",
 		server.WithToolCapabilities(true),
 	)
 
@@ -196,7 +196,7 @@ func handleResolveCertChain(ctx context.Context, request mcp.CallToolRequest) (*
 	}
 
 	// Fetch certificate chain
-	chain := x509chain.New(cert, "1.0.0")
+	chain := x509chain.New(cert, "0.2.9")
 	if err := chain.FetchCertificate(ctx); err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to fetch certificate chain: %v", err)), nil
 	}
@@ -320,7 +320,7 @@ import (
 func main() {
 	s := server.NewMCPServer(
 		"TLS Certificate Chain Resolver CLI",
-		"1.0.0",
+		"0.2.9",
 		server.WithToolCapabilities(true),
 	)
 
@@ -417,7 +417,7 @@ Add this to your Claude Desktop MCP settings:
 {
   "mcpServers": {
     "tls-cert-resolver-cli": {
-      "command": "/path/to/tls-cert-chain-resolver-mcp-server"
+      "command": "/path/to/tls-cert-chain-mcp-server"
     }
   }
 }
@@ -481,7 +481,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	chain := x509chain.New(cert, "1.0.0")
+	chain := x509chain.New(cert, "0.2.9")
 	
 	if err := chain.FetchCertificate(ctx); err != nil {
 		log.Fatal(err)
@@ -541,7 +541,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	chain := x509chain.New(cert, "1.0.0")
+	chain := x509chain.New(cert, "0.2.9")
 	
 	if err := chain.FetchCertificate(ctx); err != nil {
 		log.Fatal(err)
@@ -603,7 +603,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	chain := x509chain.New(cert, "1.0.0")
+	chain := x509chain.New(cert, "0.2.9")
 	
 	if err := chain.FetchCertificate(ctx); err != nil {
 		log.Fatal(err)
@@ -662,6 +662,218 @@ func main() {
 }
 ```
 
+## MCP Server Deployment
+
+### Docker Deployment
+
+Create a `Dockerfile` for the MCP server:
+
+```dockerfile
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN go build -o mcp-server ./cmd/mcp-server
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/mcp-server .
+COPY --from=builder /app/src/mcp-server/config.example.json ./config.json
+
+EXPOSE 8080
+CMD ["./mcp-server"]
+```
+
+Build and run:
+
+```bash
+docker build -t tls-cert-mcp-server .
+docker run -p 8080:8080 -e MCP_CONFIG_FILE=/root/config.json tls-cert-mcp-server
+```
+
+### Systemd Service
+
+Create `/etc/systemd/system/tls-cert-mcp.service`:
+
+```ini
+[Unit]
+Description=TLS Certificate Chain Resolver MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User=tls-cert
+Group=tls-cert
+WorkingDirectory=/opt/tls-cert-mcp
+ExecStart=/opt/tls-cert-mcp/mcp-server
+Environment=MCP_CONFIG_FILE=/opt/tls-cert-mcp/config.json
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable tls-cert-mcp
+sudo systemctl start tls-cert-mcp
+```
+
+### Configuration Examples
+
+#### Basic Configuration
+
+```json
+{
+  "defaults": {
+    "format": "pem",
+    "includeSystemRoot": false,
+    "intermediateOnly": false,
+    "warnDays": 30,
+    "port": 443,
+    "timeoutSeconds": 10
+  }
+}
+```
+
+#### Advanced Configuration
+
+```json
+{
+  "defaults": {
+    "format": "json",
+    "includeSystemRoot": true,
+    "intermediateOnly": false,
+    "warnDays": 60,
+    "port": 443,
+    "timeoutSeconds": 30
+  }
+}
+```
+
+### Client Integration Examples
+
+#### Python MCP Client
+
+```python
+import asyncio
+import json
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def main():
+    server_params = StdioServerParameters(
+        command="go",
+        args=["run", "/path/to/cmd/mcp-server/main.go"],
+        env=None
+    )
+    
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            
+            # Resolve certificate chain
+            result = await session.call_tool("resolve_cert_chain", {
+                "certificate": "/path/to/cert.pem",
+                "format": "json"
+            })
+            
+            print("Certificate chain:", json.dumps(result.content, indent=2))
+
+asyncio.run(main())
+```
+
+#### Node.js MCP Client
+
+```javascript
+const { Client } = require('@modelcontextprotocol/sdk');
+
+async function main() {
+  const client = new Client({
+    name: 'cert-resolver-client',
+    version: '0.2.9'
+  });
+
+  // Connect to MCP server
+  await client.connect({
+    command: 'go',
+    args: ['run', '/path/to/cmd/mcp-server/main.go']
+  });
+
+  // Check certificate expiry
+  const result = await client.callTool({
+    name: 'check_cert_expiry',
+    arguments: {
+      certificate: '/path/to/cert.pem',
+      warn_days: 30
+    }
+  });
+
+  console.log('Expiry check result:', result);
+}
+
+main().catch(console.error);
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+**MCP Server Won't Start**
+- Check Go version: `go version` (must be 1.25.3+)
+- Verify dependencies: `go mod tidy`
+- Check config file syntax: `cat config.json | jq .`
+
+**Certificate Resolution Fails**
+- Verify certificate file exists and is readable
+- Check certificate format (PEM/DER/base64)
+- Ensure network connectivity for remote fetching
+- Try with `intermediate_only: false` first
+
+**Remote Certificate Fetching Issues**
+- Verify hostname is reachable: `ping hostname`
+- Check port accessibility: `telnet hostname port`
+- Try different ports (443 for HTTPS, 25 for SMTP, etc.)
+- Use `timeoutSeconds` config for slow connections
+
+**Large Certificate Chains**
+- Increase `timeoutSeconds` in config
+- Use `intermediate_only: true` to reduce output size
+- Check available memory for large chains
+
+**MCP Tool Not Available**
+- Verify server is running and connected
+- Check tool names match exactly
+- Review MCP client logs for connection errors
+
+#### Debug Mode
+
+Enable verbose logging:
+
+```bash
+export MCP_DEBUG=1
+go run ./cmd/mcp-server
+```
+
+#### Testing MCP Server
+
+Test individual tools:
+
+```bash
+# Test certificate resolution
+echo '{"method": "tools/call", "params": {"name": "resolve_cert_chain", "arguments": {"certificate": "/path/to/cert.pem"}}}' | go run ./cmd/mcp-server
+
+# Test validation
+echo '{"method": "tools/call", "params": {"name": "validate_cert_chain", "arguments": {"certificate": "/path/to/cert.pem"}}}' | go run ./cmd/mcp-server
+```
+
 ### API Reference
 
 #### Package `x509certs`
@@ -684,6 +896,218 @@ func main() {
 - `IsSelfSigned(cert *x509.Certificate) bool`: Check if certificate is self-signed
 - `VerifyChain() error`: Verify the certificate chain validity
 
+## MCP Server Deployment
+
+### Docker Deployment
+
+Create a `Dockerfile` for the MCP server:
+
+```dockerfile
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN go build -o mcp-server ./cmd/mcp-server
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/mcp-server .
+COPY --from=builder /app/src/mcp-server/config.example.json ./config.json
+
+EXPOSE 8080
+CMD ["./mcp-server"]
+```
+
+Build and run:
+
+```bash
+docker build -t tls-cert-mcp-server .
+docker run -p 8080:8080 -e MCP_CONFIG_FILE=/root/config.json tls-cert-mcp-server
+```
+
+### Systemd Service
+
+Create `/etc/systemd/system/tls-cert-mcp.service`:
+
+```ini
+[Unit]
+Description=TLS Certificate Chain Resolver MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User=tls-cert
+Group=tls-cert
+WorkingDirectory=/opt/tls-cert-mcp
+ExecStart=/opt/tls-cert-mcp/mcp-server
+Environment=MCP_CONFIG_FILE=/opt/tls-cert-mcp/config.json
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable tls-cert-mcp
+sudo systemctl start tls-cert-mcp
+```
+
+### Configuration Examples
+
+#### Basic Configuration
+
+```json
+{
+  "defaults": {
+    "format": "pem",
+    "includeSystemRoot": false,
+    "intermediateOnly": false,
+    "warnDays": 30,
+    "port": 443,
+    "timeoutSeconds": 10
+  }
+}
+```
+
+#### Advanced Configuration
+
+```json
+{
+  "defaults": {
+    "format": "json",
+    "includeSystemRoot": true,
+    "intermediateOnly": false,
+    "warnDays": 60,
+    "port": 443,
+    "timeoutSeconds": 30
+  }
+}
+```
+
+### Client Integration Examples
+
+#### Python MCP Client
+
+```python
+import asyncio
+import json
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def main():
+    server_params = StdioServerParameters(
+        command="go",
+        args=["run", "/path/to/cmd/mcp-server/main.go"],
+        env=None
+    )
+    
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            
+            # Resolve certificate chain
+            result = await session.call_tool("resolve_cert_chain", {
+                "certificate": "/path/to/cert.pem",
+                "format": "json"
+            })
+            
+            print("Certificate chain:", json.dumps(result.content, indent=2))
+
+asyncio.run(main())
+```
+
+#### Node.js MCP Client
+
+```javascript
+const { Client } = require('@modelcontextprotocol/sdk');
+
+async function main() {
+  const client = new Client({
+    name: 'cert-resolver-client',
+    version: '0.2.9'
+  });
+
+  // Connect to MCP server
+  await client.connect({
+    command: 'go',
+    args: ['run', '/path/to/cmd/mcp-server/main.go']
+  });
+
+  // Check certificate expiry
+  const result = await client.callTool({
+    name: 'check_cert_expiry',
+    arguments: {
+      certificate: '/path/to/cert.pem',
+      warn_days: 30
+    }
+  });
+
+  console.log('Expiry check result:', result);
+}
+
+main().catch(console.error);
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+**MCP Server Won't Start**
+- Check Go version: `go version` (must be 1.25.3+)
+- Verify dependencies: `go mod tidy`
+- Check config file syntax: `cat config.json | jq .`
+
+**Certificate Resolution Fails**
+- Verify certificate file exists and is readable
+- Check certificate format (PEM/DER/base64)
+- Ensure network connectivity for remote fetching
+- Try with `intermediate_only: false` first
+
+**Remote Certificate Fetching Issues**
+- Verify hostname is reachable: `ping hostname`
+- Check port accessibility: `telnet hostname port`
+- Try different ports (443 for HTTPS, 25 for SMTP, etc.)
+- Use `timeoutSeconds` config for slow connections
+
+**Large Certificate Chains**
+- Increase `timeoutSeconds` in config
+- Use `intermediate_only: true` to reduce output size
+- Check available memory for large chains
+
+**MCP Tool Not Available**
+- Verify server is running and connected
+- Check tool names match exactly
+- Review MCP client logs for connection errors
+
+#### Debug Mode
+
+Enable verbose logging:
+
+```bash
+export MCP_DEBUG=1
+go run ./cmd/mcp-server
+```
+
+#### Testing MCP Server
+
+Test individual tools:
+
+```bash
+# Test certificate resolution
+echo '{"method": "tools/call", "params": {"name": "resolve_cert_chain", "arguments": {"certificate": "/path/to/cert.pem"}}}' | go run ./cmd/mcp-server
+
+# Test validation
+echo '{"method": "tools/call", "params": {"name": "validate_cert_chain", "arguments": {"certificate": "/path/to/cert.pem"}}}' | go run ./cmd/mcp-server
+```
+
 ## Motivation
 
 This project was created to provide a more maintainable and actively maintained version of the original [zakjan/cert-chain-resolver](https://github.com/zakjan/cert-chain-resolver.git), which is no longer maintained.
@@ -692,29 +1116,25 @@ This project was created to provide a more maintainable and actively maintained 
 
 ### MCP Integration Enhancements
 
-#### Library Support
-- [ ] Maintain compatibility with `github.com/mark3labs/mcp-go`
+#### ✅ Completed
+- [x] Create standalone MCP server binary in `src/mcp-server/`
+- [x] Add configuration file support for MCP server settings
+- [x] Add MCP server tests with mock certificate data
+- [x] Add support for certificate validation through MCP tool
+- [x] Implement certificate expiry checking via MCP
+- [x] Add batch certificate resolution support
+- [x] Support for remote certificate fetching via URL/hostname
+- [x] Document MCP server deployment options (Docker, systemd, etc.)
+- [x] Create example MCP client implementations
+- [x] Create MCP server configuration examples
+- [x] Add troubleshooting guide for MCP integration
+
+#### Remaining (Low Priority)
+- [ ] Maintain compatibility with `github.com/mark3labs/mcp-go` (ongoing)
 - [ ] Create abstraction layer for both MCP libraries
 - [ ] Document differences and use cases for each library
-
-#### Implementation
-- [ ] Create standalone MCP server binary in `cmd/mcp-server/`
-- [ ] Add configuration file support for MCP server settings
 - [ ] Implement streaming support for large certificate chains
-- [ ] Add MCP server tests with mock certificate data
 - [ ] Add metrics and logging for MCP server operations
-
-#### Features
-- [ ] Add support for certificate validation through MCP tool
-- [ ] Implement certificate expiry checking via MCP
-- [ ] Add batch certificate resolution support
-- [ ] Support for remote certificate fetching via URL/hostname
-
-#### Documentation & Deployment
-- [ ] Document MCP server deployment options (Docker, systemd, etc.)
-- [ ] Create example MCP client implementations for both libraries
-- [ ] Create MCP server configuration examples for different platforms
-- [ ] Add troubleshooting guide for MCP integration
 
 ## License
 

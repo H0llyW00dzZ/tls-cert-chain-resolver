@@ -12,10 +12,11 @@ VERSION := $(shell if [ "$(VERSION_TAG)" = "0.0.0" ]; then echo "$(VERSION_TAG)-
 
 # Variables
 BINARY_NAME = tls-cert-chain-resolver
+MCP_BINARY_NAME = tls-cert-chain-mcp-server
 BUILD_DIR = ./bin
 
 # Default target
-all: build-linux build-macos build-windows
+all: build-linux build-macos build-windows build-mcp-linux build-mcp-macos build-mcp-windows
 
 # Checkout the latest tag or commit
 checkout:
@@ -61,6 +62,44 @@ build-windows: checkout
 	@echo "Build complete: $(BUILD_DIR)/windows/$(BINARY_NAME).exe"
 	@$(MAKE) return
 
+# Build the MCP server binary for Linux
+build-mcp-linux: checkout
+	@echo "Building $(MCP_BINARY_NAME) for Linux version $(VERSION)..."
+	@mkdir -p $(BUILD_DIR)/linux
+	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(MCP_BINARY_NAME) ./cmd/mcp-server
+	@echo "Build complete: $(BUILD_DIR)/linux/$(MCP_BINARY_NAME)"
+	@$(MAKE) return
+
+# Build the MCP server binary for macOS (amd64)
+build-mcp-macos-amd64: checkout
+	@echo "Building $(MCP_BINARY_NAME) for macOS (amd64) version $(VERSION)..."
+	@mkdir -p $(BUILD_DIR)/macos/amd64
+	@GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/amd64/$(MCP_BINARY_NAME) ./cmd/mcp-server
+	@echo "Build complete: $(BUILD_DIR)/macos/amd64/$(MCP_BINARY_NAME)"
+	@$(MAKE) return
+
+# Build the MCP server binary for macOS (arm64)
+build-mcp-macos-arm64: checkout
+	@echo "Building $(MCP_BINARY_NAME) for macOS (arm64) version $(VERSION)..."
+	@mkdir -p $(BUILD_DIR)/macos/arm64
+	@GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/arm64/$(MCP_BINARY_NAME) ./cmd/mcp-server
+	@echo "Build complete: $(BUILD_DIR)/macos/arm64/$(MCP_BINARY_NAME)"
+	@$(MAKE) return
+
+# Build the MCP server binary for macOS (both architectures)
+build-mcp-macos: build-mcp-macos-amd64 build-mcp-macos-arm64
+
+# Build the MCP server binary for Windows
+build-mcp-windows: checkout
+	@echo "Building $(MCP_BINARY_NAME) for Windows version $(VERSION)..."
+	@mkdir -p $(BUILD_DIR)/windows
+	@GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/windows/$(MCP_BINARY_NAME).exe ./cmd/mcp-server
+	@echo "Build complete: $(BUILD_DIR)/windows/$(MCP_BINARY_NAME).exe"
+	@$(MAKE) return
+
+# Build all MCP server binaries
+build-mcp: build-mcp-linux build-mcp-macos build-mcp-windows
+
 # Run tests
 test:
 	@echo "Running tests..."
@@ -74,4 +113,4 @@ clean:
 	@echo "Clean complete."
 
 # PHONY targets
-.PHONY: all checkout return build-linux build-macos build-macos-amd64 build-macos-arm64 build-windows test clean
+.PHONY: all checkout return build-linux build-macos build-macos-amd64 build-macos-arm64 build-windows build-mcp-linux build-mcp-macos-amd64 build-mcp-macos-arm64 build-mcp-macos build-mcp-windows build-mcp test clean

@@ -13,9 +13,16 @@ import (
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/cli"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
+	verpkg "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 )
 
-var version = "0.2.9" // default version if not set
+var version string // set by ldflags or defaults to imported version
+
+func init() {
+	if version == "" {
+		version = verpkg.Version
+	}
+}
 
 func main() {
 	// Create CLI logger
