@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Built-in filesystem tools for reading, writing, editing, listing, and searching files in the TLS certificate chain resolver repository.
+Built-in filesystem tools for reading, writing, editing, listing, and searching files in the X509 certificate chain resolver repository.
 
 ## Repository Structure
 

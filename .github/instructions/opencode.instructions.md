@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This file explains the OpenCode configuration and how to use the instruction files for maintaining the TLS certificate chain resolver repository.
+This file explains the OpenCode configuration and how to use the instruction files for maintaining the X509 certificate chain resolver repository.
 
 ## Configuration Overview
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Guidelines for efficient memory usage, context management, and resource optimization when working with the TLS certificate chain resolver.
+Guidelines for efficient memory usage, context management, and resource optimization when working with the X509 certificate chain resolver.
 
 ## Token Budget Management
 

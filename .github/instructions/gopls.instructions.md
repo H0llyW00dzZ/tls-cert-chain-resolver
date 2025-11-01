@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Gopls MCP server provides Go language intelligence and workspace operations for this TLS certificate chain resolver repository.
+The Gopls MCP server provides Go language intelligence and workspace operations for this X509 certificate chain resolver repository.
 
 ## Repository Context
 
