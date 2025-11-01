@@ -9,9 +9,10 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 **Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
 **Go Version**: 1.25.3 or later  
 **Key Packages**:
-- **`cmd/`** — Main CLI entry point
+- **`cmd/`** — Main CLI entry point and MCP server binaries
 - **`src/cli/`** — Cobra CLI implementation  
 - **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and gc.Pool)
+- **`src/mcp-server/`** — MCP server implementation with TLS/SSL certificate tools
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
 - **`src/internal/helper/gc/`** — Memory management utilities
@@ -74,6 +75,7 @@ Packages:
 - cmd (main)
 - src/cli
 - src/logger (CLI/MCP logger abstraction, thread-safe with bytebufferpool)
+- src/mcp-server (MCP server tools for certificate operations)
 - src/internal/x509/certs
 - src/internal/x509/chain
 - src/internal/helper/gc
@@ -90,6 +92,8 @@ gopls_go_search("Certificate")     → Find all Certificate-related symbols
 gopls_go_search("Encode")          → Find encoding functions
 gopls_go_search("Chain")           → Find chain-related types/functions
 gopls_go_search("FetchCertificate") → Find specific function
+gopls_go_search("MCP")             → Find MCP-related implementations
+gopls_go_search("handleResolveCertChain") → Find MCP server tool handlers
 ```
 
 ### gopls_go_file_context(file)
@@ -244,23 +248,22 @@ gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/intern
 read("src/internal/x509/certs/certs.go")
 ```
 
-### 2. Modifying Chain Resolution Logic
+### 3. Understanding MCP Server Operations
 
 ```
-# Search for chain-related code
-gopls_go_search("FetchCertificate")
+# Start with workspace
+gopls_go_workspace()
 
-# Check all references before modifying
-gopls_go_symbol_references("src/internal/x509/chain/chain.go", "FetchCertificate")
+# Find MCP server tool implementations
+gopls_go_search("resolve_cert_chain")
+gopls_go_search("validate_cert_chain")
 
-# Make changes using edit tool
-edit(...)
+# Understand MCP server package API
+gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
 
-# Run diagnostics
-gopls_go_diagnostics(["src/internal/x509/chain/chain.go"])
-
-# Run tests
-bash("go test -v ./src/internal/x509/chain 2>&1 | cat")
+# Read MCP server implementations
+read("src/mcp-server/handlers.go")
+read("src/mcp-server/main.go")
 ```
 
 ### 3. Adding New CLI Flags

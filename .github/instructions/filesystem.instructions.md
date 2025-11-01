@@ -35,6 +35,12 @@ tls-cert-chain-resolver/
 │   │   ├── logger.go                         # Logger abstraction (CLI/MCP, thread-safe with bytebufferpool)
 │   │   ├── logger_test.go                    # Logger tests
 │   │   └── benchmark_test.go                 # Logger benchmarks
+│   ├── mcp-server/
+│   │   ├── config.example.json               # MCP server configuration example
+│   │   ├── config.go                         # MCP server configuration
+│   │   ├── handlers.go                       # MCP tool handlers for certificate operations
+│   │   ├── main.go                           # MCP server main implementation
+│   │   └── main_test.go                      # MCP server tests
 │   └── internal/
 │       ├── helper/
 │       │   └── gc/
@@ -582,6 +588,13 @@ src/logger/logger.go
 src/logger/logger_test.go
 src/logger/benchmark_test.go
 
+# MCP server implementation
+src/mcp-server/config.example.json
+src/mcp-server/config.go
+src/mcp-server/handlers.go
+src/mcp-server/main.go
+src/mcp-server/main_test.go
+
 # Certificate operations
 src/internal/x509/certs/certs.go
 src/internal/x509/certs/cert_test.go
@@ -685,6 +698,15 @@ grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
 
 # Find concurrent test patterns
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
+
+# Find MCP server tools
+grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry", include="*.go")
+
+# Find MCP server configuration
+grep("MCP_CONFIG_FILE\\|config\\.Defaults", include="*.go")
+
+# Find MCP tool handlers
+grep("handleResolveCertChain\\|handleValidateCertChain", include="*.go")
 ```
 
 ### Common Edit Patterns
