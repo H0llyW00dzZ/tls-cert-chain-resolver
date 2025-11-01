@@ -319,7 +319,7 @@ func TestMultipleGetPutCycles(t *testing.T) {
 		buf := Default.Get()
 
 		buf.WriteString("cycle ")
-		for j := 0; j < i; j++ {
+		for range i {
 			buf.WriteByte('*')
 		}
 

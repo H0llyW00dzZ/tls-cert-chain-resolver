@@ -207,14 +207,14 @@ func TestMCPTools(t *testing.T) {
 	tests := []struct {
 		name           string
 		toolName       string
-		args           map[string]interface{}
+		args           map[string]any
 		expectError    bool
 		expectContains []string
 	}{
 		{
 			name:     "resolve_cert_chain with base64 data",
 			toolName: "resolve_cert_chain",
-			args: map[string]interface{}{
+			args: map[string]any{
 				"certificate": certData,
 				"format":      "pem",
 			},
@@ -224,7 +224,7 @@ func TestMCPTools(t *testing.T) {
 		{
 			name:     "validate_cert_chain",
 			toolName: "validate_cert_chain",
-			args: map[string]interface{}{
+			args: map[string]any{
 				"certificate": certData,
 			},
 			expectError:    false,
@@ -233,7 +233,7 @@ func TestMCPTools(t *testing.T) {
 		{
 			name:     "check_cert_expiry",
 			toolName: "check_cert_expiry",
-			args: map[string]interface{}{
+			args: map[string]any{
 				"certificate": certData,
 				"warn_days":   30,
 			},
@@ -243,7 +243,7 @@ func TestMCPTools(t *testing.T) {
 		{
 			name:     "batch_resolve_cert_chain",
 			toolName: "batch_resolve_cert_chain",
-			args: map[string]interface{}{
+			args: map[string]any{
 				"certificates": certData + "," + certData,
 				"format":       "pem",
 			},
