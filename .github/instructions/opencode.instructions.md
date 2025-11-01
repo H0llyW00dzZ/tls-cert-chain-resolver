@@ -284,8 +284,10 @@ AGENTS.md (HIGH LEVEL)
 Custom Commands (WORKFLOWS)
 ├── .opencode/command/update-knowledge.md
 │   └── Update instructions after code changes
-└── .opencode/command/test.md
-    └── Run tests with coverage analysis
+├── .opencode/command/test.md
+│   └── Run tests with coverage analysis
+└── .opencode/command/test-capabilities.md
+    └── Test agent capabilities including MCP servers and built-in tools
 
 Specific Instructions (DETAILED)
 ├── gopls.instructions.md
