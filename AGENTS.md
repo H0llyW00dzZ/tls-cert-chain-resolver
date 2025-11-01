@@ -156,7 +156,7 @@ Agents also have access to built-in file and project tools:
 - `task(description, prompt, subagent_type)`: Launch specialized agents for complex tasks
   - `subagent_type: "general"`: General-purpose agent for research, code search, and multi-step tasks
   - ⚠️ **Note for Humans**: When delegating to sub-agents using the same AI model, there's no performance or quality benefit - the parent agent and sub-agent have identical capabilities. Delegation is most effective when using different model types (e.g., delegating simple search tasks to a faster/cheaper model, or complex reasoning to a more capable model). Consider whether the task truly requires delegation or can be handled directly by the current agent.
-  - 💡 **Recommended for `general` type**: Use built-in tools (`read`, `glob`, `grep`, etc.) instead of `bash` for research and code search. This provides better performance, structured output, and follows the Unix Philosophy of composable tools.
+  - 💡 **Recommended for `general` type**: Use built-in tools (`read`, `glob`, `grep`, etc.) instead of `bash` for research and code search. This provides better performance, structured output, and follows the [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy) of composable tools.
 
 **Usage Guidelines for Task Management**:
 - Use for complex multi-step tasks (3+ steps) or non-trivial work
@@ -247,7 +247,7 @@ gopls_go_search("MyFunction")  # ✅ Returns results
    - DeepWiki requires valid GitHub repository names
    - Always verify file operations by reading after write/edit
 
-4. **Performance** (Unix Philosophy):
+4. **Performance** ([Unix Philosophy](https://grokipedia.com/page/Unix_philosophy)):
    - **Do one thing well**: `grep` searches content, `glob` matches file patterns
    - **Compose tools**: Use `glob` to find files, then `grep` to search within them
    - **Filter early**: Narrow down with `glob` patterns before expensive `read` operations
@@ -273,7 +273,7 @@ bash("find . -name '*.go' | xargs grep 'Certificate'")
 bash("grep -r 'pattern' .")
 ```
 
-**✅ Good: Use composable tools (Unix Philosophy)**
+**✅ Good: Use composable tools ([Unix Philosophy](https://grokipedia.com/page/Unix_philosophy))**
 ```
 # GOOD - Respects .ignore, fast, structured output
 glob("src/**/*.go")
@@ -283,7 +283,7 @@ grep("Certificate", path="/path/to/src", include="*.go")
 **Why it matters**:
 - `bash` commands ignore `.ignore` configuration → searches unnecessary files (bin, .git, build artifacts)
 - Composable tools provide structured output and respect `.ignore` (see `.ignore` file for pattern organization)
-- Follows Unix Philosophy: each tool does one thing well
+- Follows [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy): each tool does one thing well
 
 #### 2. **Inefficient File Operations**
 
@@ -308,7 +308,7 @@ read("/path/to/large-file.go", offset=100, limit=30)  # Read lines 100-130 (sele
 grep("Certificate")  # Returns matches from bin, test files, etc.
 ```
 
-**✅ Good: Filter early, compose tools (Unix Philosophy)**
+**✅ Good: Filter early, compose tools ([Unix Philosophy](https://grokipedia.com/page/Unix_philosophy))**
 ```
 # GOOD - Filter with glob first, then search
 glob("src/internal/**/*.go")  # Get source files only
@@ -399,7 +399,7 @@ gopls_go_search("ProcessRequest")
 gopls_go_symbol_references(file, "ProcessRequest")
 ```
 
-**Summary**: Always prefer composable tools that follow Unix Philosophy (`glob`, `grep`, `read`, `list`) over `bash` for file operations and code search. These tools respect `.ignore` configuration (see `.ignore` file for pattern organization), provide structured output, and compose efficiently. Reserve `bash` for builds, tests, git, and package management.
+**Summary**: Always prefer composable tools that follow [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy) (`glob`, `grep`, `read`, `list`) over `bash` for file operations and code search. These tools respect `.ignore` configuration (see `.ignore` file for pattern organization), provide structured output, and compose efficiently. Reserve `bash` for builds, tests, git, and package management.
 
 ## Testing Guidelines
 
