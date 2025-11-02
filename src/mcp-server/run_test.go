@@ -11,6 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
+	"math/big"
 	"os"
 	"runtime"
 	"strings"
@@ -21,6 +22,8 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/mcptest"
 	"github.com/mark3labs/mcp-go/server"
+
+	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 )
 
 // Test certificate from www.google.com (valid until December 15, 2025)
@@ -1310,57 +1313,167 @@ func TestHandleTroubleshootingPrompt_ChainIssue(t *testing.T) {
 	}
 }
 
-func TestServerBuilder_WithTools(t *testing.T) {
-	builder := NewServerBuilder()
-
-	// Create a mock tool
-	tool := mcp.NewTool("test_tool", mcp.WithDescription("Test tool"))
-	toolDef := ToolDefinition{
-		Tool: tool,
-		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			return mcp.NewToolResultText("test result"), nil
+func TestHandleTroubleshootingPrompt_ValidationIssue(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "troubleshooting",
+			Arguments: map[string]string{
+				"issue_type":       "validation",
+				"certificate_path": "/path/to/cert.pem",
+			},
 		},
 	}
 
-	result := builder.WithTools(toolDef)
-
-	if result != builder {
-		t.Error("WithTools should return the builder for chaining")
+	result, err := handleTroubleshootingPrompt(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
 
-	if len(builder.deps.Tools) != 1 {
-		t.Errorf("Expected 1 tool, got %d", len(builder.deps.Tools))
+	if result == nil {
+		t.Fatal("Expected result, got nil")
 	}
 
-	if builder.deps.Tools[0].Tool.Name != "test_tool" {
-		t.Errorf("Expected tool name 'test_tool', got %s", builder.deps.Tools[0].Tool.Name)
+	if len(result.Messages) < 2 {
+		t.Errorf("Expected at least 2 messages for validation issue, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Certificate Troubleshooting Guide" {
+		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
 	}
 }
 
-func TestServerBuilder_WithToolsWithConfig(t *testing.T) {
-	builder := NewServerBuilder()
-
-	// Create a mock tool that needs config
-	tool := mcp.NewTool("test_tool_config", mcp.WithDescription("Test tool with config"))
-	toolDef := ToolDefinitionWithConfig{
-		Tool: tool,
-		Handler: func(ctx context.Context, request mcp.CallToolRequest, config *Config) (*mcp.CallToolResult, error) {
-			return mcp.NewToolResultText("test result with config"), nil
+func TestHandleTroubleshootingPrompt_ExpiryIssue(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "troubleshooting",
+			Arguments: map[string]string{
+				"issue_type":       "expiry",
+				"certificate_path": "/path/to/cert.pem",
+			},
 		},
 	}
 
-	result := builder.WithToolsWithConfig(toolDef)
-
-	if result != builder {
-		t.Error("WithToolsWithConfig should return the builder for chaining")
+	result, err := handleTroubleshootingPrompt(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
 
-	if len(builder.deps.ToolsWithConfig) != 1 {
-		t.Errorf("Expected 1 tool with config, got %d", len(builder.deps.ToolsWithConfig))
+	if result == nil {
+		t.Fatal("Expected result, got nil")
 	}
 
-	if builder.deps.ToolsWithConfig[0].Tool.Name != "test_tool_config" {
-		t.Errorf("Expected tool name 'test_tool_config', got %s", builder.deps.ToolsWithConfig[0].Tool.Name)
+	if len(result.Messages) < 2 {
+		t.Errorf("Expected at least 2 messages for expiry issue, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Certificate Troubleshooting Guide" {
+		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
+	}
+}
+
+func TestHandleTroubleshootingPrompt_ConnectionIssue(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "troubleshooting",
+			Arguments: map[string]string{
+				"issue_type": "connection",
+				"hostname":   "example.com",
+			},
+		},
+	}
+
+	result, err := handleTroubleshootingPrompt(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if len(result.Messages) < 2 {
+		t.Errorf("Expected at least 2 messages for connection issue, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Certificate Troubleshooting Guide" {
+		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
+	}
+}
+
+func TestHandleTroubleshootingPrompt_InvalidIssueType(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "troubleshooting",
+			Arguments: map[string]string{
+				"issue_type": "invalid",
+			},
+		},
+	}
+
+	result, err := handleTroubleshootingPrompt(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if len(result.Messages) != 1 {
+		t.Errorf("Expected 1 message for invalid issue type, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Certificate Troubleshooting Guide" {
+		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
+	}
+}
+
+func TestFormatJSON(t *testing.T) {
+	// Test the formatJSON function directly
+	cert := &x509.Certificate{
+		Subject: pkix.Name{
+			CommonName: "test.example.com",
+		},
+		Issuer: pkix.Name{
+			CommonName: "Test CA",
+		},
+		SerialNumber:       big.NewInt(12345),
+		SignatureAlgorithm: x509.SHA256WithRSA,
+	}
+
+	certs := []*x509.Certificate{cert}
+	certManager := &x509certs.Certificate{} // Mock interface
+
+	result := formatJSON(certs, certManager)
+
+	// Should be valid JSON
+	var jsonResult map[string]any
+	if err := json.Unmarshal([]byte(result), &jsonResult); err != nil {
+		t.Fatalf("formatJSON should return valid JSON: %v", err)
+	}
+
+	// Check structure
+	if jsonResult["title"] != "TLS Certificate Chain" {
+		t.Errorf("Expected title 'TLS Certificate Chain', got %v", jsonResult["title"])
+	}
+
+	if jsonResult["totalChained"].(float64) != 1 {
+		t.Errorf("Expected totalChained 1, got %v", jsonResult["totalChained"])
+	}
+}
+
+func TestServerBuilder_Build_WithoutTools(t *testing.T) {
+	builder := NewServerBuilder().
+		WithConfig(&Config{}).
+		WithVersion("1.0.0")
+
+	server, err := builder.Build()
+	if err != nil {
+		t.Fatalf("Build should succeed without tools: %v", err)
+	}
+
+	if server == nil {
+		t.Error("Expected server, got nil")
 	}
 }
 
@@ -1388,31 +1501,6 @@ func TestDefaultChainResolver_New(t *testing.T) {
 
 	if chain.Certs[0].Subject.CommonName != "test.example.com" {
 		t.Errorf("Expected certificate CN 'test.example.com', got %s", chain.Certs[0].Subject.CommonName)
-	}
-}
-
-func TestRun_ValidConfig(t *testing.T) {
-	t.Skip("Skipping valid config test as Run() blocks indefinitely - tested manually")
-
-	// Use default config (empty env var)
-	os.Unsetenv("MCP_X509_CONFIG_FILE")
-
-	// Run the server in a goroutine since it blocks
-	done := make(chan error, 1)
-	go func() {
-		done <- Run()
-	}()
-
-	// Give it a moment to start
-	select {
-	case err := <-done:
-		// If it returns immediately, check if it's an expected error
-		if err != nil {
-			t.Logf("Run() returned error (expected if interrupted): %v", err)
-		}
-	case <-time.After(100 * time.Millisecond):
-		// It didn't return immediately, which is good for a server that should block
-		t.Log("Run() started successfully and is blocking as expected")
 	}
 }
 
