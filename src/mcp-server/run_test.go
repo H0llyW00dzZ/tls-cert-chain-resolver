@@ -62,6 +62,9 @@ tXHHbX1dudpKfHM=
 `
 
 func TestMCPTools(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("Skipping TestMCPTools on macOS due to certificate validation differences")
+	}
 	config, err := loadConfig("")
 	if err != nil {
 		t.Fatalf("loadConfig failed: %v", err)
