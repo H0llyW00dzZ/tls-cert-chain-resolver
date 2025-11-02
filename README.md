@@ -267,7 +267,7 @@ from mcp.client.stdio import stdio_client
 async def main():
     server_params = StdioServerParameters(
         command="go",
-        args=["run", "/path/to/cmd/mcp-server/main.go"],
+        args=["run", "/path/to/cmd/mcp-server/run.go"],
         env=None
     )
     
@@ -300,7 +300,7 @@ async function main() {
   // Connect to MCP server
   await client.connect({
     command: 'go',
-    args: ['run', '/path/to/cmd/mcp-server/main.go']
+    args: ['run', '/path/to/cmd/mcp-server/run.go']
   });
 
   // Check certificate expiry
@@ -479,7 +479,7 @@ from mcp.client.stdio import stdio_client
 async def main():
     server_params = StdioServerParameters(
         command="go",
-        args=["run", "/path/to/cmd/mcp-server/main.go"],
+        args=["run", "/path/to/cmd/mcp-server/run.go"],
         env=None
     )
     
@@ -512,7 +512,7 @@ async function main() {
   // Connect to MCP server
   await client.connect({
     command: 'go',
-    args: ['run', '/path/to/cmd/mcp-server/main.go']
+    args: ['run', '/path/to/cmd/mcp-server/run.go']
   });
 
   // Check certificate expiry
