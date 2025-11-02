@@ -15,7 +15,8 @@ tls-cert-chain-resolver/
 │   │   ├── filesystem.instructions.md        # THIS FILE - File operations
 │   │   ├── gopls.instructions.md             # Go language intelligence
 │   │   ├── memory.instructions.md            # Memory/context management
-│   │   └── opencode.instructions.md          # OpenCode configuration
+│   │   ├── opencode.instructions.md          # OpenCode configuration
+│   │   └── x509_resolver.md                  # X509 certificate chain resolver MCP server
 │   ├── workflows/
 │   │   └── coverage.yml                      # CI/CD coverage workflow
 │   └── dependabot.yml                        # Dependency updates config
@@ -42,7 +43,9 @@ tls-cert-chain-resolver/
 │   │   ├── config.go                         # MCP server configuration
 │   │   ├── handlers.go                       # MCP tool handlers for X509 certificate operations
 │   │   ├── run.go                            # MCP server main implementation
-│   │   └── run_test.go                       # MCP server tests
+│   │   ├── run_test.go                       # MCP server tests
+│   │   └── templates/
+│   │       └── certificate-formats.md        # Certificate format documentation
 │   └── internal/
 │       ├── helper/
 │       │   └── gc/

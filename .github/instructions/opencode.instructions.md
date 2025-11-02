@@ -204,6 +204,31 @@ agent: general
 4. Goroutines: Buffered channels, handle cancellation
 ```
 
+#### e) x509_resolver.md
+
+**For**: X509 certificate chain resolver MCP server operations  
+**Key Topics**:
+- Certificate chain resolution and validation
+- Expiry checking and batch processing
+- Remote certificate fetching
+- MCP resources and prompts
+- Configuration and usage guidelines
+
+**When to use**:
+- Working with certificate chains
+- Validating certificate trust
+- Checking expiry dates
+- Fetching remote certificates
+- Using MCP server tools
+
+**Common workflows**:
+```
+1. Resolve: x509_resolver_resolve_cert_chain()
+2. Validate: x509_resolver_validate_cert_chain()
+3. Check expiry: x509_resolver_check_cert_expiry()
+4. Batch process: x509_resolver_batch_resolve_cert_chain()
+```
+
 ## How OpenCode Uses These Files
 
 ### 1. Session Initialization
@@ -310,9 +335,12 @@ Specific Instructions (DETAILED)
 ├── filesystem.instructions.md
 │   ├── Each operation detailed
 │   └── File structure patterns
-└── memory.instructions.md
-    ├── Resource management
-    └── Optimization patterns
+├── memory.instructions.md
+│   ├── Resource management
+│   └── Optimization patterns
+└── x509_resolver.md
+    ├── MCP server tools and resources
+    └── Certificate operations workflows
 ```
 
 ### 2. Cross-References
@@ -452,6 +480,7 @@ New to repository?
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/cloudflare/cfssl` - Certificate utilities
 - `github.com/valyala/bytebufferpool` - Memory pooling
+- `github.com/mark3labs/mcp-go` - MCP server implementation
 
 ### Package Structure
 
@@ -459,6 +488,7 @@ New to repository?
 cmd/                   → Main entry point
 src/cli/               → CLI implementation (cobra)
 src/logger/            → Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex)
+src/mcp-server/        → MCP server implementation with X509 certificate tools
 src/internal/x509/     → Certificate operations
   ├── certs/           → Encoding/decoding
   └── chain/           → Chain resolution
@@ -474,8 +504,9 @@ src/internal/helper/   → Utilities
 3. Research external libs → Use deepwiki.instructions.md
 4. Modify code → Use filesystem.instructions.md
 5. Optimize resources → Use memory.instructions.md
-6. Test → Use AGENTS.md test commands
-7. Build → Use AGENTS.md build commands (includes MCP server builds)
+6. Use MCP tools → Reference x509_resolver.md
+7. Test → Use AGENTS.md test commands
+8. Build → Use AGENTS.md build commands (includes MCP server builds)
 ```
 
 ## Integration with Git
