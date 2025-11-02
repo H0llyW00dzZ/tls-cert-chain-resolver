@@ -256,6 +256,66 @@ func TestMCPTools(t *testing.T) {
 			expectError:    false,
 			expectContains: []string{"BEGIN CERTIFICATE"},
 		},
+		{
+			name:     "fetch_remote_cert",
+			toolName: "fetch_remote_cert",
+			args: map[string]any{
+				"hostname": "example.com",
+				"port":     443,
+			},
+			expectError:    false,
+			expectContains: []string{"BEGIN CERTIFICATE"},
+		},
+		{
+			name:     "resolve_cert_chain with json format",
+			toolName: "resolve_cert_chain",
+			args: map[string]any{
+				"certificate": certData,
+				"format":      "json",
+			},
+			expectError:    false,
+			expectContains: []string{`"listCertificates"`, "Certificate Chain"},
+		},
+		{
+			name:     "resolve_cert_chain with der format",
+			toolName: "resolve_cert_chain",
+			args: map[string]any{
+				"certificate": certData,
+				"format":      "der",
+			},
+			expectError:    false,
+			expectContains: []string{}, // DER is binary, no text to check
+		},
+		{
+			name:     "resolve_cert_chain with include_system_root",
+			toolName: "resolve_cert_chain",
+			args: map[string]any{
+				"certificate":         certData,
+				"include_system_root": true,
+			},
+			expectError:    false,
+			expectContains: []string{"BEGIN CERTIFICATE"},
+		},
+		{
+			name:     "resolve_cert_chain with intermediate_only",
+			toolName: "resolve_cert_chain",
+			args: map[string]any{
+				"certificate":       certData,
+				"intermediate_only": true,
+			},
+			expectError:    false,
+			expectContains: []string{"BEGIN CERTIFICATE"},
+		},
+		{
+			name:     "check_cert_expiry with custom warn_days",
+			toolName: "check_cert_expiry",
+			args: map[string]any{
+				"certificate": certData,
+				"warn_days":   90,
+			},
+			expectError:    false,
+			expectContains: []string{"Expiry", "2025"},
+		},
 	}
 
 	for _, tt := range tests {
