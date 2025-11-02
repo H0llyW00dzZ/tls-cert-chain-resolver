@@ -357,6 +357,22 @@ chain := x509chain.New(cert, version)
 err := chain.FetchCertificate(ctx)
 ```
 
+### HTTP Requests with User-Agent
+
+```go
+// Set User-Agent header with version and GitHub link for certificate fetching
+req, err := http.NewRequestWithContext(ctx, http.MethodGet, parentURL, nil)
+if err != nil {
+    return err
+}
+
+// User-Agent format: "X.509-Certificate-Chain-Resolver/{version} (+{github-url})"
+req.Header.Set("User-Agent", "X.509-Certificate-Chain-Resolver/"+ch.Version+" (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)")
+
+resp, err := http.DefaultClient.Do(req)
+// ...
+```
+
 ### Error Handling
 
 ```go
