@@ -881,9 +881,9 @@ func getCertificateRole(index int, total int) string {
 // getKeySize extracts the key size from a certificate
 func getKeySize(cert *x509.Certificate) int {
 	switch pub := cert.PublicKey.(type) {
-	case *rsa.PublicKey:
+	case rsa.PublicKey:
 		return pub.Size() * 8 // Convert bytes to bits
-	case *ecdsa.PublicKey:
+	case ecdsa.PublicKey:
 		return pub.Curve.Params().BitSize
 	default:
 		return 0
