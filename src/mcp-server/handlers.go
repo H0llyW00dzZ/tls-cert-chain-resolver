@@ -841,8 +841,8 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
 	// Security context
 	context.WriteString("\n=== SECURITY CONTEXT ===\n")
 	context.WriteString("Current TLS/SSL Best Practices:\n")
-	context.WriteString("- RSA keys should be 2048 bits or larger\n")
-	context.WriteString("- ECDSA keys should use P-256 or stronger curves\n")
+	context.WriteString("- ~RSA keys should be 2048 bits or larger~ (Quantum Vulnerable 💀)\n")
+	context.WriteString("- ~ECDSA keys should use P-256 or stronger curves~ (Quantum Vulnerable 💀)\n")
 	context.WriteString("- Certificates should not be valid for more than 398 days (CA/Browser Forum)\n")
 	context.WriteString("- Modern clients require SAN (Subject Alternative Name) extension\n")
 	context.WriteString("- Quantum-resistant algorithms: Consider ML-KEM (Kyber), ML-DSA (Dilithium), and SLH-DSA (SPHINCS+) for post-quantum cryptography\n")
