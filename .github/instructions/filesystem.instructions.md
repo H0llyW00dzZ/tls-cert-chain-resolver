@@ -34,10 +34,23 @@ tls-cert-chain-resolver/
 │   ├── cli/
 │   │   ├── root.go                           # Cobra CLI implementation
 │   │   └── root_test.go                      # CLI tests
+│   ├── internal/
+│   │   ├── helper/
+│   │   │   └── gc/
+│   │   │       ├── mock_buffer_test.go       # Mock buffer for testing
+│   │   │       ├── reduce_overhead.go        # Buffer pool abstraction (gc.Pool interface)
+│   │   │       └── reduce_overhead_test.go   # Buffer pool tests
+│   │   └── x509/
+│   │       ├── certs/
+│   │       │   ├── cert_test.go              # Certificate tests
+│   │       │   └── certs.go                  # Certificate encoding/decoding
+│   │       └── chain/
+│   │           ├── chain.go                  # Chain resolution logic
+│   │           └── chain_test.go             # Chain tests
 │   ├── logger/
+│   │   ├── benchmark_test.go                 # Logger benchmarks
 │   │   ├── logger.go                         # Logger abstraction (CLI/MCP, thread-safe with bytebufferpool)
-│   │   ├── logger_test.go                    # Logger tests
-│   │   └── benchmark_test.go                 # Logger benchmarks
+│   │   └── logger_test.go                    # Logger tests
 │   ├── mcp-server/
 │   │   ├── config.example.json               # MCP server configuration example
 │   │   ├── config.go                         # MCP server configuration
@@ -45,33 +58,22 @@ tls-cert-chain-resolver/
 │   │   ├── handlers.go                       # MCP tool handlers for X509 certificate operations
 │   │   ├── prompts.go                        # MCP prompt definitions and handlers
 │   │   ├── resources.go                      # MCP resource definitions and handlers
-│   │   ├── run.go                            # MCP server main implementation
 │   │   ├── run_test.go                       # MCP server tests
-│   │   └── templates/
-│   │       └── certificate-formats.md        # Certificate format documentation
-│   └── internal/
-│       ├── helper/
-│       │   └── gc/
-│       │       ├── reduce_overhead.go        # Buffer pool abstraction (gc.Pool interface)
-│       │       ├── reduce_overhead_test.go   # Buffer pool tests
-│       │       └── mock_buffer_test.go       # Mock buffer for testing
-│       └── x509/
-│           ├── certs/
-│           │   ├── certs.go                  # Certificate encoding/decoding
-│           │   └── cert_test.go              # Certificate tests
-│           └── chain/
-│               ├── chain.go                  # Chain resolution logic
-│               └── chain_test.go             # Chain tests
-├── bin/                                      # Build artifacts (ignored)
+│   │   ├── server.go                         # Server execution and lifecycle
+│   │   ├── templates/
+│   │   │   └── certificate-formats.md        # Certificate format documentation
+│   │   └── tools.go                          # Tool definitions and creation
+│   └── version/
+│       └── version.go                        # Version information
 ├── .gitignore                                # Git ignore patterns
 ├── .ignore                                   # Tool ignore patterns (glob/grep)
 ├── AGENTS.md                                 # Primary agent guidelines
-├── opencode.json                             # OpenCode configuration
-├── go.mod                                    # Go module definition (Go 1.25.3)
-├── go.sum                                    # Go dependency checksums
 ├── LICENSE                                   # BSD 3-Clause License
 ├── Makefile                                  # Build commands
-└── README.md                                 # Project documentation
+├── README.md                                 # Project documentation
+├── go.mod                                    # Go module definition (Go 1.25.3)
+├── go.sum                                    # Go dependency checksums
+└── opencode.json                             # OpenCode configuration
 ```
 
 ## Available Tools
@@ -584,6 +586,21 @@ write("new_test.go", ...)       # Create new test files when needed
 ### Common File Paths
 
 ```
+# Agent instructions
+.github/instructions/README.md
+.github/instructions/gopls.instructions.md
+.github/instructions/deepwiki.instructions.md
+.github/instructions/filesystem.instructions.md
+.github/instructions/memory.instructions.md
+.github/instructions/opencode.instructions.md
+.github/instructions/x509_resolver.md
+
+# Custom commands
+.opencode/README.md
+.opencode/command/test.md
+.opencode/command/update-knowledge.md
+.opencode/command/test-capabilities.md
+
 # Main entry point
 cmd/run.go
 
@@ -606,8 +623,10 @@ src/mcp-server/framework.go  # ServerBuilder pattern for dependency injection
 src/mcp-server/handlers.go   # Core certificate processing utilities and individual resource handlers
 src/mcp-server/prompts.go    # MCP prompt definitions and handlers
 src/mcp-server/resources.go  # MCP resource definitions and handlers
-src/mcp-server/run.go
 src/mcp-server/run_test.go
+src/mcp-server/server.go
+src/mcp-server/tools.go
+src/mcp-server/templates/certificate-formats.md
 
 # Certificate operations
 src/internal/x509/certs/certs.go
@@ -622,6 +641,9 @@ src/internal/helper/gc/reduce_overhead.go
 src/internal/helper/gc/reduce_overhead_test.go
 src/internal/helper/gc/mock_buffer_test.go
 
+# Version information
+src/version/version.go
+
 # Build configuration
 Makefile
 go.mod
@@ -635,20 +657,6 @@ LICENSE
 # Configuration
 opencode.json
 .ignore
-
-# Custom commands
-.opencode/README.md
-.opencode/command/test.md
-.opencode/command/update-knowledge.md
-
-# Agent instructions
-.github/instructions/README.md
-.github/instructions/gopls.instructions.md
-.github/instructions/deepwiki.instructions.md
-.github/instructions/filesystem.instructions.md
-.github/instructions/memory.instructions.md
-.github/instructions/opencode.instructions.md
-.github/instructions/x509_resolver.md
 ```
 
 ### Common Search Patterns
@@ -731,6 +739,10 @@ grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createR
 
 # Find MCP server status resource
 grep("handleStatusResource\\|status://server-status", include="*.go")
+
+# Find version information
+grep("version\\.Version", include="*.go")
+```
 ```
 
 ### Common Edit Patterns
