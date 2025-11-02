@@ -4,90 +4,6 @@
 
 Guidelines for efficient memory usage, context management, and resource optimization when working with the X509 certificate chain resolver.
 
-## Token Budget Management
-
-**Total Budget**: 200,000 tokens per session  
-**Current Usage Tracking**: Monitor via system warnings  
-**Critical Threshold**: 80% usage (160,000 tokens)
-
-**Monitoring Triggers**:
-- **50% (100K tokens)**: Consider windowed reading for remaining operations
-  - Start using `read(file, offset, limit)` instead of full file reads
-  - Cache grep results to avoid repeated searches
-  - Batch tool calls when possible
-- **80% (160K tokens)**: CRITICAL - Use minimal reads, cache aggressively
-  - ONLY read files you will modify
-  - Use windowed reading with small limits (10-30 lines)
-  - Reuse information from earlier in session
-  - Avoid verbose bash outputs
-- **90% (180K tokens)**: EMERGENCY - Stop new file reads, use cached information only
-  - Do NOT read new files unless absolutely critical
-  - Use only cached/remembered information from session
-  - Complete current task and avoid starting new complex operations
-  - Consider asking user to start new session for additional work
-
-### Token Usage Best Practices
-
-#### 1. Efficient Tool Usage
-
-```
-❌ HIGH TOKEN USAGE:
-- Reading entire large files repeatedly
-- Repeated identical tool calls
-- Reading files you won't modify
-- Verbose command outputs
-
-✅ LOW TOKEN USAGE:
-- Windowed reading (offset + limit)
-- Caching tool results in working memory
-- Targeted grep before read
-- Selective file reading
-```
-
-#### 2. Windowed Reading for Large Files
-
-```
-# Instead of reading entire file (2000 lines)
-read("/path/to/large-file.go")  # Consumes ~8000 tokens
-
-# Use windowed reading after grep
-grep("FetchCertificate", include="*.go")  # Find line 105
-read("/path/to/large-file.go", offset=100, limit=30)  # Only ~1000 tokens
-```
-
-#### 3. Avoid Redundant Operations
-
-```
-❌ BAD (repeats same read):
-read("file.go")
-... do something ...
-read("file.go")  # Wasteful if content hasn't changed
-
-✅ GOOD (read once, use multiple times):
-read("file.go")
-... analyze content ...
-edit("file.go", ...)
-gopls_go_diagnostics(["file.go"])
-```
-
-#### 4. Batch Independent Operations
-
-```
-❌ BAD (sequential, multiple round trips):
-read("file1.go")
-# wait for response
-read("file2.go")
-# wait for response
-read("file3.go")
-
-✅ GOOD (parallel, single round trip):
-# Call all three read operations in one message
-read("file1.go")
-read("file2.go")
-read("file3.go")
-# All execute concurrently
-```
-
 ## Context Management
 
 ### 1. Context in Certificate Operations
@@ -617,12 +533,6 @@ func debugGoroutines() {
 
 ## Summary
 
-### Token Management
-1. **Use windowed reading** (offset + limit) for large files
-2. **Batch tool calls** for parallel execution
-3. **Avoid redundant reads** - remember information within session
-4. **Use grep first** to locate content before reading
-
 ### Context Management
 1. **Always pass context** to certificate operations
 2. **Handle cancellation** in long-running operations
@@ -646,7 +556,6 @@ func debugGoroutines() {
 1. **Track working memory** - remember key findings
 2. **Use todo lists** for complex tasks
 3. **Reuse information** - don't repeat identical queries
-4. **Monitor token usage** - stay under 80% threshold
 
 **Critical Pattern for Certificate Fetching**:
 ```go

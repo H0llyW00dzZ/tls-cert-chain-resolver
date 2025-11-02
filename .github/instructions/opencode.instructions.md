@@ -489,6 +489,12 @@ cmd/                   → Main entry point
 src/cli/               → CLI implementation (cobra)
 src/logger/            → Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex)
 src/mcp-server/        → MCP server implementation with X509 certificate tools
+  ├── config.go        → Configuration handling
+  ├── framework.go     → Builder pattern for server construction
+  ├── handlers.go      → Tool handlers for certificate operations
+  ├── prompts.go       → MCP prompt definitions and handlers
+  ├── resources.go     → MCP resource definitions and handlers
+  └── run.go           → Server execution and lifecycle
 src/internal/x509/     → Certificate operations
   ├── certs/           → Encoding/decoding
   └── chain/           → Chain resolution

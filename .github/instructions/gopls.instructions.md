@@ -13,6 +13,11 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 - **`src/cli/`** — Cobra CLI implementation  
 - **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and gc.Pool)
 - **`src/mcp-server/`** — MCP server implementation with X509 certificate tools
+  - **`framework.go`** — Builder pattern for server construction (ServerBuilder)
+  - **`resources.go`** — MCP resource definitions and handlers
+  - **`prompts.go`** — MCP prompt definitions and handlers
+  - **`handlers.go`** — Core certificate processing utilities and individual resource handlers
+  - **`server.go`** — Server execution and lifecycle
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
 - **`src/internal/helper/gc/`** — Memory management utilities
@@ -75,7 +80,7 @@ Packages:
 - cmd (main)
 - src/cli
 - src/logger (CLI/MCP logger abstraction, thread-safe with bytebufferpool)
-- src/mcp-server (MCP server tools for certificate operations)
+- src/mcp-server (MCP server tools for certificate operations with ServerBuilder pattern)
 - src/internal/x509/certs
 - src/internal/x509/chain
 - src/internal/helper/gc
@@ -96,6 +101,10 @@ gopls_go_search("MCP")             → Find MCP-related implementations
 gopls_go_search("handleResolveCertChain") → Find MCP server tool handlers
 gopls_go_search("addResources") → Find MCP server resource implementations
 gopls_go_search("addPrompts") → Find MCP server prompt implementations
+gopls_go_search("ServerBuilder") → Find builder pattern implementation
+gopls_go_search("createResources") → Find resource creation functions
+gopls_go_search("createPrompts") → Find prompt creation functions
+gopls_go_search("handleStatusResource") → Find status resource handler
 ```
 
 ### gopls_go_file_context(file)
@@ -252,6 +261,29 @@ read("src/internal/x509/certs/certs.go")
 
 ### 2. Understanding MCP Server Operations
 
+```
+# Start with workspace
+gopls_go_workspace()
+
+# Find MCP server tool implementations
+gopls_go_search("resolve_cert_chain")
+gopls_go_search("validate_cert_chain")
+gopls_go_search("check_cert_expiry")
+gopls_go_search("batch_resolve_cert_chain")
+gopls_go_search("fetch_remote_cert")
+gopls_go_search("addResources") → Find MCP server resource implementations
+gopls_go_search("addPrompts") → Find MCP server prompt implementations
+gopls_go_search("ServerBuilder") → Find builder pattern implementation
+gopls_go_search("handleStatusResource") → Find status resource handler
+
+# Understand MCP server package API
+gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
+
+# Read MCP server implementations
+read("src/mcp-server/framework.go")  # ServerBuilder pattern
+read("src/mcp-server/resources.go")  # Resource definitions
+read("src/mcp-server/prompts.go")    # Prompt definitions
+read("src/mcp-server/handlers.go")   # Tool handlers
 ```
 # Start with workspace
 gopls_go_workspace()
@@ -445,7 +477,13 @@ grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults", include="*.go")
 grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert", include="*.go")
 
 # Find MCP resources and prompts
-grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats", include="*.go")
+grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
+
+# Find MCP server builder pattern
+grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")
+
+# Find MCP server status resource
+grep("handleStatusResource\\|status://server-status", include="*.go")
 ```
 
 ## Summary
