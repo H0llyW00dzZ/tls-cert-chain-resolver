@@ -182,7 +182,6 @@ agent: general
 
 **For**: Memory, context, and resource management  
 **Key Topics**:
-- Token budget management (200K limit)
 - Context passing patterns
 - Memory optimization (buffer pooling)
 - Goroutine lifecycle management

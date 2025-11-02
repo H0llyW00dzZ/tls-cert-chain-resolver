@@ -53,18 +53,19 @@ tls-cert-chain-resolver/
 │   │   └── logger_test.go                    # Logger tests
 │   ├── mcp-server/
 │   │   ├── config.example.json               # MCP server configuration example
-│   │   ├── config.go                         # MCP server configuration
-│   │   ├── framework.go                      # Builder pattern for server construction (ServerBuilder)
-│   │   ├── handlers.go                       # MCP tool handlers for X509 certificate operations
-│   │   ├── prompts.go                        # MCP prompt definitions and handlers
-│   │   ├── resources.go                      # MCP resource definitions and handlers
+│   │   ├── config.go                         # MCP server configuration and AI settings
+│   │   ├── framework.go                      # ServerBuilder pattern, AI sampling handler, bidirectional communication
+│   │   ├── handlers.go                       # MCP tool handlers, AI certificate analysis, certificate processing utilities
+│   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
+│   │   ├── resources.go                      # MCP resource definitions and handlers (config, version, formats, status)
+│   │   ├── run_graceful_test.go              # Graceful shutdown test (Windows build constraint)
 │   │   ├── run_test.go                       # MCP server tests
-│   │   ├── server.go                         # Server execution and lifecycle
+│   │   ├── server.go                         # Server execution and lifecycle management
 │   │   ├── templates/
 │   │   │   └── certificate-formats.md        # Certificate format documentation
-│   │   └── tools.go                          # Tool definitions and creation
+│   │   └── tools.go                          # Tool definitions and creation functions
 │   └── version/
-│       └── version.go                        # Version information
+│       └── version.go                        # Version information and build metadata
 ├── .gitignore                                # Git ignore patterns
 ├── .ignore                                   # Tool ignore patterns (glob/grep)
 ├── AGENTS.md                                 # Primary agent guidelines
@@ -723,16 +724,19 @@ grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
 
 # Find MCP server tools
-grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert", include="*.go")
+grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert\\|analyze_certificate_with_ai", include="*.go")
 
 # Find MCP server configuration
-grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults", include="*.go")
+grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults\\|AI.*API", include="*.go")
 
 # Find MCP tool handlers
-grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert", include="*.go")
+grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert\\|handleAnalyzeCertificateWithAI", include="*.go")
 
 # Find MCP resources and prompts
 grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
+
+# Find AI integration patterns
+grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|xAI\\|streaming", include="*.go")
 
 # Find MCP server builder pattern
 grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")

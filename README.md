@@ -26,6 +26,38 @@ go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest
 tls-cert-chain-resolver -f [INPUT_FILE] [FLAGS]
 ```
 
+### Environment Variables
+
+For AI-powered certificate analysis features:
+- `X509_AI_APIKEY`: AI API key for intelligent certificate analysis (optional, can also be configured in config.json)
+
+### AI Configuration
+
+The MCP server supports configurable AI API integration for bidirectional communication:
+
+```json
+{
+  "defaults": {
+    "format": "pem",
+    "includeSystemRoot": false,
+    "intermediateOnly": false,
+    "warnDays": 30,
+    "timeoutSeconds": 10
+  },
+  "ai": {
+    "apiKey": "your-api-key-here",
+    "endpoint": "https://api.x.ai",
+    "model": "grok-beta",
+    "timeout": 30
+  }
+}
+```
+
+**Supported AI Providers:**
+- **xAI** (default): `https://api.x.ai` with Grok models
+- **OpenAI**: `https://api.openai.com/v1` with GPT models  
+- **Any OpenAI-compatible API**: Custom endpoints that follow OpenAI's chat completions format
+
 ### Flags
 
 - `-f, --file`: Input certificate file (required)
@@ -101,7 +133,7 @@ test-output-bundle.pem: OK
 
 ## MCP Tool Integration
 
-This tool can be integrated with [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) servers for automated certificate chain resolution. The MCP integration allows AI assistants and other tools to resolve TLS certificate chains programmatically.
+This tool can be integrated with [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) servers for automated certificate chain resolution. The MCP integration allows AI assistants and other tools to resolve TLS certificate chains programmatically, with support for bidirectional AI communication through sampling.
 
 **MCP Server Features:**
 - Resolve [X509](https://grokipedia.com/page/X.509) certificate chains from files or remote servers
@@ -109,7 +141,7 @@ This tool can be integrated with [Model Context Protocol (MCP)](https://modelcon
 - Support for remote certificate fetching over HTTPS, SMTPS, IMAPS, and any TLS-enabled service
 - Batch processing of multiple certificates
 - Multiple output formats (PEM, DER, JSON)
-- **Future: Bidirectional AI communication** - Enable AI agents to collaborate on certificate analysis tasks
+- **✅ Bidirectional AI Communication**: MCP sampling allows AI agents to collaborate (servers can request LLM completions from clients)
 
 ### Using the MCP Server with Built Binary
 
@@ -138,31 +170,82 @@ To use the MCP server with AI agents:
    ```
 
 2. **Configure your AI assistant** (like Claude Desktop) to use the MCP server:
-   ```json
-   {
-     "mcpServers": {
-       "tls-cert-resolver": {
-         "command": "/path/to/tls-cert-chain-resolver/bin/x509-cert-chain-resolver",
-         "env": {
-           "MCP_X509_CONFIG_FILE": "/path/to/tls-cert-chain-resolver/src/mcp-server/config.example.json"
-         }
-       }
-     }
-   }
-   ```
+    ```json
+    {
+      "mcpServers": {
+        "tls-cert-resolver": {
+          "command": "/path/to/tls-cert-chain-resolver/bin/x509-cert-chain-resolver",
+          "env": {
+            "MCP_X509_CONFIG_FILE": "/path/to/tls-cert-chain-resolver/src/mcp-server/config.example.json",
+            "X509_AI_APIKEY": "your-ai-api-key-here"
+          }
+        }
+      }
+    }
+    ```
 
 3. **Use the tools in your AI assistant**:
-   - `fetch_remote_cert`: Fetch certificates from remote servers (supports IMAP, SMTP, HTTPS, etc.)
-   - `resolve_cert_chain`: Resolve certificate chains from files
-   - `validate_cert_chain`: Validate certificate chain integrity
-   - `check_cert_expiry`: Check certificate expiration dates
-   - `batch_resolve_cert_chain`: Process multiple certificates
+    - `fetch_remote_cert`: Fetch certificates from remote servers (supports IMAP, SMTP, HTTPS, etc.)
+    - `resolve_cert_chain`: Resolve certificate chains from files
+    - `validate_cert_chain`: Validate certificate chain integrity
+    - `check_cert_expiry`: Check certificate expiration dates
+    - `batch_resolve_cert_chain`: Process multiple certificates
+    - **✅ `analyze_certificate_with_ai`**: AI-powered certificate analysis using bidirectional sampling
+    - **Sampling**: Request LLM completions from your AI assistant for collaborative analysis
 
-**Future Enhancement**: Bidirectional AI Communication
-The MCP server will soon support AI-to-AI communication, allowing multiple AI agents to collaborate on complex certificate analysis tasks. This will enable:
+### Using MCP Sampling for AI Collaboration
+
+The MCP server supports bidirectional communication through sampling, allowing AI assistants to request LLM completions from connected clients:
+
+```javascript
+// Example: Server requesting analysis from AI assistant
+const result = await mcpServer.requestSampling(ctx, {
+  messages: [
+    { role: "user", content: "Analyze this certificate chain for security issues" }
+  ],
+  maxTokens: 1000,
+  temperature: 0.7
+});
+```
+
+This enables collaborative workflows where the MCP server can leverage the AI assistant's reasoning capabilities for complex certificate analysis tasks.
+
+**Consistent User-Agent Headers**
+Both the CLI certificate resolver and MCP server use consistent User-Agent headers for all HTTP requests:
+
+- **CLI Tool**: `X.509-Certificate-Chain-Resolver/{version} (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)`
+- **MCP Server**: `X.509-Certificate-Chain-Resolver-MCP/{version} (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)`
+
+This ensures proper identification and allows servers to distinguish between different components of the tool.
+
+**Bidirectional AI Communication**
+The MCP server supports bidirectional communication through the built-in "sampling" mechanism, allowing AI assistants to request LLM completions from connected clients. This enables:
+
 - Distributed certificate validation across different AI models
 - Real-time collaboration between agents on security analysis
 - Automated escalation of findings to specialized security AI agents
+- Dynamic content generation for certificate analysis reports
+
+**AI API Configuration**
+The sampling handler supports multiple AI providers through configurable settings:
+
+- **Default**: xAI (Grok models) - no configuration needed
+- **OpenAI**: Configure `endpoint` to `https://api.openai.com/v1` and use GPT models
+- **Custom**: Any OpenAI-compatible API endpoint
+
+**New Tool: `analyze_certificate_with_ai`**
+This tool demonstrates bidirectional AI communication by:
+1. Processing certificate data on the server with comprehensive context engineering
+2. Building detailed analysis prompts with rich certificate information including:
+   - Complete certificate chain structure and roles
+   - Detailed cryptographic properties (algorithms, key sizes, signatures)
+   - Validity periods and expiry status
+   - Subject/Issuer information and extensions
+   - Key usage and extended key usage
+   - Subject Alternative Names and authority information
+   - Chain validation relationships and security context
+3. Requesting intelligent analysis from configured AI API via sampling
+4. Combining automated certificate data with AI reasoning
 
 
 ## MCP Server Deployment
@@ -609,15 +692,10 @@ This project was created to provide a more maintainable and actively maintained 
 - [x] Create example MCP client implementations
 - [x] Create MCP server configuration examples
 - [x] Add troubleshooting guide for MCP integration
+- [x] **Implement bidirectional AI communication** via MCP sampling (servers can request LLM completions from clients)
 
 #### Remaining (Low Priority)
-- [ ] Add support for bidirectional AI communication (AI-to-AI messaging through MCP)
-- [ ] Implement message routing system for AI-to-AI communication
-- [ ] Add inter-agent communication protocols (request/response, pub/sub, etc.)
-- [ ] Create collaborative certificate analysis workflows
-- [ ] Add session management for multi-agent conversations
-- [ ] Implement message encryption and authentication between agents
-- [ ] Add monitoring and logging for inter-agent communications
+- [x] **Bidirectional AI Communication**: MCP already supports AI-to-AI messaging through the "sampling" mechanism (servers can request LLM completions from clients)
 - [ ] Maintain compatibility with `github.com/mark3labs/mcp-go` (ongoing)
 - [ ] Create abstraction layer for both MCP libraries
 - [ ] Document differences and use cases for each library

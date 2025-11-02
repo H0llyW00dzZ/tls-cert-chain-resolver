@@ -113,6 +113,20 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			),
 			Handler: handleFetchRemoteCert,
 		},
+		{
+			Tool: mcp.NewTool("analyze_certificate_with_ai",
+				mcp.WithDescription("Analyze certificate data using AI collaboration (requires bidirectional communication)"),
+				mcp.WithString("certificate",
+					mcp.Required(),
+					mcp.Description("Certificate file path or base64-encoded certificate data to analyze"),
+				),
+				mcp.WithString("analysis_type",
+					mcp.Description("Type of analysis: 'security', 'compliance', 'general' (default: general)"),
+					mcp.DefaultString("general"),
+				),
+			),
+			Handler: handleAnalyzeCertificateWithAI,
+		},
 	}
 
 	return tools, toolsWithConfig
