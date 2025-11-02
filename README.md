@@ -109,6 +109,7 @@ This tool can be integrated with [Model Context Protocol (MCP)](https://modelcon
 - Support for remote certificate fetching over HTTPS, SMTPS, IMAPS, and any TLS-enabled service
 - Batch processing of multiple certificates
 - Multiple output formats (PEM, DER, JSON)
+- **Future: Bidirectional AI communication** - Enable AI agents to collaborate on certificate analysis tasks
 
 ### Using the MCP Server with Built Binary
 
@@ -156,6 +157,12 @@ To use the MCP server with AI agents:
    - `validate_cert_chain`: Validate certificate chain integrity
    - `check_cert_expiry`: Check certificate expiration dates
    - `batch_resolve_cert_chain`: Process multiple certificates
+
+**Future Enhancement**: Bidirectional AI Communication
+The MCP server will soon support AI-to-AI communication, allowing multiple AI agents to collaborate on complex certificate analysis tasks. This will enable:
+- Distributed certificate validation across different AI models
+- Real-time collaboration between agents on security analysis
+- Automated escalation of findings to specialized security AI agents
 
 
 ## MCP Server Deployment
@@ -604,6 +611,13 @@ This project was created to provide a more maintainable and actively maintained 
 - [x] Add troubleshooting guide for MCP integration
 
 #### Remaining (Low Priority)
+- [ ] Add support for bidirectional AI communication (AI-to-AI messaging through MCP)
+- [ ] Implement message routing system for AI-to-AI communication
+- [ ] Add inter-agent communication protocols (request/response, pub/sub, etc.)
+- [ ] Create collaborative certificate analysis workflows
+- [ ] Add session management for multi-agent conversations
+- [ ] Implement message encryption and authentication between agents
+- [ ] Add monitoring and logging for inter-agent communications
 - [ ] Maintain compatibility with `github.com/mark3labs/mcp-go` (ongoing)
 - [ ] Create abstraction layer for both MCP libraries
 - [ ] Document differences and use cases for each library
