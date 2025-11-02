@@ -62,8 +62,9 @@ tls-cert-chain-resolver/
 │   │   ├── run_test.go                       # MCP server tests
 │   │   ├── server.go                         # Server execution and lifecycle management
 │   │   ├── templates/
-│   │   │   └── certificate-formats.md        # Certificate format documentation
-│   │   └── tools.go                          # Tool definitions and creation functions
+│   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt
+│   │   │   └── certificate-formats.md                    # Certificate format documentation
+│   │   └── tools.go                                      # Tool definitions and creation functions
 │   └── version/
 │       └── version.go                        # Version information and build metadata
 ├── .gitignore                                # Git ignore patterns
