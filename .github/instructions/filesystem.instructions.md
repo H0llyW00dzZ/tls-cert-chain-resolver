@@ -58,6 +58,7 @@ tls-cert-chain-resolver/
 │   │   ├── handlers.go                       # MCP tool handlers, AI certificate analysis, certificate processing utilities
 │   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
 │   │   ├── resources.go                      # MCP resource definitions and handlers (config, version, formats, status)
+│   │   ├── run_graceful_test.go              # Graceful shutdown test (Windows build constraint)
 │   │   ├── run_test.go                       # MCP server tests
 │   │   ├── server.go                         # Server execution and lifecycle management
 │   │   ├── templates/
