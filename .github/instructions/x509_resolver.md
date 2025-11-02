@@ -175,7 +175,7 @@ Read resource: info://version
   "type": "MCP Server",
   "capabilities": {
     "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert"],
-    "resources": true,
+    "resources": ["config://template", "info://version", "docs://certificate-formats", "status://server-status"],
     "prompts": true
   },
   "supportedFormats": ["pem", "der", "json"]
@@ -196,6 +196,33 @@ Read resource: docs://certificate-formats
 
 # Returns markdown content from templates/certificate-formats.md
 # Contains detailed information about supported certificate formats (PEM, DER, etc.)
+```
+
+### status://server-status
+
+**Purpose**: Server status and health information  
+**Returns**: Current server status, version, and capabilities  
+**Content**: Health status, timestamp, and operational information
+
+**Access**:
+
+```
+# Via MCP client
+Read resource: status://server-status
+
+# Returns the following server status information:
+{
+  "status": "healthy",
+  "timestamp": "2025-11-02T12:00:00Z",
+  "server": "X509 Certificate Chain Resolver MCP Server",
+  "version": "0.2.9",
+  "capabilities": {
+    "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert"],
+    "resources": ["config://template", "info://version", "docs://certificate-formats", "status://server-status"],
+    "prompts": ["certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting"]
+  },
+  "supportedFormats": ["pem", "der", "json"]
+}
 ```
 
 ## MCP Prompts

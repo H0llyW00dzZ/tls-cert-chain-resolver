@@ -41,7 +41,10 @@ tls-cert-chain-resolver/
 │   ├── mcp-server/
 │   │   ├── config.example.json               # MCP server configuration example
 │   │   ├── config.go                         # MCP server configuration
+│   │   ├── framework.go                      # Builder pattern for server construction (ServerBuilder)
 │   │   ├── handlers.go                       # MCP tool handlers for X509 certificate operations
+│   │   ├── prompts.go                        # MCP prompt definitions and handlers
+│   │   ├── resources.go                      # MCP resource definitions and handlers
 │   │   ├── run.go                            # MCP server main implementation
 │   │   ├── run_test.go                       # MCP server tests
 │   │   └── templates/
@@ -599,7 +602,10 @@ src/logger/benchmark_test.go
 # MCP server implementation
 src/mcp-server/config.example.json
 src/mcp-server/config.go
-src/mcp-server/handlers.go
+src/mcp-server/framework.go  # ServerBuilder pattern for dependency injection
+src/mcp-server/handlers.go   # Core certificate processing utilities and individual resource handlers
+src/mcp-server/prompts.go    # MCP prompt definitions and handlers
+src/mcp-server/resources.go  # MCP resource definitions and handlers
 src/mcp-server/run.go
 src/mcp-server/run_test.go
 
@@ -642,6 +648,7 @@ opencode.json
 .github/instructions/filesystem.instructions.md
 .github/instructions/memory.instructions.md
 .github/instructions/opencode.instructions.md
+.github/instructions/x509_resolver.md
 ```
 
 ### Common Search Patterns
@@ -717,7 +724,13 @@ grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults", include="*.go")
 grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert", include="*.go")
 
 # Find MCP resources and prompts
-grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats", include="*.go")
+grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
+
+# Find MCP server builder pattern
+grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")
+
+# Find MCP server status resource
+grep("handleStatusResource\\|status://server-status", include="*.go")
 ```
 
 ### Common Edit Patterns
