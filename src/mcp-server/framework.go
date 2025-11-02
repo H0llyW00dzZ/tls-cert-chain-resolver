@@ -256,9 +256,9 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 	}
 
 	// Convert MCP messages to OpenAI-compatible format
-	var messages []map[string]interface{}
+	var messages []map[string]any
 	for _, msg := range request.Messages {
-		message := map[string]interface{}{
+		message := map[string]any{
 			"role": string(msg.Role),
 		}
 
@@ -285,14 +285,14 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 
 	// Add system prompt if provided
 	if request.SystemPrompt != "" {
-		systemMessage := map[string]interface{}{
+		systemMessage := map[string]any{
 			"role":    "system",
 			"content": request.SystemPrompt,
 		}
-		requestMessages = append([]map[string]interface{}{systemMessage}, messages...)
+		requestMessages = append([]map[string]any{systemMessage}, messages...)
 	}
 
-	apiRequest := map[string]interface{}{
+	apiRequest := map[string]any{
 		"model":       model,
 		"messages":    requestMessages,
 		"max_tokens":  request.MaxTokens,
@@ -335,23 +335,23 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 	}
 
 	// Parse response
-	var apiResponse map[string]interface{}
+	var apiResponse map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return nil, fmt.Errorf("failed to parse AI API response: %w", err)
 	}
 
 	// Extract the response content (OpenAI-compatible format)
-	choices, ok := apiResponse["choices"].([]interface{})
+	choices, ok := apiResponse["choices"].([]any)
 	if !ok || len(choices) == 0 {
 		return nil, fmt.Errorf("invalid API response format: missing or empty choices")
 	}
 
-	choice, ok := choices[0].(map[string]interface{})
+	choice, ok := choices[0].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("invalid API response format: invalid choice structure")
 	}
 
-	message, ok := choice["message"].(map[string]interface{})
+	message, ok := choice["message"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("invalid API response format: missing message")
 	}

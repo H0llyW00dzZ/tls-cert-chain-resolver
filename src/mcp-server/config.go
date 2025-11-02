@@ -27,7 +27,7 @@ type Config struct {
 		Endpoint string `json:"endpoint,omitempty"` // API endpoint URL (defaults to xAI)
 		Model    string `json:"model,omitempty"`    // Default model to use
 		Timeout  int    `json:"timeout,omitempty"`  // API timeout in seconds
-	} `json:"ai,omitempty"`
+	} `json:"ai"`
 }
 
 func loadConfig(configPath string) (*Config, error) {
