@@ -10,6 +10,7 @@
   - [x509_resolver_check_cert_expiry(certificate, warn_days?)](#x509_resolver_check_cert_expirycertificate-warn_days)
   - [x509_resolver_batch_resolve_cert_chain(certificates)](#x509_resolver_batch_resolve_cert_chain-certificates)
   - [x509_resolver_fetch_remote_cert(hostname, port?)](#x509_resolver_fetch_remote_certhostname-port)
+  - [x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?)](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type)
 - [MCP Resources](#mcp-resources)
   - [config://template](#configtemplate)
   - [info://version](#infoversion)
@@ -127,6 +128,25 @@ x509_resolver_fetch_remote_cert("example.com", port=443)
 x509_resolver_fetch_remote_cert("mail.google.com", port=993)
 ```
 
+### x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?) - Enterprise Grade
+
+**Purpose**: Perform AI-powered security analysis of certificates
+**Returns**: Comprehensive security assessment with AI-generated insights
+**When to use**: Advanced certificate security auditing and risk assessment
+
+**Parameters**:
+
+- `certificate`: File path or base64-encoded certificate data
+- `analysis_type`: Type of analysis ('general', 'security', 'compliance') (default: 'general')
+
+**Examples**:
+
+```
+x509_resolver_analyze_certificate_with_ai("cert.pem")
+x509_resolver_analyze_certificate_with_ai("cert.pem", analysis_type="security")
+x509_resolver_analyze_certificate_with_ai("cert.pem", analysis_type="compliance")
+```
+
 ## MCP Resources
 
 The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP server provides static resources for configuration and documentation access:
@@ -173,8 +193,8 @@ Read resource: info://version
   "name": "X509 Certificate Chain Resolver",
   "version": "0.2.9",
   "type": "MCP Server",
-  "capabilities": {
-    "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert"],
+   "capabilities": {
+    "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai"],
     "resources": ["config://template", "info://version", "docs://certificate-formats", "status://server-status"],
     "prompts": true
   },
@@ -217,7 +237,7 @@ Read resource: status://server-status
   "server": "X509 Certificate Chain Resolver MCP Server",
   "version": "0.2.9",
   "capabilities": {
-    "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert"],
+    "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai"],
     "resources": ["config://template", "info://version", "docs://certificate-formats", "status://server-status"],
     "prompts": ["certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting"]
   },
@@ -528,8 +548,9 @@ for i, chain := range chains {
 3. **Use [`x509_resolver_check_cert_expiry`](#x509_resolver_check_cert_expirycertificate-warn_days)** to monitor certificate expiration dates
 4. **Use [`x509_resolver_batch_resolve_cert_chain`](#x509_resolver_batch_resolve_cert_chain-certificates)** for efficient multi-certificate processing
 5. **Use [`x509_resolver_fetch_remote_cert`](#x509_resolver_fetch_remote_certhostname-port)** to retrieve certificates from remote servers
-6. **Configure [`MCP_X509_CONFIG_FILE`](#2-configuration)** environment variable for server configuration
-7. **Access [MCP resources](#mcp-resources)** for configuration templates, version info, and documentation
-8. **Use [MCP prompts](#mcp-prompts)** for guided certificate analysis workflows
-9. **Handle errors appropriately** - check return values and handle common certificate issues
-10. **Follow [certificate operation workflows](#integration-with-repository-workflow)** - resolve → validate → check expiry
+6. **Use [`x509_resolver_analyze_certificate_with_ai`](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type)** for AI-powered security analysis and risk assessment
+7. **Configure [`MCP_X509_CONFIG_FILE`](#2-configuration)** environment variable for server configuration
+8. **Access [MCP resources](#mcp-resources)** for configuration templates, version info, and documentation
+9. **Use [MCP prompts](#mcp-prompts)** for guided certificate analysis workflows
+10. **Handle errors appropriately** - check return values and handle common certificate issues
+11. **Follow [certificate operation workflows](#integration-with-repository-workflow)** - resolve → validate → check expiry
