@@ -279,11 +279,7 @@ func handleFetchRemoteCert(ctx context.Context, request mcp.CallToolRequest, con
 		return mcp.NewToolResultError(fmt.Sprintf("hostname parameter required: %v", err)), nil
 	}
 
-	portStr := request.GetString("port", strconv.Itoa(config.Defaults.Port))
-	port, err := strconv.Atoi(portStr)
-	if err != nil || port < 1 || port > 65535 {
-		port = config.Defaults.Port // fallback to config default
-	}
+	port := request.GetInt("port", 443)
 
 	// Establish TLS connection to get certificate chain
 	dialer := &net.Dialer{
@@ -496,7 +492,6 @@ func addResources(s *server.MCPServer) {
 				"includeSystemRoot": false,
 				"intermediateOnly":  false,
 				"warnDays":          30,
-				"port":              443,
 				"timeoutSeconds":    10,
 			},
 		}

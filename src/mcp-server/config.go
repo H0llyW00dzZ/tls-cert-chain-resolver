@@ -18,7 +18,6 @@ type Config struct {
 		IncludeSystemRoot bool   `json:"includeSystemRoot"`
 		IntermediateOnly  bool   `json:"intermediateOnly"`
 		WarnDays          int    `json:"warnDays"`
-		Port              int    `json:"port"`
 		Timeout           int    `json:"timeoutSeconds"`
 	} `json:"defaults"`
 }
@@ -31,7 +30,6 @@ func loadConfig(configPath string) (*Config, error) {
 	config.Defaults.IncludeSystemRoot = false
 	config.Defaults.IntermediateOnly = false
 	config.Defaults.WarnDays = 30
-	config.Defaults.Port = 443
 	config.Defaults.Timeout = 10
 
 	// Try to load from file if provided

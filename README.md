@@ -103,564 +103,60 @@ test-output-bundle.pem: OK
 
 This tool can be integrated with [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) servers for automated certificate chain resolution. The MCP integration allows AI assistants and other tools to resolve TLS certificate chains programmatically.
 
-> [!NOTE]
-> The examples below use the [`github.com/mark3labs/mcp-go`](https://github.com/mark3labs/mcp-go) library, which is a community-maintained Go implementation of MCP. This is not the official MCP SDK from [`github.com/modelcontextprotocol/go-sdk`](https://github.com/modelcontextprotocol/go-sdk). Both libraries implement the MCP specification, but they have different APIs and features. Choose the one that best fits your needs.
+**MCP Server Features:**
+- Resolve [X509](https://grokipedia.com/page/X.509) certificate chains from files or remote servers
+- Validate certificate chains and check expiry dates
+- Support for remote certificate fetching over HTTPS, SMTPS, IMAPS, and any TLS-enabled service
+- Batch processing of multiple certificates
+- Multiple output formats (PEM, DER, JSON)
 
-### MCP Server Example
+### Using the MCP Server with Built Binary
 
-Here's a complete example of an MCP server that exposes certificate chain resolution as a tool:
-
-```go
-package main
-
-import (
-	"context"
-	"encoding/base64"
-	"fmt"
-	"os"
-
-	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
-	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
-)
-
-func main() {
-	// Create MCP server
-	s := server.NewMCPServer(
-		"X509 Certificate Chain Resolver",
-		"0.2.9",
-		server.WithToolCapabilities(true),
-	)
-
-	// Define certificate chain resolution tool
-	resolveCertChainTool := mcp.NewTool("resolve_cert_chain",
-		mcp.WithDescription("Resolve TLS certificate chain from a certificate file or base64-encoded certificate data"),
-		mcp.WithString("certificate",
-			mcp.Required(),
-			mcp.Description("Certificate file path or base64-encoded certificate data"),
-		),
-		mcp.WithString("format",
-			mcp.Description("Output format: 'pem', 'der', or 'json' (default: pem)"),
-			mcp.DefaultString("pem"),
-		),
-		mcp.WithBoolean("include_system_root",
-			mcp.Description("Include system root CA in output (default: false)"),
-		),
-		mcp.WithBoolean("intermediate_only",
-			mcp.Description("Output only intermediate certificates (default: false)"),
-		),
-	)
-
-	// Register tool handler
-	s.AddTool(resolveCertChainTool, handleResolveCertChain)
-
-	// Start server
-	if err := server.ServeStdio(s); err != nil {
-		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func handleResolveCertChain(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	// Extract arguments
-	certInput, err := request.RequireString("certificate")
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("certificate parameter required: %v", err)), nil
-	}
-
-	format, _ := request.GetString("format", "pem")
-	includeSystemRoot, _ := request.GetBool("include_system_root", false)
-	intermediateOnly, _ := request.GetBool("intermediate_only", false)
-
-	// Read certificate data
-	var certData []byte
-	
-	// Try to read as file first
-	if fileData, err := os.ReadFile(certInput); err == nil {
-		certData = fileData
-	} else {
-		// Try to decode as base64
-		if decoded, err := base64.StdEncoding.DecodeString(certInput); err == nil {
-			certData = decoded
-		} else {
-			return mcp.NewToolResultError(fmt.Sprintf("failed to read certificate: not a valid file path or base64 data")), nil
-		}
-	}
-
-	// Decode certificate
-	certManager := x509certs.New()
-	cert, err := certManager.Decode(certData)
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("failed to decode certificate: %v", err)), nil
-	}
-
-	// Fetch certificate chain
-	chain := x509chain.New(cert, "0.2.9")
-	if err := chain.FetchCertificate(ctx); err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("failed to fetch certificate chain: %v", err)), nil
-	}
-
-	// Optionally add system root CA
-	if includeSystemRoot {
-		if err := chain.AddRootCA(); err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("failed to add root CA: %v", err)), nil
-		}
-	}
-
-	// Filter certificates if needed
-	certs := chain.Certs
-	if intermediateOnly {
-		certs = chain.FilterIntermediates()
-	}
-
-	// Format output
-	var output string
-	switch format {
-	case "der":
-		derData := certManager.EncodeMultipleDER(certs)
-		output = base64.StdEncoding.EncodeToString(derData)
-	case "json":
-		output = formatJSON(certs, certManager)
-	default: // pem
-		pemData := certManager.EncodeMultiplePEM(certs)
-		output = string(pemData)
-	}
-
-	// Build result with chain information
-	chainInfo := fmt.Sprintf("Certificate chain resolved successfully:\n")
-	for i, c := range certs {
-		chainInfo += fmt.Sprintf("%d: %s\n", i+1, c.Subject.CommonName)
-	}
-	chainInfo += fmt.Sprintf("\nTotal: %d certificate(s)\n\n", len(certs))
-	chainInfo += output
-
-	return mcp.NewToolResultText(chainInfo), nil
-}
-
-func formatJSON(certs []*x509.Certificate, certManager *x509certs.Certificate) string {
-	type CertInfo struct {
-		Subject            string `json:"subject"`
-		Issuer             string `json:"issuer"`
-		Serial             string `json:"serial"`
-		SignatureAlgorithm string `json:"signatureAlgorithm"`
-		PEM                string `json:"pem"`
-	}
-
-	certInfos := make([]CertInfo, len(certs))
-	for i, cert := range certs {
-		pemData := certManager.EncodePEM(cert)
-		certInfos[i] = CertInfo{
-			Subject:            cert.Subject.CommonName,
-			Issuer:             cert.Issuer.CommonName,
-			Serial:             cert.SerialNumber.String(),
-			SignatureAlgorithm: cert.SignatureAlgorithm.String(),
-			PEM:                string(pemData),
-		}
-	}
-
-	output := map[string]interface{}{
-		"title":            "TLS Certificate Chain",
-		"totalChained":     len(certs),
-		"listCertificates": certInfos,
-	}
-
-	jsonData, _ := json.MarshalIndent(output, "", "  ")
-	return string(jsonData)
-}
-```
-
-### Using the MCP Server with Go API
-
-To use this MCP server with an MCP-compatible client (like Claude Desktop or other AI assistants), you need to configure it in your MCP settings:
+You can also integrate with MCP by running the built MCP server binary directly. The MCP server is configured in `opencode.json` to use the local binary:
 
 ```json
 {
-  "mcpServers": {
-    "tls-cert-resolver": {
-      "command": "go",
-      "args": ["run", "path/to/your/mcp-server.go"]
+  "mcp": {
+    "x509_resolver": {
+      "type": "local",
+      "command": ["./bin/x509-cert-chain-resolver"],
+      "environment": {
+        "MCP_X509_CONFIG_FILE": "./src/mcp-server/config.example.json"
+      },
+      "enabled": true
     }
   }
 }
 ```
 
-The tool can then be called by the AI assistant with parameters like:
+To use the MCP server with AI agents:
+
+1. **Build the MCP server binary**:
+   ```bash
+   make build-mcp-linux  # or build-mcp-macos, build-mcp-windows
+   ```
+
+2. **Configure your AI assistant** (like Claude Desktop) to use the MCP server:
+   ```json
+   {
+     "mcpServers": {
+       "tls-cert-resolver": {
+         "command": "/path/to/tls-cert-chain-resolver/bin/x509-cert-chain-resolver",
+         "env": {
+           "MCP_X509_CONFIG_FILE": "/path/to/tls-cert-chain-resolver/src/mcp-server/config.example.json"
+         }
+       }
+     }
+   }
+   ```
+
+3. **Use the tools in your AI assistant**:
+   - `fetch_remote_cert`: Fetch certificates from remote servers (supports IMAP, SMTP, HTTPS, etc.)
+   - `resolve_cert_chain`: Resolve certificate chains from files
+   - `validate_cert_chain`: Validate certificate chain integrity
+   - `check_cert_expiry`: Check certificate expiration dates
+   - `batch_resolve_cert_chain`: Process multiple certificates
 
-```json
-{
-  "name": "resolve_cert_chain",
-  "arguments": {
-    "certificate": "/path/to/certificate.pem",
-    "format": "json",
-    "include_system_root": true
-  }
-}
-```
-
-### Using the MCP Server with Binary
-
-You can also integrate with MCP by executing the pre-built binary directly, without using the Go API. This approach is useful when you want to avoid Go dependencies or prefer using the standalone binary in an MCP tool server.
-
-#### MCP Server Example Using CLI Binary
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"os"
-	"os/exec"
-
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
-)
-
-func main() {
-	s := server.NewMCPServer(
-		"TLS Certificate Chain Resolver CLI",
-		"0.2.9",
-		server.WithToolCapabilities(true),
-	)
-
-	resolveCertChainTool := mcp.NewTool("resolve_cert_chain_cli",
-		mcp.WithDescription("Resolve TLS certificate chain using the tls-cert-chain-resolver binary"),
-		mcp.WithString("certificate_file",
-			mcp.Required(),
-			mcp.Description("Path to certificate file"),
-		),
-		mcp.WithString("output_file",
-			mcp.Description("Output file path (optional, defaults to stdout)"),
-		),
-		mcp.WithString("format",
-			mcp.Description("Output format: 'pem', 'der', or 'json' (default: pem)"),
-			mcp.DefaultString("pem"),
-		),
-		mcp.WithBoolean("include_system_root",
-			mcp.Description("Include system root CA in output"),
-		),
-		mcp.WithBoolean("intermediate_only",
-			mcp.Description("Output only intermediate certificates"),
-		),
-	)
-
-	s.AddTool(resolveCertChainTool, handleResolveCertChainCLI)
-
-	if err := server.ServeStdio(s); err != nil {
-		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func handleResolveCertChainCLI(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	certFile, err := request.RequireString("certificate_file")
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("certificate_file parameter required: %v", err)), nil
-	}
-
-	outputFile, _ := request.GetString("output_file", "")
-	format, _ := request.GetString("format", "pem")
-	includeSystemRoot, _ := request.GetBool("include_system_root", false)
-	intermediateOnly, _ := request.GetBool("intermediate_only", false)
-
-	args := []string{"-f", certFile}
-
-	if outputFile != "" {
-		args = append(args, "-o", outputFile)
-	}
-
-	if format == "der" {
-		args = append(args, "-d")
-	} else if format == "json" {
-		args = append(args, "-j")
-	}
-
-	if includeSystemRoot {
-		args = append(args, "-s")
-	}
-
-	if intermediateOnly {
-		args = append(args, "-i")
-	}
-
-	cmd := exec.CommandContext(ctx, "tls-cert-chain-resolver", args...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("command failed: %v\nOutput: %s", err, string(output))), nil
-	}
-
-	result := string(output)
-	if outputFile != "" {
-		fileContent, err := os.ReadFile(outputFile)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("failed to read output file: %v", err)), nil
-		}
-		result = fmt.Sprintf("Command output:\n%s\n\nFile content:\n%s", result, string(fileContent))
-	}
-
-	return mcp.NewToolResultText(result), nil
-}
-```
-
-#### Configuration for Claude Desktop
-
-Add this to your Claude Desktop MCP settings:
-
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-
-> [!NOTE]
-> Claude Desktop is currently not available on Linux. For Linux users, you can use other MCP-compatible clients or run the MCP server directly with the stdio transport for testing and development purposes.
-
-```json
-{
-  "mcpServers": {
-    "tls-cert-resolver-cli": {
-      "command": "/path/to/tls-cert-chain-mcp-server"
-    }
-  }
-}
-```
-
-Make sure the `tls-cert-chain-resolver` binary is in your system PATH, or update the `exec.CommandContext` call to use the full path to the binary.
-
-#### Example Usage in Claude Desktop
-
-Once configured, you can ask Claude to resolve certificate chains:
-
-```
-Resolve the certificate chain for example.com certificate at /path/to/cert.pem
-```
-
-Claude will call the tool with appropriate parameters:
-
-```json
-{
-  "name": "resolve_cert_chain_cli",
-  "arguments": {
-    "certificate_file": "/path/to/cert.pem",
-    "format": "json",
-    "include_system_root": true
-  }
-}
-```
-
-The tool will execute the binary and return the resolved certificate chain information.
-
-
-
-### Programmatic Usage
-
-#### Basic Certificate Chain Resolution
-
-```go
-package main
-
-import (
-	"context"
-	"crypto/x509"
-	"fmt"
-	"log"
-	"os"
-
-	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
-	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
-)
-
-func main() {
-	certData, err := os.ReadFile("test-leaf.cer")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	certManager := x509certs.New()
-	cert, err := certManager.Decode(certData)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx := context.Background()
-	chain := x509chain.New(cert, "0.2.9")
-	
-	if err := chain.FetchCertificate(ctx); err != nil {
-		log.Fatal(err)
-	}
-
-	for i, c := range chain.Certs {
-		fmt.Printf("%d: %s\n", i+1, c.Subject.CommonName)
-	}
-	
-	pemOutput := certManager.EncodeMultiplePEM(chain.Certs)
-	if err := os.WriteFile("output-bundle.pem", pemOutput, 0644); err != nil {
-		log.Fatal(err)
-	}
-}
-```
-
-#### JSON Output Format
-
-```go
-package main
-
-import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"log"
-	"os"
-
-	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
-	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
-)
-
-type CertificateInfo struct {
-	Subject            string `json:"subject"`
-	Issuer             string `json:"issuer"`
-	Serial             string `json:"serial"`
-	SignatureAlgorithm string `json:"signatureAlgorithm"`
-	PEM                string `json:"pem"`
-}
-
-type JSONOutput struct {
-	Title        string            `json:"title"`
-	TotalChained int               `json:"totalChained"`
-	Certificates []CertificateInfo `json:"listCertificates"`
-}
-
-func main() {
-	certData, err := os.ReadFile("test-leaf.cer")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	certManager := x509certs.New()
-	cert, err := certManager.Decode(certData)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx := context.Background()
-	chain := x509chain.New(cert, "0.2.9")
-	
-	if err := chain.FetchCertificate(ctx); err != nil {
-		log.Fatal(err)
-	}
-
-	certInfos := make([]CertificateInfo, len(chain.Certs))
-	for i, c := range chain.Certs {
-		pemData := certManager.EncodePEM(c)
-		certInfos[i] = CertificateInfo{
-			Subject:            c.Subject.CommonName,
-			Issuer:             c.Issuer.CommonName,
-			Serial:             c.SerialNumber.String(),
-			SignatureAlgorithm: c.SignatureAlgorithm.String(),
-			PEM:                string(pemData),
-		}
-	}
-
-	output := JSONOutput{
-		Title:        "TLS Certificate Resolver",
-		TotalChained: len(chain.Certs),
-		Certificates: certInfos,
-	}
-
-	jsonData, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(string(jsonData))
-}
-```
-
-#### Advanced Usage with System Root CAs
-
-```go
-package main
-
-import (
-	"context"
-	"crypto/x509"
-	"fmt"
-	"log"
-	"os"
-
-	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
-	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
-)
-
-func main() {
-	certData, err := os.ReadFile("test-leaf.cer")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	certManager := x509certs.New()
-	cert, err := certManager.Decode(certData)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx := context.Background()
-	chain := x509chain.New(cert, "0.2.9")
-	
-	if err := chain.FetchCertificate(ctx); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := chain.AddRootCA(); err != nil {
-		log.Fatal(err)
-	}
-
-	for i, c := range chain.Certs {
-		fmt.Printf("%d: %s (Root: %v)\n", i+1, c.Subject.CommonName, chain.IsRootNode(c))
-	}
-
-	intermediates := chain.FilterIntermediates()
-	fmt.Printf("\nFound %d intermediate certificate(s)\n", len(intermediates))
-	
-	pemOutput := certManager.EncodeMultiplePEM(chain.Certs)
-	if err := os.WriteFile("output-bundle-with-root.pem", pemOutput, 0644); err != nil {
-		log.Fatal(err)
-	}
-}
-```
-
-#### Decoding Multiple Certificates
-
-```go
-package main
-
-import (
-	"fmt"
-	"log"
-	"os"
-
-	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
-)
-
-func main() {
-	bundleData, err := os.ReadFile("certificate-bundle.pem")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	certManager := x509certs.New()
-	
-	certs, err := certManager.DecodeMultiple(bundleData)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf("Found %d certificate(s) in bundle:\n", len(certs))
-	for i, cert := range certs {
-		fmt.Printf("%d: %s\n", i+1, cert.Subject.CommonName)
-		fmt.Printf("   Issuer: %s\n", cert.Issuer.CommonName)
-		fmt.Printf("   Valid: %s to %s\n", cert.NotBefore, cert.NotAfter)
-	}
-}
-```
 
 ## MCP Server Deployment
 
@@ -873,28 +369,6 @@ echo '{"method": "tools/call", "params": {"name": "resolve_cert_chain", "argumen
 # Test validation
 echo '{"method": "tools/call", "params": {"name": "validate_cert_chain", "arguments": {"certificate": "/path/to/cert.pem"}}}' | go run ./cmd/mcp-server
 ```
-
-### API Reference
-
-#### Package `x509certs`
-
-- `New() *Certificate`: Create new certificate manager
-- `Decode(data []byte) (*x509.Certificate, error)`: Decode single certificate from PEM/DER/PKCS7
-- `DecodeMultiple(data []byte) ([]*x509.Certificate, error)`: Decode multiple certificates
-- `EncodePEM(cert *x509.Certificate) []byte`: Encode certificate to PEM
-- `EncodeDER(cert *x509.Certificate) []byte`: Encode certificate to DER
-- `EncodeMultiplePEM(certs []*x509.Certificate) []byte`: Encode multiple certificates to PEM
-- `EncodeMultipleDER(certs []*x509.Certificate) []byte`: Encode multiple certificates to DER
-
-#### Package `x509chain`
-
-- `New(cert *x509.Certificate, version string) *Chain`: Create new chain manager
-- `FetchCertificate(ctx context.Context) error`: Fetch complete certificate chain
-- `AddRootCA() error`: Add system root CA to chain
-- `FilterIntermediates() []*x509.Certificate`: Get only intermediate certificates
-- `IsRootNode(cert *x509.Certificate) bool`: Check if certificate is root
-- `IsSelfSigned(cert *x509.Certificate) bool`: Check if certificate is self-signed
-- `VerifyChain() error`: Verify the certificate chain validity
 
 ## MCP Server Deployment
 
