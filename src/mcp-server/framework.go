@@ -225,14 +225,16 @@ type DefaultSamplingHandler struct {
 	model    string
 	timeout  time.Duration
 	client   *http.Client
+	version  string
 }
 
 // NewDefaultSamplingHandler creates a new sampling handler with configurable AI settings
-func NewDefaultSamplingHandler(config *Config) client.SamplingHandler {
+func NewDefaultSamplingHandler(config *Config, version string) client.SamplingHandler {
 	return &DefaultSamplingHandler{
 		apiKey:   config.AI.APIKey,
 		endpoint: config.AI.Endpoint,
 		model:    config.AI.Model,
+		version:  version,
 		timeout:  time.Duration(config.AI.Timeout) * time.Second,
 		client:   &http.Client{Timeout: time.Duration(config.AI.Timeout) * time.Second},
 	}
@@ -320,6 +322,7 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+h.apiKey)
+	req.Header.Set("User-Agent", "X.509-Certificate-Chain-Resolver-MCP/"+h.version+" (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)")
 
 	// Make the request
 	resp, err := h.client.Do(req)

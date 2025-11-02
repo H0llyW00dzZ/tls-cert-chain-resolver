@@ -48,7 +48,7 @@ func Run() error {
 		WithVersion(appVersion).
 		WithCertManager(x509certs.New()).
 		WithChainResolver(DefaultChainResolver{}).
-		WithSampling(NewDefaultSamplingHandler(config)).
+		WithSampling(NewDefaultSamplingHandler(config, appVersion)).
 		WithDefaultTools().
 		WithResources(createResources()...).
 		WithPrompts(createPrompts()...).
