@@ -684,7 +684,7 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 						Content: mcp.TextContent{Text: analysisPrompt},
 					},
 				},
-				MaxTokens:   2000, // Increased for comprehensive analysis
+				MaxTokens:   4096, // Increased for comprehensive analysis
 				Temperature: 0.3,  // Lower temperature for more consistent analysis
 			},
 		}
