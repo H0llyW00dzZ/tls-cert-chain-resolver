@@ -845,6 +845,8 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
 	context.WriteString("- ECDSA keys should use P-256 or stronger curves\n")
 	context.WriteString("- Certificates should not be valid for more than 398 days (CA/Browser Forum)\n")
 	context.WriteString("- Modern clients require SAN (Subject Alternative Name) extension\n")
+	context.WriteString("- Quantum-resistant algorithms: Consider ML-KEM (Kyber), ML-DSA (Dilithium), and SLH-DSA (SPHINCS+) for post-quantum cryptography\n")
+	context.WriteString("- Hybrid certificates combining classical and quantum-resistant algorithms provide transitional security\n")
 	context.WriteString("- Deprecated: MD5, SHA-1 signatures\n")
 	context.WriteString("- Deprecated: SSLv3, TLS 1.0, TLS 1.1\n")
 

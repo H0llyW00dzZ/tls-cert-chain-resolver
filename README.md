@@ -195,7 +195,7 @@ To use the MCP server with AI agents:
 
 ### Using MCP Sampling for AI Collaboration
 
-The MCP server supports bidirectional communication through sampling, allowing AI assistants to request LLM completions from clients:
+The MCP server supports bidirectional communication through sampling, allowing AI assistants to request LLM completions from connected clients:
 
 ```javascript
 // Example: Server requesting analysis from AI assistant
@@ -209,6 +209,14 @@ const result = await mcpServer.requestSampling(ctx, {
 ```
 
 This enables collaborative workflows where the MCP server can leverage the AI assistant's reasoning capabilities for complex certificate analysis tasks.
+
+**Consistent User-Agent Headers**
+Both the CLI certificate resolver and MCP server use consistent User-Agent headers for all HTTP requests:
+
+- **CLI Tool**: `X.509-Certificate-Chain-Resolver/{version} (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)`
+- **MCP Server**: `X.509-Certificate-Chain-Resolver-MCP/{version} (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)`
+
+This ensures proper identification and allows servers to distinguish between different components of the tool.
 
 **Bidirectional AI Communication**
 The MCP server supports bidirectional communication through the built-in "sampling" mechanism, allowing AI assistants to request LLM completions from connected clients. This enables:

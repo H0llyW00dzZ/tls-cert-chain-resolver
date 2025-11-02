@@ -6,6 +6,7 @@
 package mcpserver
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"embed"
@@ -13,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"crypto/x509"
@@ -299,7 +301,7 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 		"messages":    requestMessages,
 		"max_tokens":  request.MaxTokens,
 		"temperature": request.Temperature,
-		"stream":      false,
+		"stream":      true, // Enable streaming for better performance and real-time responses
 	}
 
 	// Add stop sequences if provided
@@ -337,44 +339,62 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 		return nil, fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
-	// Parse response
-	var apiResponse map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return nil, fmt.Errorf("failed to parse AI API response: %w", err)
+	// Handle streaming response
+	var fullContent strings.Builder
+	var modelName = model
+	var stopReason = "stop"
+
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, ":") {
+			continue
+		}
+
+		// Parse Server-Sent Events format
+		if data, found := strings.CutPrefix(line, "data: "); found {
+			// Handle end of stream
+			if data == "[DONE]" {
+				break
+			}
+
+			// Parse JSON chunk
+			var chunk map[string]any
+			if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+				continue // Skip malformed chunks
+			}
+
+			// Extract model name if available
+			if modelFromChunk, ok := chunk["model"].(string); ok && modelName == model {
+				modelName = modelFromChunk
+			}
+
+			// Process choices
+			if choices, ok := chunk["choices"].([]any); ok && len(choices) > 0 {
+				if choice, ok := choices[0].(map[string]any); ok {
+					// Extract delta content
+					if delta, ok := choice["delta"].(map[string]any); ok {
+						if content, ok := delta["content"].(string); ok {
+							fullContent.WriteString(content)
+						}
+					}
+
+					// Check for finish reason
+					if finishReason, ok := choice["finish_reason"].(string); ok && finishReason != "" {
+						stopReason = finishReason
+					}
+				}
+			}
+		}
 	}
 
-	// Extract the response content (OpenAI-compatible format)
-	choices, ok := apiResponse["choices"].([]any)
-	if !ok || len(choices) == 0 {
-		return nil, fmt.Errorf("invalid API response format: missing or empty choices")
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading streaming response: %w", err)
 	}
 
-	choice, ok := choices[0].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid API response format: invalid choice structure")
-	}
-
-	message, ok := choice["message"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid API response format: missing message")
-	}
-
-	content, ok := message["content"].(string)
-	if !ok {
-		return nil, fmt.Errorf("invalid API response format: missing content")
-	}
-
-	// Extract model name
-	modelName := model
-	if modelFromResponse, ok := apiResponse["model"].(string); ok {
-		modelName = modelFromResponse
-	}
-
-	// Determine stop reason
-	stopReason := "stop"
-	if finishReason, ok := choice["finish_reason"].(string); ok {
-		stopReason = finishReason
-	}
+	content := fullContent.String()
 
 	return &mcp.CreateMessageResult{
 		SamplingMessage: mcp.SamplingMessage{
