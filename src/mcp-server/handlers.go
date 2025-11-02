@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -622,7 +623,7 @@ func handleStatusResource(ctx context.Context, request mcp.ReadResourceRequest) 
 }
 
 // handleAnalyzeCertificateWithAI analyzes certificate data using AI collaboration through sampling
-func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolRequest, config *Config) (*mcp.CallToolResult, error) {
 	certInput, err := request.RequireString("certificate")
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("certificate parameter required: %v", err)), nil
@@ -660,28 +661,68 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 	// Build comprehensive certificate context for AI analysis
 	certificateContext := buildCertificateContext(certs, analysisType)
 
-	// Create analysis prompt with rich context
-	analysisPrompt := fmt.Sprintf(`You are analyzing an X.509 certificate chain for %s assessment.
+	// Use context engineering as the primary prompt for AI analysis
+	analysisPrompt := certificateContext + "\n\n" + getAnalysisInstruction(analysisType)
 
-CERTIFICATE CHAIN CONTEXT:
-%s
+	// Try to get AI analysis if API key is configured
+	if config.AI.APIKey != "" {
+		// Create sampling handler for this request
+		samplingHandler := &DefaultSamplingHandler{
+			apiKey:   config.AI.APIKey,
+			endpoint: config.AI.Endpoint,
+			model:    config.AI.Model,
+			timeout:  time.Duration(config.AI.Timeout) * time.Second,
+			client:   &http.Client{Timeout: time.Duration(config.AI.Timeout) * time.Second},
+		}
 
-Please provide a comprehensive %s analysis focusing on the key security, compliance, and operational aspects of this certificate deployment.`, analysisType, certificateContext, analysisType)
+		// Prepare sampling request
+		samplingRequest := mcp.CreateMessageRequest{
+			CreateMessageParams: mcp.CreateMessageParams{
+				Messages: []mcp.SamplingMessage{
+					{
+						Role:    mcp.RoleUser,
+						Content: mcp.TextContent{Text: analysisPrompt},
+					},
+				},
+				MaxTokens:   2000, // Increased for comprehensive analysis
+				Temperature: 0.3,  // Lower temperature for more consistent analysis
+			},
+		}
 
-	// Note: In a real implementation, this would use the server's RequestSampling method
-	// For now, return information about what would happen
+		// Call the AI API
+		samplingResult, err := samplingHandler.CreateMessage(ctx, samplingRequest)
+		if err != nil {
+			// If sampling fails, fall back to showing the context
+			result := fmt.Sprintf("AI Analysis Request Failed: %v\n\n", err)
+			result += fmt.Sprintf("Analysis Type: %s\n\n", analysisType)
+			result += "Certificate Context Prepared:\n"
+			result += certificateContext
+			result += fmt.Sprintf("\n\nPrompt that would be sent:\n%s", analysisPrompt)
+			return mcp.NewToolResultText(result), nil
+		}
+
+		// Return the AI's analysis
+		result := fmt.Sprintf("🤖 AI-Powered Certificate Analysis (%s)\n\n", analysisType)
+		result += "Analysis provided by AI assistant:\n\n"
+		if textContent, ok := samplingResult.SamplingMessage.Content.(mcp.TextContent); ok {
+			result += textContent.Text
+		} else {
+			result += "AI provided analysis (content format not supported for display)"
+		}
+		result += fmt.Sprintf("\n\n---\n*AI Model: %s*", samplingResult.Model)
+
+		return mcp.NewToolResultText(result), nil
+	}
+
+	// Fallback: Show what would be sent to AI (no API key configured)
 	result := fmt.Sprintf("AI Collaborative Analysis (%s)\n\n", analysisType)
-	result += "This tool demonstrates bidirectional AI communication.\n\n"
-	result += fmt.Sprintf("Analysis Request: %s\n\n", analysisPrompt)
-	result += "In a full implementation, this would:\n"
-	result += "1. Send the analysis request to the connected AI assistant via sampling\n"
-	result += "2. Receive intelligent analysis of the certificate chain\n"
-	result += "3. Combine automated certificate data with AI reasoning\n"
-	result += "4. Provide comprehensive security insights\n\n"
-	result += "Certificate Summary:\n"
-	result += fmt.Sprintf("- Total certificates: %d\n", len(certs))
-	result += fmt.Sprintf("- Primary certificate: %s\n", certs[0].Subject.CommonName)
-	result += fmt.Sprintf("- Valid until: %s\n", certs[0].NotAfter.Format("2006-01-02"))
+	result += "⚠️  No AI API key configured. To enable real AI analysis:\n"
+	result += "   1. Set X509_AI_APIKEY environment variable, or\n"
+	result += "   2. Configure 'ai.apiKey' in your config.json file\n\n"
+	result += "📋 Certificate Context Prepared for AI Analysis:\n"
+	result += certificateContext
+	result += fmt.Sprintf("\n\n💭 Analysis Prompt Ready:\n%s", analysisPrompt)
+	result += "\n\n🔄 With API key configured, this would send the context to AI for intelligent analysis."
 
 	return mcp.NewToolResultText(result), nil
 }
@@ -907,4 +948,48 @@ func formatExtKeyUsage(usage []x509.ExtKeyUsage) string {
 		}
 	}
 	return strings.Join(usages, ", ")
+}
+
+// getAnalysisInstruction returns specific analysis instructions based on the type
+func getAnalysisInstruction(analysisType string) string {
+	switch analysisType {
+	case "security":
+		return `
+SECURITY ANALYSIS REQUEST:
+Based on the certificate data above, provide a comprehensive security assessment focusing on:
+1. Cryptographic strength and algorithm security
+2. Certificate validity and trust chain integrity
+3. Potential security vulnerabilities or misconfigurations
+4. Compliance with current security best practices
+5. Recommendations for security improvements
+6. Risk assessment (Critical/High/Medium/Low) with specific findings
+
+Be specific about any security concerns found in the certificate properties, validity periods, or cryptographic settings.`
+
+	case "compliance":
+		return `
+COMPLIANCE ANALYSIS REQUEST:
+Based on the certificate data above, assess compliance with industry standards:
+1. CA/Browser Forum Baseline Requirements compliance
+2. NIST cryptographic standards adherence
+3. Industry-specific regulatory requirements
+4. Certificate lifecycle management compliance
+5. Audit and reporting requirements
+6. Remediation steps for any compliance gaps
+
+Identify any violations of current standards and provide specific compliance recommendations.`
+
+	default: // general
+		return `
+GENERAL CERTIFICATE ANALYSIS REQUEST:
+Based on the certificate data above, provide a comprehensive analysis covering:
+1. Certificate chain structure and validation status
+2. Cryptographic properties and security posture
+3. Validity periods and renewal considerations
+4. Identity verification and certificate usage
+5. Operational health and maintenance recommendations
+6. Any notable characteristics or potential concerns
+
+Provide actionable insights for certificate management and security.`
+	}
 }

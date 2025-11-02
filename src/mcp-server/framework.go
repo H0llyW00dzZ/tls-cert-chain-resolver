@@ -382,3 +382,16 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 		StopReason: stopReason,
 	}, nil
 }
+
+// SamplingRequestMarker is a special result that indicates a sampling request should be made
+type SamplingRequestMarker struct {
+	Request SamplingRequest
+}
+
+// SamplingRequest represents a request for AI sampling from a handler
+type SamplingRequest struct {
+	Messages     []mcp.SamplingMessage
+	SystemPrompt string
+	MaxTokens    int
+	Temperature  float64
+}
