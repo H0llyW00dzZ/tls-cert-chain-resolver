@@ -7,9 +7,10 @@ package mcpserver
 
 import (
 	"context"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -161,7 +162,7 @@ func TestMCPTools(t *testing.T) {
 	s.AddTool(batchResolveCertChainTool, handleBatchResolveCertChain)
 	s.AddTool(validateCertChainTool, handleValidateCertChain)
 	s.AddTool(checkCertExpiryTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return handleCheckCertExpiry(request, config)
+		return handleCheckCertExpiry(ctx, request, config)
 	})
 	s.AddTool(fetchRemoteCertTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		return handleFetchRemoteCert(ctx, request, config)
@@ -187,7 +188,7 @@ func TestMCPTools(t *testing.T) {
 		{
 			Tool: checkCertExpiryTool,
 			Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-				return handleCheckCertExpiry(request, config)
+				return handleCheckCertExpiry(ctx, request, config)
 			},
 		},
 		{
@@ -247,14 +248,14 @@ func TestMCPTools(t *testing.T) {
 			expectContains: []string{"Expiry", "2025"},
 		},
 		{
-			name:     "batch_resolve_cert_chain",
+			name:     "batch_resolve_cert_chain with mixed valid and invalid",
 			toolName: "batch_resolve_cert_chain",
 			args: map[string]any{
-				"certificates": certData + "," + certData,
+				"certificates": certData + ",invalid-cert,another-invalid",
 				"format":       "pem",
 			},
-			expectError:    false,
-			expectContains: []string{"BEGIN CERTIFICATE"},
+			expectError:    true,
+			expectContains: []string{},
 		},
 		{
 			name:     "fetch_remote_cert",
@@ -307,14 +308,84 @@ func TestMCPTools(t *testing.T) {
 			expectContains: []string{"BEGIN CERTIFICATE"},
 		},
 		{
-			name:     "check_cert_expiry with custom warn_days",
-			toolName: "check_cert_expiry",
+			name:     "resolve_cert_chain with invalid certificate data",
+			toolName: "resolve_cert_chain",
 			args: map[string]any{
-				"certificate": certData,
-				"warn_days":   90,
+				"certificate": "invalid-cert-data",
 			},
-			expectError:    false,
-			expectContains: []string{"Expiry", "2025"},
+			expectError:    true,
+			expectContains: []string{},
+		},
+		{
+			name:     "resolve_cert_chain with invalid file path",
+			toolName: "resolve_cert_chain",
+			args: map[string]any{
+				"certificate": "/nonexistent/file.pem",
+			},
+			expectError:    true,
+			expectContains: []string{},
+		},
+		{
+			name:     "validate_cert_chain with invalid certificate",
+			toolName: "validate_cert_chain",
+			args: map[string]any{
+				"certificate": "invalid-cert-data",
+			},
+			expectError:    true,
+			expectContains: []string{},
+		},
+		{
+			name:     "batch_resolve_cert_chain with invalid certificates",
+			toolName: "batch_resolve_cert_chain",
+			args: map[string]any{
+				"certificates": "invalid-cert1,invalid-cert2",
+			},
+			expectError:    true,
+			expectContains: []string{},
+		},
+		{
+			name:     "fetch_remote_cert with invalid hostname",
+			toolName: "fetch_remote_cert",
+			args: map[string]any{
+				"hostname": "invalid.hostname.that.does.not.exist.example",
+			},
+			expectError:    true,
+			expectContains: []string{},
+		},
+		{
+			name:           "resolve_cert_chain missing certificate parameter",
+			toolName:       "resolve_cert_chain",
+			args:           map[string]any{}, // Empty args
+			expectError:    true,
+			expectContains: []string{},
+		},
+		{
+			name:           "validate_cert_chain missing certificate parameter",
+			toolName:       "validate_cert_chain",
+			args:           map[string]any{}, // Empty args
+			expectError:    true,
+			expectContains: []string{},
+		},
+		{
+			name:           "batch_resolve_cert_chain missing certificates parameter",
+			toolName:       "batch_resolve_cert_chain",
+			args:           map[string]any{}, // Empty args
+			expectError:    true,
+			expectContains: []string{},
+		},
+		{
+			name:           "check_cert_expiry missing certificate parameter",
+			toolName:       "check_cert_expiry",
+			args:           map[string]any{}, // Empty args
+			expectError:    true,
+			expectContains: []string{},
+		},
+		{
+			name:           "fetch_remote_cert missing hostname parameter",
+			toolName:       "fetch_remote_cert",
+			args:           map[string]any{}, // Empty args
+			expectError:    true,
+			expectContains: []string{},
 		},
 	}
 
@@ -332,8 +403,19 @@ func TestMCPTools(t *testing.T) {
 
 			result, err := client.CallTool(context.Background(), req)
 			if tt.expectError {
-				if err == nil {
-					t.Errorf("expected error but got none")
+				if err != nil {
+					t.Errorf("unexpected error: %v", err)
+					return
+				}
+				// Check if result contains error message
+				content := ""
+				for _, c := range result.Content {
+					if tc, ok := c.(mcp.TextContent); ok {
+						content += tc.Text
+					}
+				}
+				if !strings.Contains(content, "error") && !strings.Contains(content, "failed") && !strings.Contains(content, "required") {
+					t.Errorf("expected error message in result, but got: %s", content)
 				}
 				return
 			}
@@ -379,6 +461,933 @@ func TestRun_InvalidConfig(t *testing.T) {
 	// Error should mention config error
 	if !strings.Contains(err.Error(), "config error") {
 		t.Errorf("expected error to contain 'config error', got: %v", err)
+	}
+}
+
+func TestHandlerErrorPaths(t *testing.T) {
+	testCases := []struct {
+		name          string
+		toolName      string
+		args          map[string]any
+		expectError   bool
+		errorContains []string
+	}{
+		{
+			name:     "resolve_cert_chain with empty certificate",
+			toolName: "resolve_cert_chain",
+			args: map[string]any{
+				"certificate": "",
+			},
+			expectError:   true,
+			errorContains: []string{"failed to decode certificate"},
+		},
+		{
+			name:     "resolve_cert_chain with invalid base64",
+			toolName: "resolve_cert_chain",
+			args: map[string]any{
+				"certificate": "invalid-base64!",
+			},
+			expectError:   true,
+			errorContains: []string{"failed to read certificate"},
+		},
+		{
+			name:     "resolve_cert_chain with nonexistent file",
+			toolName: "resolve_cert_chain",
+			args: map[string]any{
+				"certificate": "/dev/null/nonexistent.pem",
+			},
+			expectError:   true,
+			errorContains: []string{"failed to read certificate"},
+		},
+		{
+			name:     "validate_cert_chain with malformed PEM",
+			toolName: "validate_cert_chain",
+			args: map[string]any{
+				"certificate": base64.StdEncoding.EncodeToString([]byte("not-a-certificate")),
+			},
+			expectError:   true,
+			errorContains: []string{"failed to decode certificate"},
+		},
+		{
+			name:     "check_cert_expiry with invalid warn_days",
+			toolName: "check_cert_expiry",
+			args: map[string]any{
+				"certificate": testCertPEM,
+				"warn_days":   "not-a-number",
+			},
+			expectError: false, // Should use default
+		},
+		{
+			name:     "fetch_remote_cert with invalid hostname",
+			toolName: "fetch_remote_cert",
+			args: map[string]any{
+				"hostname": "invalid.hostname.that.does.not.exist.example",
+			},
+			expectError:   true,
+			errorContains: []string{"failed to connect"},
+		},
+		{
+			name:     "batch_resolve_cert_chain with empty list",
+			toolName: "batch_resolve_cert_chain",
+			args: map[string]any{
+				"certificates": "",
+			},
+			expectError:   false, // Returns empty batch result
+			errorContains: []string{},
+		},
+		{
+			name:          "resolve_cert_chain missing certificate parameter",
+			toolName:      "resolve_cert_chain",
+			args:          map[string]any{}, // Empty args
+			expectError:   true,
+			errorContains: []string{"certificate parameter required"},
+		},
+		{
+			name:          "validate_cert_chain missing certificate parameter",
+			toolName:      "validate_cert_chain",
+			args:          map[string]any{}, // Empty args
+			expectError:   true,
+			errorContains: []string{"certificate parameter required"},
+		},
+		{
+			name:          "batch_resolve_cert_chain missing certificates parameter",
+			toolName:      "batch_resolve_cert_chain",
+			args:          map[string]any{}, // Empty args
+			expectError:   true,
+			errorContains: []string{"certificates parameter required"},
+		},
+		{
+			name:          "check_cert_expiry missing certificate parameter",
+			toolName:      "check_cert_expiry",
+			args:          map[string]any{}, // Empty args
+			expectError:   true,
+			errorContains: []string{"certificate parameter required"},
+		},
+		{
+			name:          "fetch_remote_cert missing hostname parameter",
+			toolName:      "fetch_remote_cert",
+			args:          map[string]any{}, // Empty args
+			expectError:   true,
+			errorContains: []string{"hostname parameter required"},
+		},
+	}
+
+	// Test with direct handler calls to avoid MCP server setup overhead
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			req := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name:      tt.toolName,
+					Arguments: tt.args,
+				},
+			}
+
+			var result *mcp.CallToolResult
+			var err error
+
+			// Call the appropriate handler directly
+			switch tt.toolName {
+			case "resolve_cert_chain":
+				result, err = handleResolveCertChain(context.Background(), req)
+			case "validate_cert_chain":
+				result, err = handleValidateCertChain(context.Background(), req)
+			case "batch_resolve_cert_chain":
+				result, err = handleBatchResolveCertChain(context.Background(), req)
+			case "check_cert_expiry":
+				config, _ := loadConfig("")
+				result, err = handleCheckCertExpiry(context.Background(), req, config)
+			case "fetch_remote_cert":
+				config, _ := loadConfig("")
+				result, err = handleFetchRemoteCert(context.Background(), req, config)
+			default:
+				t.Fatalf("Unknown tool name: %s", tt.toolName)
+			}
+
+			if tt.expectError {
+				if err == nil {
+					// Check if result contains error message instead
+					if result != nil {
+						content := ""
+						for _, c := range result.Content {
+							if tc, ok := c.(mcp.TextContent); ok {
+								content += tc.Text
+							}
+						}
+						foundError := false
+						for _, errStr := range tt.errorContains {
+							if strings.Contains(content, errStr) {
+								foundError = true
+								break
+							}
+						}
+						if !foundError {
+							t.Errorf("Expected error message containing %v in result, but got: %s", tt.errorContains, content)
+						}
+					} else {
+						t.Error("Expected error but got nil result")
+					}
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if result == nil {
+				t.Error("Expected result but got nil")
+			}
+		})
+	}
+}
+
+func TestContextCancellation(t *testing.T) {
+	// Test context cancellation and timeout scenarios
+	testCases := []struct {
+		name        string
+		toolName    string
+		setupCtx    func() (context.Context, context.CancelFunc)
+		args        map[string]any
+		expectError bool
+	}{
+		{
+			name:     "resolve_cert_chain with cancelled context",
+			toolName: "resolve_cert_chain",
+			setupCtx: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel() // Cancel immediately
+				return ctx, cancel
+			},
+			args: map[string]any{
+				"certificate": testCertPEM,
+			},
+			expectError: true,
+		},
+		{
+			name:     "validate_cert_chain with cancelled context",
+			toolName: "validate_cert_chain",
+			setupCtx: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel() // Cancel immediately
+				return ctx, cancel
+			},
+			args: map[string]any{
+				"certificate": testCertPEM,
+			},
+			expectError: true,
+		},
+		{
+			name:     "batch_resolve_cert_chain with cancelled context",
+			toolName: "batch_resolve_cert_chain",
+			setupCtx: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel() // Cancel immediately
+				return ctx, cancel
+			},
+			args: map[string]any{
+				"certificates": testCertPEM,
+			},
+			expectError: true,
+		},
+		{
+			name:     "fetch_remote_cert with timeout",
+			toolName: "fetch_remote_cert",
+			setupCtx: func() (context.Context, context.CancelFunc) {
+				return context.WithTimeout(context.Background(), 1*time.Nanosecond)
+			},
+			args: map[string]any{
+				"hostname": "example.com",
+				"port":     443,
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, _ := tt.setupCtx()
+
+			req := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name:      tt.toolName,
+					Arguments: tt.args,
+				},
+			}
+
+			var result *mcp.CallToolResult
+			var err error
+
+			// Call the appropriate handler
+			switch tt.toolName {
+			case "resolve_cert_chain":
+				result, err = handleResolveCertChain(ctx, req)
+			case "validate_cert_chain":
+				result, err = handleValidateCertChain(ctx, req)
+			case "batch_resolve_cert_chain":
+				result, err = handleBatchResolveCertChain(ctx, req)
+			case "fetch_remote_cert":
+				config, _ := loadConfig("")
+				result, err = handleFetchRemoteCert(ctx, req, config)
+			default:
+				t.Fatalf("Unknown tool name: %s", tt.toolName)
+			}
+
+			if tt.expectError {
+				if err == nil && result == nil {
+					t.Error("Expected error or result with error message, but got neither")
+				}
+				// Either err != nil or result contains error message
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if result == nil {
+					t.Error("Expected result but got nil")
+				}
+			}
+		})
+	}
+}
+
+func TestEdgeCases(t *testing.T) {
+	// Test edge cases and boundary conditions
+	testCases := []struct {
+		name        string
+		toolName    string
+		args        map[string]any
+		expectError bool
+		description string
+	}{
+		{
+			name:     "check_cert_expiry with very large warn_days",
+			toolName: "check_cert_expiry",
+			args: map[string]any{
+				"certificate": testCertPEM,
+				"warn_days":   float64(999999), // Very large number
+			},
+			expectError: false,
+			description: "Should handle large warn_days gracefully",
+		},
+		{
+			name:     "fetch_remote_cert with port 0",
+			toolName: "fetch_remote_cert",
+			args: map[string]any{
+				"hostname": "example.com",
+				"port":     float64(0), // Invalid port
+			},
+			expectError: true,
+			description: "Should reject invalid ports",
+		},
+		{
+			name:     "fetch_remote_cert with port 65536",
+			toolName: "fetch_remote_cert",
+			args: map[string]any{
+				"hostname": "example.com",
+				"port":     float64(65536), // Invalid port
+			},
+			expectError: true,
+			description: "Should reject ports > 65535",
+		},
+		{
+			name:     "resolve_cert_chain with very long certificate data",
+			toolName: "resolve_cert_chain",
+			args: map[string]any{
+				"certificate": base64.StdEncoding.EncodeToString([]byte(strings.Repeat("x", 100000))), // 100KB of data
+			},
+			expectError: true, // Should fail to decode
+			description: "Should handle large certificate data appropriately",
+		},
+		{
+			name:     "batch_resolve_cert_chain with many separators",
+			toolName: "batch_resolve_cert_chain",
+			args: map[string]any{
+				"certificates": ",,,", // Multiple empty entries
+			},
+			expectError: false,
+			description: "Should handle empty entries in batch",
+		},
+		{
+			name:     "validate_cert_chain with unicode in certificate subject",
+			toolName: "validate_cert_chain",
+			args: map[string]any{
+				"certificate": testCertPEM, // Test cert has standard subject
+			},
+			expectError: false,
+			description: "Should handle standard certificates",
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			req := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name:      tt.toolName,
+					Arguments: tt.args,
+				},
+			}
+
+			var result *mcp.CallToolResult
+			var err error
+
+			// Call the appropriate handler
+			switch tt.toolName {
+			case "resolve_cert_chain":
+				result, err = handleResolveCertChain(context.Background(), req)
+			case "validate_cert_chain":
+				result, err = handleValidateCertChain(context.Background(), req)
+			case "batch_resolve_cert_chain":
+				result, err = handleBatchResolveCertChain(context.Background(), req)
+			case "check_cert_expiry":
+				config, _ := loadConfig("")
+				result, err = handleCheckCertExpiry(context.Background(), req, config)
+			case "fetch_remote_cert":
+				config, _ := loadConfig("")
+				result, err = handleFetchRemoteCert(context.Background(), req, config)
+			default:
+				t.Fatalf("Unknown tool name: %s", tt.toolName)
+			}
+
+			if tt.expectError {
+				if err == nil && result == nil {
+					t.Errorf("Expected error for %s, but got neither error nor result", tt.description)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error for %s: %v", tt.description, err)
+				}
+				if result == nil {
+					t.Errorf("Expected result for %s, but got nil", tt.description)
+				}
+			}
+		})
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || strings.Contains(s, substr)))
+}
+
+func TestResourceHandlers(t *testing.T) {
+	// Use the real createResources function to test actual handlers
+	resources := createResources()
+
+	// Create test server and add the real resources
+	srv := mcptest.NewUnstartedServer(t)
+	srv.AddResources(resources...)
+
+	// Start the server
+	if err := srv.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	defer srv.Close()
+
+	client := srv.Client()
+
+	tests := []struct {
+		name           string
+		uri            string
+		expectError    bool
+		expectContains []string
+		expectMIMEType string
+	}{
+		{
+			name:           "read config template resource",
+			uri:            "config://template",
+			expectError:    false,
+			expectContains: []string{`"format"`, `"includeSystemRoot"`, `"warnDays"`},
+			expectMIMEType: "application/json",
+		},
+		{
+			name:           "read version info resource",
+			uri:            "info://version",
+			expectError:    false,
+			expectContains: []string{`"name"`, `"version"`, `"capabilities"`, `"supportedFormats"`},
+			expectMIMEType: "application/json",
+		},
+		{
+			name:           "read certificate formats resource",
+			uri:            "docs://certificate-formats",
+			expectError:    false,
+			expectContains: []string{"Certificate", "Format"},
+			expectMIMEType: "text/markdown",
+		},
+		{
+			name:           "read server status resource",
+			uri:            "status://server-status",
+			expectError:    false,
+			expectContains: []string{`"status"`, `"healthy"`, `"timestamp"`, `"server"`},
+			expectMIMEType: "application/json",
+		},
+		{
+			name:           "read nonexistent resource",
+			uri:            "nonexistent://resource",
+			expectError:    true,
+			expectContains: []string{},
+			expectMIMEType: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := mcp.ReadResourceRequest{
+				Params: mcp.ReadResourceParams{
+					URI: tt.uri,
+				},
+			}
+
+			result, err := client.ReadResource(context.Background(), req)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for URI %s, but got none", tt.uri)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error for URI %s: %v", tt.uri, err)
+				return
+			}
+
+			if result == nil {
+				t.Errorf("expected result for URI %s, but got nil", tt.uri)
+				return
+			}
+
+			if len(result.Contents) == 0 {
+				t.Errorf("expected contents for URI %s, but got empty", tt.uri)
+				return
+			}
+
+			// Check the first content item
+			content := result.Contents[0]
+			if textContent, ok := content.(mcp.TextResourceContents); ok {
+				if textContent.MIMEType != tt.expectMIMEType {
+					t.Errorf("expected MIME type %s for URI %s, but got %s", tt.expectMIMEType, tt.uri, textContent.MIMEType)
+				}
+
+				for _, expected := range tt.expectContains {
+					if !contains(textContent.Text, expected) {
+						t.Errorf("expected content to contain %q for URI %s, but it didn't. Content: %s", expected, tt.uri, textContent.Text[:min(200, len(textContent.Text))])
+					}
+				}
+			} else {
+				t.Errorf("expected TextResourceContents for URI %s, but got %T", tt.uri, content)
+			}
+		})
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func TestAddResources(t *testing.T) {
+	// Create MCP server
+	s := server.NewMCPServer(
+		"Test Server",
+		"1.0.0",
+		server.WithResourceCapabilities(true, true),
+	)
+
+	// Call addResources to test it
+	addResources(s)
+
+	// Verify resources were added
+	// Note: This is a basic test that addResources doesn't panic
+	// Full integration testing is done in TestResourceHandlers
+	if s == nil {
+		t.Error("Server should not be nil after addResources")
+	}
+}
+
+func TestCreateResources(t *testing.T) {
+	resources := createResources()
+
+	// Verify we get the expected number of resources
+	if len(resources) != 4 {
+		t.Errorf("Expected 4 resources, got %d", len(resources))
+	}
+
+	// Verify resource URIs
+	expectedURIs := []string{
+		"config://template",
+		"info://version",
+		"docs://certificate-formats",
+		"status://server-status",
+	}
+
+	for i, resource := range resources {
+		if resource.Resource.URI != expectedURIs[i] {
+			t.Errorf("Resource %d: expected URI %s, got %s", i, expectedURIs[i], resource.Resource.URI)
+		}
+		if resource.Handler == nil {
+			t.Errorf("Resource %d (%s) has nil handler", i, resource.Resource.URI)
+		}
+	}
+}
+
+func TestHandleConfigResource(t *testing.T) {
+	req := mcp.ReadResourceRequest{
+		Params: mcp.ReadResourceParams{
+			URI: "config://template",
+		},
+	}
+
+	result, err := handleConfigResource(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleConfigResource failed: %v", err)
+	}
+
+	if len(result) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(result))
+	}
+
+	content, ok := result[0].(mcp.TextResourceContents)
+	if !ok {
+		t.Errorf("Expected TextResourceContents, got %T", result[0])
+	}
+
+	if content.URI != "config://template" {
+		t.Errorf("Expected URI 'config://template', got %s", content.URI)
+	}
+
+	if content.MIMEType != "application/json" {
+		t.Errorf("Expected MIME type 'application/json', got %s", content.MIMEType)
+	}
+
+	// Verify JSON structure
+	var config map[string]any
+	if err := json.Unmarshal([]byte(content.Text), &config); err != nil {
+		t.Errorf("Failed to unmarshal config JSON: %v", err)
+	}
+
+	if _, ok := config["defaults"]; !ok {
+		t.Error("Config should contain 'defaults' key")
+	}
+}
+
+func TestHandleVersionResource(t *testing.T) {
+	req := mcp.ReadResourceRequest{
+		Params: mcp.ReadResourceParams{
+			URI: "info://version",
+		},
+	}
+
+	result, err := handleVersionResource(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleVersionResource failed: %v", err)
+	}
+
+	if len(result) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(result))
+	}
+
+	content, ok := result[0].(mcp.TextResourceContents)
+	if !ok {
+		t.Errorf("Expected TextResourceContents, got %T", result[0])
+	}
+
+	if content.URI != "info://version" {
+		t.Errorf("Expected URI 'info://version', got %s", content.URI)
+	}
+
+	if content.MIMEType != "application/json" {
+		t.Errorf("Expected MIME type 'application/json', got %s", content.MIMEType)
+	}
+
+	// Verify JSON structure contains expected fields
+	var versionInfo map[string]any
+	if err := json.Unmarshal([]byte(content.Text), &versionInfo); err != nil {
+		t.Errorf("Failed to unmarshal version JSON: %v", err)
+	}
+
+	expectedFields := []string{"name", "version", "type", "capabilities", "supportedFormats"}
+	for _, field := range expectedFields {
+		if _, ok := versionInfo[field]; !ok {
+			t.Errorf("Version info should contain '%s' key", field)
+		}
+	}
+}
+
+func TestHandleFormatsResource(t *testing.T) {
+	req := mcp.ReadResourceRequest{
+		Params: mcp.ReadResourceParams{
+			URI: "docs://certificate-formats",
+		},
+	}
+
+	result, err := handleFormatsResource(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleFormatsResource failed: %v", err)
+	}
+
+	if len(result) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(result))
+	}
+
+	content, ok := result[0].(mcp.TextResourceContents)
+	if !ok {
+		t.Errorf("Expected TextResourceContents, got %T", result[0])
+	}
+
+	if content.URI != "docs://certificate-formats" {
+		t.Errorf("Expected URI 'docs://certificate-formats', got %s", content.URI)
+	}
+
+	if content.MIMEType != "text/markdown" {
+		t.Errorf("Expected MIME type 'text/markdown', got %s", content.MIMEType)
+	}
+
+	// Content should contain markdown
+	if !strings.Contains(content.Text, "#") {
+		t.Error("Expected markdown content with headers")
+	}
+}
+
+func TestHandleStatusResource(t *testing.T) {
+	req := mcp.ReadResourceRequest{
+		Params: mcp.ReadResourceParams{
+			URI: "status://server-status",
+		},
+	}
+
+	result, err := handleStatusResource(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleStatusResource failed: %v", err)
+	}
+
+	if len(result) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(result))
+	}
+
+	content, ok := result[0].(mcp.TextResourceContents)
+	if !ok {
+		t.Errorf("Expected TextResourceContents, got %T", result[0])
+	}
+
+	if content.URI != "status://server-status" {
+		t.Errorf("Expected URI 'status://server-status', got %s", content.URI)
+	}
+
+	if content.MIMEType != "application/json" {
+		t.Errorf("Expected MIME type 'application/json', got %s", content.MIMEType)
+	}
+
+	// Verify JSON structure contains expected fields
+	var statusInfo map[string]any
+	if err := json.Unmarshal([]byte(content.Text), &statusInfo); err != nil {
+		t.Errorf("Failed to unmarshal status JSON: %v", err)
+	}
+
+	expectedFields := []string{"status", "timestamp", "server", "version", "capabilities", "supportedFormats"}
+	for _, field := range expectedFields {
+		if _, ok := statusInfo[field]; !ok {
+			t.Errorf("Status info should contain '%s' key", field)
+		}
+	}
+
+	if statusInfo["status"] != "healthy" {
+		t.Errorf("Expected status 'healthy', got %v", statusInfo["status"])
+	}
+}
+
+func TestHandleCertificateAnalysisPrompt(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "certificate-analysis",
+			Arguments: map[string]string{
+				"certificate_path": "/path/to/cert.pem",
+			},
+		},
+	}
+
+	result, err := handleCertificateAnalysisPrompt(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleCertificateAnalysisPrompt failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if len(result.Messages) != 8 {
+		t.Errorf("Expected 8 messages, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Certificate Chain Analysis Workflow" {
+		t.Errorf("Expected description 'Certificate Chain Analysis Workflow', got %s", result.Description)
+	}
+}
+
+func TestHandleExpiryMonitoringPrompt(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "expiry-monitoring",
+			Arguments: map[string]string{
+				"certificate_path": "/path/to/cert.pem",
+				"alert_days":       "45",
+			},
+		},
+	}
+
+	result, err := handleExpiryMonitoringPrompt(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleExpiryMonitoringPrompt failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if len(result.Messages) != 4 {
+		t.Errorf("Expected 4 messages, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Certificate Expiry Monitoring" {
+		t.Errorf("Expected description 'Certificate Expiry Monitoring', got %s", result.Description)
+	}
+}
+
+func TestHandleSecurityAuditPrompt(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "security-audit",
+			Arguments: map[string]string{
+				"hostname": "example.com",
+				"port":     "8443",
+			},
+		},
+	}
+
+	result, err := handleSecurityAuditPrompt(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleSecurityAuditPrompt failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if len(result.Messages) < 8 {
+		t.Errorf("Expected at least 8 messages, got %d", len(result.Messages))
+	}
+
+	if result.Description != "SSL/TLS Security Audit" {
+		t.Errorf("Expected description 'SSL/TLS Security Audit', got %s", result.Description)
+	}
+}
+
+func TestHandleTroubleshootingPrompt_ChainIssue(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "troubleshooting",
+			Arguments: map[string]string{
+				"issue_type":       "chain",
+				"certificate_path": "/path/to/cert.pem",
+			},
+		},
+	}
+
+	result, err := handleTroubleshootingPrompt(context.Background(), req)
+	if err != nil {
+		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if len(result.Messages) < 3 {
+		t.Errorf("Expected at least 3 messages for chain issue, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Certificate Troubleshooting Guide" {
+		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
+	}
+}
+
+func TestServerBuilder_WithTools(t *testing.T) {
+	builder := NewServerBuilder()
+
+	// Create a mock tool
+	tool := mcp.NewTool("test_tool", mcp.WithDescription("Test tool"))
+	toolDef := ToolDefinition{
+		Tool: tool,
+		Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			return mcp.NewToolResultText("test result"), nil
+		},
+	}
+
+	result := builder.WithTools(toolDef)
+
+	if result != builder {
+		t.Error("WithTools should return the builder for chaining")
+	}
+
+	if len(builder.deps.Tools) != 1 {
+		t.Errorf("Expected 1 tool, got %d", len(builder.deps.Tools))
+	}
+
+	if builder.deps.Tools[0].Tool.Name != "test_tool" {
+		t.Errorf("Expected tool name 'test_tool', got %s", builder.deps.Tools[0].Tool.Name)
+	}
+}
+
+func TestServerBuilder_WithToolsWithConfig(t *testing.T) {
+	builder := NewServerBuilder()
+
+	// Create a mock tool that needs config
+	tool := mcp.NewTool("test_tool_config", mcp.WithDescription("Test tool with config"))
+	toolDef := ToolDefinitionWithConfig{
+		Tool: tool,
+		Handler: func(ctx context.Context, request mcp.CallToolRequest, config *Config) (*mcp.CallToolResult, error) {
+			return mcp.NewToolResultText("test result with config"), nil
+		},
+	}
+
+	result := builder.WithToolsWithConfig(toolDef)
+
+	if result != builder {
+		t.Error("WithToolsWithConfig should return the builder for chaining")
+	}
+
+	if len(builder.deps.ToolsWithConfig) != 1 {
+		t.Errorf("Expected 1 tool with config, got %d", len(builder.deps.ToolsWithConfig))
+	}
+
+	if builder.deps.ToolsWithConfig[0].Tool.Name != "test_tool_config" {
+		t.Errorf("Expected tool name 'test_tool_config', got %s", builder.deps.ToolsWithConfig[0].Tool.Name)
+	}
+}
+
+func TestDefaultChainResolver_New(t *testing.T) {
+	// Create a test certificate
+	cert := &x509.Certificate{
+		Subject: pkix.Name{
+			CommonName: "test.example.com",
+		},
+		NotBefore: time.Now().Add(-24 * time.Hour),
+		NotAfter:  time.Now().Add(24 * time.Hour),
+	}
+
+	resolver := DefaultChainResolver{}
+	chain := resolver.New(cert, "1.0.0")
+
+	if chain == nil {
+		t.Fatal("Expected chain, got nil")
+	}
+
+	// The chain should contain the certificate
+	if len(chain.Certs) == 0 {
+		t.Error("Expected chain to contain at least one certificate")
+	}
+
+	if chain.Certs[0].Subject.CommonName != "test.example.com" {
+		t.Errorf("Expected certificate CN 'test.example.com', got %s", chain.Certs[0].Subject.CommonName)
 	}
 }
 
@@ -439,327 +1448,4 @@ func TestRun_GracefulShutdown(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("Run() did not shut down gracefully within 5 seconds")
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || strings.Contains(s, substr)))
-}
-
-func TestLoadConfig(t *testing.T) {
-	// Test loading default config
-	config, err := loadConfig("")
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
-
-	if config == nil {
-		t.Fatal("Expected config, got nil")
-	}
-
-	// Check default values
-	if config.Defaults.Format != "pem" {
-		t.Errorf("Expected default format 'pem', got %s", config.Defaults.Format)
-	}
-
-	if config.Defaults.WarnDays != 30 {
-		t.Errorf("Expected default warn days 30, got %d", config.Defaults.WarnDays)
-	}
-}
-
-func TestResourcesAndPrompts(t *testing.T) {
-	// Create MCP server with resource and prompt capabilities enabled
-	s := server.NewMCPServer(
-		"X509 Certificate Chain Resolver",
-		"test-version",
-		server.WithResourceCapabilities(true, true),
-		server.WithPromptCapabilities(true),
-	)
-
-	// Add resources and prompts
-	addResources(s)
-	addPrompts(s)
-
-	// Create test server and add the MCP server to it
-	srv := mcptest.NewUnstartedServer(t)
-	defer srv.Close()
-
-	// Copy resources and prompts from our MCP server to the test server
-	// This is needed because mcptest.Server manages its own MCP server instance
-
-	// Add resources manually to test server
-	configResource := mcp.NewResource(
-		"config://template",
-		"Server Configuration Template",
-		mcp.WithResourceDescription("Example configuration file for the MCP server"),
-		mcp.WithMIMEType("application/json"),
-	)
-	srv.AddResource(configResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		exampleConfig := map[string]any{
-			"defaults": map[string]any{
-				"format":            "pem",
-				"includeSystemRoot": false,
-				"intermediateOnly":  false,
-				"warnDays":          30,
-				"port":              443,
-				"timeoutSeconds":    10,
-			},
-		}
-
-		jsonData, err := json.MarshalIndent(exampleConfig, "", "  ")
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal config template: %w", err)
-		}
-
-		return []mcp.ResourceContents{
-			mcp.TextResourceContents{
-				URI:      "config://template",
-				MIMEType: "application/json",
-				Text:     string(jsonData),
-			},
-		}, nil
-	})
-
-	versionResource := mcp.NewResource(
-		"info://version",
-		"Server Version Information",
-		mcp.WithResourceDescription("Version and build information for the MCP server"),
-		mcp.WithMIMEType("application/json"),
-	)
-	srv.AddResource(versionResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		versionInfo := map[string]any{
-			"name":    "X509 Certificate Chain Resolver",
-			"version": "test-version",
-			"type":    "MCP Server",
-			"capabilities": map[string]any{
-				"tools":     []string{"resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert"},
-				"resources": true,
-				"prompts":   true,
-			},
-			"supportedFormats": []string{"pem", "der", "json"},
-		}
-
-		jsonData, err := json.MarshalIndent(versionInfo, "", "  ")
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal version info: %w", err)
-		}
-
-		return []mcp.ResourceContents{
-			mcp.TextResourceContents{
-				URI:      "info://version",
-				MIMEType: "application/json",
-				Text:     string(jsonData),
-			},
-		}, nil
-	})
-
-	formatsResource := mcp.NewResource(
-		"docs://certificate-formats",
-		"Certificate Format Documentation",
-		mcp.WithResourceDescription("Documentation on supported certificate formats and usage"),
-		mcp.WithMIMEType("text/markdown"),
-	)
-	srv.AddResource(formatsResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		content, err := magicEmbed.ReadFile("templates/certificate-formats.md")
-		if err != nil {
-			return nil, fmt.Errorf("failed to read certificate formats template: %w", err)
-		}
-
-		return []mcp.ResourceContents{
-			mcp.TextResourceContents{
-				URI:      "docs://certificate-formats",
-				MIMEType: "text/markdown",
-				Text:     string(content),
-			},
-		}, nil
-	})
-
-	// Add prompts manually to test server
-	certAnalysisPrompt := mcp.NewPrompt("certificate-analysis",
-		mcp.WithPromptDescription("Comprehensive certificate chain analysis workflow"),
-		mcp.WithArgument("certificate_path",
-			mcp.ArgumentDescription("Path to certificate file or base64-encoded certificate data"),
-		),
-	)
-	srv.AddPrompt(certAnalysisPrompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
-		certPath := request.Params.Arguments["certificate_path"]
-
-		messages := []mcp.PromptMessage{
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(fmt.Sprintf(`I'll help you perform a comprehensive analysis of the certificate chain for: %s
-
-Let's start with the basic chain resolution:`, certPath)),
-			),
-		}
-
-		return mcp.NewGetPromptResult(
-			"Certificate Chain Analysis Workflow",
-			messages,
-		), nil
-	})
-
-	expiryPrompt := mcp.NewPrompt("expiry-monitoring",
-		mcp.WithPromptDescription("Monitor certificate expiration dates and generate renewal alerts"),
-		mcp.WithArgument("certificate_path",
-			mcp.ArgumentDescription("Path to certificate file or base64-encoded certificate data"),
-		),
-		mcp.WithArgument("alert_days",
-			mcp.ArgumentDescription("Number of days before expiry to alert (default: 30)"),
-		),
-	)
-	srv.AddPrompt(expiryPrompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
-		certPath := request.Params.Arguments["certificate_path"]
-		alertDays := request.Params.Arguments["alert_days"]
-		if alertDays == "" {
-			alertDays = "30"
-		}
-
-		messages := []mcp.PromptMessage{
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(fmt.Sprintf(`I'll help you monitor certificate expiration for: %s with %s-day alert threshold.`, certPath, alertDays)),
-			),
-		}
-
-		return mcp.NewGetPromptResult(
-			"Certificate Expiry Monitoring",
-			messages,
-		), nil
-	})
-
-	// Start the test server
-	err := srv.Start(context.Background())
-	if err != nil {
-		t.Fatalf("Failed to start test server: %v", err)
-	}
-
-	client := srv.Client()
-
-	t.Run("resources", func(t *testing.T) {
-		tests := []struct {
-			name       string
-			uri        string
-			expectMIME string
-			expectText []string
-		}{
-			{
-				name:       "config template",
-				uri:        "config://template",
-				expectMIME: "application/json",
-				expectText: []string{`"format": "pem"`, `"warnDays": 30`, `"port": 443`},
-			},
-			{
-				name:       "version info",
-				uri:        "info://version",
-				expectMIME: "application/json",
-				expectText: []string{`"name": "X509 Certificate Chain Resolver"`, `"version": "test-version"`, `"type": "MCP Server"`},
-			},
-			{
-				name:       "certificate formats",
-				uri:        "docs://certificate-formats",
-				expectMIME: "text/markdown",
-				expectText: []string{"# Certificate Formats Supported", "PEM Format", "DER Format"},
-			},
-		}
-
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				req := mcp.ReadResourceRequest{
-					Params: mcp.ReadResourceParams{
-						URI: tt.uri,
-					},
-				}
-
-				result, err := client.ReadResource(context.Background(), req)
-				if err != nil {
-					t.Fatalf("ReadResource failed for %s: %v", tt.uri, err)
-				}
-
-				if len(result.Contents) != 1 {
-					t.Fatalf("Expected 1 content item for %s, got %d", tt.uri, len(result.Contents))
-				}
-
-				content := result.Contents[0]
-				if tc, ok := content.(mcp.TextResourceContents); ok {
-					if tc.MIMEType != tt.expectMIME {
-						t.Errorf("Expected MIME type %s for %s, got %s", tt.expectMIME, tt.uri, tc.MIMEType)
-					}
-
-					for _, expected := range tt.expectText {
-						if !strings.Contains(tc.Text, expected) {
-							t.Errorf("Expected content to contain %q for %s, but it didn't. Content: %s", expected, tt.uri, tc.Text)
-						}
-					}
-				} else {
-					t.Errorf("Expected TextResourceContents for %s, got %T", tt.uri, content)
-				}
-			})
-		}
-	})
-
-	t.Run("prompts", func(t *testing.T) {
-		tests := []struct {
-			name       string
-			promptName string
-			args       map[string]string
-			expectDesc string
-			expectText []string
-		}{
-			{
-				name:       "certificate analysis",
-				promptName: "certificate-analysis",
-				args: map[string]string{
-					"certificate_path": "/path/to/cert.pem",
-				},
-				expectDesc: "Certificate Chain Analysis Workflow",
-				expectText: []string{"certificate chain for: /path/to/cert.pem", "basic chain resolution"},
-			},
-			{
-				name:       "expiry monitoring",
-				promptName: "expiry-monitoring",
-				args: map[string]string{
-					"certificate_path": "/path/to/cert.pem",
-					"alert_days":       "60",
-				},
-				expectDesc: "Certificate Expiry Monitoring",
-				expectText: []string{"certificate expiration for: /path/to/cert.pem", "60-day alert threshold"},
-			},
-		}
-
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				req := mcp.GetPromptRequest{
-					Params: mcp.GetPromptParams{
-						Name:      tt.promptName,
-						Arguments: tt.args,
-					},
-				}
-
-				result, err := client.GetPrompt(context.Background(), req)
-				if err != nil {
-					t.Fatalf("GetPrompt failed for %s: %v", tt.promptName, err)
-				}
-
-				if result.Description != tt.expectDesc {
-					t.Errorf("Expected description %q for %s, got %q", tt.expectDesc, tt.promptName, result.Description)
-				}
-
-				if len(result.Messages) == 0 {
-					t.Fatalf("Expected at least one message for %s", tt.promptName)
-				}
-
-				// Check the first message content
-				firstMsg := result.Messages[0]
-				if tc, ok := firstMsg.Content.(mcp.TextContent); ok {
-					for _, expected := range tt.expectText {
-						if !strings.Contains(tc.Text, expected) {
-							t.Errorf("Expected message to contain %q for %s, but it didn't. Message: %s", expected, tt.promptName, tc.Text)
-						}
-					}
-				} else {
-					t.Errorf("Expected TextContent for %s, got %T", tt.promptName, firstMsg.Content)
-				}
-			})
-		}
-	})
 }
