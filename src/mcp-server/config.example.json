@@ -5,5 +5,10 @@
     "intermediateOnly": false,
     "warnDays": 30,
     "timeoutSeconds": 10
+  },
+  "ai": {
+    "endpoint": "https://api.x.ai",
+    "model": "grok-beta",
+    "timeout": 30
   }
 }

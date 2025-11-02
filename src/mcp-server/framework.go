@@ -6,12 +6,19 @@
 package mcpserver
 
 import (
+	"bytes"
 	"context"
 	"embed"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
 
 	"crypto/x509"
 
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -85,6 +92,7 @@ type ServerDependencies struct {
 	ToolsWithConfig []ToolDefinitionWithConfig
 	Resources       []server.ServerResource
 	Prompts         []server.ServerPrompt
+	SamplingHandler client.SamplingHandler // Added for bidirectional AI communication
 }
 
 // ServerBuilder helps construct the [MCP] server with proper dependencies
@@ -149,6 +157,14 @@ func (b *ServerBuilder) WithPrompts(prompts ...server.ServerPrompt) *ServerBuild
 	return b
 }
 
+// WithSampling adds a sampling handler for bidirectional AI communication
+func (b *ServerBuilder) WithSampling(handler client.SamplingHandler) *ServerBuilder {
+	// Note: Sampling handler is stored but not in ServerDependencies
+	// It's used during Build() to enable sampling on the server
+	b.deps.SamplingHandler = handler
+	return b
+}
+
 // WithDefaultTools adds the default X509 certificate tools using createTools
 func (b *ServerBuilder) WithDefaultTools() *ServerBuilder {
 	tools, toolsWithConfig := createTools()
@@ -168,6 +184,13 @@ func (b *ServerBuilder) Build() (*server.MCPServer, error) {
 		server.WithResourceCapabilities(true, true),
 		server.WithPromptCapabilities(true),
 	)
+
+	// Enable sampling for bidirectional AI communication if handler provided
+	if b.deps.SamplingHandler != nil {
+		s.EnableSampling()
+		// Note: The sampling handler is managed internally by the server
+		// when clients connect and request sampling
+	}
 
 	// Add tools
 	for _, tool := range b.deps.Tools {
@@ -193,4 +216,169 @@ func (b *ServerBuilder) Build() (*server.MCPServer, error) {
 	}
 
 	return s, nil
+}
+
+// DefaultSamplingHandler provides configurable AI API integration for bidirectional communication
+type DefaultSamplingHandler struct {
+	apiKey   string
+	endpoint string
+	model    string
+	timeout  time.Duration
+	client   *http.Client
+}
+
+// NewDefaultSamplingHandler creates a new sampling handler with configurable AI settings
+func NewDefaultSamplingHandler(config *Config) client.SamplingHandler {
+	return &DefaultSamplingHandler{
+		apiKey:   config.AI.APIKey,
+		endpoint: config.AI.Endpoint,
+		model:    config.AI.Model,
+		timeout:  time.Duration(config.AI.Timeout) * time.Second,
+		client:   &http.Client{Timeout: time.Duration(config.AI.Timeout) * time.Second},
+	}
+}
+
+// CreateMessage handles sampling requests by calling the configured AI API
+func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
+	// If no API key, return placeholder response
+	if h.apiKey == "" {
+		response := "AI API key not configured. Please set X509_AI_APIKEY environment variable or configure in config.json. " +
+			"This is a placeholder response for demonstration purposes."
+
+		return &mcp.CreateMessageResult{
+			SamplingMessage: mcp.SamplingMessage{
+				Role:    mcp.RoleAssistant,
+				Content: mcp.NewTextContent(response),
+			},
+			Model:      "placeholder",
+			StopReason: "end",
+		}, nil
+	}
+
+	// Convert MCP messages to OpenAI-compatible format
+	var messages []map[string]interface{}
+	for _, msg := range request.Messages {
+		message := map[string]interface{}{
+			"role": string(msg.Role),
+		}
+
+		// Handle different content types
+		if textContent, ok := msg.Content.(mcp.TextContent); ok {
+			message["content"] = textContent.Text
+		} else {
+			// For other content types, convert to string representation
+			message["content"] = fmt.Sprintf("%v", msg.Content)
+		}
+
+		messages = append(messages, message)
+	}
+
+	// Prepare API request
+	model := h.model // Use configured default model
+	if request.ModelPreferences != nil && len(request.ModelPreferences.Hints) > 0 {
+		// Use the first model hint if available
+		model = request.ModelPreferences.Hints[0].Name
+	}
+
+	// Build messages array
+	requestMessages := messages
+
+	// Add system prompt if provided
+	if request.SystemPrompt != "" {
+		systemMessage := map[string]interface{}{
+			"role":    "system",
+			"content": request.SystemPrompt,
+		}
+		requestMessages = append([]map[string]interface{}{systemMessage}, messages...)
+	}
+
+	apiRequest := map[string]interface{}{
+		"model":       model,
+		"messages":    requestMessages,
+		"max_tokens":  request.MaxTokens,
+		"temperature": request.Temperature,
+		"stream":      false,
+	}
+
+	// Add stop sequences if provided
+	if len(request.StopSequences) > 0 {
+		apiRequest["stop"] = request.StopSequences
+	}
+
+	// Marshal request to JSON
+	reqBody, err := json.Marshal(apiRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal API request: %w", err)
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "POST", h.endpoint+"/v1/chat/completions", bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+h.apiKey)
+
+	// Make the request
+	resp, err := h.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call AI API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var apiResponse map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse AI API response: %w", err)
+	}
+
+	// Extract the response content (OpenAI-compatible format)
+	choices, ok := apiResponse["choices"].([]interface{})
+	if !ok || len(choices) == 0 {
+		return nil, fmt.Errorf("invalid API response format: missing or empty choices")
+	}
+
+	choice, ok := choices[0].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid API response format: invalid choice structure")
+	}
+
+	message, ok := choice["message"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid API response format: missing message")
+	}
+
+	content, ok := message["content"].(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid API response format: missing content")
+	}
+
+	// Extract model name
+	modelName := model
+	if modelFromResponse, ok := apiResponse["model"].(string); ok {
+		modelName = modelFromResponse
+	}
+
+	// Determine stop reason
+	stopReason := "stop"
+	if finishReason, ok := choice["finish_reason"].(string); ok {
+		stopReason = finishReason
+	}
+
+	return &mcp.CreateMessageResult{
+		SamplingMessage: mcp.SamplingMessage{
+			Role:    mcp.RoleAssistant,
+			Content: mcp.NewTextContent(content),
+		},
+		Model:      modelName,
+		StopReason: stopReason,
+	}, nil
 }

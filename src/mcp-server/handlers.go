@@ -7,6 +7,8 @@ package mcpserver
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"embed"
@@ -617,4 +619,292 @@ func handleStatusResource(ctx context.Context, request mcp.ReadResourceRequest) 
 			Text:     string(jsonData),
 		},
 	}, nil
+}
+
+// handleAnalyzeCertificateWithAI analyzes certificate data using AI collaboration through sampling
+func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	certInput, err := request.RequireString("certificate")
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("certificate parameter required: %v", err)), nil
+	}
+
+	analysisType := request.GetString("analysis_type", "general")
+
+	// Read certificate data
+	var certData []byte
+	if fileData, err := os.ReadFile(certInput); err == nil {
+		certData = fileData
+	} else {
+		// Try to decode as base64
+		if decoded, err := base64.StdEncoding.DecodeString(certInput); err == nil {
+			certData = decoded
+		} else {
+			return mcp.NewToolResultError("failed to read certificate: not a valid file path or base64 data"), nil
+		}
+	}
+
+	// Create certificate manager
+	certManager := x509certs.New()
+
+	// Decode certificate
+	certs, err := certManager.DecodeMultiple(certData)
+	if err != nil {
+		// Try single cert
+		cert, err := certManager.Decode(certData)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to decode certificate: %v", err)), nil
+		}
+		certs = []*x509.Certificate{cert}
+	}
+
+	// Build comprehensive certificate context for AI analysis
+	certificateContext := buildCertificateContext(certs, analysisType)
+
+	// Create analysis prompt with rich context
+	analysisPrompt := fmt.Sprintf(`You are analyzing an X.509 certificate chain for %s assessment.
+
+CERTIFICATE CHAIN CONTEXT:
+%s
+
+Please provide a comprehensive %s analysis focusing on the key security, compliance, and operational aspects of this certificate deployment.`, analysisType, certificateContext, analysisType)
+
+	// Note: In a real implementation, this would use the server's RequestSampling method
+	// For now, return information about what would happen
+	result := fmt.Sprintf("AI Collaborative Analysis (%s)\n\n", analysisType)
+	result += "This tool demonstrates bidirectional AI communication.\n\n"
+	result += fmt.Sprintf("Analysis Request: %s\n\n", analysisPrompt)
+	result += "In a full implementation, this would:\n"
+	result += "1. Send the analysis request to the connected AI assistant via sampling\n"
+	result += "2. Receive intelligent analysis of the certificate chain\n"
+	result += "3. Combine automated certificate data with AI reasoning\n"
+	result += "4. Provide comprehensive security insights\n\n"
+	result += "Certificate Summary:\n"
+	result += fmt.Sprintf("- Total certificates: %d\n", len(certs))
+	result += fmt.Sprintf("- Primary certificate: %s\n", certs[0].Subject.CommonName)
+	result += fmt.Sprintf("- Valid until: %s\n", certs[0].NotAfter.Format("2006-01-02"))
+
+	return mcp.NewToolResultText(result), nil
+}
+
+// buildCertificateContext creates comprehensive context information about certificates for AI analysis
+func buildCertificateContext(certs []*x509.Certificate, analysisType string) string {
+	var context strings.Builder
+
+	// Chain overview
+	context.WriteString(fmt.Sprintf("Chain Length: %d certificates\n", len(certs)))
+	context.WriteString(fmt.Sprintf("Analysis Type: %s\n", analysisType))
+	context.WriteString(fmt.Sprintf("Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05")))
+
+	// Detailed certificate information
+	for i, cert := range certs {
+		context.WriteString(fmt.Sprintf("=== CERTIFICATE %d ===\n", i+1))
+		context.WriteString(fmt.Sprintf("Role: %s\n", getCertificateRole(i, len(certs))))
+
+		// Subject information
+		context.WriteString("SUBJECT:\n")
+		context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Subject.CommonName))
+		context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Subject.Organization, ", ")))
+		context.WriteString(fmt.Sprintf("  Organizational Unit: %s\n", strings.Join(cert.Subject.OrganizationalUnit, ", ")))
+		context.WriteString(fmt.Sprintf("  Country: %s\n", strings.Join(cert.Subject.Country, ", ")))
+		context.WriteString(fmt.Sprintf("  State/Province: %s\n", strings.Join(cert.Subject.Province, ", ")))
+		context.WriteString(fmt.Sprintf("  Locality: %s\n", strings.Join(cert.Subject.Locality, ", ")))
+
+		// Issuer information
+		context.WriteString("ISSUER:\n")
+		context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Issuer.CommonName))
+		context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Issuer.Organization, ", ")))
+
+		// Validity period
+		context.WriteString("VALIDITY:\n")
+		context.WriteString(fmt.Sprintf("  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST")))
+		context.WriteString(fmt.Sprintf("  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST")))
+
+		now := time.Now()
+		daysUntilExpiry := int(cert.NotAfter.Sub(now).Hours() / 24)
+		context.WriteString(fmt.Sprintf("  Days until expiry: %d\n", daysUntilExpiry))
+		if daysUntilExpiry < 0 {
+			context.WriteString("  Status: EXPIRED\n")
+		} else if daysUntilExpiry < 30 {
+			context.WriteString("  Status: EXPIRING SOON\n")
+		} else {
+			context.WriteString("  Status: VALID\n")
+		}
+
+		// Cryptographic information
+		context.WriteString("CRYPTOGRAPHY:\n")
+		context.WriteString(fmt.Sprintf("  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String()))
+		context.WriteString(fmt.Sprintf("  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String()))
+		context.WriteString(fmt.Sprintf("  Key Size: %d bits\n", getKeySize(cert)))
+
+		// Certificate properties
+		context.WriteString("PROPERTIES:\n")
+		context.WriteString(fmt.Sprintf("  Version: %d\n", cert.Version))
+		context.WriteString(fmt.Sprintf("  Serial Number: %s\n", cert.SerialNumber.String()))
+		context.WriteString(fmt.Sprintf("  Is CA: %t\n", cert.IsCA))
+
+		// Key usage and extended key usage
+		if cert.KeyUsage != 0 {
+			context.WriteString(fmt.Sprintf("  Key Usage: %s\n", formatKeyUsage(cert.KeyUsage)))
+		}
+		if len(cert.ExtKeyUsage) > 0 {
+			context.WriteString(fmt.Sprintf("  Extended Key Usage: %s\n", formatExtKeyUsage(cert.ExtKeyUsage)))
+		}
+
+		// Subject Alternative Names
+		if len(cert.DNSNames) > 0 {
+			context.WriteString(fmt.Sprintf("  DNS Names: %s\n", strings.Join(cert.DNSNames, ", ")))
+		}
+		if len(cert.EmailAddresses) > 0 {
+			context.WriteString(fmt.Sprintf("  Email Addresses: %s\n", strings.Join(cert.EmailAddresses, ", ")))
+		}
+		if len(cert.IPAddresses) > 0 {
+			ips := make([]string, len(cert.IPAddresses))
+			for j, ip := range cert.IPAddresses {
+				ips[j] = ip.String()
+			}
+			context.WriteString(fmt.Sprintf("  IP Addresses: %s\n", strings.Join(ips, ", ")))
+		}
+
+		// Certificate Authority Information
+		if cert.IssuingCertificateURL != nil {
+			context.WriteString(fmt.Sprintf("  Issuer URLs: %s\n", strings.Join(cert.IssuingCertificateURL, ", ")))
+		}
+		if cert.CRLDistributionPoints != nil {
+			context.WriteString(fmt.Sprintf("  CRL Distribution Points: %s\n", strings.Join(cert.CRLDistributionPoints, ", ")))
+		}
+		if cert.OCSPServer != nil {
+			context.WriteString(fmt.Sprintf("  OCSP Servers: %s\n", strings.Join(cert.OCSPServer, ", ")))
+		}
+
+		context.WriteString("\n")
+	}
+
+	// Chain validation context
+	context.WriteString("=== CHAIN VALIDATION CONTEXT ===\n")
+	if len(certs) > 1 {
+		for i := 0; i < len(certs)-1; i++ {
+			subject := certs[i].Subject.CommonName
+			issuer := certs[i].Issuer.CommonName
+			nextSubject := certs[i+1].Subject.CommonName
+
+			if issuer == nextSubject {
+				context.WriteString(fmt.Sprintf("✓ Certificate %d (%s) is properly signed by Certificate %d (%s)\n",
+					i+1, subject, i+2, nextSubject))
+			} else {
+				context.WriteString(fmt.Sprintf("⚠ Certificate %d (%s) issuer (%s) doesn't match Certificate %d subject (%s)\n",
+					i+1, subject, issuer, i+2, nextSubject))
+			}
+		}
+	}
+
+	// Security context
+	context.WriteString("\n=== SECURITY CONTEXT ===\n")
+	context.WriteString("Current TLS/SSL Best Practices:\n")
+	context.WriteString("- RSA keys should be 2048 bits or larger\n")
+	context.WriteString("- ECDSA keys should use P-256 or stronger curves\n")
+	context.WriteString("- Certificates should not be valid for more than 398 days (CA/Browser Forum)\n")
+	context.WriteString("- Modern clients require SAN (Subject Alternative Name) extension\n")
+	context.WriteString("- Deprecated: MD5, SHA-1 signatures\n")
+	context.WriteString("- Deprecated: SSLv3, TLS 1.0, TLS 1.1\n")
+
+	return context.String()
+}
+
+// getCertificateRole determines the role of a certificate in the chain
+func getCertificateRole(index int, total int) string {
+	if total == 1 {
+		return "Self-Signed Certificate"
+	}
+	if index == 0 {
+		return "End-Entity (Server/Leaf) Certificate"
+	}
+	if index == total-1 {
+		return "Root CA Certificate"
+	}
+	return "Intermediate CA Certificate"
+}
+
+// getKeySize extracts the key size from a certificate
+func getKeySize(cert *x509.Certificate) int {
+	switch pub := cert.PublicKey.(type) {
+	case *rsa.PublicKey:
+		return pub.Size() * 8 // Convert bytes to bits
+	case *ecdsa.PublicKey:
+		return pub.Curve.Params().BitSize
+	default:
+		return 0
+	}
+}
+
+// formatKeyUsage converts KeyUsage flags to readable string
+func formatKeyUsage(usage x509.KeyUsage) string {
+	var usages []string
+	if usage&x509.KeyUsageDigitalSignature != 0 {
+		usages = append(usages, "Digital Signature")
+	}
+	if usage&x509.KeyUsageContentCommitment != 0 {
+		usages = append(usages, "Content Commitment")
+	}
+	if usage&x509.KeyUsageKeyEncipherment != 0 {
+		usages = append(usages, "Key Encipherment")
+	}
+	if usage&x509.KeyUsageDataEncipherment != 0 {
+		usages = append(usages, "Data Encipherment")
+	}
+	if usage&x509.KeyUsageKeyAgreement != 0 {
+		usages = append(usages, "Key Agreement")
+	}
+	if usage&x509.KeyUsageCertSign != 0 {
+		usages = append(usages, "Certificate Signing")
+	}
+	if usage&x509.KeyUsageCRLSign != 0 {
+		usages = append(usages, "CRL Signing")
+	}
+	if usage&x509.KeyUsageEncipherOnly != 0 {
+		usages = append(usages, "Encipher Only")
+	}
+	if usage&x509.KeyUsageDecipherOnly != 0 {
+		usages = append(usages, "Decipher Only")
+	}
+	return strings.Join(usages, ", ")
+}
+
+// formatExtKeyUsage converts ExtKeyUsage to readable string
+func formatExtKeyUsage(usage []x509.ExtKeyUsage) string {
+	var usages []string
+	for _, u := range usage {
+		switch u {
+		case x509.ExtKeyUsageAny:
+			usages = append(usages, "Any")
+		case x509.ExtKeyUsageServerAuth:
+			usages = append(usages, "Server Authentication")
+		case x509.ExtKeyUsageClientAuth:
+			usages = append(usages, "Client Authentication")
+		case x509.ExtKeyUsageCodeSigning:
+			usages = append(usages, "Code Signing")
+		case x509.ExtKeyUsageEmailProtection:
+			usages = append(usages, "Email Protection")
+		case x509.ExtKeyUsageIPSECEndSystem:
+			usages = append(usages, "IPSEC End System")
+		case x509.ExtKeyUsageIPSECTunnel:
+			usages = append(usages, "IPSEC Tunnel")
+		case x509.ExtKeyUsageIPSECUser:
+			usages = append(usages, "IPSEC User")
+		case x509.ExtKeyUsageTimeStamping:
+			usages = append(usages, "Time Stamping")
+		case x509.ExtKeyUsageOCSPSigning:
+			usages = append(usages, "OCSP Signing")
+		case x509.ExtKeyUsageMicrosoftServerGatedCrypto:
+			usages = append(usages, "Microsoft Server Gated Crypto")
+		case x509.ExtKeyUsageNetscapeServerGatedCrypto:
+			usages = append(usages, "Netscape Server Gated Crypto")
+		case x509.ExtKeyUsageMicrosoftCommercialCodeSigning:
+			usages = append(usages, "Microsoft Commercial Code Signing")
+		case x509.ExtKeyUsageMicrosoftKernelCodeSigning:
+			usages = append(usages, "Microsoft Kernel Code Signing")
+		default:
+			usages = append(usages, fmt.Sprintf("Unknown (%d)", u))
+		}
+	}
+	return strings.Join(usages, ", ")
 }

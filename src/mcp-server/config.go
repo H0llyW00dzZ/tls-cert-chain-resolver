@@ -20,6 +20,14 @@ type Config struct {
 		WarnDays          int    `json:"warnDays"`
 		Timeout           int    `json:"timeoutSeconds"`
 	} `json:"defaults"`
+
+	// AI configuration for sampling/LLM integration
+	AI struct {
+		APIKey   string `json:"apiKey,omitempty"`   // API key (can also be set via X509_AI_APIKEY env var)
+		Endpoint string `json:"endpoint,omitempty"` // API endpoint URL (defaults to xAI)
+		Model    string `json:"model,omitempty"`    // Default model to use
+		Timeout  int    `json:"timeout,omitempty"`  // API timeout in seconds
+	} `json:"ai,omitempty"`
 }
 
 func loadConfig(configPath string) (*Config, error) {
@@ -32,6 +40,11 @@ func loadConfig(configPath string) (*Config, error) {
 	config.Defaults.WarnDays = 30
 	config.Defaults.Timeout = 10
 
+	// Set AI defaults
+	config.AI.Endpoint = "https://api.x.ai"
+	config.AI.Model = "grok-beta"
+	config.AI.Timeout = 30
+
 	// Try to load from file if provided
 	if configPath != "" {
 		data, err := os.ReadFile(configPath)
@@ -42,6 +55,11 @@ func loadConfig(configPath string) (*Config, error) {
 		if err := json.Unmarshal(data, config); err != nil {
 			return nil, fmt.Errorf("failed to parse config file: %v", err)
 		}
+	}
+
+	// Override API key from environment if not set in config
+	if config.AI.APIKey == "" {
+		config.AI.APIKey = os.Getenv("X509_AI_APIKEY")
 	}
 
 	return config, nil
