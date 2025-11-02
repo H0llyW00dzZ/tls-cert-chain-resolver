@@ -666,6 +666,16 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 
 	// Try to get AI analysis if API key is configured
 	if config.AI.APIKey != "" {
+		// Read system prompt from embedded template
+		systemPromptBytes, err := MagicEmbed.ReadFile("templates/certificate-analysis-system-prompt.md")
+		systemPrompt := ""
+		if err == nil {
+			systemPrompt = string(systemPromptBytes)
+		} else {
+			// Fallback system prompt if file cannot be read
+			systemPrompt = "You are a certificate security analyzer. Follow these exact instructions for analyzing X.509 certificates."
+		}
+
 		// Create sampling handler for this request
 		samplingHandler := &DefaultSamplingHandler{
 			apiKey:   config.AI.APIKey,
@@ -675,7 +685,7 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 			client:   &http.Client{Timeout: time.Duration(config.AI.Timeout) * time.Second},
 		}
 
-		// Prepare sampling request
+		// Prepare sampling request with system prompt
 		samplingRequest := mcp.CreateMessageRequest{
 			CreateMessageParams: mcp.CreateMessageParams{
 				Messages: []mcp.SamplingMessage{
@@ -684,8 +694,9 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 						Content: mcp.TextContent{Text: analysisPrompt},
 					},
 				},
-				MaxTokens:   4096, // Increased for comprehensive analysis
-				Temperature: 0.3,  // Lower temperature for more consistent analysis
+				SystemPrompt: systemPrompt,
+				MaxTokens:    4096, // Increased for comprehensive analysis
+				Temperature:  0.3,  // Lower temperature for more consistent analysis
 			},
 		}
 
@@ -870,9 +881,9 @@ func getCertificateRole(index int, total int) string {
 // getKeySize extracts the key size from a certificate
 func getKeySize(cert *x509.Certificate) int {
 	switch pub := cert.PublicKey.(type) {
-	case *rsa.PublicKey:
+	case rsa.PublicKey:
 		return pub.Size() * 8 // Convert bytes to bits
-	case *ecdsa.PublicKey:
+	case ecdsa.PublicKey:
 		return pub.Curve.Params().BitSize
 	default:
 		return 0

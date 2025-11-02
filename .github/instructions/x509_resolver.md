@@ -139,6 +139,12 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993)
 - `certificate`: File path or base64-encoded certificate data
 - `analysis_type`: Type of analysis ('general', 'security', 'compliance') (default: 'general')
 
+**Analysis Types**:
+
+- **`general`**: Comprehensive certificate analysis covering structure, crypto, validity, and recommendations
+- **`security`**: Focused security assessment with risk levels and vulnerability analysis  
+- **`compliance`**: Standards compliance checking against CA/Browser Forum and NIST requirements
+
 **Examples**:
 
 ```
@@ -146,6 +152,14 @@ x509_resolver_analyze_certificate_with_ai("cert.pem")
 x509_resolver_analyze_certificate_with_ai("cert.pem", analysis_type="security")
 x509_resolver_analyze_certificate_with_ai("cert.pem", analysis_type="compliance")
 ```
+
+**AI Analysis Framework**:
+Uses embedded system prompt with structured analysis framework:
+- VALIDATION STATUS: Certificate validity, chain integrity, trust relationships
+- CRYPTOGRAPHIC SECURITY: Algorithm strength, key sizes, quantum resistance
+- COMPLIANCE CHECK: CA/Browser Forum and NIST standards verification
+- RISK ASSESSMENT: Critical/High/Medium/Low risk level assignments
+- ACTIONABLE RECOMMENDATIONS: Specific, implementable security improvements
 
 ## MCP Resources
 

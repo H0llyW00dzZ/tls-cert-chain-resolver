@@ -514,6 +514,9 @@ grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createR
 
 # Find MCP server status resource
 grep("handleStatusResource\\|status://server-status", include="*.go")
+
+# Find embedded templates
+grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
 ```
 
 ## Summary

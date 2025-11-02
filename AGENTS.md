@@ -148,6 +148,7 @@ deepwiki_read_wiki_contents("microsoft/typescript")
 - `x509_resolver_check_cert_expiry(certificate, warn_days?)`: Check certificate expiry dates
 - `x509_resolver_batch_resolve_cert_chain(certificates)`: Resolve multiple certificate chains in batch
 - `x509_resolver_fetch_remote_cert(hostname, port?)`: Fetch certificate chain from remote hostname/port
+- `x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?)`: AI-powered security analysis of certificates
 
 **Usage Guidelines**:
 - Use for certificate chain analysis and validation
@@ -234,7 +235,7 @@ task("Search for certificate parsing patterns", "Find all certificate parsing im
 **Project Knowledge**:
 - `.github/instructions/*.md`: Instruction files for Gopls, DeepWiki, Filesystem, Memory, OpenCode configuration
 - `.opencode/command/*.md`: Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`)
-- **MCP Server**: X509 certificate chain resolver with tools: `resolve_cert_chain`, `validate_cert_chain`, `check_cert_expiry`, `batch_resolve_cert_chain`, `fetch_remote_cert`; resources: `config://template`, `info://version`, `docs://certificate-formats`; prompts: `certificate-analysis`, `expiry-monitoring`, `security-audit`, `troubleshooting`
+- **MCP Server**: X509 certificate chain resolver with tools: `resolve_cert_chain`, `validate_cert_chain`, `check_cert_expiry`, `batch_resolve_cert_chain`, `fetch_remote_cert`, `analyze_certificate_with_ai`; resources: `config://template`, `info://version`, `docs://certificate-formats`, `status://server-status`; prompts: `certificate-analysis`, `expiry-monitoring`, `security-audit`, `troubleshooting`; AI integration with embedded system prompts for automated certificate security analysis
 - **Resources**: Static resources including server configuration template, version information, and certificate format documentation
 - **Prompts**: Predefined prompts for certificate analysis, expiry monitoring, security audit, and troubleshooting workflows and resources/prompts for certificate analysis workflows
 - **Configuration**: Set `MCP_X509_CONFIG_FILE` environment variable for MCP server config
@@ -469,6 +470,7 @@ gopls_go_symbol_references(file, "ProcessRequest")
 - **Context cancellation testing**: Test context cancellation in certificate operations (see `src/internal/x509/chain/chain_test.go` for examples)
 - **JSON escaping tests**: Test special character escaping in JSON output for MCP loggers (see `src/logger/logger_test.go` for examples)
 - **Concurrent testing**: Test concurrent usage with multiple goroutines (see `src/logger/logger_test.go` and `src/internal/helper/gc/reduce_overhead_test.go` for examples)
+- **Certificate analysis testing**: Test AI-powered certificate analysis with embedded system prompts and various analysis types (security, compliance, general)
 
 ## For Human Developers
 
