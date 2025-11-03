@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	github.com/cloudflare/cfssl v1.6.5
-	github.com/mark3labs/mcp-go v0.42.0
+	github.com/mark3labs/mcp-go v0.43.0
 	github.com/spf13/cobra v1.10.1
 	github.com/valyala/bytebufferpool v1.0.0
 )
