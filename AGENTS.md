@@ -235,7 +235,7 @@ task("Search for certificate parsing patterns", "Find all certificate parsing im
 **Project Knowledge**:
 - `.github/instructions/*.md`: Instruction files for Gopls, DeepWiki, Filesystem, Memory, OpenCode configuration
 - `.opencode/command/*.md`: Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`)
-- **MCP Server**: X509 certificate chain resolver with tools: `resolve_cert_chain`, `validate_cert_chain`, `check_cert_expiry`, `batch_resolve_cert_chain`, `fetch_remote_cert`, `analyze_certificate_with_ai`; resources: `config://template`, `info://version`, `docs://certificate-formats`, `status://server-status`; prompts: `certificate-analysis`, `expiry-monitoring`, `security-audit`, `troubleshooting`; AI integration with embedded system prompts for automated certificate security analysis
+- **MCP Server**: X509 certificate chain resolver with tools: `resolve_cert_chain`, `validate_cert_chain`, `check_cert_expiry`, `batch_resolve_cert_chain`, `fetch_remote_cert`, `analyze_certificate_with_ai` (with analysis types: general, security, compliance); resources: `config://template`, `info://version`, `docs://certificate-formats`, `status://server-status`; prompts: `certificate-analysis`, `expiry-monitoring`, `security-audit`, `troubleshooting`; AI integration with embedded system prompts for automated certificate security analysis and bidirectional communication via sampling
 - **Resources**: Static resources including server configuration template, version information, and certificate format documentation
 - **Prompts**: Predefined prompts for certificate analysis, expiry monitoring, security audit, and troubleshooting workflows and resources/prompts for certificate analysis workflows
 - **Configuration**: Set `MCP_X509_CONFIG_FILE` environment variable for MCP server config
@@ -463,7 +463,7 @@ gopls_go_symbol_references(file, "ProcessRequest")
 - Test with real certificate data when possible (use test fixtures)
 - Verify certificate chain resolution with various chain lengths
 - Benchmark concurrent operations to verify performance under load (see `src/logger/benchmark_test.go` for examples)
-- **Platform-specific test skipping**: Use `runtime.GOOS` to skip tests on specific platforms when OS behavior differs (e.g., macOS has stricter EKU constraints for certificate validation, Windows has different signal handling for graceful shutdown). See `src/internal/x509/chain/chain_test.go` and `src/mcp-server/run_test.go` for examples.
+- **Platform-specific test skipping**: Use `runtime.GOOS` to skip tests on specific platforms when OS behavior differs (e.g., macOS has stricter EKU constraints for certificate validation, Windows has different signal handling for graceful shutdown, skip TestMCPTools on macOS due to validation differences). See `src/internal/x509/chain/chain_test.go`, `src/mcp-server/run_test.go`, and `src/mcp-server/run_graceful_test.go` for examples.
 - **Test cleanup**: Use `t.TempDir()` for temporary directories (auto-cleaned) and `t.Cleanup()` for explicit cleanup functions. See `src/cli/root_test.go` and `src/logger/logger_test.go` for examples.
 - **Table-driven tests**: Use struct slices with `name`, `testFunc`, and validation functions for comprehensive test coverage. See `src/internal/x509/certs/cert_test.go` and `src/logger/logger_test.go` for examples.
 - **Test organization**: Group related test cases in table-driven tests with descriptive names (e.g., "PEM Output", "DER Output", "JSON Output").
