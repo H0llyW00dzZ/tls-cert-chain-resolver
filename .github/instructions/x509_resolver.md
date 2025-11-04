@@ -10,7 +10,7 @@
   - [x509_resolver_check_cert_expiry(certificate, warn_days?)](#x509_resolver_check_cert_expirycertificate-warn_days)
   - [x509_resolver_batch_resolve_cert_chain(certificates)](#x509_resolver_batch_resolve_cert_chain-certificates)
   - [x509_resolver_fetch_remote_cert(hostname, port?)](#x509_resolver_fetch_remote_certhostname-port)
-  - [x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?)](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type)
+  - [x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?)](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type---enterprise-grade)
 - [MCP Resources](#mcp-resources)
   - [config://template](#configtemplate)
   - [info://version](#infoversion)
