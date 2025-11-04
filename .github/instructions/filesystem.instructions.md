@@ -754,7 +754,8 @@ grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
 grep("run_graceful_test\\.go\\|syscall\\.Kill", include="*_test.go")
 
 # Find platform-specific test skips
-grep("runtime\\.GOOS == \\"windows\\"\\|t\\.Skip\\(\\"Skipping on macOS\\", include="*_test.go")```
+grep("runtime\\.GOOS == \\"windows\\"\\|t\\.Skip\\(\\"Skipping on macOS\\", include="*_test.go")
+```
 
 ### Common Edit Patterns
 
