@@ -281,7 +281,7 @@ gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis 
 gopls_go_search("addResources") → Find MCP server resource implementations
 gopls_go_search("addPrompts") → Find MCP server prompt implementations
 gopls_go_search("ServerBuilder") → Find builder pattern implementation
-gopls_go_search("DefaultSamplingHandler") → Find AI sampling handler
+gopls_go_search("DefaultSamplingHandler") → Find AI sampling handler with bidirectional communication
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("certificate-analysis") → Find certificate analysis prompts
 gopls_go_search("security-audit") → Find security audit prompts
@@ -290,11 +290,12 @@ gopls_go_search("security-audit") → Find security audit prompts
 gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
 
 # Read MCP server implementations
-read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI integration
-read("src/mcp-server/resources.go")  # Resource definitions
+read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI integration with sampling
+read("src/mcp-server/resources.go")  # Resource definitions including status resource
 read("src/mcp-server/prompts.go")    # Prompt definitions
-read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis
+read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis with analysis types
 read("src/mcp-server/config.go")     # AI and MCP configuration
+read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
 ```
 # Start with workspace
 gopls_go_workspace()
@@ -316,7 +317,7 @@ gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-se
 
 # Read MCP server implementations
 read("src/mcp-server/handlers.go")
-read("src/mcp-server/run.go")
+read("src/mcp-server/server.go")
 ```
 
 ### 3. Adding New CLI Flags
@@ -529,3 +530,4 @@ grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
 6. **Retry once** if connection errors occur (auto-reconnects)
 7. **Follow repository conventions** for error handling, logging, and package usage
 8. **Use platform-specific test skips** when OS behavior differs (e.g., macOS EKU constraints)
+

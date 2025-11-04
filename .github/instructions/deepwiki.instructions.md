@@ -203,7 +203,7 @@ deepwiki_ask_question("mark3labs/mcp-go", "How do I implement dynamic resources 
 deepwiki_ask_question("mark3labs/mcp-go", "What's the difference between static and dynamic resources?")
 
 # Understand prompt handling
-deepwiki_ask_question("mark3labs/mcp-go", "How do I create interactive prompts with arguments?")
+deepwiki_ask_question("mark3labs/mcp-go", "How do I implement bidirectional AI communication in MCP sampling?")
 ```
 
 ### 5. Learning from Similar Projects

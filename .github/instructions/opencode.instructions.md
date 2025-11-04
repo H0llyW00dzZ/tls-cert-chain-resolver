@@ -479,7 +479,7 @@ New to repository?
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/cloudflare/cfssl` - Certificate utilities
 - `github.com/valyala/bytebufferpool` - Memory pooling
-- `github.com/mark3labs/mcp-go` - MCP server implementation
+- `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with bidirectional AI support
 
 ### Package Structure
 
@@ -493,7 +493,7 @@ src/mcp-server/        → MCP server implementation with X509 certificate tools
   ├── handlers.go      → Tool handlers for certificate operations
   ├── prompts.go       → MCP prompt definitions and handlers
   ├── resources.go     → MCP resource definitions and handlers
-  └── run.go           → Server execution and lifecycle
+  └── server.go           → Server execution and lifecycle
 src/internal/x509/     → Certificate operations
   ├── certs/           → Encoding/decoding
   └── chain/           → Chain resolution
