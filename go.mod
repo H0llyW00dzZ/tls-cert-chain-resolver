@@ -1,6 +1,6 @@
 module github.com/H0llyW00dzZ/tls-cert-chain-resolver
 
-go 1.25.3
+go 1.25.4
 
 require (
 	github.com/cloudflare/cfssl v1.6.5
