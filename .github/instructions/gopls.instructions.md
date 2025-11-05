@@ -7,7 +7,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 ## Repository Context
 
 **Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
-**Go Version**: 1.25.3 or later  
+**Go Version**: 1.25.4 or later  
 **Key Packages**:
 - **`cmd/`** — Main CLI entry point and MCP server binaries
 - **`src/cli/`** — Cobra CLI implementation  
@@ -78,7 +78,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 **Example Output**:
 ```
 Module: github.com/H0llyW00dzZ/tls-cert-chain-resolver
-Go Version: 1.25.3
+Go Version: 1.25.4
 Packages:
 - cmd (main)
 - src/cli
