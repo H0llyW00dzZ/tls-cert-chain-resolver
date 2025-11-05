@@ -133,6 +133,9 @@ test-output-bundle.pem: OK
 
 ## MCP Tool Integration
 
+> [!WARNING]
+> The MCP server exclusively supports stdio-based communication and must be executed locally. Remote deployments utilizing streamable HTTP protocols are not supported due to inherent limitations including connection instability, increased latency, and security vulnerabilities, in addition to elevated operational costs and heightened security risks.
+
 This tool can be integrated with [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) servers for automated certificate chain resolution. The MCP integration allows AI assistants and other tools to resolve TLS certificate chains programmatically, with support for bidirectional AI communication through sampling.
 
 **MCP Server Features:**
