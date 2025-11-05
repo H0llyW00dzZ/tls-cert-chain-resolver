@@ -12,13 +12,13 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"crypto/x509"
 
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -244,6 +244,13 @@ func NewDefaultSamplingHandler(config *Config, version string) client.SamplingHa
 
 // CreateMessage handles sampling requests by calling the configured AI API
 func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
+	// Get buffer from pool for efficient memory usage
+	buf := gc.Default.Get()
+	defer func() {
+		buf.Reset()         // Reset buffer to prevent data leaks
+		gc.Default.Put(buf) // Return buffer to pool for reuse
+	}()
+
 	// If no API key, return placeholder response
 	if h.apiKey == "" {
 		response := "AI API key not configured. Please set X509_AI_APIKEY environment variable or configure in config.json. " +
@@ -315,8 +322,8 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 		return nil, fmt.Errorf("failed to marshal API request: %w", err)
 	}
 
-	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx, "POST", h.endpoint+"/v1/chat/completions", bytes.NewBuffer(reqBody))
+	// Create HTTP request using bytes.Reader for request body
+	req, err := http.NewRequestWithContext(ctx, "POST", h.endpoint+"/v1/chat/completions", bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
 	}
@@ -335,8 +342,11 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 
 	// Check response status
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, string(body))
+		// Read error response body using buffer pool
+		if _, err := buf.ReadFrom(resp.Body); err != nil {
+			return nil, fmt.Errorf("AI API error (status %d): failed to read error response: %w", resp.StatusCode, err)
+		}
+		return nil, fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, string(buf.Bytes()))
 	}
 
 	// Handle streaming response
