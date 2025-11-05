@@ -137,17 +137,18 @@ The MCP tools in this project follow the Unix Philosophy of "do one thing well" 
 
 ##### Example Workflow: AI-Enhanced Security Auditing
 
-1. **Start with remote certificate fetching** (`fetch_remote_cert`)
+  ![Start with remote certificate fetching](https://i.imgur.com/QYhQz4M.png)
+
+  1. **Start with remote certificate fetching** (`fetch_remote_cert`)
    - Fetches the certificate chain from a live server
    - Supports various protocols (HTTPS, SMTPS, IMAPS, etc.)
 
-  ![Start with remote certificate fetching](https://i.imgur.com/QYhQz4M.png)
+  ![Start with remote certificate fetching](https://i.imgur.com/HL1L3xD.png)
 
 2. **AI-powered analysis** (`analyze_certificate_with_ai`)
    - Performs intelligent security assessment
    - Uses bidirectional AI communication for deep analysis
 
-   ![AI-powered analysis](https://i.imgur.com/HL1L3xD.png)
    ![AI-powered analysis](https://i.imgur.com/bTGFd2N.png)
    ![AI-powered analysis](https://i.imgur.com/ej9JYLN.png)
 
