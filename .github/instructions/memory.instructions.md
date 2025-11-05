@@ -460,6 +460,25 @@ func fetchCertificateFromURL(ctx context.Context, url string) (*x509.Certificate
     
     return parseCertificate(data)
 }
+
+// AI API requests with buffer pooling for efficiency (see src/mcp-server/framework.go)
+func createMessageWithBuffering(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
+    // Get buffer from pool for efficient memory usage
+    buf := gc.Default.Get()
+    defer func() {
+        buf.Reset()         // Reset buffer to prevent data leaks
+        gc.Default.Put(buf) // Return buffer to pool for reuse
+    }()
+    
+    // Use buffer for request processing and response reading
+    // ... API call logic ...
+    
+    // Read error response using buffer pool
+    if _, err := buf.ReadFrom(resp.Body); err != nil {
+        return nil, fmt.Errorf("AI API error: failed to read error response: %w", err)
+    }
+    return nil, fmt.Errorf("AI API error: %s", string(buf.Bytes()))
+}
 ```
 
 ### 2. File Operations
