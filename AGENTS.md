@@ -35,7 +35,7 @@
 **Build all MCP**: `make build-mcp` (builds MCP server for all platforms)  
 **Test all**: `go test -v ./... 2>&1 | cat` or `make test`  
 **Test single**: `go test -run TestName ./package -v 2>&1 | cat`  
-**Test package**: `go test -v ./src/internal/x509/certs 2>&1 | cat`, `go test -v ./src/internal/x509/chain 2>&1 | cat`, or `go test -v ./src/logger 2>&1 | cat`  
+**Test package**: `go test -v ./src/internal/x509/certs 2>&1 | cat`, `go test -v ./src/internal/x509/chain 2>&1 | cat`, `go test -v ./src/mcp-server 2>&1 | cat`, or `go test -v ./src/logger 2>&1 | cat`  
 **Test race**: `go test -race ./... 2>&1 | cat` (recommended before merges)  
 **Test coverage**: `go test -cover ./... 2>&1 | cat` (view test coverage)  
 **Benchmark**: `go test -bench=. ./src/logger 2>&1 | cat` (performance testing)  
@@ -96,6 +96,7 @@ This repository integrates multiple MCP servers accessible in agent sessions. Ea
 - `gopls_go_package_api(packagePaths)`: Get package API summary
 - `gopls_go_symbol_references(file, symbol)`: Find references to package-level symbols (supports `Foo`, `pkg.Bar`, `T.M` formats)
 - `gopls_go_diagnostics(files)`: Check for parse/build errors
+- `gopls_go_search("analyze_certificate_with_ai")`: Locate AI analysis handlers (`src/mcp-server/handlers.go:626`)
 
 **Usage Guidelines**:
 - Always start with `go_workspace` to understand project structure
@@ -148,7 +149,7 @@ deepwiki_read_wiki_contents("microsoft/typescript")
 - `x509_resolver_check_cert_expiry(certificate, warn_days?)`: Check certificate expiry dates
 - `x509_resolver_batch_resolve_cert_chain(certificates)`: Resolve multiple certificate chains in batch
 - `x509_resolver_fetch_remote_cert(hostname, port?)`: Fetch certificate chain from remote hostname/port
-- `x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?)`: AI-powered security analysis of certificates
+- `x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?)`: AI-powered security analysis with configurable analysis type (`general`, `security`, `compliance`)
 
 **Usage Guidelines**:
 - Use for certificate chain analysis and validation

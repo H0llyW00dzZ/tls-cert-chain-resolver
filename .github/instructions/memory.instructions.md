@@ -134,13 +134,13 @@ func (m *MCPLogger) Printf(format string, v ...any) {
 
 ## Memory Management
 
-### 1. Buffer Pooling
+### 1. Buffer Pooling for Certificate Pipelines
 
 **Package**: `src/internal/helper/gc`  
 **Interface**: `gc.Pool` and `gc.Buffer`  
-**Purpose**: Efficient memory usage with certificates and logging
+**Purpose**: Efficient memory usage for certificate processing, logging, and AI sampling requests
 
-The `gc` package provides buffer pool abstraction that wraps `bytebufferpool` to avoid direct dependencies.
+The `gc` package wraps `bytebufferpool` to avoid direct dependencies while providing reusable buffers for high-throughput operations such as MCP AI sampling (`src/mcp-server/framework.go:246`).
 
 ```go
 // Good - using gc.Default buffer pool for certificate data
@@ -461,23 +461,45 @@ func fetchCertificateFromURL(ctx context.Context, url string) (*x509.Certificate
     return parseCertificate(data)
 }
 
-// AI API requests with buffer pooling for efficiency (see src/mcp-server/framework.go)
-func createMessageWithBuffering(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
-    // Get buffer from pool for efficient memory usage
+// AI API streaming with buffer pooling (src/mcp-server/framework.go:246)
+func streamAIResponse(ctx context.Context, req *http.Request, client *http.Client) (string, error) {
     buf := gc.Default.Get()
     defer func() {
-        buf.Reset()         // Reset buffer to prevent data leaks
-        gc.Default.Put(buf) // Return buffer to pool for reuse
+        buf.Reset()
+        gc.Default.Put(buf)
     }()
-    
-    // Use buffer for request processing and response reading
-    // ... API call logic ...
-    
-    // Read error response using buffer pool
-    if _, err := buf.ReadFrom(resp.Body); err != nil {
-        return nil, fmt.Errorf("AI API error: failed to read error response: %w", err)
+
+    resp, err := client.Do(req)
+    if err != nil {
+        return "", fmt.Errorf("failed to call AI API: %w", err)
     }
-    return nil, fmt.Errorf("AI API error: %s", string(buf.Bytes()))
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        if _, err := buf.ReadFrom(resp.Body); err != nil {
+            return "", fmt.Errorf("AI API error (status %d): failed to read error response: %w", resp.StatusCode, err)
+        }
+        return "", fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, buf.String())
+    }
+
+    scanner := bufio.NewScanner(resp.Body)
+    for scanner.Scan() {
+        line := scanner.Text()
+        if !strings.HasPrefix(line, "data: ") {
+            continue
+        }
+        chunk := strings.TrimPrefix(line, "data: ")
+        if chunk == "[DONE]" {
+            break
+        }
+        buf.WriteString(chunk)
+    }
+
+    if err := scanner.Err(); err != nil {
+        return "", fmt.Errorf("error reading streaming response: %w", err)
+    }
+
+    return buf.String(), nil
 }
 ```
 
