@@ -269,59 +269,37 @@ read("src/internal/x509/certs/certs.go")
 
 ```
 # Start with workspace
-gopls_go_workspace()
+ gopls_go_workspace()
+ 
+ # Find MCP server tool implementations
+ gopls_go_search("resolve_cert_chain")
+ gopls_go_search("validate_cert_chain")
+ gopls_go_search("check_cert_expiry")
+ gopls_go_search("batch_resolve_cert_chain")
+ gopls_go_search("fetch_remote_cert")
+ gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis entry points
+ gopls_go_search("addResources") → Find MCP server resource implementations
+ gopls_go_search("addPrompts") → Find MCP server prompt implementations
+ gopls_go_search("ServerBuilder") → Find builder pattern implementation
+ gopls_go_search("WithSampling") → Locate sampling registration on the server builder
+ gopls_go_search("DefaultSamplingHandler") → Inspect bidirectional AI streaming handler (`src/mcp-server/framework.go`)
+ gopls_go_search("SamplingRequest") → Explore sampling request markers
+ gopls_go_search("handleStatusResource") → Find status resource handler
+ gopls_go_search("certificate-analysis") → Find certificate analysis prompts
+ gopls_go_search("security-audit") → Find security audit prompts
+ 
+ # Understand MCP server package API
+ gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
+ 
+ # Read MCP server implementations
+ read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI streaming integration with buffer pooling
+ read("src/mcp-server/resources.go")  # Resource definitions including status resource
+ read("src/mcp-server/prompts.go")    # Prompt definitions
+ read("src/mcp-server/templates/certificate-analysis-system-prompt.md")  # Embedded system prompt for AI analysis
+ read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis with analysis types
+ read("src/mcp-server/config.go")     # AI and MCP configuration
+ read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
 
-# Find MCP server tool implementations
-gopls_go_search("resolve_cert_chain")
-gopls_go_search("validate_cert_chain")
-gopls_go_search("check_cert_expiry")
-gopls_go_search("batch_resolve_cert_chain")
-gopls_go_search("fetch_remote_cert")
-gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis tools
-gopls_go_search("addResources") → Find MCP server resource implementations
-gopls_go_search("DefaultSamplingHandler") → Inspect bidirectional AI sampling integration (`src/mcp-server/framework.go:223`)
-
-gopls_go_search("addPrompts") → Find MCP server prompt implementations
-gopls_go_search("ServerBuilder") → Find builder pattern implementation
-gopls_go_search("DefaultSamplingHandler") → Find AI sampling handler with bidirectional communication
-
-gopls_go_search("handleStatusResource") → Find status resource handler
-gopls_go_search("certificate-analysis") → Find certificate analysis prompts
-gopls_go_search("security-audit") → Find security audit prompts
-
-# Understand MCP server package API
-gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
-
-# Read MCP server implementations
-read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI integration with sampling
-read("src/mcp-server/resources.go")  # Resource definitions including status resource
-read("src/mcp-server/prompts.go")    # Prompt definitions
-read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis with analysis types
-read("src/mcp-server/config.go")     # AI and MCP configuration
-read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
-```
-# Start with workspace
-gopls_go_workspace()
-
-# Find MCP server tool implementations
-gopls_go_search("resolve_cert_chain")
-gopls_go_search("validate_cert_chain")
-gopls_go_search("check_cert_expiry")
-gopls_go_search("batch_resolve_cert_chain")
-gopls_go_search("fetch_remote_cert")
-gopls_go_search("addResources") → Find MCP server resource implementations
-gopls_go_search("addPrompts") → Find MCP server prompt implementations
-gopls_go_search("configResource") → Find configuration resource
-gopls_go_search("versionResource") → Find version information resource
-gopls_go_search("formatsResource") → Find certificate formats documentation resource
-
-# Understand MCP server package API
-gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
-
-# Read MCP server implementations
-read("src/mcp-server/handlers.go")
-read("src/mcp-server/server.go")
-```
 
 ### 3. Adding New CLI Flags
 

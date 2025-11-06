@@ -68,11 +68,13 @@ x509_resolver_resolve_cert_chain("base64-encoded-cert-data")
 **Parameters**:
 
 - `certificate`: File path or base64-encoded certificate data
+- `include_system_root`: Optional boolean to add system roots (defaults to `true`)
 
 **Example**:
 
 ```
 x509_resolver_validate_cert_chain("path/to/cert.pem")
+x509_resolver_validate_cert_chain("cert.pem", include_system_root=false)
 ```
 
 ### x509_resolver_check_cert_expiry(certificate, warn_days?)
@@ -119,13 +121,16 @@ x509_resolver_batch_resolve_cert_chain("cert1.pem,cert2.pem,cert3.pem")
 
 - `hostname`: Remote hostname to connect to
 - `port`: Port number (default: 443)
+- `format`: Output format (`pem`, `der`, `json`), defaults to configured format
+- `include_system_root`: Include platform roots (defaults to config setting)
+- `intermediate_only`: Return only intermediates (defaults to config setting)
 
 **Examples**:
 
 ```
 x509_resolver_fetch_remote_cert("example.com")
-x509_resolver_fetch_remote_cert("example.com", port=443)
-x509_resolver_fetch_remote_cert("mail.google.com", port=993)
+x509_resolver_fetch_remote_cert("example.com", port=443, format="json")
+x509_resolver_fetch_remote_cert("mail.google.com", port=993, intermediate_only=true)
 ```
 
 ### x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?) - Enterprise Grade
