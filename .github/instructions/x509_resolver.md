@@ -143,7 +143,12 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993)
 
 - **`general`**: Comprehensive certificate analysis covering structure, crypto, validity, and recommendations
 - **`security`**: Focused security assessment with risk levels and vulnerability analysis  
-- **`compliance`**: Standards compliance checking against CA/Browser Forum and NIST requirements
+- **`compliance`**: Standards compliance checking against CA/Browser Forum and NIST requirements (verify EKUs against platform expectations)
+
+**Implementation Notes**:
+- Requires bidirectional sampling with `DefaultSamplingHandler` (`src/mcp-server/framework.go:223`) and streams responses using buffer pooling.
+- Uses embedded system prompt from `src/mcp-server/templates/certificate-analysis-system-prompt.md` and requests up to 4096 tokens per analysis.
+- Falls back to showing the prepared certificate context when `X509_AI_APIKEY` is not configured.
 
 **Examples**:
 
@@ -210,7 +215,7 @@ Read resource: info://version
    "capabilities": {
     "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai"],
     "resources": ["config://template", "info://version", "docs://certificate-formats", "status://server-status"],
-    "prompts": true
+    "prompts": ["certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting"]
   },
   "supportedFormats": ["pem", "der", "json"]
 }
@@ -562,7 +567,7 @@ for i, chain := range chains {
 3. **Use [`x509_resolver_check_cert_expiry`](#x509_resolver_check_cert_expirycertificate-warn_days)** to monitor certificate expiration dates
 4. **Use [`x509_resolver_batch_resolve_cert_chain`](#x509_resolver_batch_resolve_cert_chain-certificates)** for efficient multi-certificate processing
 5. **Use [`x509_resolver_fetch_remote_cert`](#x509_resolver_fetch_remote_certhostname-port)** to retrieve certificates from remote servers
-6. **Use [`x509_resolver_analyze_certificate_with_ai`](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type)** for AI-powered security analysis and risk assessment
+6. **Use [`x509_resolver_analyze_certificate_with_ai`](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type)** for AI-powered security analysis (requires sampling handler and AI API key)
 7. **Configure [`MCP_X509_CONFIG_FILE`](#2-configuration)** environment variable for server configuration
 8. **Access [MCP resources](#mcp-resources)** for configuration templates, version info, and documentation
 9. **Use [MCP prompts](#mcp-prompts)** for guided certificate analysis workflows

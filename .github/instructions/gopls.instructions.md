@@ -279,9 +279,12 @@ gopls_go_search("batch_resolve_cert_chain")
 gopls_go_search("fetch_remote_cert")
 gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis tools
 gopls_go_search("addResources") → Find MCP server resource implementations
+gopls_go_search("DefaultSamplingHandler") → Inspect bidirectional AI sampling integration (`src/mcp-server/framework.go:223`)
+
 gopls_go_search("addPrompts") → Find MCP server prompt implementations
 gopls_go_search("ServerBuilder") → Find builder pattern implementation
 gopls_go_search("DefaultSamplingHandler") → Find AI sampling handler with bidirectional communication
+
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("certificate-analysis") → Find certificate analysis prompts
 gopls_go_search("security-audit") → Find security audit prompts
@@ -508,7 +511,7 @@ grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\
 grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
 
 # Find AI integration patterns
-grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|xAI\\|streaming", include="*.go")
+grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens", include="*.go")
 
 # Find MCP server builder pattern
 grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")

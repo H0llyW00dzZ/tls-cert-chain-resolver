@@ -621,16 +621,17 @@ src/logger/benchmark_test.go
 # MCP server implementation
 src/mcp-server/config.example.json
 src/mcp-server/config.go
-src/mcp-server/framework.go  # ServerBuilder pattern for dependency injection, AI sampling with bidirectional communication
-src/mcp-server/handlers.go   # Core certificate processing utilities, individual resource handlers, AI analysis with types (general, security, compliance)
-src/mcp-server/prompts.go    # MCP prompt definitions and handlers
+src/mcp-server/framework.go  # ServerBuilder pattern, AI sampling with buffer pooling (DefaultSamplingHandler)
+src/mcp-server/handlers.go   # MCP tool handlers, AI certificate analysis, certificate processing utilities
+src/mcp-server/prompts.go    # MCP prompt definitions and handlers for certificate workflows
 src/mcp-server/resources.go  # MCP resource definitions and handlers including status resource
 src/mcp-server/run_graceful_test.go  # Graceful shutdown test (non-Windows)
-src/mcp-server/run_test.go
+src/mcp-server/run_test.go   # Comprehensive tool coverage tests with macOS skip for validation
 src/mcp-server/server.go
 src/mcp-server/tools.go
 src/mcp-server/templates/certificate-analysis-system-prompt.md  # Embedded AI system prompt
 src/mcp-server/templates/certificate-formats.md
+
 
 # Certificate operations
 src/internal/x509/certs/certs.go
@@ -739,7 +740,7 @@ grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\
 grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
 
 # Find AI integration patterns
-grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|xAI\\|streaming\\|bidirectional", include="*.go")
+grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens", include="*.go")
 
 # Find MCP server builder pattern
 grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")
@@ -749,6 +750,7 @@ grep("handleStatusResource\\|status://server-status", include="*.go")
 
 # Find embedded templates
 grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
+
 
 # Find graceful shutdown tests
 grep("run_graceful_test\\.go\\|syscall\\.Kill", include="*_test.go")

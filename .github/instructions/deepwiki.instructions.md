@@ -358,7 +358,7 @@ Current external dependencies to research:
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/cloudflare/cfssl` - Certificate utilities
 - `github.com/valyala/bytebufferpool` - Memory pooling
-- `github.com/mark3labs/mcp-go` - MCP server implementation
+- `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with sampling support
 
 ### Useful Queries for This Project
 

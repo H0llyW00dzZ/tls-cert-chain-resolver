@@ -58,7 +58,7 @@ This file explains the OpenCode configuration and how to use the instruction fil
 - Commands (build, test, clean)
 - Code style guidelines
 - Concurrency rules
-- MCP server overview
+- MCP server overview (DefaultSamplingHandler, status resource)
 - Built-in tools reference
 - MCP connection patterns
 - Bad practices to avoid
@@ -479,7 +479,7 @@ New to repository?
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/cloudflare/cfssl` - Certificate utilities
 - `github.com/valyala/bytebufferpool` - Memory pooling
-- `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with bidirectional AI support
+- `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with bidirectional AI sampling support
 
 ### Package Structure
 
