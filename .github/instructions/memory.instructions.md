@@ -461,15 +461,69 @@ func fetchCertificateFromURL(ctx context.Context, url string) (*x509.Certificate
     return parseCertificate(data)
 }
 
-// AI API streaming with buffer pooling (see src/mcp-server/framework.go)
-func (h *DefaultSamplingHandler) streamCompletion(ctx context.Context, reqBody []byte) (*mcp.CreateMessageResult, error) {
+// AI API streaming with buffer pooling (see src/mcp-server/framework.go:224)
+func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
     buf := gc.Default.Get()
     defer func() {
         buf.Reset()
         gc.Default.Put(buf)
     }()
 
-    req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.endpoint+"/v1/chat/completions", bytes.NewReader(reqBody))
+    if h.apiKey == "" {
+        return &mcp.CreateMessageResult{
+            SamplingMessage: mcp.SamplingMessage{
+                Role:    mcp.RoleAssistant,
+                Content: mcp.NewTextContent("AI API key not configured. Please set X509_AI_APIKEY environment variable or configure in config.json. This is a placeholder response for demonstration purposes."),
+            },
+            Model:      "placeholder",
+            StopReason: "end",
+        }, nil
+    }
+
+    var messages []map[string]any
+    for _, msg := range request.Messages {
+        entry := map[string]any{
+            "role": string(msg.Role),
+        }
+        if textContent, ok := msg.Content.(mcp.TextContent); ok {
+            entry["content"] = textContent.Text
+        } else {
+            entry["content"] = fmt.Sprintf("%v", msg.Content)
+        }
+        messages = append(messages, entry)
+    }
+
+    model := h.model
+    if request.ModelPreferences != nil && len(request.ModelPreferences.Hints) > 0 {
+        model = request.ModelPreferences.Hints[0].Name
+    }
+
+    if request.SystemPrompt != "" {
+        systemMessage := map[string]any{
+            "role":    "system",
+            "content": request.SystemPrompt,
+        }
+        messages = append([]map[string]any{systemMessage}, messages...)
+    }
+
+    payload := map[string]any{
+        "model":       model,
+        "messages":    messages,
+        "max_tokens":  request.MaxTokens,
+        "temperature": request.Temperature,
+        "stream":      true,
+    }
+
+    if len(request.StopSequences) > 0 {
+        payload["stop"] = request.StopSequences
+    }
+
+    body, err := json.Marshal(payload)
+    if err != nil {
+        return nil, fmt.Errorf("failed to marshal API request: %w", err)
+    }
+
+    req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.endpoint+"/v1/chat/completions", bytes.NewReader(body))
     if err != nil {
         return nil, fmt.Errorf("failed to create HTTP request: %w", err)
     }
@@ -493,8 +547,8 @@ func (h *DefaultSamplingHandler) streamCompletion(ctx context.Context, reqBody [
 
     var content strings.Builder
     scanner := bufio.NewScanner(resp.Body)
+    modelName := model
     stopReason := "stop"
-    modelName := h.model
 
     for scanner.Scan() {
         line := scanner.Text()
@@ -502,33 +556,40 @@ func (h *DefaultSamplingHandler) streamCompletion(ctx context.Context, reqBody [
             continue
         }
 
-        if data, ok := strings.CutPrefix(line, "data: "); ok {
-            if data == "[DONE]" {
-                break
-            }
+        chunkJSON, ok := strings.CutPrefix(line, "data: ")
+        if !ok {
+            continue
+        }
+        if chunkJSON == "[DONE]" {
+            break
+        }
 
-            var chunk map[string]any
-            if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-                continue
-            }
+        var chunk map[string]any
+        if err := json.Unmarshal([]byte(chunkJSON), &chunk); err != nil {
+            continue
+        }
 
-            if modelFromChunk, ok := chunk["model"].(string); ok {
-                modelName = modelFromChunk
-            }
+        if v, ok := chunk["model"].(string); ok && modelName == model {
+            modelName = v
+        }
 
-            if choices, ok := chunk["choices"].([]any); ok && len(choices) > 0 {
-                if choice, ok := choices[0].(map[string]any); ok {
-                    if delta, ok := choice["delta"].(map[string]any); ok {
-                        if piece, ok := delta["content"].(string); ok {
-                            content.WriteString(piece)
-                        }
-                    }
+        choices, ok := chunk["choices"].([]any)
+        if !ok || len(choices) == 0 {
+            continue
+        }
+        choice, ok := choices[0].(map[string]any)
+        if !ok {
+            continue
+        }
 
-                    if finishReason, ok := choice["finish_reason"].(string); ok && finishReason != "" {
-                        stopReason = finishReason
-                    }
-                }
+        if delta, ok := choice["delta"].(map[string]any); ok {
+            if text, ok := delta["content"].(string); ok {
+                content.WriteString(text)
             }
+        }
+
+        if finishReason, ok := choice["finish_reason"].(string); ok && finishReason != "" {
+            stopReason = finishReason
         }
     }
 
