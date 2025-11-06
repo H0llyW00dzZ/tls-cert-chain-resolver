@@ -46,6 +46,13 @@
 ## Code Style
 
 **Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
+**Go Version**: 1.25.4+  
+**Key Dependencies**:
+- `github.com/spf13/cobra` - CLI framework
+- `github.com/cloudflare/cfssl` - Certificate utilities
+- `github.com/valyala/bytebufferpool` - Memory pooling
+- `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with enhanced bidirectional AI sampling support
+- `golang.org/x/crypto` (via Go 1.25.4) - Standard crypto updates leveraged in recent releases
 **Imports**: Use `goimports` with standard formatting  
 **Formatting**: Use `gofmt -s`  
 **Line length**: Max 120 chars  
@@ -56,7 +63,7 @@
 **Context**: Always pass and use `context.Context` for lifecycle management, especially for certificate fetching operations  
 **CLI Framework**: Use `github.com/spf13/cobra` for command-line interface  
 **Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race ./...` before merging.  
-**Memory Management**: Use buffer pooling via `gc.Pool` interface (`src/internal/helper/gc/`) for efficient memory usage with certificates and logging. The `gc` package abstracts `bytebufferpool` to avoid direct dependencies. Always call `Reset()` on buffers before returning them to the pool. Use `gc.Default` for the default buffer pool.  
+**Memory Management**: Use buffer pooling via `gc.Pool` interface (`src/internal/helper/gc/`) for efficient memory usage with certificates and logging. The `gc` package abstracts `bytebufferpool` to avoid direct dependencies. Always call `Reset()` on buffers before returning them to the pool. Use `gc.Default` for the default buffer pool. For AI API requests, buffer pooling is used in `DefaultSamplingHandler` to optimize HTTP streaming performance.  
 **Certificate Operations**: Use internal packages `x509certs` and `x509chain` for certificate handling
 
 ## Concurrency
