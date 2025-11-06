@@ -67,7 +67,6 @@ tls-cert-chain-resolver/
 │   │   └── tools.go                          # Tool definitions and creation functions
 │   └── version/
 │       └── version.go                        # Version information and build metadata
-
 ├── .gitignore                                # Git ignore patterns
 ├── .ignore                                   # Tool ignore patterns (glob/grep)
 ├── AGENTS.md                                 # Primary agent guidelines
