@@ -480,6 +480,7 @@ New to repository?
 - `github.com/cloudflare/cfssl` - Certificate utilities
 - `github.com/valyala/bytebufferpool` - Memory pooling
 - `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with bidirectional AI sampling support
+- `golang.org/x/crypto` (via Go 1.25.4) - Standard crypto updates leveraged in recent releases
 
 ### Package Structure
 
@@ -547,17 +548,7 @@ Workflow:
 6. AGENTS.md → Run tests with race detection
 ```
 
-```
-Task: "Add thread-safe logging to new package"
 
-Workflow:
-1. gopls.instructions.md → Search logger package: gopls_go_search("logger.Logger")
-2. filesystem.instructions.md → Read implementation: read("src/logger/logger.go")
-3. memory.instructions.md → Learn thread-safe pattern with sync.Mutex
-4. filesystem.instructions.md → Implement in new code with edit()
-5. gopls.instructions.md → Run diagnostics: gopls_go_diagnostics()
-6. AGENTS.md → Test with race detection: go test -race ./...
-```
 
 ### Performance Optimization
 

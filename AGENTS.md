@@ -67,6 +67,7 @@ Multiple agents may modify code simultaneously. Preserve others' changes and rep
 - Use `sync.Mutex` for protecting shared mutable state (see `src/logger/logger.go` MCPLogger example)
 - Document thread-safety guarantees in function/type comments
 - All methods on MCPLogger are safe for concurrent use
+- When streaming AI responses, reuse pooled buffers (`gc.Default`) and reset before return to avoid leaks
 - Run `go test -race ./...` to detect race conditions before merging
 
 ## MCP Server Instructions
@@ -293,7 +294,7 @@ gopls_go_search("MyFunction")  # ✅ Returns results
     - **MCP Connection Errors**: Gopls MCP connections are self-healing - if you encounter "Connection closed" or "Attempted to send a request from a closed client" errors, simply retry the operation
     - Gopls tools may fail gracefully - check return values
     - DeepWiki requires valid GitHub repository names
-    - X509 Certificate Chain Resolver requires valid certificate data and configuration
+    - X509 Certificate Chain Resolver requires valid certificate data and configuration (set `X509_AI_APIKEY` or `ai.apiKey` in config when using AI analysis)
     - Always verify file operations by reading after write/edit
 
 4. **Performance** ([Unix Philosophy](https://grokipedia.com/page/Unix_philosophy)):

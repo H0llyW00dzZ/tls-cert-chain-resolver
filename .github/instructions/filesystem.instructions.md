@@ -54,7 +54,7 @@ tls-cert-chain-resolver/
 │   ├── mcp-server/
 │   │   ├── config.example.json               # MCP server configuration example
 │   │   ├── config.go                         # MCP server configuration and AI settings
-│   │   ├── framework.go                      # ServerBuilder pattern, AI sampling handler, bidirectional communication
+│   │   ├── framework.go                      # ServerBuilder pattern, sampling registration, streaming buffer pooling
 │   │   ├── handlers.go                       # MCP tool handlers, AI certificate analysis, certificate processing utilities
 │   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
 │   │   ├── resources.go                      # MCP resource definitions and handlers (config, version, formats, status)
@@ -62,9 +62,9 @@ tls-cert-chain-resolver/
 │   │   ├── run_test.go                       # MCP server tests
 │   │   ├── server.go                         # Server execution and lifecycle management
 │   │   ├── templates/
-│   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt
+│   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt used for sampling
 │   │   │   └── certificate-formats.md                    # Certificate format documentation
-│   │   └── tools.go                                      # Tool definitions and creation functions
+│   │   └── tools.go                          # Tool definitions and creation functions
 │   └── version/
 │       └── version.go                        # Version information and build metadata
 ├── .gitignore                                # Git ignore patterns

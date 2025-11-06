@@ -461,45 +461,150 @@ func fetchCertificateFromURL(ctx context.Context, url string) (*x509.Certificate
     return parseCertificate(data)
 }
 
-// AI API streaming with buffer pooling (src/mcp-server/framework.go:246)
-func streamAIResponse(ctx context.Context, req *http.Request, client *http.Client) (string, error) {
+// AI API streaming with buffer pooling (see src/mcp-server/framework.go:224)
+func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
     buf := gc.Default.Get()
     defer func() {
         buf.Reset()
         gc.Default.Put(buf)
     }()
 
-    resp, err := client.Do(req)
+    if h.apiKey == "" {
+        return &mcp.CreateMessageResult{
+            SamplingMessage: mcp.SamplingMessage{
+                Role:    mcp.RoleAssistant,
+                Content: mcp.NewTextContent("AI API key not configured. Please set X509_AI_APIKEY environment variable or configure in config.json. This is a placeholder response for demonstration purposes."),
+            },
+            Model:      "placeholder",
+            StopReason: "end",
+        }, nil
+    }
+
+    var messages []map[string]any
+    for _, msg := range request.Messages {
+        entry := map[string]any{
+            "role": string(msg.Role),
+        }
+        if textContent, ok := msg.Content.(mcp.TextContent); ok {
+            entry["content"] = textContent.Text
+        } else {
+            entry["content"] = fmt.Sprintf("%v", msg.Content)
+        }
+        messages = append(messages, entry)
+    }
+
+    model := h.model
+    if request.ModelPreferences != nil && len(request.ModelPreferences.Hints) > 0 {
+        model = request.ModelPreferences.Hints[0].Name
+    }
+
+    if request.SystemPrompt != "" {
+        systemMessage := map[string]any{
+            "role":    "system",
+            "content": request.SystemPrompt,
+        }
+        messages = append([]map[string]any{systemMessage}, messages...)
+    }
+
+    payload := map[string]any{
+        "model":       model,
+        "messages":    messages,
+        "max_tokens":  request.MaxTokens,
+        "temperature": request.Temperature,
+        "stream":      true,
+    }
+
+    if len(request.StopSequences) > 0 {
+        payload["stop"] = request.StopSequences
+    }
+
+    body, err := json.Marshal(payload)
     if err != nil {
-        return "", fmt.Errorf("failed to call AI API: %w", err)
+        return nil, fmt.Errorf("failed to marshal API request: %w", err)
+    }
+
+    req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.endpoint+"/v1/chat/completions", bytes.NewReader(body))
+    if err != nil {
+        return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+    }
+
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+h.apiKey)
+    req.Header.Set("User-Agent", "X.509-Certificate-Chain-Resolver-MCP/"+h.version+" (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)")
+
+    resp, err := h.client.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("failed to call AI API: %w", err)
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
         if _, err := buf.ReadFrom(resp.Body); err != nil {
-            return "", fmt.Errorf("AI API error (status %d): failed to read error response: %w", resp.StatusCode, err)
+            return nil, fmt.Errorf("AI API error (status %d): failed to read error response: %w", resp.StatusCode, err)
         }
-        return "", fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, buf.String())
+        return nil, fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, buf.String())
     }
 
+    var content strings.Builder
     scanner := bufio.NewScanner(resp.Body)
+    modelName := model
+    stopReason := "stop"
+
     for scanner.Scan() {
         line := scanner.Text()
-        if !strings.HasPrefix(line, "data: ") {
+        if line == "" || strings.HasPrefix(line, ":") {
             continue
         }
-        chunk := strings.TrimPrefix(line, "data: ")
-        if chunk == "[DONE]" {
+
+        chunkJSON, ok := strings.CutPrefix(line, "data: ")
+        if !ok {
+            continue
+        }
+        if chunkJSON == "[DONE]" {
             break
         }
-        buf.WriteString(chunk)
+
+        var chunk map[string]any
+        if err := json.Unmarshal([]byte(chunkJSON), &chunk); err != nil {
+            continue
+        }
+
+        if v, ok := chunk["model"].(string); ok && modelName == model {
+            modelName = v
+        }
+
+        choices, ok := chunk["choices"].([]any)
+        if !ok || len(choices) == 0 {
+            continue
+        }
+        choice, ok := choices[0].(map[string]any)
+        if !ok {
+            continue
+        }
+
+        if delta, ok := choice["delta"].(map[string]any); ok {
+            if text, ok := delta["content"].(string); ok {
+                content.WriteString(text)
+            }
+        }
+
+        if finishReason, ok := choice["finish_reason"].(string); ok && finishReason != "" {
+            stopReason = finishReason
+        }
     }
 
     if err := scanner.Err(); err != nil {
-        return "", fmt.Errorf("error reading streaming response: %w", err)
+        return nil, fmt.Errorf("error reading streaming response: %w", err)
     }
 
-    return buf.String(), nil
+    return &mcp.CreateMessageResult{
+        SamplingMessage: mcp.SamplingMessage{
+            Role:    mcp.RoleAssistant,
+            Content: mcp.NewTextContent(content.String()),
+        },
+        Model:      modelName,
+        StopReason: stopReason,
+    }, nil
 }
 ```
 
@@ -536,6 +641,11 @@ func processCertificateFile(path string) error {
 **Memory Impact**: Low - stateless queries  
 **Action**: Cache query results to avoid repeated calls
 
+### 3. X509 Resolver MCP Connection
+
+**Behavior**: Long-lived local server with streaming AI analysis support  
+**Memory Impact**: Medium when AI sampling is enabled (streaming buffers)  
+**Action**: Use buffer pooling (`gc.Default`) and reset buffers immediately after streaming completes
 ## Monitoring and Debugging
 
 ### 1. Memory Profiling (when needed)
@@ -581,7 +691,7 @@ func debugGoroutines() {
 4. **Check ctx.Done()** in loops and network calls
 
 ### Memory Management
-1. **Use buffer pooling** (bytebufferpool) for certificate data
+1. **Use buffer pooling** (bytebufferpool) for certificate and AI streaming data
 2. **Avoid unbounded growth** - set limits on certificate chains
 3. **Stream processing** - don't load entire files into memory
 4. **Proper cleanup** - defer Close() calls
