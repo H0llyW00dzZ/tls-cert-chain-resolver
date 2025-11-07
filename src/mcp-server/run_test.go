@@ -1460,8 +1460,8 @@ func TestFormatJSON(t *testing.T) {
 	}
 
 	// Check structure
-	if jsonResult["title"] != "TLS Certificate Chain" {
-		t.Errorf("Expected title 'TLS Certificate Chain', got %v", jsonResult["title"])
+	if jsonResult["title"] != "X.509 Certificate Chain" {
+		t.Errorf("Expected title 'X.509 Certificate Chain', got %v", jsonResult["title"])
 	}
 
 	if jsonResult["totalChained"].(float64) != 1 {
