@@ -724,6 +724,7 @@ This project was created to provide a more maintainable and actively maintained 
 - [ ] Create abstraction layer for both MCP libraries
 - [ ] Document differences and use cases for each library
 - [ ] Implement streaming support for large certificate chains
+- [ ] Add OCSP/CRL revocation status checks to MCP tools
 - [ ] Add metrics and logging for MCP server operations
 
 ## License
