@@ -471,7 +471,7 @@ func formatJSON(certs []*x509.Certificate, certManager *x509certs.Certificate) s
 	}
 
 	output := map[string]any{
-		"title":            "TLS Certificate Chain",
+		"title":            "X.509 Certificate Chain",
 		"totalChained":     len(certs),
 		"listCertificates": certInfos,
 	}
