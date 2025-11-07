@@ -601,7 +601,7 @@ func handleStatusResource(ctx context.Context, request mcp.ReadResourceRequest) 
 		"server":    "X509 Certificate Chain Resolver MCP Server",
 		"version":   version.Version,
 		"capabilities": map[string]any{
-			"tools":     []string{"resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert"},
+			"tools":     []string{"resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai"},
 			"resources": []string{"config://template", "info://version", "docs://certificate-formats", "status://server-status"},
 			"prompts":   []string{"certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting"},
 		},
