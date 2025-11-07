@@ -9,6 +9,7 @@ This directory contains custom commands for OpenCode agents to assist with repos
 | [`update-knowledge`](./command/update-knowledge.md) | Update agent instruction files when code changes | `/update-knowledge` |
 | [`test`](./command/test.md) | Run tests with coverage and analyze failures | `/test` |
 | [`test-capabilities`](./command/test-capabilities.md) | Test agent capabilities including MCP servers and built-in tools | `/test-capabilities` |
+| [`create-changelog`](./command/create-changelog.md) | Generate changelog by comparing tags against master and save to temporary file | `/create-changelog` |
 
 ## Command Usage
 
@@ -18,6 +19,7 @@ Commands are invoked in OpenCode sessions using the `/command-name` syntax:
 /test
 /update-knowledge
 /test-capabilities
+/create-changelog
 ```
 
 ## Command Structure
@@ -68,6 +70,11 @@ Commands should reference and follow patterns from instruction files.
 1. /update-knowledge
 2. /test
 3. /test-capabilities
+```
+
+### Before Releases
+```
+/create-changelog
 ```
 
 ### Verifying Changes

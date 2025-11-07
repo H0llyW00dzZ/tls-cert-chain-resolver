@@ -22,6 +22,7 @@ tls-cert-chain-resolver/
 │   └── dependabot.yml                        # Dependency updates config
 ├── .opencode/
 │   ├── command/
+│   │   ├── create-changelog.md               # Generate changelog by comparing tags against master
 │   │   ├── test-capabilities.md              # Test agent capabilities workflow
 │   │   ├── test.md                           # Test command workflow
 │   │   └── update-knowledge.md               # Update instruction files workflow
@@ -599,6 +600,7 @@ write("new_test.go", ...)       # Create new test files when needed
 
 # Custom commands
 .opencode/README.md
+.opencode/command/create-changelog.md
 .opencode/command/test.md
 .opencode/command/update-knowledge.md
 .opencode/command/test-capabilities.md
@@ -678,6 +680,12 @@ grep("fmt\\.Errorf", include="*.go")
 
 # Find certificate operations
 grep("Encode.*PEM", include="*.go")
+
+# Find changelog creation commands
+grep("create-changelog", include="*.md")
+
+# Find OpenCode command files
+glob(".opencode/command/*.md")
 
 # Find chain methods
 grep("func (c \\*Chain)", include="*.go")
