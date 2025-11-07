@@ -33,3 +33,4 @@ bin
 # test cert
 test-leaf.cer
 test-output-bundle.pem
+changelog.md
