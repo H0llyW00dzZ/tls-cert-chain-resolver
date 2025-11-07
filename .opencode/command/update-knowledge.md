@@ -22,15 +22,23 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
    - `filesystem.instructions.md` - New file paths, directory structure changes
    - `memory.instructions.md` - Context/memory management pattern changes
    - `deepwiki.instructions.md` - New external dependencies
-   - `opencode.instructions.md` - Configuration or workflow changes
+   - `opencode.instructions.md` - Configuration or workflow changes, including new/deleted commands in `.opencode/command/`
 
-3. **Verify Consistency**:
+3. **Check .opencode Directory Changes**:
+   - List current commands: Use the built-in `list` tool: `list('.opencode/command')`
+   - Compare with recent git changes: Run `git diff HEAD~10..HEAD --name-only` and check the output for any files in `.opencode/` directory
+   - For new commands added: Add to `opencode.instructions.md` in the "Custom Commands" section and update the command table in `.opencode/README.md`
+   - For deleted commands: Remove references from `opencode.instructions.md` and update cross-references, and remove from the command table in `.opencode/README.md`
+   - For modified commands: Update descriptions and examples in `opencode.instructions.md`
+   - Ensure frontmatter (description, agent) is consistent and accurate
+
+4. **Verify Consistency**:
    - Ensure examples use actual file paths from repository
    - Update cross-references between instruction files
    - Verify commands in examples work correctly
    - Check that code examples compile
 
-4. **Update AGENTS.md**:
+5. **Update AGENTS.md**:
    - Add new commands if build process changed
    - Update code style guidelines for new patterns
    - Add common mistakes to "Bad Practices" section
@@ -43,6 +51,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
 - **Refactored code**: Update code examples across all instruction files
 - **New patterns**: Add to AGENTS.md and relevant specific instruction files
 - **Build changes**: Update commands in AGENTS.md
+- **.opencode command changes**: Check for new/deleted/modified commands and update opencode.instructions.md accordingly, and update the command table in .opencode/README.md
 
 ## Error Handling
 
