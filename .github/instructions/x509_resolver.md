@@ -151,7 +151,7 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993, intermediate_only=t
 - **`compliance`**: Standards compliance checking against CA/Browser Forum and NIST requirements (verify EKUs against platform expectations)
 
 **Implementation Notes**:
-- Requires bidirectional sampling with `DefaultSamplingHandler` (`src/mcp-server/framework.go:223`) and streams responses using buffer pooling.
+- Requires bidirectional sampling with `DefaultSamplingHandler` (`src/mcp-server/framework.go:246`) and streams responses using buffer pooling.
 - Uses embedded system prompt from `src/mcp-server/templates/certificate-analysis-system-prompt.md` and requests up to 4096 tokens per analysis.
 - Falls back to showing the prepared certificate context when `X509_AI_APIKEY` is not configured.
 

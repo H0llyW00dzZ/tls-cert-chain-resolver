@@ -220,8 +220,9 @@ After go_diagnostics passes:
 
 1. bash("go test -v ./src/internal/x509/certs 2>&1 | cat")  # Package-specific
 2. bash("go test -v ./src/internal/x509/chain 2>&1 | cat")  # Package-specific
-3. bash("go test -v ./... 2>&1 | cat")                      # All tests
-4. bash("go test -race ./... 2>&1 | cat")                   # Race detection (before merges)
+3. bash("go test -v ./src/mcp-server 2>&1 | cat")           # Package-specific
+4. bash("go test -v ./... 2>&1 | cat")                      # All tests
+5. bash("go test -race ./... 2>&1 | cat")                   # Race detection (before merges)
 
 Note: Piping to `cat` (e.g., `2>&1 | cat`) ensures bash tool captures and displays all test output.
 ```
