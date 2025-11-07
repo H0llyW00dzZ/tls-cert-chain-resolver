@@ -81,11 +81,13 @@ This file explains the OpenCode configuration and how to use the instruction fil
 - `/update-knowledge` - Update instruction files when code changes
 - `/test` - Run tests with coverage and analyze failures
 - `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools
+- `/create-changelog` - Generate changelog by comparing tags against master and save to temporary file
 
 **When to use**:
 - After making code changes (`/update-knowledge` then `/test`)
 - Before committing changes (`/test`)
 - When updating dependencies or architecture
+- Before releases (`/create-changelog` to generate release notes)
 
 **Structure**: Each command is a markdown file with frontmatter:
 ```markdown
@@ -320,8 +322,10 @@ Custom Commands (WORKFLOWS)
 │   └── Update instructions after code changes
 ├── .opencode/command/test.md
 │   └── Run tests with coverage analysis
-└── .opencode/command/test-capabilities.md
-    └── Test agent capabilities including MCP servers and built-in tools
+├── .opencode/command/test-capabilities.md
+│   └── Test agent capabilities including MCP servers and built-in tools
+└── .opencode/command/create-changelog.md
+    └── Generate changelog by comparing tags against master and save to temporary file
 
 Specific Instructions (DETAILED)
 ├── gopls.instructions.md
