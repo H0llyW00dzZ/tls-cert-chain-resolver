@@ -408,7 +408,7 @@ const { Client } = require('@modelcontextprotocol/sdk');
 async function main() {
   const client = new Client({
     name: 'cert-resolver-client',
-    version: '0.2.9'
+    version: '0.3.0'
   });
 
   // Connect to MCP server
@@ -620,7 +620,7 @@ const { Client } = require('@modelcontextprotocol/sdk');
 async function main() {
   const client = new Client({
     name: 'cert-resolver-client',
-    version: '0.2.9'
+    version: '0.3.0'
   });
 
   // Connect to MCP server
