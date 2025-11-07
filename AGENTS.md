@@ -456,6 +456,42 @@ gopls_go_search("ProcessRequest")
 gopls_go_symbol_references(file, "ProcessRequest")
 ```
 
+#### 8. **Pointer Type Handling in Certificate Operations**
+
+**❌ Bad: Missing pointer type handling in type switches**
+```go
+// BAD - Only handles value types, misses pointer types
+func getKeySize(cert *x509.Certificate) int {
+    switch pub := cert.PublicKey.(type) {
+    case rsa.PublicKey:     // ❌ Misses *rsa.PublicKey
+        return pub.Size() * 8
+    case ecdsa.PublicKey:   // ❌ Misses *ecdsa.PublicKey
+        return pub.Curve.Params().BitSize
+    default:
+        return 0
+    }
+}
+```
+
+**✅ Good: Handle both pointer and value types**
+```go
+// GOOD - Handles both pointer and value types for RSA and ECDSA
+func getKeySize(cert *x509.Certificate) int {
+    switch pub := cert.PublicKey.(type) {
+    case *rsa.PublicKey:      // ✅ Handle pointer type
+        return pub.Size() * 8
+    case rsa.PublicKey:       // ✅ Handle value type
+        return pub.Size() * 8
+    case *ecdsa.PublicKey:    // ✅ Handle pointer type
+        return pub.Curve.Params().BitSize
+    case ecdsa.PublicKey:     // ✅ Handle value type
+        return pub.Curve.Params().BitSize
+    default:
+        return 0
+    }
+}
+```
+
 **Summary**: Always prefer composable tools that follow [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy) (`glob`, `grep`, `read`, `list`) over `bash` for file operations and code search. These tools respect `.ignore` configuration (see `.ignore` file for pattern organization), provide structured output, and compose efficiently. Reserve `bash` for builds, tests, git, and package management.
 
 ## Testing Guidelines

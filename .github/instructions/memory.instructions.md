@@ -461,7 +461,7 @@ func fetchCertificateFromURL(ctx context.Context, url string) (*x509.Certificate
     return parseCertificate(data)
 }
 
-// AI API streaming with buffer pooling (see src/mcp-server/framework.go:224)
+// AI API streaming with buffer pooling (see src/mcp-server/framework.go:246)
 func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
     buf := gc.Default.Get()
     defer func() {
