@@ -719,13 +719,14 @@ This project was created to provide a more maintainable and actively maintained 
 - [x] **Implement bidirectional AI communication** via MCP sampling (servers can request LLM completions from clients)
 
 #### Remaining (Low Priority)
-- [x] **Bidirectional AI Communication**: MCP already supports AI-to-AI messaging through the "sampling" mechanism (servers can request LLM completions from clients)
+- [ ] Add metrics and logging for MCP server operations
 - [ ] Maintain compatibility with `github.com/mark3labs/mcp-go` (ongoing)
 - [ ] Create abstraction layer for both MCP libraries
 - [ ] Document differences and use cases for each library
+
+#### X.509 Operations Roadmap
 - [ ] Implement streaming support for large certificate chains
 - [ ] Add OCSP/CRL revocation status checks to MCP tools
-- [ ] Add metrics and logging for MCP server operations
 
 ## License
 
