@@ -3,7 +3,10 @@
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
 
-// Package mcpserver provides MCP server implementation for X509 certificate chain resolution
+// Package mcpserver provides [MCP] server implementation for [X509] certificate chain resolution
+//
+// [X509]: https://grokipedia.com/page/X.509
+// [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 package mcpserver
 
 import (
