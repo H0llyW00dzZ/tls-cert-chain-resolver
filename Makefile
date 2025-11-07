@@ -12,7 +12,7 @@ VERSION := $(shell if [ "$(VERSION_TAG)" = "0.0.0" ]; then echo "$(VERSION_TAG)-
 
 # Variables
 BINARY_NAME = tls-cert-chain-resolver
-MCP_BINARY_NAME = tls-cert-chain-mcp-server
+MCP_BINARY_NAME = x509-cert-chain-resolver
 BUILD_DIR = ./bin
 
 # Default target

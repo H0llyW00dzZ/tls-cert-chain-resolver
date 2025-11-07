@@ -5,14 +5,15 @@
 1. [Commands](#commands)
 2. [Code Style](#code-style)
 3. [Concurrency](#concurrency)
-4. [MCP Server Instructions](#mcp-server-instructions)
+ 4. [MCP Server Instructions](#mcp-server-instructions)
    - [Available MCP Servers](#available-mcp-servers)
      - [1. Gopls MCP Server](#1-gopls-mcp-server)
      - [2. DeepWiki MCP Server](#2-deepwiki-mcp-server)
+     - [3. X509 Certificate Chain Resolver MCP Server](#3-x509-certificate-chain-resolver-mcp-server)
    - [Built-in Tools (Not MCP)](#built-in-tools-not-mcp)
    - [MCP Connection Patterns](#mcp-connection-patterns)
    - [MCP & Tool Usage Best Practices](#mcp--tool-usage-best-practices)
-5. [Bad Practices to Avoid](#bad-practices-to-avoid)
+ 5. [Bad Practices to Avoid](#bad-practices-to-avoid)
    - [1. Incorrect Tool Usage](#incorrect-tool-usage)
    - [2. Inefficient File Operations](#inefficient-file-operations)
    - [3. Tool Misuse Patterns](#tool-misuse-patterns)
@@ -20,6 +21,7 @@
    - [5. Bash Command Anti-Patterns](#bash-command-anti-patterns)
    - [6. Performance Anti-Patterns](#performance-anti-patterns)
    - [7. MCP Tool Misuse](#mcp-tool-misuse)
+   - [8. Pointer Type Handling in Certificate Operations](#8-pointer-type-handling-in-certificate-operations)
 6. [Testing Guidelines](#testing-guidelines)
 7. [For Human Developers](#for-human-developers)
 
@@ -454,6 +456,42 @@ bash("grep -r 'func.*ProcessRequest' .")
 # GOOD - Use Gopls for Go intelligence
 gopls_go_search("ProcessRequest")
 gopls_go_symbol_references(file, "ProcessRequest")
+```
+
+#### 8. **Pointer Type Handling in Certificate Operations**
+
+**❌ Bad: Missing pointer type handling in type switches**
+```go
+// BAD - Only handles value types, misses pointer types
+func getKeySize(cert *x509.Certificate) int {
+    switch pub := cert.PublicKey.(type) {
+    case rsa.PublicKey:     // ❌ Misses *rsa.PublicKey
+        return pub.Size() * 8
+    case ecdsa.PublicKey:   // ❌ Misses *ecdsa.PublicKey
+        return pub.Curve.Params().BitSize
+    default:
+        return 0
+    }
+}
+```
+
+**✅ Good: Handle both pointer and value types**
+```go
+// GOOD - Handles both pointer and value types for RSA and ECDSA
+func getKeySize(cert *x509.Certificate) int {
+    switch pub := cert.PublicKey.(type) {
+    case *rsa.PublicKey:      // ✅ Handle pointer type
+        return pub.Size() * 8
+    case rsa.PublicKey:       // ✅ Handle value type
+        return pub.Size() * 8
+    case *ecdsa.PublicKey:    // ✅ Handle pointer type
+        return pub.Curve.Params().BitSize
+    case ecdsa.PublicKey:     // ✅ Handle value type
+        return pub.Curve.Params().BitSize
+    default:
+        return 0
+    }
+}
 ```
 
 **Summary**: Always prefer composable tools that follow [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy) (`glob`, `grep`, `read`, `list`) over `bash` for file operations and code search. These tools respect `.ignore` configuration (see `.ignore` file for pattern organization), provide structured output, and compose efficiently. Reserve `bash` for builds, tests, git, and package management.
