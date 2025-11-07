@@ -19,7 +19,7 @@ Generate a comprehensive changelog by comparing the latest tag against master/ma
 2. **Get Commit Information**:
 
    - Get commits between tag and main: `git log [latest_tag]..[main_branch] --oneline`
-   - Get detailed commit messages with bodies: `git log [latest_tag]..[main_branch] --pretty=format:"[SHA - %h]: %s%n%n%b%n---%n"`
+   - Get detailed commit messages with bodies: `git log [latest_tag]..[main_branch] --pretty=format:"[SHA - %h]: %s%n%n%b%n"`
    - Get files changed: `git diff [latest_tag]..[main_branch] --name-only`
    - Get commit statistics: `git diff [latest_tag]..[main_branch] --stat`
 
