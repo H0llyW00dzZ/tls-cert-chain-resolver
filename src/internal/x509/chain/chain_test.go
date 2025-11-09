@@ -305,6 +305,13 @@ func TestFetchRemoteChain(t *testing.T) {
 			timeout:     5 * time.Second,
 			expectError: true,
 		},
+		{
+			name:        "Timeout test",
+			hostname:    "192.0.2.1", // Reserved IP that should timeout
+			port:        443,
+			timeout:     1 * time.Millisecond, // Very short timeout
+			expectError: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -365,6 +372,7 @@ func TestCheckRevocationStatus(t *testing.T) {
 		name           string
 		certPEM        string
 		expectContains []string
+		setupTimeout   time.Duration
 	}{
 		{
 			name:    "Certificate with OCSP and CRL URLs",
@@ -374,6 +382,16 @@ func TestCheckRevocationStatus(t *testing.T) {
 				"OCSP",
 				"CRL",
 			},
+			setupTimeout: 15 * time.Second,
+		},
+		{
+			name:    "Certificate with no revocation URLs",
+			certPEM: testCertPEM,
+			expectContains: []string{
+				"Revocation Status Check:",
+				"Not Available",
+			},
+			setupTimeout: 5 * time.Second,
 		},
 	}
 
@@ -392,15 +410,15 @@ func TestCheckRevocationStatus(t *testing.T) {
 			manager := x509chain.New(cert, version)
 
 			// Fetch the chain first
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), tt.setupTimeout)
 			defer cancel()
 
 			if err := manager.FetchCertificate(ctx); err != nil {
 				t.Fatalf("FetchCertificate() error = %v", err)
 			}
 
-			// Test revocation status check with longer timeout for network calls
-			revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 15*time.Second)
+			// Test revocation status check
+			revocationCtx, revocationCancel := context.WithTimeout(context.Background(), tt.setupTimeout)
 			defer revocationCancel()
 
 			result, err := manager.CheckRevocationStatus(revocationCtx)
@@ -441,5 +459,146 @@ func TestParseCRLResponse(t *testing.T) {
 	_, err = x509chain.ParseCRLResponse([]byte{}, big.NewInt(12345), cert)
 	if err == nil {
 		t.Error("expected error for empty CRL data")
+	}
+
+	// Test with nil serial
+	_, err = x509chain.ParseCRLResponse([]byte("data"), nil, cert)
+	if err == nil {
+		t.Error("expected error for nil serial")
+	}
+
+	// Test with nil issuer
+	_, err = x509chain.ParseCRLResponse([]byte("data"), big.NewInt(12345), nil)
+	if err == nil {
+		t.Error("expected error for nil issuer")
+	}
+}
+
+func TestChain_AddRootCA_Error(t *testing.T) {
+	// Create a certificate that will fail verification
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	manager := x509chain.New(cert, version)
+
+	// Add a malformed certificate to the chain to trigger verification error
+	manager.Certs = append(manager.Certs, &x509.Certificate{Raw: []byte("invalid")})
+
+	err = manager.AddRootCA()
+	if err == nil {
+		t.Error("expected error for malformed certificate in chain")
+	}
+}
+
+func TestChain_VerifyChain_Error(t *testing.T) {
+	// Create a chain with certificates that won't verify
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	manager := x509chain.New(cert, version)
+
+	// Replace with a self-signed cert that doesn't match the chain
+	fakeCert := &x509.Certificate{
+		Raw:                []byte("fake"),
+		Subject:            cert.Subject,
+		Issuer:             cert.Issuer,
+		SignatureAlgorithm: cert.SignatureAlgorithm,
+	}
+	manager.Certs = []*x509.Certificate{fakeCert, fakeCert}
+
+	err = manager.VerifyChain()
+	if err == nil {
+		t.Error("expected verification error for invalid chain")
+	}
+}
+
+func TestRevocationStatus_Timeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping timeout test in short mode")
+	}
+
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	manager := x509chain.New(cert, version)
+
+	// Fetch the chain first
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := manager.FetchCertificate(ctx); err != nil {
+		t.Fatalf("FetchCertificate() error = %v", err)
+	}
+
+	// Test with very short timeout to force timeout
+	revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer revocationCancel()
+
+	_, err = manager.CheckRevocationStatus(revocationCtx)
+	// Should either succeed quickly or timeout - we accept both as valid behavior
+	if err != nil && !strings.Contains(err.Error(), "context deadline exceeded") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRevocationStatus_ContextCancellation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping context cancellation test in short mode")
+	}
+
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	manager := x509chain.New(cert, version)
+
+	// Fetch the chain first
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := manager.FetchCertificate(ctx); err != nil {
+		t.Fatalf("FetchCertificate() error = %v", err)
+	}
+
+	// Test with context that gets cancelled mid-operation
+	revocationCtx, revocationCancel := context.WithCancel(context.Background())
+
+	// Cancel after a short delay to ensure the operation starts
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		revocationCancel()
+	}()
+
+	_, err = manager.CheckRevocationStatus(revocationCtx)
+	// Accept both cancellation error and successful completion (depending on timing)
+	if err != nil && !strings.Contains(err.Error(), "context canceled") && !strings.Contains(err.Error(), "context deadline exceeded") {
+		t.Errorf("unexpected error: %v", err)
 	}
 }
