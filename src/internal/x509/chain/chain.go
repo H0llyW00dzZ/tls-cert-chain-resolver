@@ -83,7 +83,9 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 		// Set the User-Agent header with version information and GitHub link
 		req.Header.Set("User-Agent", ch.HTTPConfig.GetUserAgent())
 
-		resp, err := http.DefaultClient.Do(req)
+		// Use custom HTTP client with configured timeout
+		client := &http.Client{Timeout: ch.HTTPConfig.Timeout}
+		resp, err := client.Do(req)
 		if err != nil {
 			return err
 		}

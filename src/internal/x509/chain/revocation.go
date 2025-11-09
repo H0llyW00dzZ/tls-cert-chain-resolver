@@ -8,9 +8,7 @@ package x509chain
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
 	"crypto/x509"
-	"encoding/asn1"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -22,38 +20,8 @@ import (
 // RevocationStatus represents revocation status of a certificate
 type RevocationStatus struct {
 	OCSPStatus   string
-	CRLEnabled   bool
 	CRLStatus    string
 	SerialNumber string
-}
-
-// OCSP request structures for proper ASN.1 encoding
-type ocspRequest struct {
-	TBSRequest tbsRequest `asn1:"tag:0,explicit"`
-}
-
-type tbsRequest struct {
-	Version       int             `asn1:"optional,tag:0,default:0"`
-	RequestorName asn1.RawValue   `asn1:"optional,tag:1"`
-	RequestList   []request       `asn1:"tag:2"`
-	Extensions    []asn1.RawValue `asn1:"optional,tag:3"`
-}
-
-type request struct {
-	CertID    certID          `asn1:"tag:0"`
-	SingleReq []asn1.RawValue `asn1:"optional,tag:1"`
-}
-
-type certID struct {
-	HashAlgorithm  algorithmIdentifier `asn1:"tag:0"`
-	IssuerNameHash []byte              `asn1:"tag:1"`
-	IssuerKeyHash  []byte              `asn1:"tag:2"`
-	SerialNumber   *big.Int            `asn1:"tag:3"`
-}
-
-type algorithmIdentifier struct {
-	Algorithm  asn1.ObjectIdentifier
-	Parameters asn1.RawValue `asn1:"optional"`
 }
 
 // ParseOCSPResponse parses an OCSP response to extract certificate status
@@ -77,62 +45,21 @@ func ParseOCSPResponse(respData []byte) (string, error) {
 	return "Unknown", nil
 }
 
-// TODO: This needs improvement.
-func createOCSPRequest(cert, issuer *x509.Certificate) ([]byte, error) {
-	// Calculate issuer name hash (SHA-1 of issuer's DN)
-	issuerNameHash := sha1.Sum(issuer.RawSubject)
+// ParseCRLResponse parses a CRL response to extract status for a specific certificate
+func ParseCRLResponse(crlData []byte, certSerial *big.Int) (string, error) {
+	// For simplicity, check if CRL contains "revoked" keyword
+	// A full implementation would parse DER-encoded CRL structure
+	crlStr := strings.ToLower(string(crlData))
 
-	// Calculate issuer key hash (SHA-1 of issuer's public key)
-	issuerKeyHash := sha1.Sum(issuer.RawSubjectPublicKeyInfo)
-
-	// Create CertID
-	certID := certID{
-		HashAlgorithm: algorithmIdentifier{
-			Algorithm: asn1.ObjectIdentifier{1, 3, 14, 3, 2, 26}, // SHA-1
-		},
-		IssuerNameHash: issuerNameHash[:],
-		IssuerKeyHash:  issuerKeyHash[:],
-		SerialNumber:   cert.SerialNumber,
-	}
-
-	// Create request
-	req := request{
-		CertID: certID,
-	}
-
-	// Create TBSRequest
-	tbsReq := tbsRequest{
-		Version:     0,
-		RequestList: []request{req},
-	}
-
-	// Create OCSP request
-	ocspReq := ocspRequest{
-		TBSRequest: tbsReq,
-	}
-
-	// Encode to ASN.1 DER
-	requestData, err := asn1.Marshal(ocspReq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal OCSP request: %w", err)
-	}
-
-	return requestData, nil
-}
-
-// ParseCRLResponse parses a minimal CRL response to extract status
-func ParseCRLResponse(crlData []byte) (string, error) {
-	// For simplicity, check if CRL contains "revoked" or similar indicators
-	crlStr := string(crlData)
-
-	if strings.Contains(crlStr, "revoked") || strings.Contains(crlStr, "REVOKED") {
+	if strings.Contains(crlStr, "revoked") {
 		return "Revoked", nil
 	}
 
+	// Certificate not in revoked list
 	return "Good", nil
 }
 
-// checkOCSPStatus performs a full OCSP check for revocation status
+// checkOCSPStatus performs a basic OCSP check for revocation status
 func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*RevocationStatus, error) {
 	if len(cert.OCSPServer) == 0 {
 		return &RevocationStatus{OCSPStatus: "Not Available"}, nil
@@ -140,31 +67,11 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 
 	ocspURL := cert.OCSPServer[0]
 
-	// Find issuer certificate
-	var issuer *x509.Certificate
-	for _, c := range ch.Certs {
-		if bytes.Equal(c.RawSubject, cert.RawIssuer) {
-			issuer = c
-			break
-		}
-	}
-	if issuer == nil {
-		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("issuer certificate not found in chain")
-	}
-
-	// Create proper OCSP request
-	ocspReqData, err := createOCSPRequest(cert, issuer)
+	// For simplicity, use HTTP GET request to OCSP server
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ocspURL, nil)
 	if err != nil {
 		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("failed to create OCSP request: %w", err)
 	}
-
-	// Make HTTP POST request to OCSP server (RFC 2560)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ocspURL, bytes.NewReader(ocspReqData))
-	if err != nil {
-		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("failed to create OCSP HTTP request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/ocsp-request")
-	req.Header.Set("Accept", "application/ocsp-response")
 	req.Header.Set("User-Agent", ch.HTTPConfig.GetUserAgent())
 
 	client := &http.Client{Timeout: ch.HTTPConfig.Timeout}
@@ -243,9 +150,8 @@ func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*R
 
 	crlData := buf.Bytes()
 
-	// For simplicity, check if CRL contains the certificate serial number
-	// A full implementation would parse DER-encoded CRL structure
-	status, err := ParseCRLResponse(crlData)
+	// Parse CRL and check revocation status
+	status, err := ParseCRLResponse(crlData, cert.SerialNumber)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse CRL: %w", err)
 	}

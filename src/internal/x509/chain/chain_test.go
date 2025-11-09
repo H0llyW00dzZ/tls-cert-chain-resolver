@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"math/big"
 	"runtime"
 	"strings"
 	"testing"
@@ -485,7 +486,9 @@ func TestParseCRLResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := x509chain.ParseCRLResponse(tt.response)
+			// For test purposes, use a dummy serial number
+			dummySerial := big.NewInt(12345)
+			result, err := x509chain.ParseCRLResponse(tt.response, dummySerial)
 			if err != nil {
 				t.Fatalf("ParseCRLResponse() error = %v", err)
 			}
