@@ -518,7 +518,7 @@ func getKeySize(cert *x509.Certificate) int {
 - **JSON escaping tests**: Test special character escaping in JSON output for MCP loggers (see `src/logger/logger_test.go` for examples)
 - **Concurrent testing**: Test concurrent usage with multiple goroutines (see `src/logger/logger_test.go` and `src/internal/helper/gc/reduce_overhead_test.go` for examples)
 - **Certificate analysis testing**: Test AI-powered certificate analysis with embedded system prompts and various analysis types (security, compliance, general)
-- **Revocation status testing**: Test OCSP/CRL revocation checking with multi-endpoint support, caching, and priority logic (OCSP first, then CRL)
+- **Revocation status testing**: Test OCSP/CRL revocation checking with multi-endpoint support, caching, and priority logic (OCSP first, then CRL). Status messages include certificate serial numbers for tracking.
 
 ## For Human Developers
 

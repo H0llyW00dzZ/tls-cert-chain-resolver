@@ -518,7 +518,7 @@ grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\
 grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
 
 # Find AI integration patterns
-grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens", include="*.go")
+grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens\\|handleNoAPIKey\\|convertMessages\\|selectModel\\|prepareMessages\\|buildAPIRequest\\|sendAPIRequest\\|handleAPIError\\|parseStreamingResponse\\|buildSamplingResult", include="*.go")
 
 # Find MCP server builder pattern
 grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")
@@ -530,7 +530,7 @@ grep("handleStatusResource\\|status://server-status", include="*.go")
 grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
 
 # Find revocation checking patterns
-grep("CheckRevocationStatus\\|ParseCRLResponse\\|RevocationStatus\\|OCSPStatus\\|CRLStatus", include="*.go")
+grep("CheckRevocationStatus\\|ParseCRLResponse\\|RevocationStatus\\|OCSPStatus\\|CRLStatus\\|getCachedCRL\\|setCachedCRL\\|tryOCSPServer\\|tryCRLDistributionPoint", include="*.go")
 
 # Find HTTP client configuration
 grep("HTTPConfig\\|Client\\(\\)\\|GetUserAgent", include="*.go")
