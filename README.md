@@ -103,6 +103,10 @@ The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes
 | `fetch_remote_cert` | Retrieve chains directly from TLS endpoints (HTTPS, SMTP, IMAP, etc.) |
 | `analyze_certificate_with_ai` | Delegate structured certificate analysis to a configured LLM |
 
+#### Security considerations
+
+The remote fetcher sets `InsecureSkipVerify` on its TLS dialer so it can capture every handshake certificate without relying on the sandbox trust store. No verification is performed during that session; always validate the returned chain (for example with `VerifyChain`) before treating the endpoint as trusted, since a man-in-the-middle could present an arbitrary certificate set.
+
 Enable the MCP server in `opencode.json` or run manually:
 
 ```bash
