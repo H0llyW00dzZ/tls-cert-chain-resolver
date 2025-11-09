@@ -9,7 +9,9 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"math/big"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -207,8 +209,8 @@ func TestChainOperations(t *testing.T) {
 			name:    "New Chain Creation",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *x509chain.Chain) {
-				if manager.Version != version {
-					t.Errorf("expected version %s, got %s", version, manager.Version)
+				if manager.HTTPConfig.Version != version {
+					t.Errorf("expected version %s, got %s", version, manager.HTTPConfig.Version)
 				}
 
 				if len(manager.Certs) != 1 {
@@ -351,5 +353,139 @@ func TestFetchRemoteChain(t *testing.T) {
 				t.Logf("Certificate %d PEM:\n%s", i+1, pemData)
 			}
 		})
+	}
+}
+
+func TestCheckRevocationStatus(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping revocation status test in short mode")
+	}
+
+	tests := []struct {
+		name           string
+		certPEM        string
+		expectContains []string
+	}{
+		{
+			name:    "Certificate with OCSP and CRL URLs",
+			certPEM: testCertPEM,
+			expectContains: []string{
+				"Revocation Status Check:",
+				"OCSP",
+				"CRL",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			block, _ := pem.Decode([]byte(tt.certPEM))
+			if block == nil {
+				t.Fatal("failed to parse certificate PEM")
+			}
+
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				t.Fatalf("failed to parse certificate: %v", err)
+			}
+
+			manager := x509chain.New(cert, version)
+
+			// Fetch the chain first
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+
+			if err := manager.FetchCertificate(ctx); err != nil {
+				t.Fatalf("FetchCertificate() error = %v", err)
+			}
+
+			// Test revocation status check with longer timeout for network calls
+			revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer revocationCancel()
+
+			result, err := manager.CheckRevocationStatus(revocationCtx)
+			if err != nil {
+				t.Fatalf("CheckRevocationStatus() error = %v", err)
+			}
+
+			// Verify the result contains expected elements
+			for _, expected := range tt.expectContains {
+				if !strings.Contains(result, expected) {
+					t.Errorf("expected result to contain %q, but got:\n%s", expected, result)
+				}
+			}
+
+			t.Logf("Revocation check result:\n%s", result)
+		})
+	}
+}
+
+func TestParseOCSPResponse(t *testing.T) {
+	tests := []struct {
+		name     string
+		response []byte
+		expected string
+	}{
+		{
+			name:     "Good response",
+			response: []byte("This is a good response from OCSP server"),
+			expected: "Good",
+		},
+		{
+			name:     "Revoked response",
+			response: []byte("Certificate has been revoked"),
+			expected: "Revoked",
+		},
+		{
+			name:     "Unknown response",
+			response: []byte("Some other response"),
+			expected: "Unknown",
+		},
+		{
+			name:     "ASN.1 good status (0x00 0x01)",
+			response: []byte{0x00, 0x01},
+			expected: "Good",
+		},
+		{
+			name:     "ASN.1 revoked status (0x00 0x02)",
+			response: []byte{0x00, 0x02},
+			expected: "Revoked",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := x509chain.ParseOCSPResponse(tt.response)
+			if err != nil {
+				t.Fatalf("ParseOCSPResponse() error = %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("ParseOCSPResponse() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestParseCRLResponse(t *testing.T) {
+	// Create a simple test certificate for issuer
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	// Test that function signature works correctly
+	_, err = x509chain.ParseCRLResponse([]byte("invalid"), big.NewInt(12345), cert)
+	if err == nil {
+		t.Error("expected error for invalid CRL data")
+	}
+
+	_, err = x509chain.ParseCRLResponse([]byte{}, big.NewInt(12345), cert)
+	if err == nil {
+		t.Error("expected error for empty CRL data")
 	}
 }

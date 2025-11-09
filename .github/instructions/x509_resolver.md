@@ -37,7 +37,7 @@ The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP ser
 **Key Packages**:
 
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
-- **`src/internal/x509/chain/`** — Certificate chain resolution logic
+- **`src/internal/x509/chain/`** — Certificate chain resolution logic with OCSP/CRL revocation checking
 - **`src/mcp-server/`** — MCP server implementation with certificate tools
 
 ## Available Tools
@@ -135,9 +135,9 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993, intermediate_only=t
 
 ### x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?) - Enterprise Grade
 
-**Purpose**: Perform AI-powered security analysis of certificates
-**Returns**: Comprehensive security assessment with AI-generated insights
-**When to use**: Advanced certificate security auditing and risk assessment
+**Purpose**: Perform AI-powered security analysis of certificates including revocation status
+**Returns**: Comprehensive security assessment with AI-generated insights including OCSP/CRL status
+**When to use**: Advanced certificate security auditing and risk assessment with revocation verification
 
 **Parameters**:
 
@@ -148,12 +148,13 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993, intermediate_only=t
 
 - **`general`**: Comprehensive certificate analysis covering structure, crypto, validity, and recommendations
 - **`security`**: Focused security assessment with risk levels and vulnerability analysis  
-- **`compliance`**: Standards compliance checking against CA/Browser Forum and NIST requirements (verify EKUs against platform expectations)
+- **`compliance`**: Standards compliance checking against CA/Browser Forum and NIST requirements
 
 **Implementation Notes**:
 - Requires bidirectional sampling with `DefaultSamplingHandler` (`src/mcp-server/framework.go:246`) and streams responses using buffer pooling.
-- Uses embedded system prompt from `src/mcp-server/templates/certificate-analysis-system-prompt.md` and requests up to 4096 tokens per analysis.
+- Uses embedded system prompt from `src/mcp-server/templates/certificate-analysis-system-prompt.md` including revocation status analysis.
 - Falls back to showing the prepared certificate context when `X509_AI_APIKEY` is not configured.
+- Includes OCSP/CRL status verification using `CheckRevocationStatus` from `src/internal/x509/chain/revocation.go`.
 
 **Examples**:
 
@@ -166,6 +167,7 @@ x509_resolver_analyze_certificate_with_ai("cert.pem", analysis_type="compliance"
 **AI Analysis Framework**:
 Uses embedded system prompt with structured analysis framework:
 - VALIDATION STATUS: Certificate validity, chain integrity, trust relationships
+- REVOCATION STATUS: OCSP/CRL availability, current revocation status, and recommendations (using `CheckRevocationStatus`)
 - CRYPTOGRAPHIC SECURITY: Algorithm strength, key sizes, quantum resistance
 - COMPLIANCE CHECK: CA/Browser Forum and NIST standards verification
 - RISK ASSESSMENT: Critical/High/Medium/Low risk level assignments

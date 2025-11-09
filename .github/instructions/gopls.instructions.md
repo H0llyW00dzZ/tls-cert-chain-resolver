@@ -23,6 +23,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
   - **`remote.go`** — Context-aware remote TLS chain retrieval (`FetchRemoteChain`)
+  - **`revocation.go`** — OCSP/CRL revocation status checking (`CheckRevocationStatus`, `ParseCRLResponse`)
 - **`src/internal/helper/gc/`** — Memory management utilities
 - **`src/version/`** — Version information
 
@@ -112,6 +113,9 @@ gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis tools
 gopls_go_search("DefaultSamplingHandler") → Find AI sampling implementation
 gopls_go_search("FetchRemoteChain") → Find remote TLS chain retrieval helper (`src/internal/x509/chain/remote.go`)
+gopls_go_search("CheckRevocationStatus") → Find OCSP/CRL revocation checking (`src/internal/x509/chain/revocation.go`)
+gopls_go_search("RevocationStatus") → Find revocation status structures
+gopls_go_search("createOCSPRequest") → Find OCSP request creation functions
 gopls_go_search("CreateMessage") → Find AI message creation functions
 ```
 
@@ -143,7 +147,7 @@ gopls_go_package_api([
 Returns:
 - Public types: Certificate, Chain
 - Public functions: New, Decode, DecodeMultiple, EncodePEM, EncodeDER, FetchRemoteChain
-- Public methods: FetchCertificate, AddRootCA, FilterIntermediates
+- Public methods: FetchCertificate, AddRootCA, FilterIntermediates, CheckRevocationStatus
 ```
 
 ### gopls_go_symbol_references(file, symbol)
@@ -328,18 +332,18 @@ bash("go build -o test-binary ./cmd && ./test-binary --help")
 ### Certificate Encoding/Decoding
 
 ```go
-// Always use x509certs package
-certManager := x509certs.New()
-cert, err := certManager.Decode(data)
-pemData := certManager.EncodePEM(cert)
-```
+// Always use HTTPConfig for HTTP operations in certificate chains
+chain := x509chain.New(cert, version)
+// HTTPConfig automatically provides User-Agent and timeout handling
+// Use chain.HTTPConfig.Client() for all HTTP requests
 
-### Chain Resolution
-
-```go
-// Always pass context and version
+// Always check revocation status after chain resolution
 chain := x509chain.New(cert, version)
 err := chain.FetchCertificate(ctx)
+if err == nil {
+    revocationStatus, _ := chain.CheckRevocationStatus(ctx)
+    // Process revocation status
+}
 ```
 
 ### HTTP Requests with User-Agent
@@ -479,6 +483,24 @@ gopls_go_symbol_references("file.go", "Chain.FetchCertificate")  # ✅
 ### Common MCP Server Patterns
 
 ```go
+# Find context cancellation tests
+grep("context\\.WithCancel\\|ctx\\.Done", include="*_test.go")
+
+# Find table-driven tests
+grep("tests := \\[\\]struct", include="*_test.go")
+
+# Find platform-specific test skips
+grep("runtime\\.GOOS", include="*_test.go")
+
+# Find test cleanup patterns
+grep("t\\.TempDir\\|t\\.Cleanup", include="*_test.go")
+
+# Find JSON escaping tests
+grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
+
+# Find concurrent test patterns
+grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
+
 # Find MCP server tools
 grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert\\|analyze_certificate_with_ai", include="*.go")
 
@@ -502,6 +524,15 @@ grep("handleStatusResource\\|status://server-status", include="*.go")
 
 # Find embedded templates
 grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
+
+# Find revocation checking patterns
+grep("CheckRevocationStatus\\|ParseCRLResponse\\|RevocationStatus\\|OCSPStatus\\|CRLStatus", include="*.go")
+
+# Find HTTP client configuration
+grep("HTTPConfig\\|Client\\(\\)\\|GetUserAgent", include="*.go")
+
+# Find certificate context builders
+grep("buildCertificateContextWithRevocation\\|buildCertificateContext", include="*.go")
 ```
 
 ## Summary
