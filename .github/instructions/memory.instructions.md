@@ -725,6 +725,14 @@ case <-ctx.Done():
 case err := <-result:
     return err
 }
+
+// Always check revocation status after chain resolution
+chain := x509chain.New(cert, version)
+err := chain.FetchCertificate(ctx)
+if err == nil {
+    revocationStatus, _ := chain.CheckRevocationStatus(ctx)
+    // Process revocation status with buffer pooling
+}
 ```
 
 ### Context Cancellation Testing Pattern
