@@ -22,6 +22,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`config.go`** — Configuration management for AI and MCP settings
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
+  - **`cache.go`** — CRL cache implementation with LRU eviction and metrics
   - **`remote.go`** — Context-aware remote TLS chain retrieval (`FetchRemoteChain`)
   - **`revocation.go`** — OCSP/CRL revocation status checking (`CheckRevocationStatus`, `ParseCRLResponse`)
 - **`src/internal/helper/gc/`** — Memory management utilities
@@ -131,6 +132,11 @@ gopls_go_search("appendCertExtensions") → Find certificate extensions appender
 gopls_go_search("appendCAInfo") → Find certificate authority info appenders
 gopls_go_search("appendChainValidationContext") → Find chain validation context appenders
 gopls_go_search("appendSecurityContext") → Find security context appenders
+gopls_go_search("CRLCacheEntry") → Find CRL cache entry structures
+gopls_go_search("CRLCacheConfig") → Find CRL cache configuration
+gopls_go_search("CRLCacheMetrics") → Find CRL cache metrics tracking
+gopls_go_search("isFresh") → Find CRL freshness checking methods
+gopls_go_search("isExpired") → Find CRL expiration checking methods
 ```
 
 ### gopls_go_file_context(file)
