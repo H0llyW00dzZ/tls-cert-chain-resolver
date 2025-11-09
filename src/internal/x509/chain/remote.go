@@ -21,19 +21,31 @@ import (
 // download additional intermediates if necessary.
 func FetchRemoteChain(ctx context.Context, hostname string, port int, timeout time.Duration, version string) (*Chain, []*x509.Certificate, error) {
 	// Establish TLS connection to get certificate chain
-	dialer := &net.Dialer{Timeout: timeout}
+	netDialer := &net.Dialer{Timeout: timeout}
 
 	if deadline, ok := ctx.Deadline(); ok {
-		dialer.Deadline = deadline
+		netDialer.Deadline = deadline
 	}
 
-	conn, err := tls.DialWithDialer(dialer, "tcp", fmt.Sprintf("%s:%d", hostname, port),
-		// We just want the cert chain, not to verify
-		&tls.Config{InsecureSkipVerify: true})
+	tlsDialer := &tls.Dialer{
+		NetDialer: netDialer,
+		Config: &tls.Config{
+			InsecureSkipVerify: true,
+			ServerName:         hostname,
+		},
+	}
+
+	conn, err := tlsDialer.DialContext(ctx, "tcp", fmt.Sprintf("%s:%d", hostname, port))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to connect to %s:%d: %w", hostname, port, err)
 	}
-	defer conn.Close()
+
+	tlsConn, ok := conn.(*tls.Conn)
+	if !ok {
+		conn.Close()
+		return nil, nil, fmt.Errorf("unexpected connection type %T", conn)
+	}
+	defer tlsConn.Close()
 
 	select {
 	case <-ctx.Done():
@@ -42,15 +54,18 @@ func FetchRemoteChain(ctx context.Context, hostname string, port int, timeout ti
 	}
 
 	// Get the certificate chain from the connection
-	peerCerts := conn.ConnectionState().PeerCertificates
+	peerCerts := tlsConn.ConnectionState().PeerCertificates
 	if len(peerCerts) == 0 {
 		return nil, nil, fmt.Errorf("no certificates received from server")
 	}
 
-	chain := New(peerCerts[0], version)
-	if len(peerCerts) > 1 {
-		chain.Certs = append(chain.Certs, peerCerts[1:]...)
+	copiedCerts := make([]*x509.Certificate, len(peerCerts))
+	copy(copiedCerts, peerCerts)
+
+	chain := New(copiedCerts[0], version)
+	if len(copiedCerts) > 1 {
+		chain.Certs = append(chain.Certs, copiedCerts[1:]...)
 	}
 
-	return chain, peerCerts, nil
+	return chain, copiedCerts, nil
 }

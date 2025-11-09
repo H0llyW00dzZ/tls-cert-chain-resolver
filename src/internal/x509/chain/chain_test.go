@@ -273,3 +273,79 @@ func TestChain_ContextCancellation(t *testing.T) {
 		t.Error("expected error from cancelled context")
 	}
 }
+
+func TestFetchRemoteChain(t *testing.T) {
+	tests := []struct {
+		name        string
+		hostname    string
+		port        int
+		timeout     time.Duration
+		expectError bool
+	}{
+		{
+			name:        "Valid hostname - www.google.com",
+			hostname:    "www.google.com",
+			port:        443,
+			timeout:     10 * time.Second,
+			expectError: false,
+		},
+		{
+			name:        "Invalid hostname",
+			hostname:    "invalid.hostname.that.does.not.exist.example",
+			port:        443,
+			timeout:     5 * time.Second,
+			expectError: true,
+		},
+		{
+			name:        "Invalid port",
+			hostname:    "www.google.com",
+			port:        9999, // Invalid port
+			timeout:     5 * time.Second,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			defer cancel()
+
+			chain, certs, err := x509chain.FetchRemoteChain(ctx, tt.hostname, tt.port, tt.timeout, version)
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("FetchRemoteChain() error = %v", err)
+			}
+
+			if chain == nil {
+				t.Error("expected chain to be non-nil")
+			}
+
+			if len(certs) == 0 {
+				t.Error("expected at least one certificate")
+			}
+
+			if len(chain.Certs) == 0 {
+				t.Error("expected chain to contain certificates")
+			}
+
+			// Verify the first certificate in the chain matches the returned certs
+			if !chain.Certs[0].Equal(certs[0]) {
+				t.Error("expected first certificate in chain to match first returned cert")
+			}
+
+			decoder := x509certs.New()
+			for i, cert := range certs {
+				t.Logf("Certificate %d Subject: %s", i+1, cert.Subject.CommonName)
+				pemData := decoder.EncodePEM(cert)
+				t.Logf("Certificate %d PEM:\n%s", i+1, pemData)
+			}
+		})
+	}
+}
