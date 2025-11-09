@@ -299,7 +299,7 @@ func TestFetchRemoteChain(t *testing.T) {
 		{
 			name:        "Invalid port",
 			hostname:    "www.google.com",
-			port:        9999, // Invalid port
+			port:        9999,
 			timeout:     5 * time.Second,
 			expectError: true,
 		},

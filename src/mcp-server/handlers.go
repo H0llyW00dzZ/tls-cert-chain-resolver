@@ -13,6 +13,7 @@ import (
 	"embed"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -295,8 +296,10 @@ func handleFetchRemoteCert(ctx context.Context, request mcp.CallToolRequest, con
 
 	// Fetch any additional certificates if needed
 	if err := chain.FetchCertificate(ctx); err != nil {
-		// This might fail if intermediates are already complete, which is ok
-		// We'll proceed with what we have
+		var unknownAuthority *x509.UnknownAuthorityError
+		if !errors.As(err, &unknownAuthority) {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to fetch additional certificates: %v", err)), nil
+		}
 	}
 
 	// Optionally add system root CA

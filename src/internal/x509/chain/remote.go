@@ -48,6 +48,14 @@ func FetchRemoteChain(ctx context.Context, hostname string, port int, timeout ti
 	}
 	defer tlsConn.Close()
 
+	if err := tlsConn.HandshakeContext(ctx); err != nil {
+		return nil, nil, fmt.Errorf("TLS handshake failed for %s:%d: %w", hostname, port, err)
+	}
+
+	if err := tlsConn.VerifyHostname(hostname); err != nil {
+		return nil, nil, fmt.Errorf("hostname verification failed for %s:%d: %w", hostname, port, err)
+	}
+
 	select {
 	case <-ctx.Done():
 		return nil, nil, ctx.Err()
