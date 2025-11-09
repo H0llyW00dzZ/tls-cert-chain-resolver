@@ -26,6 +26,7 @@ Test the current agent capabilities based on instructions and tools, including M
    - **Validate Chain**: Call `x509_resolver_validate_cert_chain("test-output-bundle.pem")` to confirm trust evaluation works
    - **Check Expiry**: Call `x509_resolver_check_cert_expiry("test-output-bundle.pem", warn_days=30)` to verify expiry reporting
    - **AI Analysis**: Call `x509_resolver_analyze_certificate_with_ai("test-output-bundle.pem", analysis_type="security")` to ensure AI-assisted auditing functions; capture and report streaming output
+   - **Cleanup**: Delete `test-output-bundle.pem` after the tests finish so the repository stays clean
 
 4. **Test Built-in Tools**:
    - **Filesystem Listing**: Call `list("/home/h0llyw00dzz/Workspace/git/tls-cert-chain-resolver/src")` to verify directory access
