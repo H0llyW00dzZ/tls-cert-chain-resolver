@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+	"strconv"
 	"time"
 )
 
@@ -35,7 +36,7 @@ func FetchRemoteChain(ctx context.Context, hostname string, port int, timeout ti
 		},
 	}
 
-	conn, err := tlsDialer.DialContext(ctx, "tcp", fmt.Sprintf("%s:%d", hostname, port))
+	conn, err := tlsDialer.DialContext(ctx, "tcp", net.JoinHostPort(hostname, strconv.Itoa(port)))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to connect to %s:%d: %w", hostname, port, err)
 	}
