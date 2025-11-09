@@ -72,14 +72,17 @@ func init() {
 
 // SetCRLCacheConfig sets the CRL cache configuration
 func SetCRLCacheConfig(config *CRLCacheConfig) {
+	var configCopy *CRLCacheConfig
 	if config == nil {
-		config = &defaultCRLCacheConfig
-	}
-
-	// Validate configuration - work on a copy to avoid mutating caller's struct
-	configCopy := &CRLCacheConfig{
-		MaxSize:         config.MaxSize,
-		CleanupInterval: config.CleanupInterval,
+		configCopy = &CRLCacheConfig{
+			MaxSize:         defaultCRLCacheConfig.MaxSize,
+			CleanupInterval: defaultCRLCacheConfig.CleanupInterval,
+		}
+	} else {
+		configCopy = &CRLCacheConfig{
+			MaxSize:         config.MaxSize,
+			CleanupInterval: config.CleanupInterval,
+		}
 	}
 
 	// Validate configuration
