@@ -972,6 +972,9 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 			context.WriteString(fmt.Sprintf("  OCSP Servers: %s\n", strings.Join(cert.OCSPServer, ", ")))
 		}
 
+		// Serial Number for revocation tracking (duplicate but explicit for AI context)
+		context.WriteString(fmt.Sprintf("  Serial Number: %s\n", cert.SerialNumber.String()))
+
 		context.WriteString("\n")
 	}
 
