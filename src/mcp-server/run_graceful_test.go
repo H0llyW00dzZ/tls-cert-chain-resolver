@@ -18,7 +18,7 @@ func TestRun_GracefulShutdown(t *testing.T) {
 	// Run the server in a goroutine
 	done := make(chan error, 1)
 	go func() {
-		done <- Run()
+		done <- Run("1.0.0-test")
 	}()
 
 	// Give it time to start
