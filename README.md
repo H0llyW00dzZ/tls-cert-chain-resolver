@@ -23,9 +23,9 @@ TLS Cert Chain Resolver is a Go toolkit for building, validating, and inspecting
 - [Development](#development)
   - [Testing](#testing)
   - [Project Layout](#project-layout)
-- [TODO List](#todo-list)
+  - [TODO List](#todo-list)
   - [MCP Integration Enhancements](#mcp-integration-enhancements)
-    - [Completed](#✅-completed)
+    - [Completed](#completed)
     - [Remaining (Low Priority)](#remaining-low-priority)
     - [X.509 Operations Roadmap](#x509-operations-roadmap)
 - [Motivation](#motivation)
@@ -198,7 +198,8 @@ src/
 
 #### MCP Integration Enhancements
 
-##### ✅ Completed
+##### Completed Tasks
+
 - [x] Create standalone MCP server binary in `src/mcp-server/`
 - [x] Add configuration file support for MCP server settings
 - [x] Add MCP server tests with mock certificate data
@@ -213,12 +214,14 @@ src/
 - [x] **Implement bidirectional AI communication** via MCP sampling (servers can request LLM completions from clients)
 
 ##### Remaining (Low Priority)
+
 - [ ] Add metrics and logging for MCP server operations
 - [ ] Maintain compatibility with `github.com/mark3labs/mcp-go` (ongoing)
 - [ ] Create abstraction layer for both MCP libraries
 - [ ] Document differences and use cases for each library
 
 ##### X.509 Operations Roadmap
+
 - [ ] Implement streaming support for large certificate chains
 - [ ] Add OCSP/CRL revocation status checks to MCP tools
 
