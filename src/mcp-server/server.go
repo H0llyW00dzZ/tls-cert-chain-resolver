@@ -23,9 +23,14 @@ import (
 
 var appVersion = version.Version // default version
 
+// GetVersion returns the current version of the MCP server
+func GetVersion() string {
+	return appVersion
+}
+
 // Run starts the MCP server with X509 certificate chain resolution tools.
 // It loads configuration from the MCP_X509_CONFIG_FILE environment variable.
-func Run() error {
+func Run(version string) error {
 	// Load configuration
 	config, err := loadConfig(os.Getenv("MCP_X509_CONFIG_FILE"))
 	if err != nil {
@@ -48,10 +53,10 @@ func Run() error {
 	s, err := NewServerBuilder().
 		WithConfig(config).
 		WithEmbed(MagicEmbed).
-		WithVersion(appVersion).
+		WithVersion(version).
 		WithCertManager(x509certs.New()).
 		WithChainResolver(DefaultChainResolver{}).
-		WithSampling(NewDefaultSamplingHandler(config, appVersion)).
+		WithSampling(NewDefaultSamplingHandler(config, version)).
 		WithDefaultTools().
 		WithResources(createResources()...).
 		WithPrompts(createPrompts()...).

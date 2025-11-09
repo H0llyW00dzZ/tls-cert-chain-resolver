@@ -463,7 +463,7 @@ func TestRun_InvalidConfig(t *testing.T) {
 	defer os.Unsetenv("MCP_X509_CONFIG_FILE")
 
 	// Run should return an error due to invalid config file
-	err := Run()
+	err := Run("1.0.0-test")
 	if err == nil {
 		t.Error("expected Run() to return an error with invalid config file")
 	}

@@ -9,11 +9,19 @@ import (
 	"fmt"
 	"os"
 
-	mcpserver "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"
 )
 
+var version string // set by ldflags or defaults to imported version
+
+func init() {
+	if version == "" {
+		version = mcpserver.GetVersion()
+	}
+}
+
 func main() {
-	if err := mcpserver.Run(); err != nil {
+	if err := mcpserver.Run(version); err != nil {
 		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 		os.Exit(1)
 	}
