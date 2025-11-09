@@ -1078,33 +1078,27 @@ func getKeySize(cert *x509.Certificate) int {
 
 // formatKeyUsage converts KeyUsage flags to readable string
 func formatKeyUsage(usage x509.KeyUsage) string {
+	// Ordered slice of KeyUsage flags to maintain consistent output order
+	keyUsageFlags := []struct {
+		flag x509.KeyUsage
+		desc string
+	}{
+		{x509.KeyUsageDigitalSignature, "Digital Signature"},
+		{x509.KeyUsageContentCommitment, "Content Commitment"},
+		{x509.KeyUsageKeyEncipherment, "Key Encipherment"},
+		{x509.KeyUsageDataEncipherment, "Data Encipherment"},
+		{x509.KeyUsageKeyAgreement, "Key Agreement"},
+		{x509.KeyUsageCertSign, "Certificate Signing"},
+		{x509.KeyUsageCRLSign, "CRL Signing"},
+		{x509.KeyUsageEncipherOnly, "Encipher Only"},
+		{x509.KeyUsageDecipherOnly, "Decipher Only"},
+	}
+
 	var usages []string
-	if usage&x509.KeyUsageDigitalSignature != 0 {
-		usages = append(usages, "Digital Signature")
-	}
-	if usage&x509.KeyUsageContentCommitment != 0 {
-		usages = append(usages, "Content Commitment")
-	}
-	if usage&x509.KeyUsageKeyEncipherment != 0 {
-		usages = append(usages, "Key Encipherment")
-	}
-	if usage&x509.KeyUsageDataEncipherment != 0 {
-		usages = append(usages, "Data Encipherment")
-	}
-	if usage&x509.KeyUsageKeyAgreement != 0 {
-		usages = append(usages, "Key Agreement")
-	}
-	if usage&x509.KeyUsageCertSign != 0 {
-		usages = append(usages, "Certificate Signing")
-	}
-	if usage&x509.KeyUsageCRLSign != 0 {
-		usages = append(usages, "CRL Signing")
-	}
-	if usage&x509.KeyUsageEncipherOnly != 0 {
-		usages = append(usages, "Encipher Only")
-	}
-	if usage&x509.KeyUsageDecipherOnly != 0 {
-		usages = append(usages, "Decipher Only")
+	for _, item := range keyUsageFlags {
+		if usage&item.flag != 0 {
+			usages = append(usages, item.desc)
+		}
 	}
 	return strings.Join(usages, ", ")
 }
