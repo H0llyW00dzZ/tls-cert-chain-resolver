@@ -364,7 +364,7 @@ func (h *DefaultSamplingHandler) buildAPIRequest(model string, messages []map[st
 }
 
 // sendAPIRequest creates and sends the HTTP request
-func (h *DefaultSamplingHandler) sendAPIRequest(ctx context.Context, apiRequest map[string]any, buf gc.Buffer) (*http.Response, error) {
+func (h *DefaultSamplingHandler) sendAPIRequest(ctx context.Context, apiRequest map[string]any, _ gc.Buffer) (*http.Response, error) {
 	// Marshal request to JSON
 	reqBody, err := json.Marshal(apiRequest)
 	if err != nil {

@@ -205,3 +205,20 @@ func (ch *Chain) VerifyChain() error {
 
 	return nil
 }
+
+// findIssuerForCertificate finds the certificate that issued the given cert in the chain
+func (ch *Chain) findIssuerForCertificate(cert *x509.Certificate) *x509.Certificate {
+	// For each certificate in the chain (starting from intermediates up)
+	for i := len(ch.Certs) - 1; i >= 0; i-- {
+		potentialIssuer := ch.Certs[i]
+		// Skip self
+		if potentialIssuer == cert {
+			continue
+		}
+		// Check if this cert could have issued our cert
+		if err := cert.CheckSignatureFrom(potentialIssuer); err == nil {
+			return potentialIssuer
+		}
+	}
+	return nil
+}

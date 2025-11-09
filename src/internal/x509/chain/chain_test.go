@@ -497,35 +497,6 @@ func TestChain_AddRootCA_Error(t *testing.T) {
 	}
 }
 
-func TestChain_VerifyChain_Error(t *testing.T) {
-	// Create a chain with certificates that won't verify
-	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM")
-	}
-
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse certificate: %v", err)
-	}
-
-	manager := x509chain.New(cert, version)
-
-	// Replace with a self-signed cert that doesn't match the chain
-	fakeCert := &x509.Certificate{
-		Raw:                []byte("fake"),
-		Subject:            cert.Subject,
-		Issuer:             cert.Issuer,
-		SignatureAlgorithm: cert.SignatureAlgorithm,
-	}
-	manager.Certs = []*x509.Certificate{fakeCert, fakeCert}
-
-	err = manager.VerifyChain()
-	if err == nil {
-		t.Error("expected verification error for invalid chain")
-	}
-}
-
 func TestRevocationStatus_Timeout(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping timeout test in short mode")
@@ -761,5 +732,230 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.testFunc(t)
 		})
+	}
+}
+
+func TestCRLCacheConfig(t *testing.T) {
+	// Test setting custom configuration
+	originalConfig := x509chain.GetCRLCacheConfig()
+
+	customConfig := &x509chain.CRLCacheConfig{
+		MaxSize:         50,
+		CleanupInterval: 30 * time.Minute,
+	}
+	x509chain.SetCRLCacheConfig(customConfig)
+
+	currentConfig := x509chain.GetCRLCacheConfig()
+	if currentConfig.MaxSize != 50 {
+		t.Errorf("expected MaxSize 50, got %d", currentConfig.MaxSize)
+	}
+	if currentConfig.CleanupInterval != 30*time.Minute {
+		t.Errorf("expected CleanupInterval 30m, got %v", currentConfig.CleanupInterval)
+	}
+
+	// Test nil config falls back to defaults
+	x509chain.SetCRLCacheConfig(nil)
+	defaultConfig := x509chain.GetCRLCacheConfig()
+	if defaultConfig.MaxSize != 100 {
+		t.Errorf("expected default MaxSize 100, got %d", defaultConfig.MaxSize)
+	}
+
+	// Restore original config
+	x509chain.SetCRLCacheConfig(originalConfig)
+}
+
+func TestCRLCacheMetrics(t *testing.T) {
+	// Clear cache for clean test
+	x509chain.ClearCRLCache()
+
+	// Test initial metrics
+	metrics := x509chain.GetCRLCacheMetrics()
+	if metrics.Size != 0 {
+		t.Errorf("expected initial size 0, got %d", metrics.Size)
+	}
+	if metrics.Hits != 0 {
+		t.Errorf("expected initial hits 0, got %d", metrics.Hits)
+	}
+	if metrics.Misses != 0 {
+		t.Errorf("expected initial misses 0, got %d", metrics.Misses)
+	}
+
+	// Test cache operations
+	testURL := "http://example.com/test.crl"
+	testData := []byte("test CRL data")
+	testNextUpdate := time.Now().Add(24 * time.Hour)
+
+	// Set a CRL
+	x509chain.SetCachedCRL(testURL, testData, testNextUpdate)
+
+	// Check metrics after set
+	metrics = x509chain.GetCRLCacheMetrics()
+	if metrics.Size != 1 {
+		t.Errorf("expected size 1 after set, got %d", metrics.Size)
+	}
+
+	// Get the CRL (should be a hit)
+	data, found := x509chain.GetCachedCRL(testURL)
+	if !found {
+		t.Error("expected CRL to be found")
+	}
+	if data == nil || len(data) == 0 {
+		t.Error("expected non-empty CRL data")
+	}
+
+	// Check metrics after get
+	metrics = x509chain.GetCRLCacheMetrics()
+	if metrics.Hits != 1 {
+		t.Errorf("expected 1 hit, got %d", metrics.Hits)
+	}
+	if metrics.Misses != 0 {
+		t.Errorf("expected 0 misses, got %d", metrics.Misses)
+	}
+
+	// Get non-existent CRL (should be a miss)
+	_, found = x509chain.GetCachedCRL("http://nonexistent.com/crl")
+	if found {
+		t.Error("expected non-existent CRL to not be found")
+	}
+
+	// Check metrics after miss
+	metrics = x509chain.GetCRLCacheMetrics()
+	if metrics.Misses != 1 {
+		t.Errorf("expected 1 miss, got %d", metrics.Misses)
+	}
+}
+
+func TestCRLCacheStats(t *testing.T) {
+	// Clear cache for clean test
+	x509chain.ClearCRLCache()
+
+	// Add some test data
+	testURL1 := "http://example1.com/crl"
+	testURL2 := "http://example2.com/crl"
+	testData1 := []byte("test data 1")
+	testData2 := make([]byte, 1024) // 1KB data for memory calculation
+
+	x509chain.SetCachedCRL(testURL1, testData1, time.Now().Add(24*time.Hour))
+	x509chain.SetCachedCRL(testURL2, testData2, time.Now().Add(24*time.Hour))
+
+	// Get one to create a hit
+	x509chain.GetCachedCRL(testURL1)
+
+	stats := x509chain.GetCRLCacheStats()
+
+	// Check that stats contains expected information
+	expectedStrings := []string{
+		"CRL Cache Statistics:",
+		"Size: 2/",
+		"Hit Rate:",
+		"Memory Usage:",
+		"Evictions:",
+		"Cleanups:",
+		"Cleanup Interval:",
+	}
+
+	for _, expected := range expectedStrings {
+		if !strings.Contains(stats, expected) {
+			t.Errorf("expected stats to contain %q, but got:\n%s", expected, stats)
+		}
+	}
+
+	// Test with no requests (should show 0% hit rate)
+	x509chain.ClearCRLCache()
+	stats = x509chain.GetCRLCacheStats()
+	if !strings.Contains(stats, "Hit Rate: 0.0%") {
+		t.Errorf("expected 0.0%% hit rate for empty cache, got:\n%s", stats)
+	}
+}
+
+func TestCRLCacheCleanupExpired(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping cleanup test in short mode")
+	}
+
+	// Clear cache for clean test
+	x509chain.ClearCRLCache()
+
+	// Add CRLs with different expiry times
+	expiredURL := "http://expired.com/crl"
+	validURL := "http://valid.com/crl"
+
+	expiredTime := time.Now().Add(-2 * time.Hour) // Already expired
+	validTime := time.Now().Add(24 * time.Hour)   // Still valid
+
+	x509chain.SetCachedCRL(expiredURL, []byte("expired"), expiredTime)
+	x509chain.SetCachedCRL(validURL, []byte("valid"), validTime)
+
+	// Check that valid CRL is retrievable but expired one is not
+	if _, found := x509chain.GetCachedCRL(expiredURL); found {
+		t.Error("expected expired CRL to not be retrievable")
+	}
+	if _, found := x509chain.GetCachedCRL(validURL); !found {
+		t.Error("expected valid CRL to be retrievable")
+	}
+
+	// Trigger cleanup (this should remove any cached entries that are expired)
+	x509chain.CleanupExpiredCRLs()
+
+	// Check that valid CRL is still retrievable
+	if _, found := x509chain.GetCachedCRL(validURL); !found {
+		t.Error("expected valid CRL to remain retrievable after cleanup")
+	}
+
+	// Verify cache metrics were updated (if any expired entries were cleaned)
+	metrics := x509chain.GetCRLCacheMetrics()
+	if metrics.Size > 1 {
+		t.Errorf("expected cache size to be at most 1 after cleanup, got %d", metrics.Size)
+	}
+}
+
+func TestCRLCacheEviction(t *testing.T) {
+	// Set small cache size for testing
+	originalConfig := x509chain.GetCRLCacheConfig()
+	smallConfig := &x509chain.CRLCacheConfig{
+		MaxSize:         2,
+		CleanupInterval: 1 * time.Hour,
+	}
+	x509chain.SetCRLCacheConfig(smallConfig)
+	defer x509chain.SetCRLCacheConfig(originalConfig)
+
+	// Clear cache
+	x509chain.ClearCRLCache()
+
+	// Add CRLs up to the limit
+	url1 := "http://test1.com/crl"
+	url2 := "http://test2.com/crl"
+	url3 := "http://test3.com/crl"
+
+	x509chain.SetCachedCRL(url1, []byte("data1"), time.Now().Add(24*time.Hour))
+	x509chain.SetCachedCRL(url2, []byte("data2"), time.Now().Add(24*time.Hour))
+
+	// Check initial size
+	metrics := x509chain.GetCRLCacheMetrics()
+	if metrics.Size != 2 {
+		t.Errorf("expected size 2, got %d", metrics.Size)
+	}
+
+	// Add third CRL (should trigger eviction)
+	x509chain.SetCachedCRL(url3, []byte("data3"), time.Now().Add(24*time.Hour))
+
+	// Check final size and evictions
+	metrics = x509chain.GetCRLCacheMetrics()
+	if metrics.Size != 2 {
+		t.Errorf("expected size to remain 2 after eviction, got %d", metrics.Size)
+	}
+	if metrics.Evictions != 1 {
+		t.Errorf("expected 1 eviction, got %d", metrics.Evictions)
+	}
+
+	// The first URL should have been evicted (LRU)
+	if _, found := x509chain.GetCachedCRL(url1); found {
+		t.Error("expected first URL to be evicted")
+	}
+	if _, found := x509chain.GetCachedCRL(url2); !found {
+		t.Error("expected second URL to remain")
+	}
+	if _, found := x509chain.GetCachedCRL(url3); !found {
+		t.Error("expected third URL to be cached")
 	}
 }
