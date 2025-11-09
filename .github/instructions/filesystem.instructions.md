@@ -47,7 +47,8 @@ tls-cert-chain-resolver/
 │   │       │   └── certs.go                  # Certificate encoding/decoding
 │   │       └── chain/
 │   │           ├── chain.go                  # Chain resolution logic
-│   │           └── chain_test.go             # Chain tests
+│   │           ├── chain_test.go             # Chain tests
+│   │           └── remote.go                 # Context-aware remote TLS chain fetcher
 │   ├── logger/
 │   │   ├── benchmark_test.go                 # Logger benchmarks
 │   │   ├── logger.go                         # Logger abstraction (CLI/MCP, thread-safe with bytebufferpool)
@@ -642,6 +643,7 @@ src/internal/x509/certs/cert_test.go
 # Chain resolution
 src/internal/x509/chain/chain.go
 src/internal/x509/chain/chain_test.go
+src/internal/x509/chain/remote.go  # Context-aware remote TLS chain helper
 
 # Helper utilities (buffer pool abstraction)
 src/internal/helper/gc/reduce_overhead.go
@@ -689,6 +691,9 @@ glob(".opencode/command/*.md")
 
 # Find chain methods
 grep("func (c \\*Chain)", include="*.go")
+
+# Find remote chain fetching
+grep("FetchRemoteChain", include="*.go")
 
 # Find logger usage
 grep("logger\\.Logger", include="*.go")
