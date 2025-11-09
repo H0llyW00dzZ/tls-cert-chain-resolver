@@ -293,6 +293,7 @@ func handleFetchRemoteCert(ctx context.Context, request mcp.CallToolRequest, con
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
+	// Fetch any additional certificates if needed
 	if err := chain.FetchCertificate(ctx); err != nil {
 		// This might fail if intermediates are already complete, which is ok
 		// We'll proceed with what we have
