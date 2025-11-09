@@ -31,8 +31,6 @@ TLS Cert Chain Resolver is a Go toolkit for building, validating, and inspecting
 - [Motivation](#motivation)
 - [License](#license)
 
----
-
 ## Features
 
 - Deterministic TLS certificate chain resolution with optional system trust roots
