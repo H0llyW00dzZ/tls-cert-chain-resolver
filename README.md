@@ -217,6 +217,7 @@ src/
 - [x] Create MCP server configuration examples
 - [x] Add troubleshooting guide for MCP integration
 - [x] **Implement bidirectional AI communication** via MCP sampling (servers can request LLM completions from clients)
+- [x] Add OCSP/CRL revocation status checks to MCP tools
 
 ##### Remaining (Low Priority)
 
