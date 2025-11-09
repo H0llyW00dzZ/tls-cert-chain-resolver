@@ -51,7 +51,7 @@ type CRLCacheMetrics struct {
 }
 
 // Default CRL cache configuration
-var defaultCRLCacheConfig = &CRLCacheConfig{
+var defaultCRLCacheConfig = CRLCacheConfig{
 	MaxSize:         100,
 	CleanupInterval: 1 * time.Hour,
 }
@@ -66,30 +66,45 @@ var crlCacheCleanupRunning int32 // Atomic flag to ensure only one cleanup gorou
 
 // init initializes the CRL cache with default configuration
 func init() {
-	crlCacheConfig.Store(defaultCRLCacheConfig)
+	crlCacheConfig.Store(&defaultCRLCacheConfig)
 	startCRLCacheCleanup()
 }
 
 // SetCRLCacheConfig sets the CRL cache configuration
 func SetCRLCacheConfig(config *CRLCacheConfig) {
+	var configCopy *CRLCacheConfig
 	if config == nil {
-		config = defaultCRLCacheConfig
+		configCopy = &CRLCacheConfig{
+			MaxSize:         defaultCRLCacheConfig.MaxSize,
+			CleanupInterval: defaultCRLCacheConfig.CleanupInterval,
+		}
+	} else {
+		configCopy = &CRLCacheConfig{
+			MaxSize:         config.MaxSize,
+			CleanupInterval: config.CleanupInterval,
+		}
 	}
 
 	// Validate configuration
-	if config.MaxSize < 0 {
-		config.MaxSize = 0 // 0 means unlimited, but not recommended
+	if configCopy.MaxSize < 0 {
+		configCopy.MaxSize = 0 // 0 means unlimited, but not recommended
 	}
-	if config.CleanupInterval <= 0 {
-		config.CleanupInterval = 1 * time.Hour
+	if configCopy.CleanupInterval <= 0 {
+		configCopy.CleanupInterval = 1 * time.Hour
 	}
 
-	crlCacheConfig.Store(config)
+	// Store a copy to prevent external mutation
+	crlCacheConfig.Store(configCopy)
 }
 
 // GetCRLCacheConfig returns the current CRL cache configuration
 func GetCRLCacheConfig() *CRLCacheConfig {
-	return crlCacheConfig.Load().(*CRLCacheConfig)
+	config := crlCacheConfig.Load().(*CRLCacheConfig)
+	// Return a copy to prevent external mutation
+	return &CRLCacheConfig{
+		MaxSize:         config.MaxSize,
+		CleanupInterval: config.CleanupInterval,
+	}
 }
 
 // GetCRLCacheMetrics returns current cache metrics

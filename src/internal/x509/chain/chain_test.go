@@ -497,6 +497,35 @@ func TestChain_AddRootCA_Error(t *testing.T) {
 	}
 }
 
+func TestChain_VerifyChain_Error(t *testing.T) {
+	// Create a chain with certificates that won't verify
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	manager := x509chain.New(cert, version)
+
+	// Replace with a self-signed cert that doesn't match the chain
+	fakeCert := &x509.Certificate{
+		Raw:                []byte("fake"),
+		Subject:            cert.Subject,
+		Issuer:             cert.Issuer,
+		SignatureAlgorithm: cert.SignatureAlgorithm,
+	}
+	manager.Certs = []*x509.Certificate{fakeCert, fakeCert}
+
+	err = manager.VerifyChain()
+	if err == nil {
+		t.Error("expected verification error for invalid chain")
+	}
+}
+
 func TestRevocationStatus_Timeout(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping timeout test in short mode")
