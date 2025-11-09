@@ -224,7 +224,7 @@ src/
 
 ## Motivation
 
-TLS Cert Chain Resolver is inspired by the unmaintained `zakjan/cert-chain-resolver` project. This repository aims to provide an actively maintained, memory-conscious implementation with modern tooling support (CLI + MCP + AI sampling).
+TLS Cert Chain Resolver is inspired by the unmaintained [`zakjan/cert-chain-resolver`](https://github.com/zakjan/cert-chain-resolver.git) project. This repository aims to provide an actively maintained, memory-conscious implementation with modern tooling support (CLI + MCP + AI sampling).
 
 ## License
 
