@@ -228,4 +228,4 @@ TLS Cert Chain Resolver is inspired by the unmaintained [`zakjan/cert-chain-reso
 
 ## License
 
-Licensed under the BSD 3-Clause License. See [LICENSE](LICENSE).
+Licensed under the [BSD 3-Clause License](https://grokipedia.com/page/BSD_licenses#3-clause-license-bsd-license-20-revised-bsd-license-new-bsd-license-or-modified-bsd-license). See [LICENSE](LICENSE).
