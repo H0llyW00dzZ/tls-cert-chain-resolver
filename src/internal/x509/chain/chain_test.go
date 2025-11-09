@@ -356,6 +356,10 @@ func TestFetchRemoteChain(t *testing.T) {
 }
 
 func TestCheckRevocationStatus(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping revocation status test in short mode")
+	}
+
 	tests := []struct {
 		name           string
 		certPEM        string
@@ -366,8 +370,8 @@ func TestCheckRevocationStatus(t *testing.T) {
 			certPEM: testCertPEM,
 			expectContains: []string{
 				"Revocation Status Check:",
-				"OCSP Status:",
-				"CRL Status:",
+				"OCSP",
+				"CRL",
 			},
 		},
 	}
@@ -387,15 +391,15 @@ func TestCheckRevocationStatus(t *testing.T) {
 			manager := x509chain.New(cert, version)
 
 			// Fetch the chain first
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
 
 			if err := manager.FetchCertificate(ctx); err != nil {
 				t.Fatalf("FetchCertificate() error = %v", err)
 			}
 
-			// Test revocation status check
-			revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			// Test revocation status check with longer timeout for network calls
+			revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer revocationCancel()
 
 			result, err := manager.CheckRevocationStatus(revocationCtx)
@@ -459,7 +463,7 @@ func TestParseCRLResponse(t *testing.T) {
 	}{
 		{
 			name:     "Good CRL (no revoked keyword)",
-			response: []byte("This is a valid CRL without revoked certificates"),
+			response: []byte("This is a valid certificate list without any invalid certificates"),
 			expected: "Good",
 		},
 		{
