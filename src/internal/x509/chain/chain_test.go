@@ -799,7 +799,7 @@ func TestCRLCacheMetrics(t *testing.T) {
 	if !found {
 		t.Error("expected CRL to be found")
 	}
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		t.Error("expected non-empty CRL data")
 	}
 
