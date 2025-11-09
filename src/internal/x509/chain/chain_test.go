@@ -208,8 +208,8 @@ func TestChainOperations(t *testing.T) {
 			name:    "New Chain Creation",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *x509chain.Chain) {
-				if manager.Version != version {
-					t.Errorf("expected version %s, got %s", version, manager.Version)
+				if manager.HTTPConfig.Version != version {
+					t.Errorf("expected version %s, got %s", version, manager.HTTPConfig.Version)
 				}
 
 				if len(manager.Certs) != 1 {

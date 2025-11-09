@@ -8,11 +8,37 @@ package x509chain
 import (
 	"context"
 	"crypto/x509"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 )
+
+// HTTPConfig holds HTTP client configuration for certificate operations
+type HTTPConfig struct {
+	Timeout   time.Duration // HTTP request timeout
+	Version   string        // Application version for User-Agent
+	UserAgent string        // Custom User-Agent string, if empty will be constructed from Version
+}
+
+// NewHTTPConfig creates a new HTTP configuration with default values
+func NewHTTPConfig(version string) *HTTPConfig {
+	return &HTTPConfig{
+		Timeout:   10 * time.Second,
+		Version:   version,
+		UserAgent: "",
+	}
+}
+
+// GetUserAgent returns the User-Agent string, constructing it if not set
+func (c *HTTPConfig) GetUserAgent() string {
+	if c.UserAgent != "" {
+		return c.UserAgent
+	}
+	return fmt.Sprintf("X.509-Certificate-Chain-Resolver/%s (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)", c.Version)
+}
 
 // Chain manages [X.509] certificates.
 //
@@ -20,9 +46,9 @@ import (
 type Chain struct {
 	Certs []*x509.Certificate
 	*x509certs.Certificate
-	Version       string
 	Roots         *x509.CertPool
 	Intermediates *x509.CertPool
+	HTTPConfig    *HTTPConfig // HTTP client configuration
 }
 
 // New creates a new Chain.
@@ -32,9 +58,9 @@ func New(cert *x509.Certificate, version string) *Chain {
 	return &Chain{
 		Certs:         []*x509.Certificate{cert},
 		Certificate:   x509certs.New(),
-		Version:       version,
 		Roots:         roots,
 		Intermediates: intermediates,
+		HTTPConfig:    NewHTTPConfig(version),
 	}
 }
 
@@ -55,7 +81,7 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 		}
 
 		// Set the User-Agent header with version information and GitHub link
-		req.Header.Set("User-Agent", "X.509-Certificate-Chain-Resolver/"+ch.Version+" (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)")
+		req.Header.Set("User-Agent", ch.HTTPConfig.GetUserAgent())
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {

@@ -15,7 +15,6 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 )
@@ -164,9 +163,9 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 	}
 	req.Header.Set("Content-Type", "application/ocsp-request")
 	req.Header.Set("Accept", "application/ocsp-response")
-	req.Header.Set("User-Agent", "X.509-Certificate-Chain-Resolver/"+ch.Version+" (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)")
+	req.Header.Set("User-Agent", ch.HTTPConfig.GetUserAgent())
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: ch.HTTPConfig.Timeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("OCSP request failed: %w", err)
@@ -215,9 +214,9 @@ func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*R
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CRL request: %w", err)
 	}
-	req.Header.Set("User-Agent", "X.509-Certificate-Chain-Resolver/"+ch.Version+" (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)")
+	req.Header.Set("User-Agent", ch.HTTPConfig.GetUserAgent())
 
-	client := &http.Client{Timeout: 10}
+	client := &http.Client{Timeout: ch.HTTPConfig.Timeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("CRL request failed: %w", err)
