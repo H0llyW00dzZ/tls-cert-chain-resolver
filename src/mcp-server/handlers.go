@@ -899,89 +899,121 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 		context.WriteString(fmt.Sprintf("=== CERTIFICATE %d ===\n", i+1))
 		context.WriteString(fmt.Sprintf("Role: %s\n", getCertificateRole(i, len(certs))))
 
-		// Subject information
-		context.WriteString("SUBJECT:\n")
-		context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Subject.CommonName))
-		context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Subject.Organization, ", ")))
-		context.WriteString(fmt.Sprintf("  Organizational Unit: %s\n", strings.Join(cert.Subject.OrganizationalUnit, ", ")))
-		context.WriteString(fmt.Sprintf("  Country: %s\n", strings.Join(cert.Subject.Country, ", ")))
-		context.WriteString(fmt.Sprintf("  State/Province: %s\n", strings.Join(cert.Subject.Province, ", ")))
-		context.WriteString(fmt.Sprintf("  Locality: %s\n", strings.Join(cert.Subject.Locality, ", ")))
-
-		// Issuer information
-		context.WriteString("ISSUER:\n")
-		context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Issuer.CommonName))
-		context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Issuer.Organization, ", ")))
-
-		// Validity period
-		context.WriteString("VALIDITY:\n")
-		context.WriteString(fmt.Sprintf("  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST")))
-		context.WriteString(fmt.Sprintf("  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST")))
-
-		now := time.Now()
-		daysUntilExpiry := int(cert.NotAfter.Sub(now).Hours() / 24)
-		context.WriteString(fmt.Sprintf("  Days until expiry: %d\n", daysUntilExpiry))
-		if daysUntilExpiry < 0 {
-			context.WriteString("  Status: EXPIRED\n")
-		} else if daysUntilExpiry < 30 {
-			context.WriteString("  Status: EXPIRING SOON\n")
-		} else {
-			context.WriteString("  Status: VALID\n")
-		}
-
-		// Cryptographic information
-		context.WriteString("CRYPTOGRAPHY:\n")
-		context.WriteString(fmt.Sprintf("  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String()))
-		context.WriteString(fmt.Sprintf("  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String()))
-		context.WriteString(fmt.Sprintf("  Key Size: %d bits\n", getKeySize(cert)))
-
-		// Certificate properties
-		context.WriteString("PROPERTIES:\n")
-		context.WriteString(fmt.Sprintf("  Version: %d\n", cert.Version))
-		context.WriteString(fmt.Sprintf("  Serial Number: %s\n", cert.SerialNumber.String()))
-		context.WriteString(fmt.Sprintf("  Is CA: %t\n", cert.IsCA))
-
-		// Key usage and extended key usage
-		if cert.KeyUsage != 0 {
-			context.WriteString(fmt.Sprintf("  Key Usage: %s\n", formatKeyUsage(cert.KeyUsage)))
-		}
-		if len(cert.ExtKeyUsage) > 0 {
-			context.WriteString(fmt.Sprintf("  Extended Key Usage: %s\n", formatExtKeyUsage(cert.ExtKeyUsage)))
-		}
-
-		// Subject Alternative Names
-		if len(cert.DNSNames) > 0 {
-			context.WriteString(fmt.Sprintf("  DNS Names: %s\n", strings.Join(cert.DNSNames, ", ")))
-		}
-		if len(cert.EmailAddresses) > 0 {
-			context.WriteString(fmt.Sprintf("  Email Addresses: %s\n", strings.Join(cert.EmailAddresses, ", ")))
-		}
-		if len(cert.IPAddresses) > 0 {
-			ips := make([]string, len(cert.IPAddresses))
-			for j, ip := range cert.IPAddresses {
-				ips[j] = ip.String()
-			}
-			context.WriteString(fmt.Sprintf("  IP Addresses: %s\n", strings.Join(ips, ", ")))
-		}
-
-		// Certificate Authority Information
-		if cert.IssuingCertificateURL != nil {
-			context.WriteString(fmt.Sprintf("  Issuer URLs: %s\n", strings.Join(cert.IssuingCertificateURL, ", ")))
-		}
-		if cert.CRLDistributionPoints != nil {
-			context.WriteString(fmt.Sprintf("  CRL Distribution Points: %s\n", strings.Join(cert.CRLDistributionPoints, ", ")))
-		}
-		if cert.OCSPServer != nil {
-			context.WriteString(fmt.Sprintf("  OCSP Servers: %s\n", strings.Join(cert.OCSPServer, ", ")))
-		}
-
-		// Serial Number for revocation tracking (duplicate but explicit for AI context)
-		context.WriteString(fmt.Sprintf("  Serial Number: %s\n", cert.SerialNumber.String()))
+		appendSubjectInfo(&context, cert)
+		appendIssuerInfo(&context, cert)
+		appendValidityInfo(&context, cert)
+		appendCryptoInfo(&context, cert)
+		appendCertProperties(&context, cert)
+		appendCertExtensions(&context, cert)
+		appendCAInfo(&context, cert)
 
 		context.WriteString("\n")
 	}
 
-	// Chain validation context
+	appendChainValidationContext(&context, certs)
+	appendSecurityContext(&context)
+
+	return context.String()
+}
+
+// appendSubjectInfo adds subject information to the context
+func appendSubjectInfo(context *strings.Builder, cert *x509.Certificate) {
+	context.WriteString("SUBJECT:\n")
+	context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Subject.CommonName))
+	context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Subject.Organization, ", ")))
+	context.WriteString(fmt.Sprintf("  Organizational Unit: %s\n", strings.Join(cert.Subject.OrganizationalUnit, ", ")))
+	context.WriteString(fmt.Sprintf("  Country: %s\n", strings.Join(cert.Subject.Country, ", ")))
+	context.WriteString(fmt.Sprintf("  State/Province: %s\n", strings.Join(cert.Subject.Province, ", ")))
+	context.WriteString(fmt.Sprintf("  Locality: %s\n", strings.Join(cert.Subject.Locality, ", ")))
+}
+
+// appendIssuerInfo adds issuer information to the context
+func appendIssuerInfo(context *strings.Builder, cert *x509.Certificate) {
+	context.WriteString("ISSUER:\n")
+	context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Issuer.CommonName))
+	context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Issuer.Organization, ", ")))
+}
+
+// appendValidityInfo adds validity period and status to the context
+func appendValidityInfo(context *strings.Builder, cert *x509.Certificate) {
+	context.WriteString("VALIDITY:\n")
+	context.WriteString(fmt.Sprintf("  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST")))
+	context.WriteString(fmt.Sprintf("  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST")))
+
+	now := time.Now()
+	daysUntilExpiry := int(cert.NotAfter.Sub(now).Hours() / 24)
+	context.WriteString(fmt.Sprintf("  Days until expiry: %d\n", daysUntilExpiry))
+
+	if daysUntilExpiry < 0 {
+		context.WriteString("  Status: EXPIRED\n")
+	} else if daysUntilExpiry < 30 {
+		context.WriteString("  Status: EXPIRING SOON\n")
+	} else {
+		context.WriteString("  Status: VALID\n")
+	}
+}
+
+// appendCryptoInfo adds cryptographic information to the context
+func appendCryptoInfo(context *strings.Builder, cert *x509.Certificate) {
+	context.WriteString("CRYPTOGRAPHY:\n")
+	context.WriteString(fmt.Sprintf("  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String()))
+	context.WriteString(fmt.Sprintf("  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String()))
+	context.WriteString(fmt.Sprintf("  Key Size: %d bits\n", getKeySize(cert)))
+}
+
+// appendCertProperties adds basic certificate properties to the context
+func appendCertProperties(context *strings.Builder, cert *x509.Certificate) {
+	context.WriteString("PROPERTIES:\n")
+	context.WriteString(fmt.Sprintf("  Version: %d\n", cert.Version))
+	context.WriteString(fmt.Sprintf("  Serial Number: %s\n", cert.SerialNumber.String()))
+	context.WriteString(fmt.Sprintf("  Is CA: %t\n", cert.IsCA))
+}
+
+// appendCertExtensions adds certificate extensions to the context
+func appendCertExtensions(context *strings.Builder, cert *x509.Certificate) {
+	// Key usage and extended key usage
+	if cert.KeyUsage != 0 {
+		context.WriteString(fmt.Sprintf("  Key Usage: %s\n", formatKeyUsage(cert.KeyUsage)))
+	}
+	if len(cert.ExtKeyUsage) > 0 {
+		context.WriteString(fmt.Sprintf("  Extended Key Usage: %s\n", formatExtKeyUsage(cert.ExtKeyUsage)))
+	}
+
+	// Subject Alternative Names
+	if len(cert.DNSNames) > 0 {
+		context.WriteString(fmt.Sprintf("  DNS Names: %s\n", strings.Join(cert.DNSNames, ", ")))
+	}
+	if len(cert.EmailAddresses) > 0 {
+		context.WriteString(fmt.Sprintf("  Email Addresses: %s\n", strings.Join(cert.EmailAddresses, ", ")))
+	}
+	if len(cert.IPAddresses) > 0 {
+		ips := make([]string, len(cert.IPAddresses))
+		for j, ip := range cert.IPAddresses {
+			ips[j] = ip.String()
+		}
+		context.WriteString(fmt.Sprintf("  IP Addresses: %s\n", strings.Join(ips, ", ")))
+	}
+}
+
+// appendCAInfo adds Certificate Authority information to the context
+func appendCAInfo(context *strings.Builder, cert *x509.Certificate) {
+	// Certificate Authority Information
+	if cert.IssuingCertificateURL != nil {
+		context.WriteString(fmt.Sprintf("  Issuer URLs: %s\n", strings.Join(cert.IssuingCertificateURL, ", ")))
+	}
+	if cert.CRLDistributionPoints != nil {
+		context.WriteString(fmt.Sprintf("  CRL Distribution Points: %s\n", strings.Join(cert.CRLDistributionPoints, ", ")))
+	}
+	if cert.OCSPServer != nil {
+		context.WriteString(fmt.Sprintf("  OCSP Servers: %s\n", strings.Join(cert.OCSPServer, ", ")))
+	}
+
+	// Serial Number for revocation tracking (duplicate but explicit for AI context)
+	context.WriteString(fmt.Sprintf("  Serial Number: %s\n", cert.SerialNumber.String()))
+}
+
+// appendChainValidationContext adds chain validation information
+func appendChainValidationContext(context *strings.Builder, certs []*x509.Certificate) {
 	context.WriteString("=== CHAIN VALIDATION CONTEXT ===\n")
 	if len(certs) > 1 {
 		for i := 0; i < len(certs)-1; i++ {
@@ -998,8 +1030,10 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 			}
 		}
 	}
+}
 
-	// Security context
+// appendSecurityContext adds security best practices information
+func appendSecurityContext(context *strings.Builder) {
 	context.WriteString("\n=== SECURITY CONTEXT ===\n")
 	context.WriteString("Current TLS/SSL Best Practices:\n")
 	context.WriteString("- ~RSA keys should be 2048 bits or larger~ (Quantum Vulnerable 💀)\n")
@@ -1010,8 +1044,6 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 	context.WriteString("- Hybrid certificates combining classical and quantum-resistant algorithms provide transitional security\n")
 	context.WriteString("- Deprecated: MD5, SHA-1 signatures\n")
 	context.WriteString("- Deprecated: SSLv3, TLS 1.0, TLS 1.1\n")
-
-	return context.String()
 }
 
 // getCertificateRole determines the role of a certificate in the chain
@@ -1046,71 +1078,56 @@ func getKeySize(cert *x509.Certificate) int {
 
 // formatKeyUsage converts KeyUsage flags to readable string
 func formatKeyUsage(usage x509.KeyUsage) string {
+	// Ordered slice of KeyUsage flags to maintain consistent output order
+	keyUsageFlags := []struct {
+		flag x509.KeyUsage
+		desc string
+	}{
+		{x509.KeyUsageDigitalSignature, "Digital Signature"},
+		{x509.KeyUsageContentCommitment, "Content Commitment"},
+		{x509.KeyUsageKeyEncipherment, "Key Encipherment"},
+		{x509.KeyUsageDataEncipherment, "Data Encipherment"},
+		{x509.KeyUsageKeyAgreement, "Key Agreement"},
+		{x509.KeyUsageCertSign, "Certificate Signing"},
+		{x509.KeyUsageCRLSign, "CRL Signing"},
+		{x509.KeyUsageEncipherOnly, "Encipher Only"},
+		{x509.KeyUsageDecipherOnly, "Decipher Only"},
+	}
+
 	var usages []string
-	if usage&x509.KeyUsageDigitalSignature != 0 {
-		usages = append(usages, "Digital Signature")
-	}
-	if usage&x509.KeyUsageContentCommitment != 0 {
-		usages = append(usages, "Content Commitment")
-	}
-	if usage&x509.KeyUsageKeyEncipherment != 0 {
-		usages = append(usages, "Key Encipherment")
-	}
-	if usage&x509.KeyUsageDataEncipherment != 0 {
-		usages = append(usages, "Data Encipherment")
-	}
-	if usage&x509.KeyUsageKeyAgreement != 0 {
-		usages = append(usages, "Key Agreement")
-	}
-	if usage&x509.KeyUsageCertSign != 0 {
-		usages = append(usages, "Certificate Signing")
-	}
-	if usage&x509.KeyUsageCRLSign != 0 {
-		usages = append(usages, "CRL Signing")
-	}
-	if usage&x509.KeyUsageEncipherOnly != 0 {
-		usages = append(usages, "Encipher Only")
-	}
-	if usage&x509.KeyUsageDecipherOnly != 0 {
-		usages = append(usages, "Decipher Only")
+	for _, item := range keyUsageFlags {
+		if usage&item.flag != 0 {
+			usages = append(usages, item.desc)
+		}
 	}
 	return strings.Join(usages, ", ")
 }
 
 // formatExtKeyUsage converts ExtKeyUsage to readable string
 func formatExtKeyUsage(usage []x509.ExtKeyUsage) string {
+	// Map of ExtKeyUsage values to human-readable strings
+	extKeyUsageMap := map[x509.ExtKeyUsage]string{
+		x509.ExtKeyUsageAny:                            "Any",
+		x509.ExtKeyUsageServerAuth:                     "Server Authentication",
+		x509.ExtKeyUsageClientAuth:                     "Client Authentication",
+		x509.ExtKeyUsageCodeSigning:                    "Code Signing",
+		x509.ExtKeyUsageEmailProtection:                "Email Protection",
+		x509.ExtKeyUsageIPSECEndSystem:                 "IPSEC End System",
+		x509.ExtKeyUsageIPSECTunnel:                    "IPSEC Tunnel",
+		x509.ExtKeyUsageIPSECUser:                      "IPSEC User",
+		x509.ExtKeyUsageTimeStamping:                   "Time Stamping",
+		x509.ExtKeyUsageOCSPSigning:                    "OCSP Signing",
+		x509.ExtKeyUsageMicrosoftServerGatedCrypto:     "Microsoft Server Gated Crypto",
+		x509.ExtKeyUsageNetscapeServerGatedCrypto:      "Netscape Server Gated Crypto",
+		x509.ExtKeyUsageMicrosoftCommercialCodeSigning: "Microsoft Commercial Code Signing",
+		x509.ExtKeyUsageMicrosoftKernelCodeSigning:     "Microsoft Kernel Code Signing",
+	}
+
 	var usages []string
 	for _, u := range usage {
-		switch u {
-		case x509.ExtKeyUsageAny:
-			usages = append(usages, "Any")
-		case x509.ExtKeyUsageServerAuth:
-			usages = append(usages, "Server Authentication")
-		case x509.ExtKeyUsageClientAuth:
-			usages = append(usages, "Client Authentication")
-		case x509.ExtKeyUsageCodeSigning:
-			usages = append(usages, "Code Signing")
-		case x509.ExtKeyUsageEmailProtection:
-			usages = append(usages, "Email Protection")
-		case x509.ExtKeyUsageIPSECEndSystem:
-			usages = append(usages, "IPSEC End System")
-		case x509.ExtKeyUsageIPSECTunnel:
-			usages = append(usages, "IPSEC Tunnel")
-		case x509.ExtKeyUsageIPSECUser:
-			usages = append(usages, "IPSEC User")
-		case x509.ExtKeyUsageTimeStamping:
-			usages = append(usages, "Time Stamping")
-		case x509.ExtKeyUsageOCSPSigning:
-			usages = append(usages, "OCSP Signing")
-		case x509.ExtKeyUsageMicrosoftServerGatedCrypto:
-			usages = append(usages, "Microsoft Server Gated Crypto")
-		case x509.ExtKeyUsageNetscapeServerGatedCrypto:
-			usages = append(usages, "Netscape Server Gated Crypto")
-		case x509.ExtKeyUsageMicrosoftCommercialCodeSigning:
-			usages = append(usages, "Microsoft Commercial Code Signing")
-		case x509.ExtKeyUsageMicrosoftKernelCodeSigning:
-			usages = append(usages, "Microsoft Kernel Code Signing")
-		default:
+		if desc, exists := extKeyUsageMap[u]; exists {
+			usages = append(usages, desc)
+		} else {
 			usages = append(usages, fmt.Sprintf("Unknown (%d)", u))
 		}
 	}

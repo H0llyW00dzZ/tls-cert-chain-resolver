@@ -12,6 +12,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -253,22 +254,57 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 
 	// If no API key, return guidance for enabling AI integration
 	if h.apiKey == "" {
-		response := "AI API key not configured. Set X509_AI_APIKEY or configure the ai.apiKey field in config.json to enable certificate analysis. " +
-			"Until then, the server will return static information only."
-
-		return &mcp.CreateMessageResult{
-			SamplingMessage: mcp.SamplingMessage{
-				Role:    mcp.RoleAssistant,
-				Content: mcp.NewTextContent(response),
-			},
-			Model:      "not-configured",
-			StopReason: "end",
-		}, nil
+		return h.handleNoAPIKey()
 	}
 
 	// Convert MCP messages to OpenAI-compatible format
+	messages := h.convertMessages(request.Messages)
+
+	// Prepare API request
+	model := h.selectModel(request.ModelPreferences)
+	requestMessages := h.prepareMessages(messages, request.SystemPrompt)
+	apiRequest := h.buildAPIRequest(model, requestMessages, request)
+
+	// Create and send HTTP request
+	resp, err := h.sendAPIRequest(ctx, apiRequest, buf)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return nil, h.handleAPIError(resp, buf)
+	}
+
+	// Handle streaming response
+	content, modelName, stopReason, err := h.parseStreamingResponse(resp.Body, model)
+	if err != nil {
+		return nil, fmt.Errorf("error reading streaming response: %w", err)
+	}
+
+	return h.buildSamplingResult(content, modelName, stopReason), nil
+}
+
+// handleNoAPIKey returns a helpful message when no API key is configured
+func (h *DefaultSamplingHandler) handleNoAPIKey() (*mcp.CreateMessageResult, error) {
+	response := "AI API key not configured. Set X509_AI_APIKEY or configure the ai.apiKey field in config.json to enable certificate analysis. " +
+		"Until then, the server will return static information only."
+
+	return &mcp.CreateMessageResult{
+		SamplingMessage: mcp.SamplingMessage{
+			Role:    mcp.RoleAssistant,
+			Content: mcp.NewTextContent(response),
+		},
+		Model:      "not-configured",
+		StopReason: "end",
+	}, nil
+}
+
+// convertMessages converts MCP messages to OpenAI-compatible format
+func (h *DefaultSamplingHandler) convertMessages(mcpMessages []mcp.SamplingMessage) []map[string]any {
 	var messages []map[string]any
-	for _, msg := range request.Messages {
+	for _, msg := range mcpMessages {
 		message := map[string]any{
 			"role": string(msg.Role),
 		}
@@ -283,29 +319,37 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 
 		messages = append(messages, message)
 	}
+	return messages
+}
 
-	// Prepare API request
+// selectModel chooses the appropriate model based on preferences
+func (h *DefaultSamplingHandler) selectModel(preferences *mcp.ModelPreferences) string {
 	model := h.model // Use configured default model
-	if request.ModelPreferences != nil && len(request.ModelPreferences.Hints) > 0 {
+	if preferences != nil && len(preferences.Hints) > 0 {
 		// Use the first model hint if available
-		model = request.ModelPreferences.Hints[0].Name
+		model = preferences.Hints[0].Name
+	}
+	return model
+}
+
+// prepareMessages adds system prompt if provided
+func (h *DefaultSamplingHandler) prepareMessages(messages []map[string]any, systemPrompt string) []map[string]any {
+	if systemPrompt == "" {
+		return messages
 	}
 
-	// Build messages array
-	requestMessages := messages
-
-	// Add system prompt if provided
-	if request.SystemPrompt != "" {
-		systemMessage := map[string]any{
-			"role":    "system",
-			"content": request.SystemPrompt,
-		}
-		requestMessages = append([]map[string]any{systemMessage}, messages...)
+	systemMessage := map[string]any{
+		"role":    "system",
+		"content": systemPrompt,
 	}
+	return append([]map[string]any{systemMessage}, messages...)
+}
 
+// buildAPIRequest creates the API request payload
+func (h *DefaultSamplingHandler) buildAPIRequest(model string, messages []map[string]any, request mcp.CreateMessageRequest) map[string]any {
 	apiRequest := map[string]any{
 		"model":       model,
-		"messages":    requestMessages,
+		"messages":    messages,
 		"max_tokens":  request.MaxTokens,
 		"temperature": request.Temperature,
 		"stream":      true, // Enable streaming for better performance and real-time responses
@@ -316,6 +360,11 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 		apiRequest["stop"] = request.StopSequences
 	}
 
+	return apiRequest
+}
+
+// sendAPIRequest creates and sends the HTTP request
+func (h *DefaultSamplingHandler) sendAPIRequest(ctx context.Context, apiRequest map[string]any, buf gc.Buffer) (*http.Response, error) {
 	// Marshal request to JSON
 	reqBody, err := json.Marshal(apiRequest)
 	if err != nil {
@@ -338,23 +387,26 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 	if err != nil {
 		return nil, fmt.Errorf("failed to call AI API: %w", err)
 	}
-	defer resp.Body.Close()
 
-	// Check response status
-	if resp.StatusCode != http.StatusOK {
-		// Read error response body using buffer pool
-		if _, err := buf.ReadFrom(resp.Body); err != nil {
-			return nil, fmt.Errorf("AI API error (status %d): failed to read error response: %w", resp.StatusCode, err)
-		}
-		return nil, fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, string(buf.Bytes()))
+	return resp, nil
+}
+
+// handleAPIError processes API error responses
+func (h *DefaultSamplingHandler) handleAPIError(resp *http.Response, buf gc.Buffer) error {
+	// Read error response body using buffer pool
+	if _, err := buf.ReadFrom(resp.Body); err != nil {
+		return fmt.Errorf("AI API error (status %d): failed to read error response: %w", resp.StatusCode, err)
 	}
+	return fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, string(buf.Bytes()))
+}
 
-	// Handle streaming response
+// parseStreamingResponse handles the streaming response parsing
+func (h *DefaultSamplingHandler) parseStreamingResponse(body io.Reader, defaultModel string) (string, string, string, error) {
 	var fullContent strings.Builder
-	var modelName = model
-	var stopReason = "stop"
+	modelName := defaultModel
+	stopReason := "stop"
 
-	scanner := bufio.NewScanner(resp.Body)
+	scanner := bufio.NewScanner(body)
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -377,7 +429,7 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 			}
 
 			// Extract model name if available
-			if modelFromChunk, ok := chunk["model"].(string); ok && modelName == model {
+			if modelFromChunk, ok := chunk["model"].(string); ok && modelName == defaultModel {
 				modelName = modelFromChunk
 			}
 
@@ -401,11 +453,14 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading streaming response: %w", err)
+		return "", "", "", err
 	}
 
-	content := fullContent.String()
+	return fullContent.String(), modelName, stopReason, nil
+}
 
+// buildSamplingResult creates the final sampling result
+func (h *DefaultSamplingHandler) buildSamplingResult(content, modelName, stopReason string) *mcp.CreateMessageResult {
 	return &mcp.CreateMessageResult{
 		SamplingMessage: mcp.SamplingMessage{
 			Role:    mcp.RoleAssistant,
@@ -413,7 +468,7 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 		},
 		Model:      modelName,
 		StopReason: stopReason,
-	}, nil
+	}
 }
 
 // SamplingRequestMarker is a special result that indicates a sampling request should be made

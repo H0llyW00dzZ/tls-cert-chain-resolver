@@ -168,11 +168,12 @@ x509_resolver_analyze_certificate_with_ai("cert.pem", analysis_type="compliance"
 **AI Analysis Framework**:
 Uses embedded system prompt with structured analysis framework:
 - VALIDATION STATUS: Certificate validity, chain integrity, trust relationships
-- REVOCATION STATUS: OCSP/CRL availability, current revocation status, and recommendations (using `CheckRevocationStatus`)
+- REVOCATION STATUS: OCSP/CRL availability, current revocation status with serial numbers, and recommendations (using `CheckRevocationStatus` with CRL caching, multi-endpoint support, and priority logic: OCSP first, then CRL)
 - CRYPTOGRAPHIC SECURITY: Algorithm strength, key sizes, quantum resistance
 - COMPLIANCE CHECK: CA/Browser Forum and NIST standards verification
 - RISK ASSESSMENT: Critical/High/Medium/Low risk level assignments
 - ACTIONABLE RECOMMENDATIONS: Specific, implementable security improvements
+- METHODOLOGY EXPLANATIONS: Detailed explanations of revocation checking processes (OCSP priority over CRL, multi-endpoint redundancy, signature verification requirements)
 
 ## MCP Resources
 

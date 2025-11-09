@@ -120,7 +120,17 @@ gopls_go_search("ParseCRLResponse") → Find CRL response parsing functions
 gopls_go_search("getCachedCRL") → Find CRL caching functions
 gopls_go_search("tryOCSPServer") → Find OCSP server retry functions
 gopls_go_search("tryCRLDistributionPoint") → Find CRL distribution point functions
-gopls_go_search("CreateMessage") → Find AI message creation functions
+gopls_go_search("buildCertificateContextWithRevocation") → Find AI certificate context builder with revocation
+gopls_go_search("formatKeyUsage") → Find ordered key usage formatting function
+gopls_go_search("appendSubjectInfo") → Find certificate subject info appenders
+gopls_go_search("appendIssuerInfo") → Find certificate issuer info appenders
+gopls_go_search("appendValidityInfo") → Find certificate validity info appenders
+gopls_go_search("appendCryptoInfo") → Find certificate crypto info appenders
+gopls_go_search("appendCertProperties") → Find certificate properties appenders
+gopls_go_search("appendCertExtensions") → Find certificate extensions appenders
+gopls_go_search("appendCAInfo") → Find certificate authority info appenders
+gopls_go_search("appendChainValidationContext") → Find chain validation context appenders
+gopls_go_search("appendSecurityContext") → Find security context appenders
 ```
 
 ### gopls_go_file_context(file)
@@ -518,7 +528,7 @@ grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\
 grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
 
 # Find AI integration patterns
-grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens", include="*.go")
+grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens\\|handleNoAPIKey\\|convertMessages\\|selectModel\\|prepareMessages\\|buildAPIRequest\\|sendAPIRequest\\|handleAPIError\\|parseStreamingResponse\\|buildSamplingResult", include="*.go")
 
 # Find MCP server builder pattern
 grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")
@@ -530,7 +540,7 @@ grep("handleStatusResource\\|status://server-status", include="*.go")
 grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
 
 # Find revocation checking patterns
-grep("CheckRevocationStatus\\|ParseCRLResponse\\|RevocationStatus\\|OCSPStatus\\|CRLStatus", include="*.go")
+grep("CheckRevocationStatus\\|ParseCRLResponse\\|RevocationStatus\\|OCSPStatus\\|CRLStatus\\|getCachedCRL\\|setCachedCRL\\|tryOCSPServer\\|tryCRLDistributionPoint", include="*.go")
 
 # Find HTTP client configuration
 grep("HTTPConfig\\|Client\\(\\)\\|GetUserAgent", include="*.go")
