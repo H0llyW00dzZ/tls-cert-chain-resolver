@@ -14,6 +14,8 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	"golang.org/x/crypto/ocsp"
@@ -24,6 +26,58 @@ type RevocationStatus struct {
 	OCSPStatus   string
 	CRLStatus    string
 	SerialNumber string
+}
+
+// CRLCacheEntry represents a cached CRL with metadata
+type CRLCacheEntry struct {
+	Data       []byte    // Raw CRL data
+	FetchedAt  time.Time // When this CRL was fetched
+	NextUpdate time.Time // When this CRL expires (from CRL.NextUpdate)
+	URL        string    // Source URL for debugging
+}
+
+// isFresh checks if the cached CRL is still fresh
+func (entry *CRLCacheEntry) isFresh() bool {
+	now := time.Now()
+	// CRL is fresh if NextUpdate is in the future and we fetched it recently
+	return entry.NextUpdate.After(now) && entry.FetchedAt.After(now.Add(-24*time.Hour))
+}
+
+// crlCache is a simple in-memory CRL cache
+var crlCache = make(map[string]*CRLCacheEntry)
+var crlCacheMutex sync.RWMutex
+
+// getCachedCRL retrieves a fresh CRL from cache
+func getCachedCRL(url string) ([]byte, bool) {
+	crlCacheMutex.RLock()
+	defer crlCacheMutex.RUnlock()
+
+	entry, exists := crlCache[url]
+	if !exists || !entry.isFresh() {
+		return nil, false
+	}
+
+	// Return a copy to prevent external modification
+	dataCopy := make([]byte, len(entry.Data))
+	copy(dataCopy, entry.Data)
+	return dataCopy, true
+}
+
+// setCachedCRL stores a CRL in cache with metadata
+func setCachedCRL(url string, data []byte, nextUpdate time.Time) {
+	crlCacheMutex.Lock()
+	defer crlCacheMutex.Unlock()
+
+	// Make a copy of the data to store
+	dataCopy := make([]byte, len(data))
+	copy(dataCopy, data)
+
+	crlCache[url] = &CRLCacheEntry{
+		Data:       dataCopy,
+		FetchedAt:  time.Now(),
+		NextUpdate: nextUpdate,
+		URL:        url,
+	}
 }
 
 // ParseCRLResponse parses a CRL response to extract status for a specific certificate
@@ -95,13 +149,11 @@ func parseCRLBlock(der []byte, certSerial *big.Int, issuer *x509.Certificate) (s
 	return "Good", nil
 }
 
-// checkOCSPStatus performs OCSP check for revocation status
+// checkOCSPStatus performs OCSP check for revocation status, trying all available OCSP servers
 func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*RevocationStatus, error) {
 	if len(cert.OCSPServer) == 0 {
 		return &RevocationStatus{OCSPStatus: fmt.Sprintf("Not Available (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, nil
 	}
-
-	ocspURL := cert.OCSPServer[0]
 
 	// Find the issuer certificate
 	issuer := ch.findIssuerForCertificate(cert)
@@ -109,6 +161,22 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 		return &RevocationStatus{OCSPStatus: fmt.Sprintf("Unknown (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, fmt.Errorf("could not find issuer certificate for OCSP request")
 	}
 
+	// Try all OCSP servers until one succeeds
+	var lastErr error
+	for _, ocspURL := range cert.OCSPServer {
+		status, err := ch.tryOCSPServer(ctx, cert, issuer, ocspURL)
+		if err == nil {
+			return status, nil
+		}
+		lastErr = err
+	}
+
+	// All OCSP servers failed
+	return &RevocationStatus{OCSPStatus: fmt.Sprintf("Unknown (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, fmt.Errorf("all OCSP servers failed: %w", lastErr)
+}
+
+// tryOCSPServer attempts OCSP check against a specific OCSP server
+func (ch *Chain) tryOCSPServer(ctx context.Context, cert, issuer *x509.Certificate, ocspURL string) (*RevocationStatus, error) {
 	// Create OCSP request
 	ocspReq, err := ocsp.CreateRequest(cert, issuer, nil)
 	if err != nil {
@@ -173,16 +241,36 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 	}, nil
 }
 
-// checkCRLStatus performs a basic CRL check for revocation status
+// checkCRLStatus performs a CRL check for revocation status, trying all available distribution points
 func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*RevocationStatus, error) {
 
 	if len(cert.CRLDistributionPoints) == 0 {
 		return &RevocationStatus{CRLStatus: fmt.Sprintf("Not Available (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, nil
 	}
 
-	crlURL := cert.CRLDistributionPoints[0]
+	// Try all CRL distribution points until one succeeds
+	var lastErr error
+	for _, crlURL := range cert.CRLDistributionPoints {
+		status, err := ch.tryCRLDistributionPoint(ctx, cert, crlURL)
+		if err == nil {
+			return status, nil
+		}
+		lastErr = err
+	}
 
-	// Fetch CRL
+	// All CRL distribution points failed
+	return &RevocationStatus{CRLStatus: fmt.Sprintf("Unknown (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, fmt.Errorf("all CRL distribution points failed: %w", lastErr)
+}
+
+// tryCRLDistributionPoint attempts CRL check against a specific distribution point with caching
+func (ch *Chain) tryCRLDistributionPoint(ctx context.Context, cert *x509.Certificate, crlURL string) (*RevocationStatus, error) {
+	// Check cache first
+	if cachedData, found := getCachedCRL(crlURL); found {
+		// Use cached CRL data
+		return ch.processCRLData(cachedData, cert)
+	}
+
+	// Fetch CRL from network
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, crlURL, nil)
 	if err != nil {
 		return &RevocationStatus{CRLStatus: fmt.Sprintf("Unknown (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, fmt.Errorf("failed to create CRL request: %w", err)
@@ -213,53 +301,49 @@ func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*R
 
 	crlData := buf.Bytes()
 
-	// Parse CRL and check revocation status
+	// Parse CRL to extract NextUpdate for caching
+	crl, parseErr := x509.ParseRevocationList(crlData)
+	if parseErr == nil && !crl.NextUpdate.IsZero() {
+		// Cache the CRL with its next update time
+		setCachedCRL(crlURL, crlData, crl.NextUpdate)
+	}
+
+	// Process the CRL data
+	return ch.processCRLData(crlData, cert)
+}
+
+// processCRLData processes CRL data and checks revocation status
+func (ch *Chain) processCRLData(crlData []byte, cert *x509.Certificate) (*RevocationStatus, error) {
+	// Try to find issuer certificate for CRL signature verification
 	issuer := ch.findIssuerForCertificate(cert)
-	if issuer == nil {
-		// For CRL verification, try all certificates in chain as potential signers
-		var lastErr error
-		for _, potentialIssuer := range ch.Certs {
-			if potentialIssuer == cert {
-				continue
-			}
-			status, err := ParseCRLResponse(crlData, cert.SerialNumber, potentialIssuer)
-			if err == nil {
-				return &RevocationStatus{
-					CRLStatus:    fmt.Sprintf("%s (Serial: %s)", status, cert.SerialNumber.String()),
-					SerialNumber: cert.SerialNumber.String(),
-				}, nil
-			}
-			lastErr = err
-		}
-		// If all failed, try parsing without signature verification as fallback
-		// This is less secure but better than completely failing
-		crl, err := x509.ParseRevocationList(crlData)
+	if issuer != nil {
+		// Try verified CRL parsing first
+		status, err := ParseCRLResponse(crlData, cert.SerialNumber, issuer)
 		if err == nil {
-			for _, revoked := range crl.RevokedCertificateEntries {
-				if revoked.SerialNumber != nil && revoked.SerialNumber.Cmp(cert.SerialNumber) == 0 {
-					return &RevocationStatus{
-						CRLStatus:    fmt.Sprintf("Revoked (unverified) (Serial: %s)", cert.SerialNumber.String()),
-						SerialNumber: cert.SerialNumber.String(),
-					}, nil
-				}
-			}
 			return &RevocationStatus{
-				CRLStatus:    fmt.Sprintf("Good (unverified) (Serial: %s)", cert.SerialNumber.String()),
+				CRLStatus:    fmt.Sprintf("%s (Serial: %s)", status, cert.SerialNumber.String()),
 				SerialNumber: cert.SerialNumber.String(),
 			}, nil
 		}
-		return &RevocationStatus{CRLStatus: fmt.Sprintf("Unknown (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, fmt.Errorf("could not verify CRL signature or parse CRL: %w", lastErr)
+		// If verified parsing fails, continue to try other potential issuers
 	}
 
-	status, err := ParseCRLResponse(crlData, cert.SerialNumber, issuer)
-	if err != nil {
-		return &RevocationStatus{CRLStatus: fmt.Sprintf("Unknown (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, fmt.Errorf("failed to parse CRL: %w", err)
+	// Try all certificates in chain as potential CRL signers
+	for _, potentialIssuer := range ch.Certs {
+		if potentialIssuer == cert {
+			continue // Skip self
+		}
+		status, err := ParseCRLResponse(crlData, cert.SerialNumber, potentialIssuer)
+		if err == nil {
+			return &RevocationStatus{
+				CRLStatus:    fmt.Sprintf("%s (Serial: %s)", status, cert.SerialNumber.String()),
+				SerialNumber: cert.SerialNumber.String(),
+			}, nil
+		}
 	}
 
-	return &RevocationStatus{
-		CRLStatus:    fmt.Sprintf("%s (Serial: %s)", status, cert.SerialNumber.String()),
-		SerialNumber: cert.SerialNumber.String(),
-	}, nil
+	// If all signature verification attempts fail, we cannot trust this CRL
+	return &RevocationStatus{CRLStatus: fmt.Sprintf("Unknown (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, fmt.Errorf("CRL signature verification failed for all potential issuers")
 }
 
 // findIssuerForCertificate finds the certificate that issued the given cert in the chain
@@ -279,7 +363,7 @@ func (ch *Chain) findIssuerForCertificate(cert *x509.Certificate) *x509.Certific
 	return nil
 }
 
-// CheckRevocationStatus performs OCSP/CRL checks for the certificate chain
+// CheckRevocationStatus performs OCSP/CRL checks for the certificate chain with priority logic
 func (ch *Chain) CheckRevocationStatus(ctx context.Context) (string, error) {
 	var result strings.Builder
 	result.WriteString("Revocation Status Check:\n\n")
@@ -292,20 +376,40 @@ func (ch *Chain) CheckRevocationStatus(ctx context.Context) (string, error) {
 
 		result.WriteString(fmt.Sprintf("Certificate %d: %s\n", i+1, cert.Subject.CommonName))
 
-		// Check OCSP
+		// Check OCSP first (higher priority)
 		ocspStatus, ocspErr := ch.checkOCSPStatus(ctx, cert)
 		if ocspErr != nil {
 			result.WriteString(fmt.Sprintf("  OCSP Error: %v\n", ocspErr))
 		} else {
 			result.WriteString(fmt.Sprintf("  OCSP Status: %s\n", ocspStatus.OCSPStatus))
+
+			// If OCSP says revoked, certificate is revoked - no need to check CRL
+			if strings.Contains(ocspStatus.OCSPStatus, "Revoked") {
+				result.WriteString("  Final Status: REVOKED (via OCSP)\n\n")
+				continue
+			}
+
+			// If OCSP says good, certificate is good - CRL check not needed
+			if strings.Contains(ocspStatus.OCSPStatus, "Good") {
+				result.WriteString("  Final Status: GOOD (via OCSP)\n\n")
+				continue
+			}
 		}
 
-		// Check CRL
+		// OCSP is unavailable or unknown, check CRL
 		crlStatus, crlErr := ch.checkCRLStatus(ctx, cert)
 		if crlErr != nil {
 			result.WriteString(fmt.Sprintf("  CRL Error: %v\n", crlErr))
+			result.WriteString("  Final Status: UNKNOWN (both OCSP and CRL unavailable)\n")
 		} else {
 			result.WriteString(fmt.Sprintf("  CRL Status: %s\n", crlStatus.CRLStatus))
+			if strings.Contains(crlStatus.CRLStatus, "Revoked") {
+				result.WriteString("  Final Status: REVOKED (via CRL)\n")
+			} else if strings.Contains(crlStatus.CRLStatus, "Good") {
+				result.WriteString("  Final Status: GOOD (via CRL)\n")
+			} else {
+				result.WriteString("  Final Status: UNKNOWN\n")
+			}
 		}
 
 		result.WriteString("\n")

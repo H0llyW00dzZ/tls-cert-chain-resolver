@@ -886,8 +886,11 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 	context.WriteString(fmt.Sprintf("Analysis Type: %s\n", analysisType))
 	context.WriteString(fmt.Sprintf("Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05")))
 
-	// Include revocation status summary
+	// Include revocation status summary with methodology explanation
 	context.WriteString("REVOCATION STATUS SUMMARY:\n")
+	context.WriteString("Methodology: OCSP takes priority over CRL. If OCSP is unavailable, CRL is checked.\n")
+	context.WriteString("Redundancy: Multiple OCSP servers and CRL distribution points are tried for reliability.\n")
+	context.WriteString("Security: Only properly signed CRLs are accepted; unverified CRLs are rejected.\n\n")
 	context.WriteString(revocationStatus)
 	context.WriteString("\n")
 
