@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
+	"golang.org/x/crypto/ocsp"
 )
 
 // RevocationStatus represents revocation status of a certificate
@@ -115,7 +116,7 @@ func parseCRLBlock(der []byte, certSerial *big.Int, issuer *x509.Certificate) (s
 	return "Good", nil
 }
 
-// checkOCSPStatus performs a basic OCSP check for revocation status
+// checkOCSPStatus performs OCSP check for revocation status
 func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*RevocationStatus, error) {
 	if len(cert.OCSPServer) == 0 {
 		return &RevocationStatus{OCSPStatus: "Not Available"}, nil
@@ -123,15 +124,28 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 
 	ocspURL := cert.OCSPServer[0]
 
-	// For simplicity, use HTTP GET request to OCSP server
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ocspURL, nil)
+	// Find the issuer certificate
+	issuer := ch.findIssuerForCertificate(cert)
+	if issuer == nil {
+		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("could not find issuer certificate for OCSP request")
+	}
+
+	// Create OCSP request
+	ocspReq, err := ocsp.CreateRequest(cert, issuer, nil)
 	if err != nil {
 		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("failed to create OCSP request: %w", err)
 	}
+
+	// Create HTTP POST request with OCSP data
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ocspURL, bytes.NewReader(ocspReq))
+	if err != nil {
+		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("failed to create OCSP HTTP request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/ocsp-request")
 	req.Header.Set("User-Agent", ch.HTTPConfig.GetUserAgent())
 
 	resp, err := ch.HTTPConfig.Client().Do(req)
-
 	if err != nil {
 		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("OCSP request failed: %w", err)
 	}
@@ -153,11 +167,25 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("failed to read OCSP response: %w", err)
 	}
 
-	respData := buf.Bytes()
+	ocspRespData := buf.Bytes()
 
-	status, err := ParseOCSPResponse(respData)
+	// Parse OCSP response
+	ocspResp, err := ocsp.ParseResponseForCert(ocspRespData, cert, issuer)
 	if err != nil {
 		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("failed to parse OCSP response: %w", err)
+	}
+
+	// Convert OCSP status to our format
+	var status string
+	switch ocspResp.Status {
+	case ocsp.Good:
+		status = "Good"
+	case ocsp.Revoked:
+		status = "Revoked"
+	case ocsp.Unknown:
+		status = "Unknown"
+	default:
+		status = "Unknown"
 	}
 
 	return &RevocationStatus{
@@ -168,6 +196,7 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 
 // checkCRLStatus performs a basic CRL check for revocation status
 func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*RevocationStatus, error) {
+
 	if len(cert.CRLDistributionPoints) == 0 {
 		return &RevocationStatus{CRLStatus: "Not Available"}, nil
 	}
