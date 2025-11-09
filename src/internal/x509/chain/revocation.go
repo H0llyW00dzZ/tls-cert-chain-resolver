@@ -12,11 +12,12 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 )
 
 // RevocationStatus represents revocation status of a certificate
@@ -177,10 +178,18 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 	}
 
 	// Read OCSP response
-	respData, err := io.ReadAll(resp.Body)
-	if err != nil {
+	buf := gc.Default.Get()
+	defer func() {
+		buf.Reset()         // Reset the buffer to prevent data leaks
+		gc.Default.Put(buf) // Return the buffer to the pool for reuse
+	}()
+
+	// Read the response body into the buffer
+	if _, err := buf.ReadFrom(resp.Body); err != nil {
 		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("failed to read OCSP response: %w", err)
 	}
+
+	respData := buf.Bytes()
 
 	status, err := ParseOCSPResponse(respData)
 	if err != nil {
@@ -220,10 +229,18 @@ func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*R
 	}
 
 	// Read CRL data
-	crlData, err := io.ReadAll(resp.Body)
-	if err != nil {
+	buf := gc.Default.Get()
+	defer func() {
+		buf.Reset()         // Reset the buffer to prevent data leaks
+		gc.Default.Put(buf) // Return the buffer to the pool for reuse
+	}()
+
+	// Read the response body into the buffer
+	if _, err := buf.ReadFrom(resp.Body); err != nil {
 		return nil, fmt.Errorf("failed to read CRL: %w", err)
 	}
+
+	crlData := buf.Bytes()
 
 	// For simplicity, check if CRL contains the certificate serial number
 	// A full implementation would parse DER-encoded CRL structure
