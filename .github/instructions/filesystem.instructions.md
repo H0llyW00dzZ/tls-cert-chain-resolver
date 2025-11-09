@@ -47,6 +47,7 @@ tls-cert-chain-resolver/
 │   │       │   └── certs.go                  # Certificate encoding/decoding
 │   │       └── chain/
 │   │           ├── benchmark_test.go         # Chain resolution and revocation benchmarks
+│   │           ├── cache.go                  # CRL cache implementation with LRU eviction and metrics
 │   │           ├── chain.go                  # Chain resolution logic
 │   │           ├── chain_test.go             # Chain tests
 │   │           ├── remote.go                 # Context-aware remote TLS chain fetcher
@@ -757,6 +758,9 @@ grep("Benchmark.*Chain\\|Benchmark.*Revocation\\|Benchmark.*Certificate", includ
 
 # Find CRL cache benchmarks
 grep("BenchmarkCRLCacheOperations", include="*_test.go")
+
+# Find CRL cache patterns
+grep("CRLCacheEntry\\|CRLCacheConfig\\|CRLCacheMetrics", include="*.go")
 
 # Find MCP server tools
 grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert\\|analyze_certificate_with_ai", include="*.go")
