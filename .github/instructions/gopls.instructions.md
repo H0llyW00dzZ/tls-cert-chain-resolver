@@ -23,6 +23,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
   - **`remote.go`** — Context-aware remote TLS chain retrieval (`FetchRemoteChain`)
+  - **`revocation.go`** — OCSP/CRL revocation status checking (`CheckRevocationStatus`)
 - **`src/internal/helper/gc/`** — Memory management utilities
 - **`src/version/`** — Version information
 
@@ -112,6 +113,9 @@ gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis tools
 gopls_go_search("DefaultSamplingHandler") → Find AI sampling implementation
 gopls_go_search("FetchRemoteChain") → Find remote TLS chain retrieval helper (`src/internal/x509/chain/remote.go`)
+gopls_go_search("CheckRevocationStatus") → Find OCSP/CRL revocation checking (`src/internal/x509/chain/revocation.go`)
+gopls_go_search("RevocationStatus") → Find revocation status structures
+gopls_go_search("createOCSPRequest") → Find OCSP request creation functions
 gopls_go_search("CreateMessage") → Find AI message creation functions
 ```
 
@@ -143,7 +147,7 @@ gopls_go_package_api([
 Returns:
 - Public types: Certificate, Chain
 - Public functions: New, Decode, DecodeMultiple, EncodePEM, EncodeDER, FetchRemoteChain
-- Public methods: FetchCertificate, AddRootCA, FilterIntermediates
+- Public methods: FetchCertificate, AddRootCA, FilterIntermediates, CheckRevocationStatus
 ```
 
 ### gopls_go_symbol_references(file, symbol)

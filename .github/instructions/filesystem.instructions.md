@@ -48,7 +48,8 @@ tls-cert-chain-resolver/
 │   │       └── chain/
 │   │           ├── chain.go                  # Chain resolution logic
 │   │           ├── chain_test.go             # Chain tests
-│   │           └── remote.go                 # Context-aware remote TLS chain fetcher
+│   │           ├── remote.go                 # Context-aware remote TLS chain fetcher
+│   │           └── revocation.go             # OCSP/CRL revocation status checking
 │   ├── logger/
 │   │   ├── benchmark_test.go                 # Logger benchmarks
 │   │   ├── logger.go                         # Logger abstraction (CLI/MCP, thread-safe with bytebufferpool)
@@ -694,6 +695,12 @@ grep("func (c \\*Chain)", include="*.go")
 
 # Find remote chain fetching
 grep("FetchRemoteChain", include="*.go")
+
+# Find revocation status checking
+grep("CheckRevocationStatus\\|RevocationStatus", include="*.go")
+
+# Find OCSP/CRL functions
+grep("createOCSPRequest\\|ParseOCSPResponse\\|ParseCRLResponse", include="*.go")
 
 # Find logger usage
 grep("logger\\.Logger", include="*.go")

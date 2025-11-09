@@ -135,9 +135,9 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993, intermediate_only=t
 
 ### x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?) - Enterprise Grade
 
-**Purpose**: Perform AI-powered security analysis of certificates
-**Returns**: Comprehensive security assessment with AI-generated insights
-**When to use**: Advanced certificate security auditing and risk assessment
+**Purpose**: Perform AI-powered security analysis of certificates including revocation status
+**Returns**: Comprehensive security assessment with AI-generated insights including OCSP/CRL status
+**When to use**: Advanced certificate security auditing and risk assessment with revocation verification
 
 **Parameters**:
 
@@ -166,6 +166,7 @@ x509_resolver_analyze_certificate_with_ai("cert.pem", analysis_type="compliance"
 **AI Analysis Framework**:
 Uses embedded system prompt with structured analysis framework:
 - VALIDATION STATUS: Certificate validity, chain integrity, trust relationships
+- REVOCATION STATUS: OCSP/CRL availability, current revocation status, and recommendations
 - CRYPTOGRAPHIC SECURITY: Algorithm strength, key sizes, quantum resistance
 - COMPLIANCE CHECK: CA/Browser Forum and NIST standards verification
 - RISK ASSESSMENT: Critical/High/Medium/Low risk level assignments
