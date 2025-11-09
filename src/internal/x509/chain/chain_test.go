@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -349,6 +350,133 @@ func TestFetchRemoteChain(t *testing.T) {
 				t.Logf("Certificate %d Subject: %s", i+1, cert.Subject.CommonName)
 				pemData := decoder.EncodePEM(cert)
 				t.Logf("Certificate %d PEM:\n%s", i+1, pemData)
+			}
+		})
+	}
+}
+
+func TestCheckRevocationStatus(t *testing.T) {
+	tests := []struct {
+		name           string
+		certPEM        string
+		expectContains []string
+	}{
+		{
+			name:    "Certificate with OCSP and CRL URLs",
+			certPEM: testCertPEM,
+			expectContains: []string{
+				"Revocation Status Check:",
+				"OCSP Status:",
+				"CRL Status:",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			block, _ := pem.Decode([]byte(tt.certPEM))
+			if block == nil {
+				t.Fatal("failed to parse certificate PEM")
+			}
+
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				t.Fatalf("failed to parse certificate: %v", err)
+			}
+
+			manager := x509chain.New(cert, version)
+
+			// Fetch the chain first
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			if err := manager.FetchCertificate(ctx); err != nil {
+				t.Fatalf("FetchCertificate() error = %v", err)
+			}
+
+			// Test revocation status check
+			revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer revocationCancel()
+
+			result, err := manager.CheckRevocationStatus(revocationCtx)
+			if err != nil {
+				t.Fatalf("CheckRevocationStatus() error = %v", err)
+			}
+
+			// Verify the result contains expected elements
+			for _, expected := range tt.expectContains {
+				if !strings.Contains(result, expected) {
+					t.Errorf("expected result to contain %q, but got:\n%s", expected, result)
+				}
+			}
+
+			t.Logf("Revocation check result:\n%s", result)
+		})
+	}
+}
+
+func TestParseOCSPResponse(t *testing.T) {
+	tests := []struct {
+		name     string
+		response []byte
+		expected string
+	}{
+		{
+			name:     "Good response",
+			response: []byte("This is a good response from OCSP server"),
+			expected: "Good",
+		},
+		{
+			name:     "Revoked response",
+			response: []byte("Certificate has been revoked"),
+			expected: "Revoked",
+		},
+		{
+			name:     "Unknown response",
+			response: []byte("Some other response"),
+			expected: "Unknown",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := x509chain.ParseOCSPResponse(tt.response)
+			if err != nil {
+				t.Fatalf("ParseOCSPResponse() error = %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("ParseOCSPResponse() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestParseCRLResponse(t *testing.T) {
+	tests := []struct {
+		name     string
+		response []byte
+		expected string
+	}{
+		{
+			name:     "Good CRL (no revoked keyword)",
+			response: []byte("This is a valid CRL without revoked certificates"),
+			expected: "Good",
+		},
+		{
+			name:     "Revoked CRL (contains revoked)",
+			response: []byte("This CRL contains revoked certificates"),
+			expected: "Revoked",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := x509chain.ParseCRLResponse(tt.response)
+			if err != nil {
+				t.Fatalf("ParseCRLResponse() error = %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("ParseCRLResponse() = %v, want %v", result, tt.expected)
 			}
 		})
 	}

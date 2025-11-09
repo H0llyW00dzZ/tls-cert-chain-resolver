@@ -22,8 +22,8 @@ type RevocationStatus struct {
 	SerialNumber string
 }
 
-// parseOCSPResponse parses a minimal OCSP response to extract status
-func parseOCSPResponse(respData []byte) (string, error) {
+// ParseOCSPResponse parses a minimal OCSP response to extract status
+func ParseOCSPResponse(respData []byte) (string, error) {
 	// OCSP responses have a specific ASN.1 structure
 	// For simplicity, we'll check for common status indicators in the response
 	respStr := string(respData)
@@ -39,8 +39,8 @@ func parseOCSPResponse(respData []byte) (string, error) {
 	return "Unknown", nil
 }
 
-// parseCRLResponse parses a minimal CRL response to extract status
-func parseCRLResponse(crlData []byte) (string, error) {
+// ParseCRLResponse parses a minimal CRL response to extract status
+func ParseCRLResponse(crlData []byte) (string, error) {
 	// For simplicity, check if CRL contains "revoked" or similar indicators
 	crlStr := string(crlData)
 
@@ -85,7 +85,7 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 		return nil, fmt.Errorf("failed to read OCSP response: %w", err)
 	}
 
-	status, err := parseOCSPResponse(respData)
+	status, err := ParseOCSPResponse(respData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse OCSP response: %w", err)
 	}
@@ -130,7 +130,7 @@ func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*R
 
 	// For simplicity, check if CRL contains the certificate serial number
 	// A full implementation would parse DER-encoded CRL structure
-	status, err := parseCRLResponse(crlData)
+	status, err := ParseCRLResponse(crlData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse CRL: %w", err)
 	}
