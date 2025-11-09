@@ -420,52 +420,6 @@ func TestCheckRevocationStatus(t *testing.T) {
 	}
 }
 
-func TestParseOCSPResponse(t *testing.T) {
-	tests := []struct {
-		name     string
-		response []byte
-		expected string
-	}{
-		{
-			name:     "Good response",
-			response: []byte("This is a good response from OCSP server"),
-			expected: "Good",
-		},
-		{
-			name:     "Revoked response",
-			response: []byte("Certificate has been revoked"),
-			expected: "Revoked",
-		},
-		{
-			name:     "Unknown response",
-			response: []byte("Some other response"),
-			expected: "Unknown",
-		},
-		{
-			name:     "ASN.1 good status (0x00 0x01)",
-			response: []byte{0x00, 0x01},
-			expected: "Good",
-		},
-		{
-			name:     "ASN.1 revoked status (0x00 0x02)",
-			response: []byte{0x00, 0x02},
-			expected: "Revoked",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := x509chain.ParseOCSPResponse(tt.response)
-			if err != nil {
-				t.Fatalf("ParseOCSPResponse() error = %v", err)
-			}
-			if result != tt.expected {
-				t.Errorf("ParseOCSPResponse() = %v, want %v", result, tt.expected)
-			}
-		})
-	}
-}
-
 func TestParseCRLResponse(t *testing.T) {
 	// Create a simple test certificate for issuer
 	block, _ := pem.Decode([]byte(testCertPEM))

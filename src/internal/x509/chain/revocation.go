@@ -26,27 +26,6 @@ type RevocationStatus struct {
 	SerialNumber string
 }
 
-// ParseOCSPResponse parses an OCSP response to extract certificate status
-func ParseOCSPResponse(respData []byte) (string, error) {
-	// Basic OCSP response parsing
-	// OCSP responses are ASN.1 encoded, but for simplicity we'll do basic checks
-	respStr := strings.ToLower(string(respData))
-
-	// Check for common OCSP response patterns
-	if strings.Contains(respStr, "good") || bytes.Contains(respData, []byte{0x00, 0x01}) {
-		return "Good", nil
-	}
-	if strings.Contains(respStr, "revoked") || bytes.Contains(respData, []byte{0x00, 0x02}) {
-		return "Revoked", nil
-	}
-	if strings.Contains(respStr, "unknown") || bytes.Contains(respData, []byte{0x00, 0x03}) {
-		return "Unknown", nil
-	}
-
-	// If we can't determine status, return unknown
-	return "Unknown", nil
-}
-
 // ParseCRLResponse parses a CRL response to extract status for a specific certificate
 func ParseCRLResponse(crlData []byte, certSerial *big.Int, issuer *x509.Certificate) (string, error) {
 	if len(crlData) == 0 {
