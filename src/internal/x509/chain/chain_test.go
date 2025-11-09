@@ -440,6 +440,16 @@ func TestParseOCSPResponse(t *testing.T) {
 			response: []byte("Some other response"),
 			expected: "Unknown",
 		},
+		{
+			name:     "ASN.1 good status (0x00 0x01)",
+			response: []byte{0x00, 0x01},
+			expected: "Good",
+		},
+		{
+			name:     "ASN.1 revoked status (0x00 0x02)",
+			response: []byte{0x00, 0x02},
+			expected: "Revoked",
+		},
 	}
 
 	for _, tt := range tests {
