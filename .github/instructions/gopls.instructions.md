@@ -116,6 +116,10 @@ gopls_go_search("FetchRemoteChain") → Find remote TLS chain retrieval helper (
 gopls_go_search("CheckRevocationStatus") → Find OCSP/CRL revocation checking (`src/internal/x509/chain/revocation.go`)
 gopls_go_search("RevocationStatus") → Find revocation status structures
 gopls_go_search("createOCSPRequest") → Find OCSP request creation functions
+gopls_go_search("ParseCRLResponse") → Find CRL response parsing functions
+gopls_go_search("getCachedCRL") → Find CRL caching functions
+gopls_go_search("tryOCSPServer") → Find OCSP server retry functions
+gopls_go_search("tryCRLDistributionPoint") → Find CRL distribution point functions
 gopls_go_search("CreateMessage") → Find AI message creation functions
 ```
 

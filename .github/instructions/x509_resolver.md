@@ -155,6 +155,7 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993, intermediate_only=t
 - Uses embedded system prompt from `src/mcp-server/templates/certificate-analysis-system-prompt.md` including revocation status analysis.
 - Falls back to showing the prepared certificate context when `X509_AI_APIKEY` is not configured.
 - Includes OCSP/CRL status verification using `CheckRevocationStatus` from `src/internal/x509/chain/revocation.go`.
+- Provides methodology explanations for revocation status checks (OCSP priority over CRL, multi-endpoint redundancy, signature verification requirements).
 
 **Examples**:
 
