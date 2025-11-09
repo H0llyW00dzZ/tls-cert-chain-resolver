@@ -298,6 +298,9 @@ func (ch *Chain) processCRLData(crlData []byte, cert *x509.Certificate) (*Revoca
 
 // CheckRevocationStatus performs OCSP/CRL checks for the certificate chain with priority logic
 func (ch *Chain) CheckRevocationStatus(ctx context.Context) (string, error) {
+	ch.mu.RLock()
+	defer ch.mu.RUnlock()
+
 	var result strings.Builder
 	result.WriteString("Revocation Status Check:\n\n")
 

@@ -65,6 +65,7 @@ func (c *HTTPConfig) Client() *http.Client {
 //
 // [X.509]: https://grokipedia.com/page/X.509
 type Chain struct {
+	mu    sync.RWMutex
 	Certs []*x509.Certificate
 	*x509certs.Certificate
 	Roots         *x509.CertPool
@@ -93,6 +94,9 @@ func New(cert *x509.Certificate, version string) *Chain {
 //
 // [Rust]: https://www.rust-lang.org/
 func (ch *Chain) FetchCertificate(ctx context.Context) error {
+	ch.mu.Lock()
+	defer ch.mu.Unlock()
+
 	for ch.Certs[len(ch.Certs)-1].IssuingCertificateURL != nil {
 		parentURL := ch.Certs[len(ch.Certs)-1].IssuingCertificateURL[0]
 
@@ -143,6 +147,9 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 
 // AddRootCA adds a root CA to the certificate chain if necessary.
 func (ch *Chain) AddRootCA() error {
+	ch.mu.Lock()
+	defer ch.mu.Unlock()
+
 	lastCert := ch.Certs[len(ch.Certs)-1]
 
 	chains, err := lastCert.Verify(x509.VerifyOptions{})
@@ -175,6 +182,9 @@ func (ch *Chain) IsRootNode(cert *x509.Certificate) bool {
 
 // FilterIntermediates filters out the root and leaf certificates, returning only intermediates.
 func (ch *Chain) FilterIntermediates() []*x509.Certificate {
+	ch.mu.RLock()
+	defer ch.mu.RUnlock()
+
 	if len(ch.Certs) <= 2 {
 		return nil // No intermediates if 2 or fewer certs
 	}
@@ -208,6 +218,9 @@ func (ch *Chain) VerifyChain() error {
 
 // findIssuerForCertificate finds the certificate that issued the given cert in the chain
 func (ch *Chain) findIssuerForCertificate(cert *x509.Certificate) *x509.Certificate {
+	ch.mu.RLock()
+	defer ch.mu.RUnlock()
+
 	// For each certificate in the chain (starting from intermediates up)
 	for i := len(ch.Certs) - 1; i >= 0; i-- {
 		potentialIssuer := ch.Certs[i]
