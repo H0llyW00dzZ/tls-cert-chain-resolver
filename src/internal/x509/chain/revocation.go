@@ -76,6 +76,8 @@ func ParseOCSPResponse(respData []byte) (string, error) {
 	// If we can't determine status, return unknown
 	return "Unknown", nil
 }
+
+// TODO: This needs improvement.
 func createOCSPRequest(cert, issuer *x509.Certificate) ([]byte, error) {
 	// Calculate issuer name hash (SHA-1 of issuer's DN)
 	issuerNameHash := sha1.Sum(issuer.RawSubject)
