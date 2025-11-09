@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -47,15 +48,62 @@ func ParseOCSPResponse(respData []byte) (string, error) {
 
 // ParseCRLResponse parses a CRL response to extract status for a specific certificate
 func ParseCRLResponse(crlData []byte, certSerial *big.Int) (string, error) {
-	// For simplicity, check if CRL contains "revoked" keyword
-	// A full implementation would parse DER-encoded CRL structure
-	crlStr := strings.ToLower(string(crlData))
-
-	if strings.Contains(crlStr, "revoked") {
-		return "Revoked", nil
+	if len(crlData) == 0 {
+		return "Unknown", fmt.Errorf("empty CRL data")
 	}
 
-	// Certificate not in revoked list
+	if certSerial == nil {
+		return "Unknown", fmt.Errorf("certificate serial number is nil")
+	}
+
+	var lastErr error
+	data := crlData
+
+	for {
+		block, rest := pem.Decode(data)
+		if block == nil {
+			break
+		}
+
+		if strings.Contains(block.Type, "CRL") {
+			status, err := parseCRLBlock(block.Bytes, certSerial)
+			if err != nil {
+				lastErr = err
+			} else {
+				return status, nil
+			}
+		}
+
+		if len(rest) == 0 {
+			break
+		}
+		data = rest
+	}
+
+	status, err := parseCRLBlock(crlData, certSerial)
+	if err == nil {
+		return status, nil
+	}
+
+	if lastErr != nil {
+		return "Unknown", lastErr
+	}
+
+	return "Unknown", err
+}
+
+func parseCRLBlock(der []byte, certSerial *big.Int) (string, error) {
+	crl, err := x509.ParseCRL(der)
+	if err != nil {
+		return "Unknown", fmt.Errorf("failed to parse CRL data: %w", err)
+	}
+
+	for _, revoked := range crl.TBSCertList.RevokedCertificates {
+		if revoked.SerialNumber != nil && revoked.SerialNumber.Cmp(certSerial) == 0 {
+			return "Revoked", nil
+		}
+	}
+
 	return "Good", nil
 }
 
