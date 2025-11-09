@@ -40,7 +40,7 @@
 **Test package**: `go test -v ./src/internal/x509/certs 2>&1 | cat`, `go test -v ./src/internal/x509/chain 2>&1 | cat`, `go test -v ./src/mcp-server 2>&1 | cat`, or `go test -v ./src/logger 2>&1 | cat`  
 **Test race**: `go test -race ./... 2>&1 | cat` (recommended before merges)  
 **Test coverage**: `go test -cover ./... 2>&1 | cat` (view test coverage)  
-**Benchmark**: `go test -bench=. ./src/logger 2>&1 | cat` (performance testing)  
+**Benchmark**: `go test -bench=. ./src/logger ./src/internal/x509/chain 2>&1 | cat` (performance testing)  
 **Clean**: `make clean` (removes build artifacts from `./bin/`)
 
 **Note**: Piping test commands to `cat` (e.g., `2>&1 | cat`) ensures bash tool captures and displays all test output.
@@ -509,7 +509,7 @@ func getKeySize(cert *x509.Certificate) int {
 - Test certificate operations with both PEM and DER formats
 - Test with real certificate data when possible (use test fixtures)
 - Verify certificate chain resolution with various chain lengths
-- Benchmark concurrent operations to verify performance under load (see `src/logger/benchmark_test.go` for examples)
+- Benchmark concurrent operations to verify performance under load (see `src/logger/benchmark_test.go` and `src/internal/x509/chain/benchmark_test.go` for examples)
 - **Platform-specific test skipping**: Use `runtime.GOOS` to skip tests on specific platforms when OS behavior differs (e.g., macOS has stricter EKU constraints for certificate validation, Windows has different signal handling for graceful shutdown, skip TestMCPTools on macOS due to validation differences). See `src/internal/x509/chain/chain_test.go`, `src/mcp-server/run_test.go`, and `src/mcp-server/run_graceful_test.go` for examples.
 - **Test cleanup**: Use `t.TempDir()` for temporary directories (auto-cleaned) and `t.Cleanup()` for explicit cleanup functions. See `src/cli/root_test.go` and `src/logger/logger_test.go` for examples.
 - **Table-driven tests**: Use struct slices with `name`, `testFunc`, and validation functions for comprehensive test coverage. See `src/internal/x509/certs/cert_test.go` and `src/logger/logger_test.go` for examples.

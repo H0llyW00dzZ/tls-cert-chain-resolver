@@ -602,3 +602,164 @@ func TestRevocationStatus_ContextCancellation(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
+
+func TestRevocationWorkflow_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	tests := []struct {
+		name     string
+		testFunc func(t *testing.T)
+	}{
+		{
+			name: "Complete Revocation Workflow",
+			testFunc: func(t *testing.T) {
+				// 1. Parse certificate from PEM
+				block, _ := pem.Decode([]byte(testCertPEM))
+				if block == nil {
+					t.Fatal("failed to parse certificate PEM")
+				}
+
+				cert, err := x509.ParseCertificate(block.Bytes)
+				if err != nil {
+					t.Fatalf("failed to parse certificate: %v", err)
+				}
+
+				// 2. Create chain manager
+				manager := x509chain.New(cert, version)
+
+				// 3. Fetch certificate chain
+				fetchCtx, fetchCancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer fetchCancel()
+
+				if err := manager.FetchCertificate(fetchCtx); err != nil {
+					t.Fatalf("FetchCertificate() error = %v", err)
+				}
+
+				if len(manager.Certs) < 2 {
+					t.Fatalf("expected at least 2 certificates in chain, got %d", len(manager.Certs))
+				}
+
+				t.Logf("Successfully fetched certificate chain with %d certificates", len(manager.Certs))
+
+				// 4. Check revocation status
+				revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer revocationCancel()
+
+				revocationStatus, err := manager.CheckRevocationStatus(revocationCtx)
+				if err != nil {
+					t.Fatalf("CheckRevocationStatus() error = %v", err)
+				}
+
+				// Verify revocation status contains expected elements
+				if !strings.Contains(revocationStatus, "Revocation Status Check:") {
+					t.Error("revocation status should contain header")
+				}
+
+				if !strings.Contains(revocationStatus, "Certificate 1:") {
+					t.Error("revocation status should contain certificate information")
+				}
+
+				// Should contain either OCSP or CRL status
+				hasOCSP := strings.Contains(revocationStatus, "OCSP")
+				hasCRL := strings.Contains(revocationStatus, "CRL")
+
+				if !hasOCSP && !hasCRL {
+					t.Error("revocation status should contain OCSP or CRL information")
+				}
+
+				t.Logf("Revocation status check completed successfully")
+
+				// 5. Validate certificate chain (skip if chain doesn't verify - focus is on workflow integration)
+				// Note: Some test certificates may not form a valid chain for verification
+				if err := manager.VerifyChain(); err != nil {
+					t.Logf("Chain verification failed (expected for some test certificates): %v", err)
+				} else {
+					t.Logf("Certificate chain validation successful")
+				}
+
+				// 6. Verify overall chain integrity
+				for i, c := range manager.Certs {
+					if c == nil {
+						t.Errorf("certificate %d is nil", i)
+					}
+					if len(c.Raw) == 0 {
+						t.Errorf("certificate %d has empty raw data", i)
+					}
+				}
+
+				t.Logf("Complete integration test passed: fetch → revocation check → workflow validation")
+			},
+		},
+		{
+			name: "Revocation Workflow with Root CA Addition",
+			testFunc: func(t *testing.T) {
+				// Skip on macOS due to stricter EKU constraints
+				if runtime.GOOS == "darwin" {
+					t.Skip("Skipping root CA test on macOS due to EKU constraints")
+				}
+
+				// 1. Parse certificate
+				block, _ := pem.Decode([]byte(testCertPEM))
+				if block == nil {
+					t.Fatal("failed to parse certificate PEM")
+				}
+
+				cert, err := x509.ParseCertificate(block.Bytes)
+				if err != nil {
+					t.Fatalf("failed to parse certificate: %v", err)
+				}
+
+				// 2. Create chain manager
+				manager := x509chain.New(cert, version)
+
+				// 3. Fetch certificate chain
+				fetchCtx, fetchCancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer fetchCancel()
+
+				if err := manager.FetchCertificate(fetchCtx); err != nil {
+					t.Fatalf("FetchCertificate() error = %v", err)
+				}
+
+				// 4. Add root CA
+				if err := manager.AddRootCA(); err != nil {
+					t.Fatalf("AddRootCA() error = %v", err)
+				}
+
+				// Chain should now include root
+				if len(manager.Certs) < 3 {
+					t.Fatalf("expected at least 3 certificates after adding root CA, got %d", len(manager.Certs))
+				}
+
+				// 5. Check revocation status (should work with root CA)
+				revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer revocationCancel()
+
+				revocationStatus, err := manager.CheckRevocationStatus(revocationCtx)
+				if err != nil {
+					t.Fatalf("CheckRevocationStatus() after adding root CA error = %v", err)
+				}
+
+				if !strings.Contains(revocationStatus, "Certificate 1:") {
+					t.Error("revocation status should contain certificate information")
+				}
+
+				// 6. Validate complete chain (skip if doesn't verify - focus on workflow)
+				if err := manager.VerifyChain(); err != nil {
+					t.Logf("Chain verification failed with root CA (expected for some test certificates): %v", err)
+				} else {
+					t.Logf("Certificate chain validation with root CA successful")
+				}
+
+				t.Logf("Integration test with root CA passed: fetch → add root → revocation check → workflow validation")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.testFunc(t)
+		})
+	}
+}

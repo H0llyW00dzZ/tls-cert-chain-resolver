@@ -46,6 +46,7 @@ tls-cert-chain-resolver/
 │   │       │   ├── cert_test.go              # Certificate tests
 │   │       │   └── certs.go                  # Certificate encoding/decoding
 │   │       └── chain/
+│   │           ├── benchmark_test.go         # Chain resolution and revocation benchmarks
 │   │           ├── chain.go                  # Chain resolution logic
 │   │           ├── chain_test.go             # Chain tests
 │   │           ├── remote.go                 # Context-aware remote TLS chain fetcher
@@ -644,6 +645,7 @@ src/internal/x509/certs/cert_test.go
 # Chain resolution
 src/internal/x509/chain/chain.go
 src/internal/x509/chain/chain_test.go
+src/internal/x509/chain/benchmark_test.go  # Chain resolution and revocation benchmarks
 src/internal/x509/chain/remote.go  # Context-aware remote TLS chain helper
 
 # Helper utilities (buffer pool abstraction)
@@ -674,6 +676,9 @@ opencode.json
 ```
 # Find all test files
 glob("**/*_test.go")
+
+# Find benchmark files
+glob("**/*benchmark_test.go")
 
 # Find function definitions
 grep("func (c \\*Certificate)", include="*.go")
@@ -746,6 +751,12 @@ grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
 
 # Find concurrent test patterns
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
+
+# Find benchmark tests
+grep("Benchmark.*Chain\\|Benchmark.*Revocation\\|Benchmark.*Certificate", include="*_test.go")
+
+# Find CRL cache benchmarks
+grep("BenchmarkCRLCacheOperations", include="*_test.go")
 
 # Find MCP server tools
 grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert\\|analyze_certificate_with_ai", include="*.go")
