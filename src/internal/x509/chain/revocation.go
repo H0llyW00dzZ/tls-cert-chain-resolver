@@ -156,7 +156,7 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("failed to create OCSP request: %w", err)
 	}
 
-	// Make HTTP POST request to OCSP server
+	// Make HTTP POST request to OCSP server (RFC 2560)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ocspURL, bytes.NewReader(ocspReqData))
 	if err != nil {
 		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("failed to create OCSP HTTP request: %w", err)
