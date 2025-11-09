@@ -47,13 +47,17 @@ func ParseOCSPResponse(respData []byte) (string, error) {
 }
 
 // ParseCRLResponse parses a CRL response to extract status for a specific certificate
-func ParseCRLResponse(crlData []byte, certSerial *big.Int) (string, error) {
+func ParseCRLResponse(crlData []byte, certSerial *big.Int, issuer *x509.Certificate) (string, error) {
 	if len(crlData) == 0 {
 		return "Unknown", fmt.Errorf("empty CRL data")
 	}
 
 	if certSerial == nil {
 		return "Unknown", fmt.Errorf("certificate serial number is nil")
+	}
+
+	if issuer == nil {
+		return "Unknown", fmt.Errorf("issuer certificate is nil")
 	}
 
 	var lastErr error
@@ -66,7 +70,7 @@ func ParseCRLResponse(crlData []byte, certSerial *big.Int) (string, error) {
 		}
 
 		if strings.Contains(block.Type, "CRL") {
-			status, err := parseCRLBlock(block.Bytes, certSerial)
+			status, err := parseCRLBlock(block.Bytes, certSerial, issuer)
 			if err != nil {
 				lastErr = err
 			} else {
@@ -80,7 +84,7 @@ func ParseCRLResponse(crlData []byte, certSerial *big.Int) (string, error) {
 		data = rest
 	}
 
-	status, err := parseCRLBlock(crlData, certSerial)
+	status, err := parseCRLBlock(crlData, certSerial, issuer)
 	if err == nil {
 		return status, nil
 	}
@@ -92,10 +96,14 @@ func ParseCRLResponse(crlData []byte, certSerial *big.Int) (string, error) {
 	return "Unknown", err
 }
 
-func parseCRLBlock(der []byte, certSerial *big.Int) (string, error) {
+func parseCRLBlock(der []byte, certSerial *big.Int, issuer *x509.Certificate) (string, error) {
 	crl, err := x509.ParseCRL(der)
 	if err != nil {
 		return "Unknown", fmt.Errorf("failed to parse CRL data: %w", err)
+	}
+
+	if err := issuer.CheckCRLSignature(crl); err != nil {
+		return "Unknown", fmt.Errorf("invalid CRL signature: %w", err)
 	}
 
 	for _, revoked := range crl.TBSCertList.RevokedCertificates {
@@ -122,8 +130,8 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 	}
 	req.Header.Set("User-Agent", ch.HTTPConfig.GetUserAgent())
 
-	client := &http.Client{Timeout: ch.HTTPConfig.Timeout}
-	resp, err := client.Do(req)
+	resp, err := ch.HTTPConfig.Client().Do(req)
+
 	if err != nil {
 		return &RevocationStatus{OCSPStatus: "Unknown"}, fmt.Errorf("OCSP request failed: %w", err)
 	}
@@ -169,19 +177,18 @@ func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*R
 	// Fetch CRL
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, crlURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create CRL request: %w", err)
+		return &RevocationStatus{CRLStatus: "Unknown"}, fmt.Errorf("failed to create CRL request: %w", err)
 	}
 	req.Header.Set("User-Agent", ch.HTTPConfig.GetUserAgent())
 
-	client := &http.Client{Timeout: ch.HTTPConfig.Timeout}
-	resp, err := client.Do(req)
+	resp, err := ch.HTTPConfig.Client().Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("CRL request failed: %w", err)
+		return &RevocationStatus{CRLStatus: "Unknown"}, fmt.Errorf("CRL request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("CRL server returned status %d", resp.StatusCode)
+		return &RevocationStatus{CRLStatus: "Unknown"}, fmt.Errorf("CRL server returned status %d", resp.StatusCode)
 	}
 
 	// Read CRL data
@@ -193,21 +200,75 @@ func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*R
 
 	// Read the response body into the buffer
 	if _, err := buf.ReadFrom(resp.Body); err != nil {
-		return nil, fmt.Errorf("failed to read CRL: %w", err)
+		return &RevocationStatus{CRLStatus: "Unknown"}, fmt.Errorf("failed to read CRL: %w", err)
 	}
 
 	crlData := buf.Bytes()
 
 	// Parse CRL and check revocation status
-	status, err := ParseCRLResponse(crlData, cert.SerialNumber)
+	issuer := ch.findIssuerForCertificate(cert)
+	if issuer == nil {
+		// For CRL verification, try all certificates in chain as potential signers
+		var lastErr error
+		for _, potentialIssuer := range ch.Certs {
+			if potentialIssuer == cert {
+				continue
+			}
+			status, err := ParseCRLResponse(crlData, cert.SerialNumber, potentialIssuer)
+			if err == nil {
+				return &RevocationStatus{
+					CRLStatus:    status,
+					SerialNumber: cert.SerialNumber.String(),
+				}, nil
+			}
+			lastErr = err
+		}
+		// If all failed, try parsing without signature verification as fallback
+		// This is less secure but better than completely failing
+		crl, err := x509.ParseCRL(crlData)
+		if err == nil {
+			for _, revoked := range crl.TBSCertList.RevokedCertificates {
+				if revoked.SerialNumber != nil && revoked.SerialNumber.Cmp(cert.SerialNumber) == 0 {
+					return &RevocationStatus{
+						CRLStatus:    "Revoked (unverified)",
+						SerialNumber: cert.SerialNumber.String(),
+					}, nil
+				}
+			}
+			return &RevocationStatus{
+				CRLStatus:    "Good (unverified)",
+				SerialNumber: cert.SerialNumber.String(),
+			}, nil
+		}
+		return &RevocationStatus{CRLStatus: "Unknown"}, fmt.Errorf("could not verify CRL signature or parse CRL: %w", lastErr)
+	}
+
+	status, err := ParseCRLResponse(crlData, cert.SerialNumber, issuer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse CRL: %w", err)
+		return &RevocationStatus{CRLStatus: "Unknown"}, fmt.Errorf("failed to parse CRL: %w", err)
 	}
 
 	return &RevocationStatus{
 		CRLStatus:    status,
 		SerialNumber: cert.SerialNumber.String(),
 	}, nil
+}
+
+// findIssuerForCertificate finds the certificate that issued the given cert in the chain
+func (ch *Chain) findIssuerForCertificate(cert *x509.Certificate) *x509.Certificate {
+	// For each certificate in the chain (starting from intermediates up)
+	for i := len(ch.Certs) - 1; i >= 0; i-- {
+		potentialIssuer := ch.Certs[i]
+		// Skip self
+		if potentialIssuer == cert {
+			continue
+		}
+		// Check if this cert could have issued our cert
+		if err := cert.CheckSignatureFrom(potentialIssuer); err == nil {
+			return potentialIssuer
+		}
+	}
+	return nil
 }
 
 // CheckRevocationStatus performs OCSP/CRL checks for the certificate chain

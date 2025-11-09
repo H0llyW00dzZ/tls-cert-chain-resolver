@@ -467,34 +467,25 @@ func TestParseOCSPResponse(t *testing.T) {
 }
 
 func TestParseCRLResponse(t *testing.T) {
-	tests := []struct {
-		name     string
-		response []byte
-		expected string
-	}{
-		{
-			name:     "Good CRL (no revoked keyword)",
-			response: []byte("This is a valid certificate list without any invalid certificates"),
-			expected: "Good",
-		},
-		{
-			name:     "Revoked CRL (contains revoked)",
-			response: []byte("This CRL contains revoked certificates"),
-			expected: "Revoked",
-		},
+	// Create a simple test certificate for issuer
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// For test purposes, use a dummy serial number
-			dummySerial := big.NewInt(12345)
-			result, err := x509chain.ParseCRLResponse(tt.response, dummySerial)
-			if err != nil {
-				t.Fatalf("ParseCRLResponse() error = %v", err)
-			}
-			if result != tt.expected {
-				t.Errorf("ParseCRLResponse() = %v, want %v", result, tt.expected)
-			}
-		})
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+
+	// Test that function signature works correctly
+	_, err = x509chain.ParseCRLResponse([]byte("invalid"), big.NewInt(12345), cert)
+	if err == nil {
+		t.Error("expected error for invalid CRL data")
+	}
+
+	_, err = x509chain.ParseCRLResponse([]byte{}, big.NewInt(12345), cert)
+	if err == nil {
+		t.Error("expected error for empty CRL data")
 	}
 }
