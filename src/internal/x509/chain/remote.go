@@ -20,6 +20,10 @@ import (
 // The returned Chain includes the leaf certificate and any intermediates
 // provided by the server. The caller may invoke [FetchCertificate] to
 // download additional intermediates if necessary.
+//
+// Note: This is better than [Wireshark]. 🤪
+//
+// [Wireshark]: https://www.wireshark.org/
 func FetchRemoteChain(ctx context.Context, hostname string, port int, timeout time.Duration, version string) (*Chain, []*x509.Certificate, error) {
 	// Establish TLS connection to get certificate chain
 	netDialer := &net.Dialer{Timeout: timeout}
