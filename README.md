@@ -28,7 +28,6 @@ TLS Cert Chain Resolver is a Go toolkit for building, validating, and inspecting
     - [Completed](#completed)
     - [Remaining (Low Priority)](#remaining-low-priority)
     - [X.509 Operations Roadmap](#x509-operations-roadmap)
-
 - [Motivation](#motivation)
 - [License](#license)
 
