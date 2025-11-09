@@ -307,6 +307,10 @@ func TestFetchRemoteChain(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if testing.Short() {
+				t.Skip("Skipping remote fetch test in short mode")
+			}
+
 			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
 			defer cancel()
 
