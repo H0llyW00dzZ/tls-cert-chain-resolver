@@ -749,6 +749,9 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 }
 
 // buildCertificateContext creates comprehensive context information about certificates for AI analysis
+//
+// Deprecated: This function is deprecated and replaced by buildCertificateContextWithRevocation.
+// The replacement includes revocation status checks for comprehensive certificate analysis.
 func buildCertificateContext(certs []*x509.Certificate, analysisType string) string {
 	var context strings.Builder
 
