@@ -9,13 +9,11 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"crypto/tls"
 	"crypto/x509"
 	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -286,39 +284,15 @@ func handleFetchRemoteCert(ctx context.Context, request mcp.CallToolRequest, con
 
 	port := request.GetInt("port", 443)
 
-	// Establish TLS connection to get certificate chain
-	dialer := &net.Dialer{
-		Timeout: time.Duration(config.Defaults.Timeout) * time.Second,
-	}
-
 	format := request.GetString("format", config.Defaults.Format)
 	includeSystemRoot := request.GetBool("include_system_root", config.Defaults.IncludeSystemRoot)
 	intermediateOnly := request.GetBool("intermediate_only", config.Defaults.IntermediateOnly)
 
-	conn, err := tls.DialWithDialer(dialer, "tcp", fmt.Sprintf("%s:%d", hostname, port), &tls.Config{
-		InsecureSkipVerify: true, // We just want the cert chain, not to verify
-	})
+	chain, certs, err := x509chain.FetchRemoteChain(ctx, hostname, port, time.Duration(config.Defaults.Timeout)*time.Second, version.Version)
 	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("failed to connect to %s:%d: %v", hostname, port, err)), nil
-	}
-	defer conn.Close()
-
-	// Get the certificate chain from the connection
-	certs := conn.ConnectionState().PeerCertificates
-	if len(certs) == 0 {
-		return mcp.NewToolResultError("no certificates received from server"), nil
+		return mcp.NewToolResultError(err.Error()), nil
 	}
 
-	// Use the leaf certificate to create a chain
-	leafCert := certs[0]
-	chain := x509chain.New(leafCert, version.Version)
-
-	// Add the intermediates from the connection
-	for _, cert := range certs[1:] {
-		chain.Certs = append(chain.Certs, cert)
-	}
-
-	// Fetch any additional certificates if needed
 	if err := chain.FetchCertificate(ctx); err != nil {
 		// This might fail if intermediates are already complete, which is ok
 		// We'll proceed with what we have
