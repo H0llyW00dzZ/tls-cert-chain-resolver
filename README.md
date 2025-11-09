@@ -106,7 +106,7 @@ The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes
 
 #### Security considerations
 
-The remote fetcher sets `InsecureSkipVerify` on its TLS dialer so it can capture every handshake certificate without relying on the sandbox trust store. No verification is performed during that session; always validate the returned chain (for example with `VerifyChain`) before treating the endpoint as trusted, since a man-in-the-middle could present an arbitrary certificate set.
+The remote fetcher sets `InsecureSkipVerify` on its TLS dialer so it can capture every handshake certificate without relying on the sandbox trust store. No verification is performed during that session; always validate the returned chain (for example with `VerifyChain`) before treating the endpoint as trusted, since a [man-in-the-middle](https://grokipedia.com/page/Man-in-the-middle_attack) could present an arbitrary certificate set.
 
 Enable the MCP server in `opencode.json` or run manually:
 
