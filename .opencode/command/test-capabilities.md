@@ -20,14 +20,21 @@ Test the current agent capabilities based on instructions and tools, including M
    - **Wiki Structure**: Call `deepwiki_read_wiki_structure("spf13/cobra")` to test documentation access
    - **Question Answering**: Call `deepwiki_ask_question("spf13/cobra", "How do I add flags to a cobra command?")` to verify AI-assisted research
 
-3. **Test Built-in Tools**:
+3. **Test X509 Resolver MCP Server Capabilities**:
+   - **Resolve Remote Certificate**: Call `x509_resolver_fetch_remote_cert("example.com", port=443, format="pem")` (or another stable host) to retrieve the PEM bundle
+   - **Persist Bundle**: Save the returned PEM data to `test-output-bundle.pem` in the repository root (file is already git-ignored)
+   - **Validate Chain**: Call `x509_resolver_validate_cert_chain("test-output-bundle.pem")` to confirm trust evaluation works
+   - **Check Expiry**: Call `x509_resolver_check_cert_expiry("test-output-bundle.pem", warn_days=30)` to verify expiry reporting
+   - **AI Analysis**: Call `x509_resolver_analyze_certificate_with_ai("test-output-bundle.pem", analysis_type="security")` to ensure AI-assisted auditing functions; capture and report streaming output
+
+4. **Test Built-in Tools**:
    - **Filesystem Listing**: Call `list("/home/h0llyw00dzz/Workspace/git/tls-cert-chain-resolver/src")` to verify directory access
    - **File Reading**: Call `read("src/cli/root.go", offset=0, limit=50)` to test file content access
    - **Glob Pattern Matching**: Call `glob("src/**/*.go")` to verify file discovery
    - **Content Search**: Call `grep("func.*Execute", include="*.go")` to test regex search
    - **Bash Execution**: Call `bash("echo 'Testing bash tool'")` to verify command execution
 
-4. **Verify MCP Connection Handling**:
+5. **Verify MCP Connection Handling**:
    - Confirm Gopls MCP handles short-lived connections (auto-reconnects on errors)
    - Confirm DeepWiki MCP maintains persistent connections
    - Test error recovery for both MCP servers
