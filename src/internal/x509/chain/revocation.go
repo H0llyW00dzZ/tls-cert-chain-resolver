@@ -77,16 +77,16 @@ func ParseCRLResponse(crlData []byte, certSerial *big.Int, issuer *x509.Certific
 }
 
 func parseCRLBlock(der []byte, certSerial *big.Int, issuer *x509.Certificate) (string, error) {
-	crl, err := x509.ParseCRL(der)
+	crl, err := x509.ParseRevocationList(der)
 	if err != nil {
 		return "Unknown", fmt.Errorf("failed to parse CRL data: %w", err)
 	}
 
-	if err := issuer.CheckCRLSignature(crl); err != nil {
+	if err := crl.CheckSignatureFrom(issuer); err != nil {
 		return "Unknown", fmt.Errorf("invalid CRL signature: %w", err)
 	}
 
-	for _, revoked := range crl.TBSCertList.RevokedCertificates {
+	for _, revoked := range crl.RevokedCertificateEntries {
 		if revoked.SerialNumber != nil && revoked.SerialNumber.Cmp(certSerial) == 0 {
 			return "Revoked", nil
 		}
@@ -233,9 +233,9 @@ func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*R
 		}
 		// If all failed, try parsing without signature verification as fallback
 		// This is less secure but better than completely failing
-		crl, err := x509.ParseCRL(crlData)
+		crl, err := x509.ParseRevocationList(crlData)
 		if err == nil {
-			for _, revoked := range crl.TBSCertList.RevokedCertificates {
+			for _, revoked := range crl.RevokedCertificateEntries {
 				if revoked.SerialNumber != nil && revoked.SerialNumber.Cmp(cert.SerialNumber) == 0 {
 					return &RevocationStatus{
 						CRLStatus:    "Revoked (unverified)",
