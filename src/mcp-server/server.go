@@ -31,6 +31,9 @@ func GetVersion() string {
 // Run starts the MCP server with X509 certificate chain resolution tools.
 // It loads configuration from the MCP_X509_CONFIG_FILE environment variable.
 func Run(version string) error {
+	// Set the version for GetVersion
+	appVersion = version
+
 	// Load configuration
 	config, err := loadConfig(os.Getenv("MCP_X509_CONFIG_FILE"))
 	if err != nil {
