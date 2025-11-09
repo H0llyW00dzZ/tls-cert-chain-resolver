@@ -642,8 +642,34 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 		certs = []*x509.Certificate{cert}
 	}
 
-	// Build comprehensive certificate context for AI analysis
-	certificateContext := buildCertificateContext(certs, analysisType)
+	// Create certificate chain and fetch complete chain for analysis
+	chain := x509chain.New(certs[0], version.Version)
+	if len(certs) > 1 {
+		chain.Certs = certs
+	}
+
+	// Configure timeout from MCP server config
+	chain.HTTPConfig.Timeout = time.Duration(config.Defaults.Timeout) * time.Second
+
+	// Fetch additional certificates from AIA URLs if available
+	fetchCtx, cancel := context.WithTimeout(ctx, time.Duration(config.Defaults.Timeout)*time.Second)
+	defer cancel()
+	if err := chain.FetchCertificate(fetchCtx); err != nil {
+		// Log error but continue with available certificates
+		// This is not a fatal error for AI analysis
+	}
+
+	// Perform revocation status checks
+	revocationCtx, revocationCancel := context.WithTimeout(ctx, time.Duration(config.Defaults.Timeout)*time.Second)
+	defer revocationCancel()
+	revocationStatus, err := chain.CheckRevocationStatus(revocationCtx)
+	if err != nil {
+		// Revocation checking failure is not fatal
+		revocationStatus = fmt.Sprintf("Revocation check failed: %v", err)
+	}
+
+	// Build comprehensive certificate context for AI analysis including revocation status
+	certificateContext := buildCertificateContextWithRevocation(chain.Certs, revocationStatus, analysisType)
 
 	// Use context engineering as the primary prompt for AI analysis
 	analysisPrompt := certificateContext + "\n\n" + getAnalysisInstruction(analysisType)
@@ -730,6 +756,137 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
 	context.WriteString(fmt.Sprintf("Chain Length: %d certificates\n", len(certs)))
 	context.WriteString(fmt.Sprintf("Analysis Type: %s\n", analysisType))
 	context.WriteString(fmt.Sprintf("Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05")))
+
+	// Detailed certificate information
+	for i, cert := range certs {
+		context.WriteString(fmt.Sprintf("=== CERTIFICATE %d ===\n", i+1))
+		context.WriteString(fmt.Sprintf("Role: %s\n", getCertificateRole(i, len(certs))))
+
+		// Subject information
+		context.WriteString("SUBJECT:\n")
+		context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Subject.CommonName))
+		context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Subject.Organization, ", ")))
+		context.WriteString(fmt.Sprintf("  Organizational Unit: %s\n", strings.Join(cert.Subject.OrganizationalUnit, ", ")))
+		context.WriteString(fmt.Sprintf("  Country: %s\n", strings.Join(cert.Subject.Country, ", ")))
+		context.WriteString(fmt.Sprintf("  State/Province: %s\n", strings.Join(cert.Subject.Province, ", ")))
+		context.WriteString(fmt.Sprintf("  Locality: %s\n", strings.Join(cert.Subject.Locality, ", ")))
+
+		// Issuer information
+		context.WriteString("ISSUER:\n")
+		context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Issuer.CommonName))
+		context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Issuer.Organization, ", ")))
+
+		// Validity period
+		context.WriteString("VALIDITY:\n")
+		context.WriteString(fmt.Sprintf("  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST")))
+		context.WriteString(fmt.Sprintf("  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST")))
+
+		now := time.Now()
+		daysUntilExpiry := int(cert.NotAfter.Sub(now).Hours() / 24)
+		context.WriteString(fmt.Sprintf("  Days until expiry: %d\n", daysUntilExpiry))
+		if daysUntilExpiry < 0 {
+			context.WriteString("  Status: EXPIRED\n")
+		} else if daysUntilExpiry < 30 {
+			context.WriteString("  Status: EXPIRING SOON\n")
+		} else {
+			context.WriteString("  Status: VALID\n")
+		}
+
+		// Cryptographic information
+		context.WriteString("CRYPTOGRAPHY:\n")
+		context.WriteString(fmt.Sprintf("  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String()))
+		context.WriteString(fmt.Sprintf("  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String()))
+		context.WriteString(fmt.Sprintf("  Key Size: %d bits\n", getKeySize(cert)))
+
+		// Certificate properties
+		context.WriteString("PROPERTIES:\n")
+		context.WriteString(fmt.Sprintf("  Version: %d\n", cert.Version))
+		context.WriteString(fmt.Sprintf("  Serial Number: %s\n", cert.SerialNumber.String()))
+		context.WriteString(fmt.Sprintf("  Is CA: %t\n", cert.IsCA))
+
+		// Key usage and extended key usage
+		if cert.KeyUsage != 0 {
+			context.WriteString(fmt.Sprintf("  Key Usage: %s\n", formatKeyUsage(cert.KeyUsage)))
+		}
+		if len(cert.ExtKeyUsage) > 0 {
+			context.WriteString(fmt.Sprintf("  Extended Key Usage: %s\n", formatExtKeyUsage(cert.ExtKeyUsage)))
+		}
+
+		// Subject Alternative Names
+		if len(cert.DNSNames) > 0 {
+			context.WriteString(fmt.Sprintf("  DNS Names: %s\n", strings.Join(cert.DNSNames, ", ")))
+		}
+		if len(cert.EmailAddresses) > 0 {
+			context.WriteString(fmt.Sprintf("  Email Addresses: %s\n", strings.Join(cert.EmailAddresses, ", ")))
+		}
+		if len(cert.IPAddresses) > 0 {
+			ips := make([]string, len(cert.IPAddresses))
+			for j, ip := range cert.IPAddresses {
+				ips[j] = ip.String()
+			}
+			context.WriteString(fmt.Sprintf("  IP Addresses: %s\n", strings.Join(ips, ", ")))
+		}
+
+		// Certificate Authority Information
+		if cert.IssuingCertificateURL != nil {
+			context.WriteString(fmt.Sprintf("  Issuer URLs: %s\n", strings.Join(cert.IssuingCertificateURL, ", ")))
+		}
+		if cert.CRLDistributionPoints != nil {
+			context.WriteString(fmt.Sprintf("  CRL Distribution Points: %s\n", strings.Join(cert.CRLDistributionPoints, ", ")))
+		}
+		if cert.OCSPServer != nil {
+			context.WriteString(fmt.Sprintf("  OCSP Servers: %s\n", strings.Join(cert.OCSPServer, ", ")))
+		}
+
+		context.WriteString("\n")
+	}
+
+	// Chain validation context
+	context.WriteString("=== CHAIN VALIDATION CONTEXT ===\n")
+	if len(certs) > 1 {
+		for i := 0; i < len(certs)-1; i++ {
+			subject := certs[i].Subject.CommonName
+			issuer := certs[i].Issuer.CommonName
+			nextSubject := certs[i+1].Subject.CommonName
+
+			if issuer == nextSubject {
+				context.WriteString(fmt.Sprintf("✓ Certificate %d (%s) is properly signed by Certificate %d (%s)\n",
+					i+1, subject, i+2, nextSubject))
+			} else {
+				context.WriteString(fmt.Sprintf("⚠ Certificate %d (%s) issuer (%s) doesn't match Certificate %d subject (%s)\n",
+					i+1, subject, issuer, i+2, nextSubject))
+			}
+		}
+	}
+
+	// Security context
+	context.WriteString("\n=== SECURITY CONTEXT ===\n")
+	context.WriteString("Current TLS/SSL Best Practices:\n")
+	context.WriteString("- ~RSA keys should be 2048 bits or larger~ (Quantum Vulnerable 💀)\n")
+	context.WriteString("- ~ECDSA keys should use P-256 or stronger curves~ (Quantum Vulnerable 💀)\n")
+	context.WriteString("- Certificates should not be valid for more than 398 days (CA/Browser Forum)\n")
+	context.WriteString("- Modern clients require SAN (Subject Alternative Name) extension\n")
+	context.WriteString("- Quantum-resistant algorithms: Consider ML-KEM (Kyber), ML-DSA (Dilithium), and SLH-DSA (SPHINCS+) for post-quantum cryptography\n")
+	context.WriteString("- Hybrid certificates combining classical and quantum-resistant algorithms provide transitional security\n")
+	context.WriteString("- Deprecated: MD5, SHA-1 signatures\n")
+	context.WriteString("- Deprecated: SSLv3, TLS 1.0, TLS 1.1\n")
+
+	return context.String()
+}
+
+// buildCertificateContextWithRevocation creates comprehensive context information about certificates for AI analysis including revocation status
+func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocationStatus string, analysisType string) string {
+	var context strings.Builder
+
+	// Chain overview
+	context.WriteString(fmt.Sprintf("Chain Length: %d certificates\n", len(certs)))
+	context.WriteString(fmt.Sprintf("Analysis Type: %s\n", analysisType))
+	context.WriteString(fmt.Sprintf("Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05")))
+
+	// Include revocation status summary
+	context.WriteString("REVOCATION STATUS SUMMARY:\n")
+	context.WriteString(revocationStatus)
+	context.WriteString("\n")
 
 	// Detailed certificate information
 	for i, cert := range certs {
