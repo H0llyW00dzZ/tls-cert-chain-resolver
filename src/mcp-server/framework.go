@@ -251,17 +251,17 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 		gc.Default.Put(buf) // Return buffer to pool for reuse
 	}()
 
-	// If no API key, return placeholder response
+	// If no API key, return guidance for enabling AI integration
 	if h.apiKey == "" {
-		response := "AI API key not configured. Please set X509_AI_APIKEY environment variable or configure in config.json. " +
-			"This is a placeholder response for demonstration purposes."
+		response := "AI API key not configured. Set X509_AI_APIKEY or configure the ai.apiKey field in config.json to enable certificate analysis. " +
+			"Until then, the server will return static information only."
 
 		return &mcp.CreateMessageResult{
 			SamplingMessage: mcp.SamplingMessage{
 				Role:    mcp.RoleAssistant,
 				Content: mcp.NewTextContent(response),
 			},
-			Model:      "placeholder",
+			Model:      "not-configured",
 			StopReason: "end",
 		}, nil
 	}
