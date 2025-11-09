@@ -15,6 +15,7 @@ TLS Cert Chain Resolver is a Go toolkit for building, validating, and inspecting
   - [Examples](#examples)
 - [Model Context Protocol (MCP) Server](#model-context-protocol-mcp-server)
   - [MCP Tooling](#mcp-tooling)
+  - [Security considerations](#security-considerations)
   - [AI-Assisted Analysis](#ai-assisted-analysis)
 - [Configuration](#configuration)
   - [Environment Variables](#environment-variables)
@@ -102,6 +103,10 @@ The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes
 | `batch_resolve_cert_chain` | Resolve multiple certificates in a single call |
 | `fetch_remote_cert` | Retrieve chains directly from TLS endpoints (HTTPS, SMTP, IMAP, etc.) |
 | `analyze_certificate_with_ai` | Delegate structured certificate analysis to a configured LLM |
+
+#### Security considerations
+
+The remote fetcher sets `InsecureSkipVerify` on its TLS dialer so it can capture every handshake certificate without relying on the sandbox trust store. No verification is performed during that session; always validate the returned chain (for example with `VerifyChain`) before treating the endpoint as trusted, since a man-in-the-middle could present an arbitrary certificate set.
 
 Enable the MCP server in `opencode.json` or run manually:
 
