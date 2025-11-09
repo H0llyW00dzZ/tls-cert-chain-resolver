@@ -318,7 +318,8 @@ func handleFetchRemoteCert(ctx context.Context, request mcp.CallToolRequest, con
 
 	result := "Remote Certificate Fetch Results:\n"
 	result += fmt.Sprintf("Host: %s:%d\n", hostname, port)
-	result += fmt.Sprintf("Certificates received: %d\n\n", len(certs))
+	result += fmt.Sprintf("Certificates received: %d\n", len(certs))
+	result += fmt.Sprintf("Certificates after filtering: %d\n\n", len(filteredCerts))
 
 	switch format {
 	case "der":
