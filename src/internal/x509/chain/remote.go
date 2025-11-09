@@ -31,6 +31,7 @@ func FetchRemoteChain(ctx context.Context, hostname string, port int, timeout ti
 	tlsDialer := &tls.Dialer{
 		NetDialer: netDialer,
 		Config: &tls.Config{
+			// We just want the cert chain, not to verify
 			InsecureSkipVerify: true,
 			ServerName:         hostname,
 		},
