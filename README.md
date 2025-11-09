@@ -228,7 +228,7 @@ src/
 ##### [X.509](https://grokipedia.com/page/X.509) Operations Roadmap
 
 - [ ] Implement streaming support for large certificate chains
-- [ ] Add OCSP/CRL revocation status checks to MCP tools
+- [x] Add OCSP/CRL revocation status checks to MCP tools
 - [ ] Evaluate post-quantum signature support (e.g., hybrid or PQC-only chains)
 
 ## Motivation

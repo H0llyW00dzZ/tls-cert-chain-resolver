@@ -157,6 +157,13 @@ func handleValidateCertChain(ctx context.Context, request mcp.CallToolRequest) (
 		return mcp.NewToolResultError(fmt.Sprintf("certificate chain validation failed: %v", err)), nil
 	}
 
+	// Check revocation status
+	revocationStatus, err := chain.CheckRevocationStatus(ctx)
+	if err != nil {
+		// Log error but don't fail - revocation checking is optional
+		revocationStatus = fmt.Sprintf("Revocation check failed: %v", err)
+	}
+
 	// Build success result
 	result := "Certificate chain validation successful!\n\n"
 	result += "Chain Details:\n"
@@ -172,7 +179,8 @@ func handleValidateCertChain(ctx context.Context, request mcp.CallToolRequest) (
 		}
 	}
 	result += fmt.Sprintf("\nTotal certificates: %d\n", len(chain.Certs))
-	result += "Validation: PASSED ✓"
+	result += "Validation: PASSED ✓\n\n"
+	result += revocationStatus
 
 	return mcp.NewToolResultText(result), nil
 }
