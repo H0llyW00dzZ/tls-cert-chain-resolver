@@ -15,6 +15,7 @@ TLS Cert Chain Resolver is a Go toolkit for building, validating, and inspecting
   - [Examples](#examples)
 - [Model Context Protocol (MCP) Server](#model-context-protocol-mcp-server)
   - [MCP Tooling](#mcp-tooling)
+  - [Security considerations](#security-considerations)
   - [AI-Assisted Analysis](#ai-assisted-analysis)
 - [Configuration](#configuration)
   - [Environment Variables](#environment-variables)
