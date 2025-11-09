@@ -78,10 +78,10 @@ This file explains the OpenCode configuration and how to use the instruction fil
 **Scope**: Reusable agent workflows
 
 **Available Commands**:
-- `/update-knowledge` - Update instruction files when code changes
+- `/update-knowledge` - Update instruction files when code changes (handles instruction consistency and .opencode command sync)
 - `/test` - Run tests with coverage and analyze failures
 - `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools
-- `/create-changelog` - Generate changelog by comparing tags against master and save to temporary file
+- `/create-changelog` - Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
 
 **When to use**:
 - After making code changes (`/update-knowledge` then `/test`)

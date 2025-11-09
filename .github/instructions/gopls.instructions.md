@@ -22,6 +22,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`config.go`** — Configuration management for AI and MCP settings
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
+  - **`remote.go`** — Context-aware remote TLS chain retrieval (`FetchRemoteChain`)
 - **`src/internal/helper/gc/`** — Memory management utilities
 - **`src/version/`** — Version information
 
@@ -110,6 +111,7 @@ gopls_go_search("createPrompts") → Find prompt creation functions
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis tools
 gopls_go_search("DefaultSamplingHandler") → Find AI sampling implementation
+gopls_go_search("FetchRemoteChain") → Find remote TLS chain retrieval helper (`src/internal/x509/chain/remote.go`)
 gopls_go_search("CreateMessage") → Find AI message creation functions
 ```
 
@@ -140,7 +142,7 @@ gopls_go_package_api([
 
 Returns:
 - Public types: Certificate, Chain
-- Public functions: New, Decode, DecodeMultiple, EncodePEM, EncodeDER
+- Public functions: New, Decode, DecodeMultiple, EncodePEM, EncodeDER, FetchRemoteChain
 - Public methods: FetchCertificate, AddRootCA, FilterIntermediates
 ```
 
