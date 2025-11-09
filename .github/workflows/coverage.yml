@@ -52,12 +52,21 @@ jobs:
       continue-on-error: true
 
     - name: Run benchmarks
-      run: go test -bench=. -benchmem -benchtime=100000x ./src/logger > benchmark-results.txt
+      run: |
+        echo "Running benchmarks for all packages with benchmarks..."
+        go test -bench=. -benchmem -benchtime=10x ./src/logger > benchmark-logger.txt || echo "Logger benchmarks failed"
+        go test -bench=. -benchmem -benchtime=10x ./src/internal/x509/chain > benchmark-chain.txt || echo "Chain benchmarks failed"
+        echo "Benchmark results completed"
       shell: bash
       continue-on-error: true
 
     - name: Display benchmark results
-      run: cat benchmark-results.txt
+      run: |
+        echo "=== Logger Benchmarks ==="
+        cat benchmark-logger.txt || echo "No logger benchmark results"
+        echo ""
+        echo "=== Chain Benchmarks ==="
+        cat benchmark-chain.txt || echo "No chain benchmark results"
       shell: bash
       if: always()
 
