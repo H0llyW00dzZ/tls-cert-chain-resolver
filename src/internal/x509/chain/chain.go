@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
@@ -21,6 +22,9 @@ type HTTPConfig struct {
 	Timeout   time.Duration // HTTP request timeout
 	Version   string        // Application version for User-Agent
 	UserAgent string        // Custom User-Agent string, if empty will be constructed from Version
+
+	mu     sync.Mutex
+	client *http.Client
 }
 
 // NewHTTPConfig creates a new HTTP configuration with default values
@@ -38,6 +42,23 @@ func (c *HTTPConfig) GetUserAgent() string {
 		return c.UserAgent
 	}
 	return fmt.Sprintf("X.509-Certificate-Chain-Resolver/%s (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)", c.Version)
+}
+
+// Client returns an HTTP client configured with the current timeout.
+func (c *HTTPConfig) Client() *http.Client {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.client == nil {
+		c.client = &http.Client{Timeout: c.Timeout}
+		return c.client
+	}
+
+	if c.client.Timeout != c.Timeout {
+		c.client.Timeout = c.Timeout
+	}
+
+	return c.client
 }
 
 // Chain manages [X.509] certificates.
@@ -84,8 +105,7 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 		req.Header.Set("User-Agent", ch.HTTPConfig.GetUserAgent())
 
 		// Use custom HTTP client with configured timeout
-		client := &http.Client{Timeout: ch.HTTPConfig.Timeout}
-		resp, err := client.Do(req)
+		resp, err := ch.HTTPConfig.Client().Do(req)
 		if err != nil {
 			return err
 		}
