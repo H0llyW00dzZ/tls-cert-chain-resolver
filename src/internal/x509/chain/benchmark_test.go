@@ -3,7 +3,7 @@
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
 
-package x509chain_test
+package x509chain
 
 import (
 	"context"
@@ -13,8 +13,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 )
 
 func BenchmarkFetchCertificateChain(b *testing.B) {
@@ -30,7 +28,7 @@ func BenchmarkFetchCertificateChain(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		manager := x509chain.New(cert, version)
+		manager := New(cert, version)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 		if err := manager.FetchCertificate(ctx); err != nil {
@@ -52,7 +50,7 @@ func BenchmarkCheckRevocationStatus(b *testing.B) {
 	}
 
 	// Set up manager with fetched chain
-	manager := x509chain.New(cert, version)
+	manager := New(cert, version)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -83,7 +81,7 @@ func BenchmarkVerifyChain(b *testing.B) {
 	}
 
 	// Set up manager with fetched chain
-	manager := x509chain.New(cert, version)
+	manager := New(cert, version)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -111,7 +109,7 @@ func BenchmarkConcurrentRevocationChecks(b *testing.B) {
 	}
 
 	// Set up manager with fetched chain
-	manager := x509chain.New(cert, version)
+	manager := New(cert, version)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -142,10 +140,10 @@ func BenchmarkCRLCacheOperations(b *testing.B) {
 		url := fmt.Sprintf("http://example.com/crl%d.crl", i%1000) // Simulate different URLs
 
 		// Benchmark cache set operation
-		x509chain.SetCachedCRL(url, mockCRLData, mockNextUpdate)
+		SetCachedCRL(url, mockCRLData, mockNextUpdate)
 
 		// Benchmark cache get operation
-		if _, found := x509chain.GetCachedCRL(url); !found {
+		if _, found := GetCachedCRL(url); !found {
 			b.Fatalf("CRL should be in cache")
 		}
 	}
