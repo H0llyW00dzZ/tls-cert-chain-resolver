@@ -63,6 +63,7 @@ tls-cert-chain-resolver/
 │   │   ├── framework.go                      # ServerBuilder pattern, sampling registration, streaming buffer pooling
 │   │   ├── handlers.go                       # MCP tool handlers, AI certificate analysis, certificate processing utilities
 │   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
+│   │   ├── resource_usage.go                 # Resource usage monitoring and formatting functions
 │   │   ├── resources.go                      # MCP resource definitions and handlers (config, version, formats, status)
 │   │   ├── run_graceful_test.go              # Graceful shutdown test (Windows build constraint)
 │   │   ├── run_test.go                       # MCP server tests
@@ -631,6 +632,7 @@ src/mcp-server/config.go
 src/mcp-server/framework.go  # ServerBuilder pattern, AI sampling with buffer pooling (DefaultSamplingHandler)
 src/mcp-server/handlers.go   # MCP tool handlers, AI certificate analysis, certificate processing utilities
 src/mcp-server/prompts.go    # MCP prompt definitions and handlers for certificate workflows
+src/mcp-server/resource_usage.go  # Resource usage monitoring and formatting functions
 src/mcp-server/resources.go  # MCP resource definitions and handlers including status resource
 src/mcp-server/run_graceful_test.go  # Graceful shutdown test (non-Windows)
 src/mcp-server/run_test.go   # Comprehensive tool coverage tests with macOS skip for validation
@@ -705,6 +707,9 @@ grep("StartCRLCacheCleanup\\|StopCRLCacheCleanup\\|cleanupExpiredCRLs", include=
 
 # Find CRL freshness and expiration patterns
 grep("isFresh\\|isExpired", include="*.go")
+
+# Find resource usage monitoring patterns
+grep("ResourceUsageData\\|CollectResourceUsage\\|FormatResourceUsage", include="*.go")
 
 # Find changelog creation commands
 grep("create-changelog", include="*.md")

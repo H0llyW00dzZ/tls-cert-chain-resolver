@@ -13,13 +13,14 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 - **`src/cli/`** — Cobra CLI implementation  
 - **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and gc.Pool)
 - **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
-  - **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler, AI API integration
-  - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
-  - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
-  - **`handlers.go`** — Core certificate processing utilities, AI analysis, and individual tool handlers
-  - **`server.go`** — Server execution and lifecycle management
-  - **`tools.go`** — Tool definitions and creation functions
-  - **`config.go`** — Configuration management for AI and MCP settings
+- **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler, AI API integration
+- **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
+- **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
+- **`handlers.go`** — Core certificate processing utilities, AI analysis, and individual tool handlers
+- **`resource_usage.go`** — Resource usage monitoring and formatting functions
+- **`server.go`** — Server execution and lifecycle management
+- **`tools.go`** — Tool definitions and creation functions
+- **`config.go`** — Configuration management for AI and MCP settings
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
   - **`cache.go`** — CRL cache implementation with LRU eviction and metrics
@@ -86,7 +87,7 @@ Packages:
 - cmd (main)
 - src/cli
 - src/logger (CLI/MCP logger abstraction, thread-safe with bytebufferpool)
-- src/mcp-server (MCP server tools for certificate operations with ServerBuilder pattern)
+- src/mcp-server (MCP server tools for certificate operations with ServerBuilder pattern and resource monitoring)
 - src/internal/x509/certs
 - src/internal/x509/chain
 - src/internal/helper/gc
@@ -105,6 +106,7 @@ gopls_go_search("Chain")           → Find chain-related types/functions
 gopls_go_search("FetchCertificate") → Find specific function
 gopls_go_search("MCP")             → Find MCP-related implementations
 gopls_go_search("handleResolveCertChain") → Find MCP server tool handlers
+gopls_go_search("handleGetResourceUsage") → Find resource usage monitoring tool handler
 gopls_go_search("addResources") → Find MCP server resource implementations
 gopls_go_search("addPrompts") → Find MCP server prompt implementations
 gopls_go_search("ServerBuilder") → Find builder pattern implementation
@@ -137,6 +139,11 @@ gopls_go_search("CRLCacheConfig") → Find CRL cache configuration
 gopls_go_search("CRLCacheMetrics") → Find CRL cache metrics tracking
 gopls_go_search("isFresh") → Find CRL freshness checking methods
 gopls_go_search("isExpired") → Find CRL expiration checking methods
+gopls_go_search("handleGetResourceUsage") → Find resource usage monitoring tool handler
+gopls_go_search("CollectResourceUsage") → Find resource usage data collection functions
+gopls_go_search("FormatResourceUsageAsJSON") → Find JSON formatting for resource usage
+gopls_go_search("FormatResourceUsageAsMarkdown") → Find Markdown formatting for resource usage
+gopls_go_search("ResourceUsageData") → Find resource usage data structures
 ```
 
 ### gopls_go_file_context(file)
@@ -530,13 +537,13 @@ grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
 
 # Find MCP server tools
-grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert\\|analyze_certificate_with_ai", include="*.go")
+grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert\\|analyze_certificate_with_ai\\|get_resource_usage", include="*.go")
 
 # Find MCP server configuration
 grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults\\|AI.*API", include="*.go")
 
 # Find MCP tool handlers
-grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert\\|handleAnalyzeCertificateWithAI", include="*.go")
+grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert\\|handleAnalyzeCertificateWithAI\\|handleGetResourceUsage", include="*.go")
 
 # Find MCP resources and prompts
 grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
