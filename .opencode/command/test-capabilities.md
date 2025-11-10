@@ -24,8 +24,10 @@ Test the current agent capabilities based on instructions and tools, including M
    - **Resolve Remote Certificate**: Call `x509_resolver_fetch_remote_cert("example.com", port=443, format="pem")` (or another stable host) to retrieve the PEM bundle
    - **Persist Bundle**: Save the returned PEM data to `test-output-bundle.pem` in the repository root (file is already git-ignored)
    - **Validate Chain**: Call `x509_resolver_validate_cert_chain("test-output-bundle.pem")` to confirm trust evaluation works
-   - **Check Expiry**: Call `x509_resolver_check_cert_expiry("test-output-bundle.pem", warn_days=30)` to verify expiry reporting
-   - **AI Analysis**: Call `x509_resolver_analyze_certificate_with_ai("test-output-bundle.pem", analysis_type="security")` to ensure AI-assisted auditing functions; capture and report streaming output
+    - **Check Expiry**: Call `x509_resolver_check_cert_expiry("test-output-bundle.pem", warn_days=30)` to verify expiry reporting
+    - **Batch Resolution**: Call `x509_resolver_batch_resolve_cert_chain("test-output-bundle.pem")` to test batch processing with single certificate
+    - **Resource Usage Monitoring**: Call `x509_resolver_get_resource_usage()` to test basic resource monitoring, then `x509_resolver_get_resource_usage(detailed=true, format="json")` to test detailed monitoring with all metrics
+    - **AI Analysis**: Call `x509_resolver_analyze_certificate_with_ai("test-output-bundle.pem", analysis_type="security")` to ensure AI-assisted auditing functions; capture and report streaming output
    - **Cleanup**: Delete `test-output-bundle.pem` after the tests finish so the repository stays clean
 
 4. **Test Built-in Tools**:
@@ -111,6 +113,12 @@ Status: ✅ Working - Returned module info, packages, and symbol matches as expe
 - [ ] Gopls diagnostics work
 - [ ] DeepWiki wiki structure loads
 - [ ] DeepWiki questions answered
+- [ ] Remote certificate fetching works
+- [ ] Certificate chain validation works
+- [ ] Certificate expiry checking works
+- [ ] Batch certificate resolution works
+- [ ] Resource usage monitoring works (basic and detailed)
+- [ ] AI certificate analysis works
 - [ ] File listing works
 - [ ] File reading works
 - [ ] Glob patterns match files
