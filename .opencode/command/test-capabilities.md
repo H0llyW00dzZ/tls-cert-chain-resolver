@@ -9,44 +9,44 @@ Test the current agent capabilities based on instructions and tools, including M
 
 ## Tasks
 
-1. **Test Gopls MCP Server Capabilities**:
-   - **Workspace Overview**: Call `gopls_go_workspace()` to verify project structure access
-   - **Symbol Search**: Call `gopls_go_search("Certificate")` to test fuzzy search functionality
-   - **Diagnostics**: Call `gopls_go_diagnostics(["src/cli/root.go"])` to check parse/build error detection
-   - **File Context**: Call `gopls_go_file_context("src/cli/root.go")` to verify dependency analysis
-   - **Package API**: Call `gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"])` to test package API summaries
+### 1. Test Gopls MCP Server Capabilities
+- **Workspace Overview**: Call `gopls_go_workspace()` to verify project structure access
+- **Symbol Search**: Call `gopls_go_search("Certificate")` to test fuzzy search functionality
+- **Diagnostics**: Call `gopls_go_diagnostics(["src/cli/root.go"])` to check parse/build error detection
+- **File Context**: Call `gopls_go_file_context("src/cli/root.go")` to verify dependency analysis
+- **Package API**: Call `gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"])` to test package API summaries
 
-2. **Test DeepWiki MCP Server Capabilities**:
-   - **Wiki Structure**: Call `deepwiki_read_wiki_structure("spf13/cobra")` to test documentation access
-   - **Question Answering**: Call `deepwiki_ask_question("spf13/cobra", "How do I add flags to a cobra command?")` to verify AI-assisted research
+### 2. Test DeepWiki MCP Server Capabilities
+- **Wiki Structure**: Call `deepwiki_read_wiki_structure("spf13/cobra")` to test documentation access
+- **Question Answering**: Call `deepwiki_ask_question("spf13/cobra", "How do I add flags to a cobra command?")` to verify AI-assisted research
 
-3. **Test X509 Resolver MCP Server Capabilities**:
-   - **Resolve Remote Certificate**: Call `x509_resolver_fetch_remote_cert("example.com", port=443, format="pem")` (or another stable host) to retrieve the PEM bundle
-   - **Persist Bundle**: Save the returned PEM data to `test-output-bundle.pem` in the repository root (file is already git-ignored)
-   - **Validate Chain**: Call `x509_resolver_validate_cert_chain("test-output-bundle.pem")` to confirm trust evaluation works
-    - **Check Expiry**: Call `x509_resolver_check_cert_expiry("test-output-bundle.pem", warn_days=30)` to verify expiry reporting
-    - **Batch Resolution**: Call `x509_resolver_batch_resolve_cert_chain("test-output-bundle.pem")` to test batch processing with single certificate
-    - **Resource Usage Monitoring**: Call `x509_resolver_get_resource_usage()` to test basic resource monitoring, then `x509_resolver_get_resource_usage(detailed=true, format="json")` to test detailed monitoring with all metrics
-    - **AI Analysis**: Call `x509_resolver_analyze_certificate_with_ai("test-output-bundle.pem", analysis_type="security")` to ensure AI-assisted auditing functions; capture and report streaming output
-   - **Cleanup**: Delete `test-output-bundle.pem` after the tests finish so the repository stays clean
+### 3. Test X509 Resolver MCP Server Capabilities
+- **Resolve Remote Certificate**: Call `x509_resolver_fetch_remote_cert("example.com", port=443, format="pem")` (or another stable host) to retrieve PEM bundle
+- **Persist Bundle**: Save the returned PEM data to `test-output-bundle.pem` in the repository root (file is already git-ignored)
+- **Validate Chain**: Call `x509_resolver_validate_cert_chain("test-output-bundle.pem")` to confirm trust evaluation works
+- **Check Expiry**: Call `x509_resolver_check_cert_expiry("test-output-bundle.pem", warn_days=30)` to verify expiry reporting
+- **Batch Resolution**: Call `x509_resolver_batch_resolve_cert_chain("test-output-bundle.pem")` to test batch processing with a single certificate
+- **Resource Usage Monitoring**: Call `x509_resolver_get_resource_usage()` to test basic resource monitoring, then `x509_resolver_get_resource_usage(detailed=true, format="json")` to test detailed monitoring with all metrics
+- **AI Analysis**: Call `x509_resolver_analyze_certificate_with_ai("test-output-bundle.pem", analysis_type="security")` to ensure AI-assisted auditing functions; capture and report streaming output
+- **Cleanup**: Delete `test-output-bundle.pem` after tests finish so the repository stays clean
 
-4. **Test Built-in Tools**:
-   - **Filesystem Listing**: Call `list("/home/h0llyw00dzz/Workspace/git/tls-cert-chain-resolver/src")` to verify directory access
-   - **File Reading**: Call `read("src/cli/root.go", offset=0, limit=50)` to test file content access
-   - **Glob Pattern Matching**: Call `glob("src/**/*.go")` to verify file discovery
-   - **Content Search**: Call `grep("func.*Execute", include="*.go")` to test regex search
-   - **Bash Execution**: Call `bash("echo 'Testing bash tool'")` to verify command execution
+### 4. Test Built-in Tools
+- **Filesystem Listing**: Call `list("/home/h0llyw00dzz/Workspace/git/tls-cert-chain-resolver/src")` to verify directory access
+- **File Reading**: Call `read("src/cli/root.go", offset=0, limit=50)` to test file content access
+- **Glob Pattern Matching**: Call `glob("src/**/*.go")` to verify file discovery
+- **Content Search**: Call `grep("func.*Execute", include="*.go")` to test regex search
+- **Bash Execution**: Call `bash("echo 'Testing bash tool'")` to verify command execution
 
-5. **Verify MCP Connection Handling**:
-   - Confirm Gopls MCP handles short-lived connections (auto-reconnects on errors)
-   - Confirm DeepWiki MCP maintains persistent connections
-   - Test error recovery for both MCP servers
+### 5. Verify MCP Connection Handling
+- Confirm Gopls MCP handles short-lived connections (auto-reconnects on errors)
+- Confirm DeepWiki MCP maintains persistent connections
+- Test error recovery for both MCP servers
 
-5. **Report Results**:
-   - **Success**: List all tools/MCP servers that responded successfully
-   - **Failures**: Identify any tools/MCP servers that failed with specific error messages
-   - **Performance**: Note any connection delays or timeouts
-   - **Recommendations**: Suggest fixes for any failed capabilities (e.g., MCP server configuration)
+### 6. Report Results
+- **Success**: List all tools/MCP servers that responded successfully
+- **Failures**: Identify any tools/MCP servers that failed with specific error messages
+- **Performance**: Note any connection delays or timeouts
+- **Recommendations**: Suggest fixes for any failed capabilities (e.g., MCP server configuration)
 
 ## Error Handling
 
@@ -108,21 +108,32 @@ Status: ✅ Working - Returned module info, packages, and symbol matches as expe
 
 ## Verification Checklist
 
+### Gopls MCP Server
 - [ ] Gopls workspace accessible
 - [ ] Gopls search returns results
 - [ ] Gopls diagnostics work
+- [ ] Gopls file context analysis works
+- [ ] Gopls package API summaries work
+
+### DeepWiki MCP Server
 - [ ] DeepWiki wiki structure loads
 - [ ] DeepWiki questions answered
+
+### X509 Resolver MCP Server
 - [ ] Remote certificate fetching works
 - [ ] Certificate chain validation works
 - [ ] Certificate expiry checking works
 - [ ] Batch certificate resolution works
 - [ ] Resource usage monitoring works (basic and detailed)
 - [ ] AI certificate analysis works
+
+### Built-in Tools
 - [ ] File listing works
 - [ ] File reading works
 - [ ] Glob patterns match files
 - [ ] Grep searches content
 - [ ] Bash commands execute safely
+
+### System & Performance
 - [ ] MCP connections stable
 - [ ] No token budget exceeded
