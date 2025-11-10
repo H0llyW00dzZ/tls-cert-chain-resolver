@@ -12,7 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -157,7 +158,7 @@ func FormatResourceUsageAsMarkdown(data *ResourceUsageData) string {
 
 // formatMarkdownHeader adds the report header with timestamp
 func formatMarkdownHeader(buf *strings.Builder, timestamp string) {
-	buf.WriteString("# Resource Usage Report\n\n")
+	fmt.Fprintf(buf, "# %s Resource Usage Report (v%s)\n\n", "X.509 Certificate Chain Resolver", version.Version)
 
 	// Parse RFC3339 timestamp and format as human-readable
 	if parsedTime, err := time.Parse(time.RFC3339, timestamp); err == nil {
@@ -245,54 +246,6 @@ func formatDetailedSections(buf *strings.Builder, data *ResourceUsageData) {
 			"Hit Rate     ", "hit_rate_percent",
 		}
 		buf.WriteString(formatMarkdownTable(data.CRLCache, cacheFields))
-	}
-}
-
-// addMetricEmoji adds relevant emoji to metric names for better visual appeal
-func addMetricEmoji(label, key string) string {
-	switch {
-	case strings.Contains(strings.ToLower(key), "version"):
-		return "🏷️ " + label
-	case strings.Contains(strings.ToLower(key), "cpu") || strings.Contains(strings.ToLower(key), "goroutine"):
-		return "🔧 " + label
-	case strings.Contains(strings.ToLower(key), "memory") || strings.Contains(strings.ToLower(key), "heap") || strings.Contains(strings.ToLower(key), "stack") || strings.Contains(strings.ToLower(key), "alloc"):
-		return "💾 " + label
-	case strings.Contains(strings.ToLower(key), "gc") || strings.Contains(strings.ToLower(key), "malloc") || strings.Contains(strings.ToLower(key), "free"):
-		return "🗑️ " + label
-	case strings.Contains(strings.ToLower(key), "cache"):
-		return "📦 " + label
-	case strings.Contains(strings.ToLower(key), "hit") || strings.Contains(strings.ToLower(key), "miss") || strings.Contains(strings.ToLower(key), "eviction"):
-		return "📊 " + label
-	default:
-		return "📈 " + label
-	}
-}
-
-// addValueEmoji adds relevant emoji to values for better visual appeal
-func addValueEmoji(value, key string) string {
-	switch {
-	case strings.Contains(strings.ToLower(key), "version"):
-		return "🔖 " + value
-	case strings.Contains(strings.ToLower(key), "cpu") || strings.Contains(strings.ToLower(key), "goroutine"):
-		return "⚙️ " + value
-	case strings.Contains(strings.ToLower(key), "entries"):
-		return "📋 " + value
-	case strings.Contains(strings.ToLower(key), "size") && !strings.Contains(strings.ToLower(key), "memory"):
-		return "📏 " + value
-	case strings.Contains(strings.ToLower(key), "hits") || strings.Contains(strings.ToLower(key), "misses"):
-		return "🎯 " + value
-	case strings.Contains(strings.ToLower(key), "rate"):
-		return "📊 " + value
-	case strings.Contains(strings.ToLower(key), "enabled") && value == "true":
-		return "✅ " + value
-	case strings.Contains(strings.ToLower(key), "enabled") && value == "false":
-		return "❌ " + value
-	case strings.Contains(strings.ToLower(key), "debug") && value == "true":
-		return "🐛 " + value
-	case strings.Contains(strings.ToLower(key), "debug") && value == "false":
-		return "✅ " + value
-	default:
-		return value
 	}
 }
 
