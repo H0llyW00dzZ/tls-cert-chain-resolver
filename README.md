@@ -103,6 +103,7 @@ The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes
 | `batch_resolve_cert_chain` | Resolve multiple certificates in a single call |
 | `fetch_remote_cert` | Retrieve chains directly from TLS endpoints (HTTPS, SMTP, IMAP, etc.) |
 | `analyze_certificate_with_ai` | Delegate structured certificate analysis to a configured LLM |
+| `get_resource_usage` | Monitor server resource usage (memory, GC, system info) in JSON or markdown format |
 
 #### Security considerations
 
@@ -218,10 +219,10 @@ src/
 - [x] Add troubleshooting guide for MCP integration
 - [x] **Implement bidirectional AI communication** via MCP sampling (servers can request LLM completions from clients)
 - [x] Add OCSP/CRL revocation status checks to MCP tools
+- [x] **Add resource usage monitoring tool** with JSON and markdown output formats
 
 ##### Remaining (Low Priority)
 
-- [ ] Add metrics and logging for MCP server operations
 - [ ] Maintain compatibility with `github.com/mark3labs/mcp-go` (ongoing)
 - [ ] Create abstraction layer for both MCP libraries
 - [ ] Document differences and use cases for each library
