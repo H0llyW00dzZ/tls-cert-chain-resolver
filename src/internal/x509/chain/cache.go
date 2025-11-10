@@ -132,11 +132,13 @@ func pruneCRLCache(maxSize int) {
 		}
 
 		// Remove the least recently used (first in order)
-		lruURL := crlCacheOrder[0]
-		delete(crlCache, lruURL)
-		// Manually remove from order slice (more efficient than calling removeFromCacheOrder)
-		crlCacheOrder = crlCacheOrder[1:]
-		removed++
+		if len(crlCacheOrder) > 0 {
+			lruURL := crlCacheOrder[0]
+			delete(crlCache, lruURL)
+			// Manually remove from order slice (more efficient than calling removeFromCacheOrder)
+			crlCacheOrder = crlCacheOrder[1:]
+			removed++
+		}
 	}
 
 	if removed > 0 {
@@ -185,19 +187,27 @@ func startCRLCacheCleanup(ctx context.Context) {
 	}
 
 	go func() {
-		for {
-			// Get current config at the start of each cycle
-			config := GetCRLCacheConfig()
-			ticker := time.NewTicker(config.CleanupInterval)
-			defer ticker.Stop() // Ensure ticker is stopped when goroutine exits
+		defer atomic.StoreInt32(&crlCacheCleanupRunning, 0) // Reset when done
 
+		// Create ONE ticker outside loop with initial config
+		config := GetCRLCacheConfig()
+		ticker := time.NewTicker(config.CleanupInterval)
+		defer ticker.Stop() // This will execute when goroutine exits
+
+		for {
 			select {
 			case <-ticker.C:
 				cleanupExpiredCRLs()
-				// Loop will get new config for next iteration
+				// Check if config changed and update ticker if needed
+				newConfig := GetCRLCacheConfig()
+				if newConfig.CleanupInterval != config.CleanupInterval {
+					ticker.Stop()
+					config = newConfig
+					ticker = time.NewTicker(config.CleanupInterval)
+				}
 			case <-ctx.Done():
 				// Context cancelled, exit goroutine
-				return
+				return // defer will execute, stopping ticker
 			}
 		}
 	}()
@@ -260,23 +270,29 @@ func removeFromCacheOrder(url string) {
 
 // GetCachedCRL retrieves a fresh CRL from cache and updates access order
 func GetCachedCRL(url string) ([]byte, bool) {
-	crlCacheMutex.Lock()
-	defer crlCacheMutex.Unlock()
-
+	// Use read lock initially for checking entry
+	crlCacheMutex.RLock()
 	entry, exists := crlCache[url]
 	if !exists || !entry.isFresh() {
+		crlCacheMutex.RUnlock()
 		atomic.AddInt64(&crlCacheMetrics.Misses, 1)
 		return nil, false
 	}
 
+	// Store data to copy before releasing read lock
+	dataToCopy := entry.Data
+	crlCacheMutex.RUnlock()
+
 	atomic.AddInt64(&crlCacheMetrics.Hits, 1)
 
-	// Update access order (move to end for LRU)
+	// Need write lock to update access order
+	crlCacheMutex.Lock()
 	updateCacheOrder(url)
+	crlCacheMutex.Unlock()
 
 	// Return a copy to prevent external modification
-	dataCopy := make([]byte, len(entry.Data))
-	copy(dataCopy, entry.Data)
+	dataCopy := make([]byte, len(dataToCopy))
+	copy(dataCopy, dataToCopy)
 	return dataCopy, true
 }
 
