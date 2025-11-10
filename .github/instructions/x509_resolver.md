@@ -11,6 +11,7 @@
   - [x509_resolver_batch_resolve_cert_chain(certificates)](#x509_resolver_batch_resolve_cert_chain-certificates)
   - [x509_resolver_fetch_remote_cert(hostname, port?)](#x509_resolver_fetch_remote_certhostname-port)
   - [x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?)](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type---enterprise-grade)
+  - [x509_resolver_get_resource_usage(detailed?, format?)](#x509_resolver_get_resource_usagedetailed-format---monitoring)
 - [MCP Resources](#mcp-resources)
   - [config://template](#configtemplate)
   - [info://version](#infoversion)
@@ -29,7 +30,7 @@
 - [Troubleshooting](#troubleshooting)
 - [Summary](#summary)
 
-The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP server provides specialized tools for certificate chain resolution, validation, expiry checking, batch processing, and remote certificate fetching operations.
+The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP server provides specialized tools for certificate chain resolution, validation, expiry checking, batch processing, remote certificate fetching, and resource monitoring operations.
 
 ## Repository Context
 
@@ -156,7 +157,7 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993, intermediate_only=t
 - Falls back to showing the prepared certificate context when `X509_AI_APIKEY` is not configured.
 - Includes OCSP/CRL status verification using `CheckRevocationStatus` from `src/internal/x509/chain/revocation.go`.
 - Provides methodology explanations for revocation status checks (OCSP priority over CRL, multi-endpoint redundancy, signature verification requirements).
-- CRL cache includes LRU eviction, automatic cleanup with context cancellation support, configurable size limits, and comprehensive metrics tracking (hits, misses, evictions, cleanups, memory usage) to prevent memory leaks.
+- CRL cache includes O(1) LRU eviction with hashmap and doubly-linked list, automatic cleanup with context cancellation support, configurable size limits, comprehensive metrics tracking (hits, misses, evictions, cleanups, memory usage), and atomic operations to prevent race conditions and prevent memory leaks.
 
 **Examples**:
 
@@ -169,12 +170,43 @@ x509_resolver_analyze_certificate_with_ai("cert.pem", analysis_type="compliance"
 **AI Analysis Framework**:
 Uses embedded system prompt with structured analysis framework:
 - VALIDATION STATUS: Certificate validity, chain integrity, trust relationships
-- REVOCATION STATUS: OCSP/CRL availability, current revocation status with serial numbers, and recommendations (using `CheckRevocationStatus` with CRL caching, LRU eviction, automatic cleanup with context cancellation support, multi-endpoint support, and priority logic: OCSP first, then CRL)
+- REVOCATION STATUS: OCSP/CRL availability, current revocation status with serial numbers, and recommendations (using `CheckRevocationStatus` with O(1) CRL caching, LRU eviction with hashmap and doubly-linked list, automatic cleanup with context cancellation support, multi-endpoint support, and priority logic: OCSP first, then CRL)
 - CRYPTOGRAPHIC SECURITY: Algorithm strength, key sizes, quantum resistance
 - COMPLIANCE CHECK: CA/Browser Forum and NIST standards verification
 - RISK ASSESSMENT: Critical/High/Medium/Low risk level assignments
 - ACTIONABLE RECOMMENDATIONS: Specific, implementable security improvements
 - METHODOLOGY EXPLANATIONS: Detailed explanations of revocation checking processes (OCSP priority over CRL, multi-endpoint redundancy, signature verification requirements)
+
+### x509_resolver_get_resource_usage(detailed?, format?) - Monitoring
+
+**Purpose**: Get current resource usage statistics including memory, GC, CPU, and CRL cache information  
+**Returns**: Comprehensive resource usage data in JSON or Markdown format  
+**When to use**: Monitoring server performance, debugging memory issues, tracking CRL cache efficiency
+
+**Parameters**:
+
+- `detailed`: Include detailed memory breakdown and CRL cache metrics (default: false)
+- `format`: Output format (`json` or `markdown`, default: `json`)
+
+**Examples**:
+
+```
+x509_resolver_get_resource_usage()
+x509_resolver_get_resource_usage(detailed=true)
+x509_resolver_get_resource_usage(detailed=true, format="markdown")
+```
+
+**Returned Data**:
+- **Memory Usage**: Heap allocation, system memory, stack usage, GC statistics
+- **System Info**: Go version, OS, architecture, CPU count, goroutine count
+- **Detailed Memory** (when `detailed=true`): Allocation totals, mallocs/frees, GC pause times
+- **CRL Cache Metrics** (when `detailed=true`): Cache size, hit rate, evictions, memory usage
+
+**Implementation Notes**:
+- Uses `runtime.ReadMemStats()` for accurate memory statistics
+- Integrates with CRL cache metrics from `src/internal/x509/chain/cache.go`
+- Provides hit rate calculations and memory usage in MB for readability
+- Thread-safe data collection using atomic operations for cache metrics
 
 ## MCP Resources
 
@@ -578,8 +610,9 @@ for i, chain := range chains {
 4. **Use [`x509_resolver_batch_resolve_cert_chain`](#x509_resolver_batch_resolve_cert_chain-certificates)** for efficient multi-certificate processing
 5. **Use [`x509_resolver_fetch_remote_cert`](#x509_resolver_fetch_remote_certhostname-port)** to retrieve certificates from remote servers
 6. **Use [`x509_resolver_analyze_certificate_with_ai`](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type)** for AI-powered security analysis (requires sampling handler and AI API key)
-7. **Configure [`MCP_X509_CONFIG_FILE`](#2-configuration)** environment variable for server configuration
-8. **Access [MCP resources](#mcp-resources)** for configuration templates, version info, and documentation
-9. **Use [MCP prompts](#mcp-prompts)** for guided certificate analysis workflows
-10. **Handle errors appropriately** - check return values and handle common certificate issues
-11. **Follow [certificate operation workflows](#integration-with-repository-workflow)** - resolve → validate → check expiry
+7. **Use [`x509_resolver_get_resource_usage`](#x509_resolver_get_resource_usagedetailed-format---monitoring)** for monitoring server performance, memory usage, and CRL cache efficiency
+8. **Configure [`MCP_X509_CONFIG_FILE`](#2-configuration)** environment variable for server configuration
+9. **Access [MCP resources](#mcp-resources)** for configuration templates, version info, and documentation
+10. **Use [MCP prompts](#mcp-prompts)** for guided certificate analysis workflows
+11. **Handle errors appropriately** - check return values and handle common certificate issues
+12. **Follow [certificate operation workflows](#integration-with-repository-workflow)** - resolve → validate → check expiry

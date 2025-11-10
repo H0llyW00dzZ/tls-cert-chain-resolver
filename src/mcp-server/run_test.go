@@ -167,6 +167,18 @@ func TestMCPTools(t *testing.T) {
 		),
 	)
 
+	getResourceUsageTool := mcp.NewTool("get_resource_usage",
+		mcp.WithDescription("Get current resource usage statistics including memory, GC, and CPU information"),
+		mcp.WithBoolean("detailed",
+			mcp.Description("Include detailed memory breakdown (default: false)"),
+			mcp.DefaultBool(false),
+		),
+		mcp.WithString("format",
+			mcp.Description("Output format: 'json' or 'markdown' (default: 'json')"),
+			mcp.DefaultString("json"),
+		),
+	)
+
 	// Register tool handlers
 	s.AddTool(resolveCertChainTool, handleResolveCertChain)
 	s.AddTool(batchResolveCertChainTool, handleBatchResolveCertChain)
@@ -177,6 +189,7 @@ func TestMCPTools(t *testing.T) {
 	s.AddTool(fetchRemoteCertTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		return handleFetchRemoteCert(ctx, request, config)
 	})
+	s.AddTool(getResourceUsageTool, handleGetResourceUsage)
 
 	// Create test server
 	srv := mcptest.NewUnstartedServer(t)
@@ -206,6 +219,10 @@ func TestMCPTools(t *testing.T) {
 			Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 				return handleFetchRemoteCert(ctx, request, config)
 			},
+		},
+		{
+			Tool:    getResourceUsageTool,
+			Handler: handleGetResourceUsage,
 		},
 	}
 
@@ -396,6 +413,36 @@ func TestMCPTools(t *testing.T) {
 			args:           map[string]any{}, // Empty args
 			expectError:    true,
 			expectContains: []string{},
+		},
+		{
+			name:     "get_resource_usage json format",
+			toolName: "get_resource_usage",
+			args: map[string]any{
+				"detailed": true,
+				"format":   "json",
+			},
+			expectError:    false,
+			expectContains: []string{"memory_usage", "gc_stats", "system_info", "timestamp"},
+		},
+		{
+			name:     "get_resource_usage markdown format",
+			toolName: "get_resource_usage",
+			args: map[string]any{
+				"detailed": false,
+				"format":   "markdown",
+			},
+			expectError:    false,
+			expectContains: []string{"Resource Usage Report", "System Information", "Memory Usage", "Garbage Collection"},
+		},
+		{
+			name:     "get_resource_usage detailed markdown",
+			toolName: "get_resource_usage",
+			args: map[string]any{
+				"detailed": true,
+				"format":   "markdown",
+			},
+			expectError:    false,
+			expectContains: []string{"Resource Usage Report", "Detailed Memory Statistics", "CRL Cache Metrics"},
 		},
 	}
 
