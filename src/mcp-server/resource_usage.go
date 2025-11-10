@@ -12,7 +12,8 @@ import (
 	"strings"
 	"time"
 
-	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/olekukonko/tablewriter"
 )
 
 // ResourceUsageData represents the complete resource usage information
@@ -164,11 +165,11 @@ func formatMarkdownHeader(buf *strings.Builder, timestamp string) {
 func formatSystemInfoSection(buf *strings.Builder, systemInfo map[string]any) {
 	buf.WriteString("## System Information\n\n")
 	systemFields := []string{
-		"Go Version", "go_version",
-		"Operating System", "go_os",
-		"Architecture", "go_arch",
-		"CPU Count", "num_cpu",
-		"Goroutines", "num_goroutine",
+		"Go Version       ", "go_version",
+		"Operating System ", "go_os",
+		"Architecture     ", "go_arch",
+		"CPU Count        ", "num_cpu",
+		"Goroutines       ", "num_goroutine",
 	}
 	buf.WriteString(formatMarkdownTable(systemInfo, systemFields))
 }
@@ -177,14 +178,14 @@ func formatSystemInfoSection(buf *strings.Builder, systemInfo map[string]any) {
 func formatMemoryUsageSection(buf *strings.Builder, memoryUsage map[string]any) {
 	buf.WriteString("## Memory Usage\n\n")
 	memoryFields := []string{
-		"Heap Allocated", "heap_alloc_mb",
-		"Heap System", "heap_sys_mb",
-		"Heap In Use", "heap_inuse_mb",
-		"Heap Idle", "heap_idle_mb",
-		"Heap Released", "heap_released_mb",
-		"Heap Objects", "heap_objects",
-		"Stack In Use", "stack_inuse_mb",
-		"Stack System", "stack_sys_mb",
+		"Heap Allocated ", "heap_alloc_mb",
+		"Heap System    ", "heap_sys_mb",
+		"Heap In Use    ", "heap_inuse_mb",
+		"Heap Idle      ", "heap_idle_mb",
+		"Heap Released  ", "heap_released_mb",
+		"Heap Objects   ", "heap_objects",
+		"Stack In Use   ", "stack_inuse_mb",
+		"Stack System   ", "stack_sys_mb",
 	}
 	buf.WriteString(formatMarkdownTable(memoryUsage, memoryFields))
 }
@@ -193,11 +194,11 @@ func formatMemoryUsageSection(buf *strings.Builder, memoryUsage map[string]any) 
 func formatGCStatsSection(buf *strings.Builder, gcStats map[string]any) {
 	buf.WriteString("## Garbage Collection\n\n")
 	gcFields := []string{
-		"GC Cycles", "num_gc",
-		"Forced GC", "num_forced_gc",
+		"GC Cycles      ", "num_gc",
+		"Forced GC      ", "num_forced_gc",
 		"GC CPU Fraction", "gc_cpu_fraction",
-		"GC Enabled", "enable_gc",
-		"Debug GC", "debug_gc",
+		"GC Enabled     ", "enable_gc",
+		"Debug GC       ", "debug_gc",
 	}
 	buf.WriteString(formatMarkdownTable(gcStats, gcFields))
 }
@@ -208,16 +209,16 @@ func formatDetailedSections(buf *strings.Builder, data *ResourceUsageData) {
 	if data.DetailedMemory != nil {
 		buf.WriteString("## Detailed Memory Statistics\n\n")
 		detailedFields := []string{
-			"Current Alloc", "alloc_mb",
-			"Total Alloc", "total_alloc_mb",
-			"System Memory", "sys_mb",
-			"Lookups", "lookups",
-			"Mallocs", "mallocs",
-			"Frees", "frees",
-			"Live Objects", "heap_live_objects",
-			"GC Pause Total", "gc_pause_total_ns",
-			"Next GC", "next_gc_mb",
-			"Last GC", "last_gc_mb",
+			"Current Alloc  ", "alloc_mb",
+			"Total Alloc    ", "total_alloc_mb",
+			"System Memory  ", "sys_mb",
+			"Lookups        ", "lookups",
+			"Mallocs        ", "mallocs",
+			"Frees          ", "frees",
+			"Live Objects   ", "heap_live_objects",
+			"GC Pause Total ", "gc_pause_total_ns",
+			"Next GC        ", "next_gc_mb",
+			"Last GC        ", "last_gc_mb",
 		}
 		buf.WriteString(formatMarkdownTable(data.DetailedMemory, detailedFields))
 	}
@@ -226,25 +227,73 @@ func formatDetailedSections(buf *strings.Builder, data *ResourceUsageData) {
 	if data.CRLCache != nil {
 		buf.WriteString("## CRL Cache Metrics\n\n")
 		cacheFields := []string{
-			"Cache Size", "size",
-			"Max Size", "max_size",
-			"Total Memory", "total_memory_mb",
-			"Cache Hits", "hits",
-			"Cache Misses", "misses",
-			"Evictions", "evictions",
-			"Cleanups", "cleanups",
-			"Hit Rate", "hit_rate_percent",
+			"Cache Size   ", "size",
+			"Max Size     ", "max_size",
+			"Total Memory ", "total_memory_mb",
+			"Cache Hits   ", "hits",
+			"Cache Misses ", "misses",
+			"Evictions    ", "evictions",
+			"Cleanups     ", "cleanups",
+			"Hit Rate     ", "hit_rate_percent",
 		}
 		buf.WriteString(formatMarkdownTable(data.CRLCache, cacheFields))
 	}
 }
 
-// formatMarkdownTable creates a markdown table from a map of data
+// addMetricEmoji adds relevant emoji to metric names for better visual appeal
+func addMetricEmoji(label, key string) string {
+	switch {
+	case strings.Contains(strings.ToLower(key), "version"):
+		return "🏷️ " + label
+	case strings.Contains(strings.ToLower(key), "cpu") || strings.Contains(strings.ToLower(key), "goroutine"):
+		return "🔧 " + label
+	case strings.Contains(strings.ToLower(key), "memory") || strings.Contains(strings.ToLower(key), "heap") || strings.Contains(strings.ToLower(key), "stack") || strings.Contains(strings.ToLower(key), "alloc"):
+		return "💾 " + label
+	case strings.Contains(strings.ToLower(key), "gc") || strings.Contains(strings.ToLower(key), "malloc") || strings.Contains(strings.ToLower(key), "free"):
+		return "🗑️ " + label
+	case strings.Contains(strings.ToLower(key), "cache"):
+		return "📦 " + label
+	case strings.Contains(strings.ToLower(key), "hit") || strings.Contains(strings.ToLower(key), "miss") || strings.Contains(strings.ToLower(key), "eviction"):
+		return "📊 " + label
+	default:
+		return "📈 " + label
+	}
+}
+
+// addValueEmoji adds relevant emoji to values for better visual appeal
+func addValueEmoji(value, key string) string {
+	switch {
+	case strings.Contains(strings.ToLower(key), "version"):
+		return "🔖 " + value
+	case strings.Contains(strings.ToLower(key), "cpu") || strings.Contains(strings.ToLower(key), "goroutine"):
+		return "⚙️ " + value
+	case strings.Contains(strings.ToLower(key), "entries"):
+		return "📋 " + value
+	case strings.Contains(strings.ToLower(key), "size") && !strings.Contains(strings.ToLower(key), "memory"):
+		return "📏 " + value
+	case strings.Contains(strings.ToLower(key), "hits") || strings.Contains(strings.ToLower(key), "misses"):
+		return "🎯 " + value
+	case strings.Contains(strings.ToLower(key), "rate"):
+		return "📊 " + value
+	case strings.Contains(strings.ToLower(key), "enabled") && value == "true":
+		return "✅ " + value
+	case strings.Contains(strings.ToLower(key), "enabled") && value == "false":
+		return "❌ " + value
+	case strings.Contains(strings.ToLower(key), "debug") && value == "true":
+		return "🐛 " + value
+	case strings.Contains(strings.ToLower(key), "debug") && value == "false":
+		return "✅ " + value
+	default:
+		return value
+	}
+}
+
+// formatMarkdownTable creates a markdown table using tablewriter library
 func formatMarkdownTable(data map[string]any, fieldPairs []string) string {
 	var buf strings.Builder
-	buf.WriteString("| Metric | Value |\n")
-	buf.WriteString("|--------|-------|\n")
 
+	// Prepare data rows - no emojis in data, only in headers
+	var rows [][]string
 	for i := 0; i < len(fieldPairs); i += 2 {
 		if i+1 >= len(fieldPairs) {
 			break
@@ -255,10 +304,21 @@ func formatMarkdownTable(data map[string]any, fieldPairs []string) string {
 
 		if value, ok := data[key]; ok {
 			formattedValue := formatValueForMarkdown(value, key)
-			fmt.Fprintf(&buf, "| %s | %s |\n", label, formattedValue)
+			rows = append(rows, []string{label, formattedValue})
 		}
 	}
 
+	// Create table with emoji headers only
+	table := tablewriter.NewWriter(&buf)
+	table.SetHeader([]string{"📊 METRIC", "📈 VALUE"})
+	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	table.SetCenterSeparator("|")
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER})
+	table.AppendBulk(rows)
+	table.Render()
+
+	// Add trailing newline for better markdown formatting
 	buf.WriteString("\n")
 	return buf.String()
 }

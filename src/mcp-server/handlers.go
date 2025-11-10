@@ -1209,7 +1209,7 @@ func handleGetResourceUsage(ctx context.Context, request mcp.CallToolRequest) (*
 		// Return structured JSON content for programmatic access
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
-				mcp.TextContent{Text: jsonData},
+				mcp.NewTextContent(jsonData),
 			},
 			StructuredContent: structuredData,
 			IsError:           false,
