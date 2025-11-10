@@ -26,7 +26,7 @@ Test the current agent capabilities based on instructions and tools, including M
 - **Validate Chain**: Call `x509_resolver_validate_cert_chain("test-output-bundle.pem")` to confirm trust evaluation works
 - **Check Expiry**: Call `x509_resolver_check_cert_expiry("test-output-bundle.pem", warn_days=30)` to verify expiry reporting
 - **Batch Resolution**: Call `x509_resolver_batch_resolve_cert_chain("test-output-bundle.pem")` to test batch processing with a single certificate
-- **Resource Usage Monitoring**: Call `x509_resolver_get_resource_usage()` to test basic resource monitoring, then `x509_resolver_get_resource_usage(detailed=true, format="json")` to test detailed monitoring with all metrics
+- **Resource Usage Monitoring**: Call `x509_resolver_get_resource_usage(format="markdown")` to test basic resource monitoring with markdown format, then `x509_resolver_get_resource_usage(detailed=true, format="markdown")` to test detailed monitoring with comprehensive markdown tables
 - **AI Analysis**: Call `x509_resolver_analyze_certificate_with_ai("test-output-bundle.pem", analysis_type="security")` to ensure AI-assisted auditing functions; capture and report streaming output
 - **Cleanup**: Delete `test-output-bundle.pem` after tests finish so the repository stays clean
 
