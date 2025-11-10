@@ -17,6 +17,7 @@ import (
 	"syscall"
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
+	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -43,6 +44,9 @@ func Run(version string) error {
 	// Create cancellable context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// Start CRL cache cleanup with cancellable context
+	x509chain.StartCRLCacheCleanup(ctx)
 
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)

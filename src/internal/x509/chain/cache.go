@@ -81,7 +81,6 @@ var crlCacheCleanupRunning int32 // Atomic flag to ensure only one cleanup gorou
 // init initializes the CRL cache with default configuration
 func init() {
 	crlCacheConfig.Store(&defaultCRLCacheConfig)
-	startCRLCacheCleanup(context.Background())
 }
 
 // SetCRLCacheConfig sets the CRL cache configuration
@@ -174,8 +173,8 @@ func GetCRLCacheMetrics() CRLCacheMetrics {
 	return metrics
 }
 
-// startCRLCacheCleanup starts the background cleanup goroutine with context for cancellation
-func startCRLCacheCleanup(ctx context.Context) {
+// StartCRLCacheCleanup starts the background cleanup goroutine with context for cancellation
+func StartCRLCacheCleanup(ctx context.Context) {
 	// If context is already cancelled, don't start the goroutine
 	if ctx.Err() != nil {
 		return

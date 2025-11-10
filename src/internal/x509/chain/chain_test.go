@@ -1014,7 +1014,7 @@ func TestCRLCacheCleanup_ContextCancellation(t *testing.T) {
 	cancel() // Cancel immediately
 
 	// Start cleanup with cancelled context
-	startCRLCacheCleanup(ctx)
+	StartCRLCacheCleanup(ctx)
 
 	// Wait briefly for goroutine to potentially start and exit
 	time.Sleep(50 * time.Millisecond)
@@ -1049,7 +1049,7 @@ func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
 
 	// Start cleanup with context
 	ctx, cancel := context.WithCancel(context.Background())
-	startCRLCacheCleanup(ctx)
+	StartCRLCacheCleanup(ctx)
 
 	// Let cleanup run for several intervals initially
 	time.Sleep(5 * shortInterval)
