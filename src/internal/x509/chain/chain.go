@@ -65,6 +65,7 @@ func (c *HTTPConfig) Client() *http.Client {
 //
 // [X.509]: https://grokipedia.com/page/X.509
 type Chain struct {
+	mu    sync.RWMutex
 	Certs []*x509.Certificate
 	*x509certs.Certificate
 	Roots         *x509.CertPool
@@ -93,8 +94,15 @@ func New(cert *x509.Certificate, version string) *Chain {
 //
 // [Rust]: https://www.rust-lang.org/
 func (ch *Chain) FetchCertificate(ctx context.Context) error {
-	for ch.Certs[len(ch.Certs)-1].IssuingCertificateURL != nil {
-		parentURL := ch.Certs[len(ch.Certs)-1].IssuingCertificateURL[0]
+	for {
+		ch.mu.RLock()
+		last := ch.Certs[len(ch.Certs)-1]
+		if last.IssuingCertificateURL == nil {
+			ch.mu.RUnlock()
+			break
+		}
+		parentURL := last.IssuingCertificateURL[0]
+		ch.mu.RUnlock()
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, parentURL, nil)
 		if err != nil {
@@ -109,31 +117,37 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
 
 		// Get a buffer from the pool
 		buf := gc.Default.Get()
-
-		defer func() {
-			buf.Reset()         // Reset the buffer to prevent data leaks
-			gc.Default.Put(buf) // Return the buffer to the pool for reuse
-		}()
-
-		// Read the response body into the buffer
 		if _, err := buf.ReadFrom(resp.Body); err != nil {
+			resp.Body.Close()
+			buf.Reset()
+			gc.Default.Put(buf)
 			return err
 		}
+		resp.Body.Close()
 
-		data := buf.Bytes()
+		data := append([]byte(nil), buf.Bytes()...)
+		buf.Reset()
+		gc.Default.Put(buf)
 
 		cert, err := ch.Certificate.Decode(data)
 		if err != nil {
 			return err
 		}
 
+		ch.mu.Lock()
+		current := ch.Certs[len(ch.Certs)-1]
+		if current != last {
+			ch.mu.Unlock()
+			continue
+		}
 		ch.Certs = append(ch.Certs, cert)
+		isRoot := ch.IsRootNode(cert)
+		ch.mu.Unlock()
 
-		if ch.IsRootNode(cert) {
+		if isRoot {
 			break
 		}
 	}
@@ -143,6 +157,9 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 
 // AddRootCA adds a root CA to the certificate chain if necessary.
 func (ch *Chain) AddRootCA() error {
+	ch.mu.Lock()
+	defer ch.mu.Unlock()
+
 	lastCert := ch.Certs[len(ch.Certs)-1]
 
 	chains, err := lastCert.Verify(x509.VerifyOptions{})
@@ -175,6 +192,9 @@ func (ch *Chain) IsRootNode(cert *x509.Certificate) bool {
 
 // FilterIntermediates filters out the root and leaf certificates, returning only intermediates.
 func (ch *Chain) FilterIntermediates() []*x509.Certificate {
+	ch.mu.RLock()
+	defer ch.mu.RUnlock()
+
 	if len(ch.Certs) <= 2 {
 		return nil // No intermediates if 2 or fewer certs
 	}
@@ -208,6 +228,9 @@ func (ch *Chain) VerifyChain() error {
 
 // findIssuerForCertificate finds the certificate that issued the given cert in the chain
 func (ch *Chain) findIssuerForCertificate(cert *x509.Certificate) *x509.Certificate {
+	ch.mu.RLock()
+	defer ch.mu.RUnlock()
+
 	// For each certificate in the chain (starting from intermediates up)
 	for i := len(ch.Certs) - 1; i >= 0; i-- {
 		potentialIssuer := ch.Certs[i]
