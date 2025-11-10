@@ -1028,3 +1028,78 @@ func TestCRLCacheCleanup_ContextCancellation(t *testing.T) {
 	ClearCRLCache()
 	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
 }
+
+// TestCRLCacheCleanupMemoryLeak verifies that the cleanup goroutine doesn't leak tickers
+func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
+	// Stop any existing cleanup goroutine
+	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
+
+	// Clear any existing cache state
+	ClearCRLCache()
+
+	// Track initial goroutine count
+	initialGoroutines := runtime.NumGoroutine()
+
+	// Set up a very short interval for testing
+	shortInterval := 10 * time.Millisecond
+	SetCRLCacheConfig(&CRLCacheConfig{
+		MaxSize:         10,
+		CleanupInterval: shortInterval,
+	})
+
+	// Start cleanup with context
+	ctx, cancel := context.WithCancel(context.Background())
+	startCRLCacheCleanup(ctx)
+
+	// Let cleanup run for several intervals initially
+	time.Sleep(5 * shortInterval)
+
+	// Aggressive config changes - change interval very frequently
+	// This would create ticker leaks in buggy implementation
+	for i := range 10 {
+		newInterval := time.Duration(10+i*5) * time.Millisecond
+		SetCRLCacheConfig(&CRLCacheConfig{
+			MaxSize:         10,
+			CleanupInterval: newInterval,
+		})
+		time.Sleep(2 * newInterval) // Let it run with new config
+	}
+
+	// Verify only one cleanup goroutine is running
+	if atomic.LoadInt32(&crlCacheCleanupRunning) != 1 {
+		t.Errorf("Expected 1 cleanup goroutine, got %d", atomic.LoadInt32(&crlCacheCleanupRunning))
+	}
+
+	// Check that we haven't created excessive goroutines
+	currentGoroutines := runtime.NumGoroutine()
+	goroutineIncrease := currentGoroutines - initialGoroutines
+
+	// Allow for some variance (test runner, GC, etc.) but not excessive growth
+	// In a leaky implementation, we'd see many more goroutines
+	if goroutineIncrease > 5 {
+		t.Errorf("Too many goroutines created: initial=%d, current=%d, increase=%d",
+			initialGoroutines, currentGoroutines, goroutineIncrease)
+	}
+
+	// Test graceful shutdown
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+
+	// Should not leak goroutines - cleanup flag should be reset
+	if atomic.LoadInt32(&crlCacheCleanupRunning) != 0 {
+		t.Errorf("Cleanup goroutine did not shut down properly")
+	}
+
+	// Final goroutine check - should be back to reasonable levels
+	finalGoroutines := runtime.NumGoroutine()
+	finalIncrease := finalGoroutines - initialGoroutines
+
+	if finalIncrease > 2 { // Allow small variance for cleanup
+		t.Errorf("Goroutines not properly cleaned up: initial=%d, final=%d, increase=%d",
+			initialGoroutines, finalGoroutines, finalIncrease)
+	}
+
+	// Clean up test state
+	ClearCRLCache()
+	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
+}
