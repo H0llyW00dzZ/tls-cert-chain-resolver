@@ -19,21 +19,29 @@ type CRLCacheEntry struct {
 	FetchedAt  time.Time // When this CRL was fetched
 	NextUpdate time.Time // When this CRL expires (from CRL.NextUpdate)
 	URL        string    // Source URL for debugging
+	node       *LRUNode  // Pointer to LRU node for O(1) access
 }
 
-// memoryUsage calculates the approximate memory usage of this entry
+// LRUNode represents a node in LRU doubly-linked list
+type LRUNode struct {
+	url  string
+	prev *LRUNode
+	next *LRUNode
+}
+
+// memoryUsage calculates approximate memory usage of this entry
 func (entry *CRLCacheEntry) memoryUsage() int64 {
 	// Calculate memory usage more accurately
 	dataSize := int64(len(entry.Data))
 	urlSize := int64(len(entry.URL))
 
-	// Approximate struct overhead: 3 pointers + 2 time.Time (24 bytes each) + string header
-	structOverhead := int64(3*8 + 2*24 + 16) // ~88 bytes
+	// Approximate struct overhead: 4 pointers + 2 time.Time (24 bytes each) + string header + LRUNode
+	structOverhead := int64(4*8 + 2*24 + 16 + 8) // ~120 bytes
 
 	return dataSize + urlSize + structOverhead
 }
 
-// isFresh checks if the cached CRL is still fresh
+// isFresh checks if cached CRL is still fresh
 func (entry *CRLCacheEntry) isFresh() bool {
 	now := time.Now()
 	// CRL is fresh if NextUpdate is in the future (with 1 hour grace period)
@@ -41,14 +49,14 @@ func (entry *CRLCacheEntry) isFresh() bool {
 	return entry.NextUpdate.After(now.Add(-1*time.Hour)) && entry.FetchedAt.After(now.Add(-24*time.Hour))
 }
 
-// isExpired checks if the CRL has expired and should be cleaned up
+// isExpired checks if CRL has expired and should be cleaned up
 func (entry *CRLCacheEntry) isExpired() bool {
 	now := time.Now()
 	// CRL is expired if NextUpdate has passed (with 1 hour grace period)
 	return entry.NextUpdate.Before(now.Add(-1 * time.Hour))
 }
 
-// CRLCacheConfig holds configuration for the CRL cache
+// CRLCacheConfig holds configuration for CRL cache
 type CRLCacheConfig struct {
 	MaxSize         int           // Maximum number of CRLs to cache (0 = unlimited, but not recommended)
 	CleanupInterval time.Duration // How often to run cleanup (default: 1 hour)
@@ -70,11 +78,12 @@ var defaultCRLCacheConfig = CRLCacheConfig{
 	CleanupInterval: 1 * time.Hour,
 }
 
-// crlCache is a simple LRU cache for CRLs
+// crlCache is an O(1) LRU cache for CRLs using hashmap + doubly-linked list
 var (
 	crlCache                = make(map[string]*CRLCacheEntry)
 	crlCacheMutex           sync.RWMutex
-	crlCacheOrder           []string     // Maintains access order for LRU eviction
+	crlCacheHead            *LRUNode     // LRU (least recently used)
+	crlCacheTail            *LRUNode     // MRU (most recently used)
 	crlCacheConfig          atomic.Value // Stores *CRLCacheConfig
 	crlCacheMetrics         CRLCacheMetrics
 	crlCacheCleanupRunning  int32 // Atomic flag to ensure only one cleanup goroutine
@@ -87,7 +96,7 @@ func init() {
 	crlCacheConfig.Store(&defaultCRLCacheConfig)
 }
 
-// SetCRLCacheConfig sets the CRL cache configuration
+// SetCRLCacheConfig sets CRL cache configuration
 func SetCRLCacheConfig(config *CRLCacheConfig) {
 	cfg := &CRLCacheConfig{
 		MaxSize:         defaultCRLCacheConfig.MaxSize,
@@ -116,6 +125,71 @@ func SetCRLCacheConfig(config *CRLCacheConfig) {
 	pruneCRLCache(cfg.MaxSize)
 }
 
+// addToTail adds a node to the tail (most recently used position)
+func addToTail(node *LRUNode) {
+	node.prev = crlCacheTail
+	node.next = nil
+
+	if crlCacheTail != nil {
+		crlCacheTail.next = node
+	} else {
+		// List is empty, this is both head and tail
+		crlCacheHead = node
+	}
+
+	crlCacheTail = node
+}
+
+// moveToTail moves a node to the tail (most recently used position)
+func moveToTail(node *LRUNode) {
+	if node == crlCacheTail {
+		// Already at tail, nothing to do
+		return
+	}
+
+	// Remove from current position
+	if node.prev != nil {
+		node.prev.next = node.next
+	} else {
+		// Node is at head
+		crlCacheHead = node.next
+	}
+
+	if node.next != nil {
+		node.next.prev = node.prev
+	}
+
+	// Add to tail
+	node.prev = crlCacheTail
+	node.next = nil
+
+	if crlCacheTail != nil {
+		crlCacheTail.next = node
+	} else {
+		// List is now empty (shouldn't happen in normal operation)
+		crlCacheHead = node
+	}
+
+	crlCacheTail = node
+}
+
+// removeFromList removes a node from the linked list
+func removeFromList(node *LRUNode) {
+	if node.prev != nil {
+		node.prev.next = node.next
+	} else {
+		// Node is at head
+		crlCacheHead = node.next
+	}
+
+	if node.next != nil {
+		node.next.prev = node.prev
+	} else {
+		// Node is at tail
+		crlCacheTail = node.prev
+	}
+}
+
 func pruneCRLCache(maxSize int) {
 	if maxSize <= 0 {
 		return
@@ -130,18 +204,26 @@ func pruneCRLCache(maxSize int) {
 
 	removed := int64(0)
 	for len(crlCache) > maxSize {
-		if len(crlCacheOrder) == 0 {
+		if crlCacheHead == nil {
 			break
 		}
 
-		// Remove the least recently used (first in order)
-		if len(crlCacheOrder) > 0 {
-			lruURL := crlCacheOrder[0]
-			delete(crlCache, lruURL)
-			// Manually remove from order slice (more efficient than calling removeFromCacheOrder)
-			crlCacheOrder = crlCacheOrder[1:]
-			removed++
+		// Remove least recently used (head of list)
+		lruURL := crlCacheHead.url
+		lruNode := crlCacheHead
+
+		// Update head pointer
+		crlCacheHead = lruNode.next
+		if crlCacheHead != nil {
+			crlCacheHead.prev = nil
+		} else {
+			// Cache is now empty
+			crlCacheTail = nil
 		}
+
+		// Remove from cache map
+		delete(crlCache, lruURL)
+		removed++
 	}
 
 	if removed > 0 {
@@ -149,7 +231,7 @@ func pruneCRLCache(maxSize int) {
 	}
 }
 
-// GetCRLCacheConfig returns the current CRL cache configuration
+// GetCRLCacheConfig returns current CRL cache configuration
 func GetCRLCacheConfig() *CRLCacheConfig {
 	config := crlCacheConfig.Load().(*CRLCacheConfig)
 	// Return a copy to prevent external mutation
@@ -183,9 +265,9 @@ func GetCRLCacheMetrics() CRLCacheMetrics {
 	return metrics
 }
 
-// StartCRLCacheCleanup starts the background cleanup goroutine with context for cancellation
+// StartCRLCacheCleanup starts background cleanup goroutine with context for cancellation
 func StartCRLCacheCleanup(ctx context.Context) {
-	// If context is already cancelled, don't start the goroutine
+	// If context is already cancelled, don't start goroutine
 	if ctx.Err() != nil {
 		return
 	}
@@ -264,40 +346,17 @@ func cleanupExpiredCRLs() {
 		crlCacheMutex.Lock()
 		for _, url := range expiredURLs {
 			if entry, exists := crlCache[url]; exists && entry.isExpired() {
+				// Remove from linked list
+				if entry.node != nil {
+					removeFromList(entry.node)
+				}
+				// Remove from cache map
 				delete(crlCache, url)
-				removeFromCacheOrder(url)
 			}
 		}
 		crlCacheMutex.Unlock()
 
 		atomic.AddInt64(&crlCacheMetrics.Cleanups, int64(len(expiredURLs)))
-	}
-}
-
-// updateCacheOrder updates the access order for LRU eviction
-func updateCacheOrder(url string) {
-	// Remove from current position (more efficient)
-	for i, u := range crlCacheOrder {
-		if u == url {
-			// Swap with last element and truncate (O(1) removal)
-			crlCacheOrder[i] = crlCacheOrder[len(crlCacheOrder)-1]
-			crlCacheOrder = crlCacheOrder[:len(crlCacheOrder)-1]
-			break
-		}
-	}
-	// Add to end (most recently used)
-	crlCacheOrder = append(crlCacheOrder, url)
-}
-
-// removeFromCacheOrder removes a URL from the access order
-func removeFromCacheOrder(url string) {
-	for i, u := range crlCacheOrder {
-		if u == url {
-			// Swap with last element and truncate for O(1) removal
-			crlCacheOrder[i] = crlCacheOrder[len(crlCacheOrder)-1]
-			crlCacheOrder = crlCacheOrder[:len(crlCacheOrder)-1]
-			break
-		}
 	}
 }
 
@@ -320,7 +379,9 @@ func GetCachedCRL(url string) ([]byte, bool) {
 
 	// Need write lock to update access order
 	crlCacheMutex.Lock()
-	updateCacheOrder(url)
+	if entry.node != nil {
+		moveToTail(entry.node)
+	}
 	crlCacheMutex.Unlock()
 
 	// Return a copy to prevent external modification
@@ -329,8 +390,8 @@ func GetCachedCRL(url string) ([]byte, bool) {
 	return dataCopy, true
 }
 
-// SetCachedCRL stores a CRL in cache with metadata and implements LRU eviction
-func SetCachedCRL(url string, data []byte, nextUpdate time.Time) error {
+// validateCRLData validates CRL data and metadata before caching
+func validateCRLData(url string, data []byte, nextUpdate time.Time) error {
 	if len(data) == 0 {
 		return fmt.Errorf("cannot cache empty CRL data")
 	}
@@ -339,46 +400,105 @@ func SetCachedCRL(url string, data []byte, nextUpdate time.Time) error {
 		return fmt.Errorf("cannot cache CRL with empty URL")
 	}
 
-	// Validate nextUpdate is reasonable (not too far in the past or future)
+	// Validate nextUpdate is reasonable (not too far in past or future)
 	now := time.Now()
 	if nextUpdate.Before(now.Add(-365 * 24 * time.Hour)) { // More than 1 year ago
-		return fmt.Errorf("CRL nextUpdate time is too far in the past: %v", nextUpdate)
+		return fmt.Errorf("CRL nextUpdate time is too far in past: %v", nextUpdate)
 	}
 	if nextUpdate.After(now.Add(365 * 24 * time.Hour)) { // More than 1 year from now
-		return fmt.Errorf("CRL nextUpdate time is too far in the future: %v", nextUpdate)
+		return fmt.Errorf("CRL nextUpdate time is too far in future: %v", nextUpdate)
 	}
 
-	crlCacheMutex.Lock()
-	defer crlCacheMutex.Unlock()
+	return nil
+}
 
-	config := GetCRLCacheConfig()
-
-	// Evict least recently used entry if cache is full
-	for len(crlCache) >= config.MaxSize && config.MaxSize > 0 {
-		if len(crlCacheOrder) == 0 {
+// evictLRUEntries evicts entries to make room for new one if needed
+func evictLRUEntries(maxSize int) {
+	for len(crlCache) >= maxSize && maxSize > 0 {
+		if crlCacheHead == nil {
 			break // No more entries to evict
 		}
 
-		// Remove the least recently used (first in order)
-		lruURL := crlCacheOrder[0]
+		// Remove least recently used (head of list)
+		lruURL := crlCacheHead.url
+		lruNode := crlCacheHead
+
+		// Update head pointer
+		crlCacheHead = lruNode.next
+		if crlCacheHead != nil {
+			crlCacheHead.prev = nil
+		} else {
+			// Cache is now empty
+			crlCacheTail = nil
+		}
+
+		// Remove from cache map
 		delete(crlCache, lruURL)
-		crlCacheOrder = crlCacheOrder[1:]
 		atomic.AddInt64(&crlCacheMetrics.Evictions, 1)
 	}
+}
 
-	// Make a copy of the data to store
+// createNewCacheEntry creates a new cache entry and adds it to the cache
+func createNewCacheEntry(url string, data []byte, nextUpdate time.Time) {
+	// Make a copy of data to store
 	dataCopy := make([]byte, len(data))
 	copy(dataCopy, data)
 
+	// Create new LRU node
+	node := &LRUNode{
+		url:  url,
+		prev: nil,
+		next: nil,
+	}
+
+	// Create cache entry with node reference
 	crlCache[url] = &CRLCacheEntry{
 		Data:       dataCopy,
 		FetchedAt:  time.Now(),
 		NextUpdate: nextUpdate,
 		URL:        url,
+		node:       node,
 	}
 
-	// Add to access order (most recently used)
-	updateCacheOrder(url)
+	// Add to tail (most recently used)
+	addToTail(node)
+}
+
+// SetCachedCRL stores a CRL in cache with metadata and implements LRU eviction
+func SetCachedCRL(url string, data []byte, nextUpdate time.Time) error {
+	if err := validateCRLData(url, data, nextUpdate); err != nil {
+		return err
+	}
+
+	crlCacheMutex.Lock()
+	defer crlCacheMutex.Unlock()
+
+	// Try to update existing entry first
+	if existingEntry, exists := crlCache[url]; exists {
+		// Update existing entry
+		dataCopy := make([]byte, len(data))
+		copy(dataCopy, data)
+
+		existingEntry.Data = dataCopy
+		existingEntry.FetchedAt = time.Now()
+		existingEntry.NextUpdate = nextUpdate
+
+		// Move to tail (most recently used)
+		if existingEntry.node != nil {
+			moveToTail(existingEntry.node)
+		}
+
+		return nil
+	}
+
+	// Need to create new entry, so ensure space is available
+	config := GetCRLCacheConfig()
+
+	// Evict entries if needed (this function assumes we hold the lock)
+	evictLRUEntries(config.MaxSize)
+
+	// Create new entry (this function assumes we hold the lock)
+	createNewCacheEntry(url, data, nextUpdate)
 
 	return nil
 }
@@ -389,7 +509,8 @@ func ClearCRLCache() {
 	defer crlCacheMutex.Unlock()
 
 	crlCache = make(map[string]*CRLCacheEntry)
-	crlCacheOrder = nil
+	crlCacheHead = nil
+	crlCacheTail = nil
 
 	// Reset metrics
 	atomic.StoreInt64(&crlCacheMetrics.Hits, 0)

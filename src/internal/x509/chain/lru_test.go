@@ -409,7 +409,7 @@ func TestLRUOrderPreservation(t *testing.T) {
 	}
 
 	// Access pattern: C, A, D to change LRU order
-	// Expected LRU order: C (least), B, A, D (most)
+	// Expected LRU order after access: B (least), C, A, D (most)
 	accessPattern := []string{"C", "A", "D"}
 	for _, url := range accessPattern {
 		if _, found := GetCachedCRL(url); !found {
@@ -417,7 +417,7 @@ func TestLRUOrderPreservation(t *testing.T) {
 		}
 	}
 
-	// Add E to trigger eviction of C (LRU)
+	// Add E to trigger eviction of B (actual LRU)
 	eData, err := generateTestCRL()
 	if err != nil {
 		t.Fatalf("failed to generate test CRL for E: %v", err)
@@ -426,20 +426,20 @@ func TestLRUOrderPreservation(t *testing.T) {
 		t.Fatalf("failed to set CRL E: %v", err)
 	}
 
-	// Verify C was evicted, others remain
-	if _, found := GetCachedCRL("C"); found {
-		t.Error("expected C to be evicted (LRU)")
+	// Verify B was evicted, others remain
+	if _, found := GetCachedCRL("B"); found {
+		t.Error("expected B to be evicted (LRU)")
 	}
 
-	expectedPresent := []string{"A", "B", "D", "E"}
+	expectedPresent := []string{"A", "C", "D", "E"}
 	for _, url := range expectedPresent {
 		if _, found := GetCachedCRL(url); !found {
 			t.Errorf("expected %s to be present after eviction", url)
 		}
 	}
 
-	// Test that order is still correct: D should now be LRU
-	// Add F to trigger eviction of D
+	// Test that order is still correct: C should now be LRU (since B was evicted)
+	// Add F to trigger eviction of C
 	fData, err := generateTestCRL()
 	if err != nil {
 		t.Fatalf("failed to generate test CRL for F: %v", err)
@@ -461,11 +461,129 @@ func TestLRUOrderPreservation(t *testing.T) {
 		}
 	}
 
-	finalPresent := []string{"B", "D", "E", "F"}
+	finalPresent := []string{"C", "E", "F"}
 	for _, url := range finalPresent {
 		if _, found := GetCachedCRL(url); !found {
 			t.Errorf("expected %s to be present", url)
 		}
+	}
+}
+
+// TestLRUOrderExactVerification tests precise LRU order tracking with edge cases
+func TestLRUOrderExactVerification(t *testing.T) {
+	originalConfig := GetCRLCacheConfig()
+	testConfig := &CRLCacheConfig{
+		MaxSize:         3, // Small cache for predictable evictions
+		CleanupInterval: 1 * time.Hour,
+	}
+	SetCRLCacheConfig(testConfig)
+	defer SetCRLCacheConfig(originalConfig)
+
+	ClearCRLCache()
+
+	// Test 1: Basic LRU order with small cache
+	// Add A, B, C (cache full)
+	for _, url := range []string{"A", "B", "C"} {
+		crlData, err := generateTestCRL()
+		if err != nil {
+			t.Fatalf("failed to generate test CRL for %s: %v", url, err)
+		}
+		if err := SetCachedCRL(url, crlData, time.Now().Add(24*time.Hour)); err != nil {
+			t.Fatalf("failed to set CRL %s: %v", url, err)
+		}
+	}
+
+	// Access B to make it most recently used
+	if _, found := GetCachedCRL("B"); !found {
+		t.Fatal("expected to find B in cache")
+	}
+
+	// Add D to trigger eviction of A (LRU)
+	dData, err := generateTestCRL()
+	if err != nil {
+		t.Fatalf("failed to generate test CRL for D: %v", err)
+	}
+	if err := SetCachedCRL("D", dData, time.Now().Add(24*time.Hour)); err != nil {
+		t.Fatalf("failed to set CRL D: %v", err)
+	}
+
+	// Verify A was evicted, B, C, D remain
+	if _, found := GetCachedCRL("A"); found {
+		t.Error("expected A to be evicted (LRU)")
+	}
+	expectedPresent := []string{"B", "C", "D"}
+	for _, url := range expectedPresent {
+		if _, found := GetCachedCRL(url); !found {
+			t.Errorf("expected %s to be present after eviction", url)
+		}
+	}
+
+	// Test 2: Multiple access pattern changes
+	// After first eviction, order is: B (LRU), C, D (MRU)
+	// Access pattern: D, C, B
+	for _, url := range []string{"D", "C", "B"} {
+		if _, found := GetCachedCRL(url); !found {
+			t.Fatalf("expected to find %s in cache", url)
+		}
+	}
+
+	// Now order should be: D (LRU), C, B (MRU)
+	// Add E to trigger eviction of D
+	eData, err := generateTestCRL()
+	if err != nil {
+		t.Fatalf("failed to generate test CRL for E: %v", err)
+	}
+	if err := SetCachedCRL("E", eData, time.Now().Add(24*time.Hour)); err != nil {
+		t.Fatalf("failed to set CRL E: %v", err)
+	}
+
+	// Verify D was evicted
+	if _, found := GetCachedCRL("D"); found {
+		t.Error("expected D to be evicted (LRU)")
+	}
+	expectedPresent = []string{"C", "B", "E"}
+	for _, url := range expectedPresent {
+		if _, found := GetCachedCRL(url); !found {
+			t.Errorf("expected %s to be present after second eviction", url)
+		}
+	}
+
+	// Test 3: Edge case - accessing same item multiple times
+	// Current order: C (LRU), D, E (MRU)
+	// Access C multiple times to ensure it stays MRU
+	for i := range 3 {
+		if _, found := GetCachedCRL("C"); !found {
+			t.Fatalf("expected to find C in cache (iteration %d)", i)
+		}
+	}
+
+	// Add F to trigger eviction of D (should be LRU now)
+	fData, err := generateTestCRL()
+	if err != nil {
+		t.Fatalf("failed to generate test CRL for F: %v", err)
+	}
+	if err := SetCachedCRL("F", fData, time.Now().Add(24*time.Hour)); err != nil {
+		t.Fatalf("failed to set CRL F: %v", err)
+	}
+
+	// Verify D was evicted, C, E, F remain
+	if _, found := GetCachedCRL("D"); found {
+		t.Error("expected D to be evicted (LRU)")
+	}
+	expectedPresent = []string{"C", "E", "F"}
+	for _, url := range expectedPresent {
+		if _, found := GetCachedCRL(url); !found {
+			t.Errorf("expected %s to be present after third eviction", url)
+		}
+	}
+
+	// Test 4: Verify cache statistics
+	metrics := GetCRLCacheMetrics()
+	if metrics.Size != 3 {
+		t.Errorf("expected cache size 3, got %d", metrics.Size)
+	}
+	if metrics.Evictions != 3 {
+		t.Errorf("expected 3 evictions, got %d", metrics.Evictions)
 	}
 }
 
