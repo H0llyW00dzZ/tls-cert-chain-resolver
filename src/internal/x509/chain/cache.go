@@ -71,12 +71,16 @@ var defaultCRLCacheConfig = CRLCacheConfig{
 }
 
 // crlCache is a simple LRU cache for CRLs
-var crlCache = make(map[string]*CRLCacheEntry)
-var crlCacheMutex sync.RWMutex
-var crlCacheOrder []string      // Maintains access order for LRU eviction
-var crlCacheConfig atomic.Value // Stores *CRLCacheConfig
-var crlCacheMetrics CRLCacheMetrics
-var crlCacheCleanupRunning int32 // Atomic flag to ensure only one cleanup goroutine
+var (
+	crlCache                = make(map[string]*CRLCacheEntry)
+	crlCacheMutex           sync.RWMutex
+	crlCacheOrder           []string     // Maintains access order for LRU eviction
+	crlCacheConfig          atomic.Value // Stores *CRLCacheConfig
+	crlCacheMetrics         CRLCacheMetrics
+	crlCacheCleanupRunning  int32 // Atomic flag to ensure only one cleanup goroutine
+	crlCacheCleanupCancelMu sync.Mutex
+	crlCacheCleanupCancel   context.CancelFunc
+)
 
 // init initializes the CRL cache with default configuration
 func init() {
@@ -185,13 +189,25 @@ func StartCRLCacheCleanup(ctx context.Context) {
 		return
 	}
 
-	go func() {
-		defer atomic.StoreInt32(&crlCacheCleanupRunning, 0) // Reset when done
+	ctx, cancel := context.WithCancel(ctx)
 
-		// Create ONE ticker outside loop with initial config
+	crlCacheCleanupCancelMu.Lock()
+	crlCacheCleanupCancel = cancel
+	crlCacheCleanupCancelMu.Unlock()
+
+	go func() {
+		defer func() {
+			crlCacheCleanupCancelMu.Lock()
+			if crlCacheCleanupCancel != nil {
+				crlCacheCleanupCancel()
+				crlCacheCleanupCancel = nil
+			}
+			crlCacheCleanupCancelMu.Unlock()
+			atomic.StoreInt32(&crlCacheCleanupRunning, 0)
+		}()
+
 		config := GetCRLCacheConfig()
 		ticker := time.NewTicker(config.CleanupInterval)
-		defer ticker.Stop() // This will execute when goroutine exits
 
 		for {
 			select {
@@ -205,11 +221,23 @@ func StartCRLCacheCleanup(ctx context.Context) {
 					ticker = time.NewTicker(config.CleanupInterval)
 				}
 			case <-ctx.Done():
-				// Context cancelled, exit goroutine
-				return // defer will execute, stopping ticker
+				ticker.Stop()
+				return
 			}
 		}
 	}()
+}
+
+// StopCRLCacheCleanup stops the running cleanup goroutine if any.
+func StopCRLCacheCleanup() {
+	crlCacheCleanupCancelMu.Lock()
+	cancel := crlCacheCleanupCancel
+	crlCacheCleanupCancel = nil
+	crlCacheCleanupCancelMu.Unlock()
+
+	if cancel != nil {
+		cancel()
+	}
 }
 
 // cleanupExpiredCRLs removes CRLs that have expired beyond their NextUpdate time

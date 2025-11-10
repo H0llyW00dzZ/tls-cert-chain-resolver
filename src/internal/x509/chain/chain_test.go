@@ -1026,12 +1026,14 @@ func TestCRLCacheCleanup_ContextCancellation(t *testing.T) {
 
 	// Clean up test state
 	ClearCRLCache()
+	StopCRLCacheCleanup()
 	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
 }
 
 // TestCRLCacheCleanupMemoryLeak verifies that the cleanup goroutine doesn't leak tickers
 func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
 	// Stop any existing cleanup goroutine
+	StopCRLCacheCleanup()
 	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
 
 	// Clear any existing cache state
@@ -1101,5 +1103,6 @@ func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
 
 	// Clean up test state
 	ClearCRLCache()
+	StopCRLCacheCleanup()
 	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
 }
