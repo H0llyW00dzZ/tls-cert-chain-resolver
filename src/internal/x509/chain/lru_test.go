@@ -6,12 +6,14 @@
 package x509chain
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"math/big"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -465,4 +467,253 @@ func TestLRUOrderPreservation(t *testing.T) {
 			t.Errorf("expected %s to be present", url)
 		}
 	}
+}
+
+// TestTickerResourceLeak tests if ticker resources are leaked during config changes
+func TestTickerResourceLeak(t *testing.T) {
+	// Save original state
+	originalConfig := GetCRLCacheConfig()
+	originalGoroutines := runtime.NumGoroutine()
+
+	// Start cleanup with initial config
+	ctx := t.Context()
+
+	StartCRLCacheCleanup(ctx)
+
+	// Wait for initial goroutine to start
+	time.Sleep(100 * time.Millisecond)
+	initialGoroutines := runtime.NumGoroutine()
+
+	// Change config multiple times to trigger ticker replacement
+	for i := range 5 {
+		newInterval := time.Duration((i + 1)) * time.Millisecond
+		SetCRLCacheConfig(&CRLCacheConfig{
+			MaxSize:         100,
+			CleanupInterval: newInterval,
+		})
+		time.Sleep(10 * time.Millisecond) // Allow ticker replacement
+	}
+
+	// Wait for cleanup to process
+	time.Sleep(200 * time.Millisecond)
+
+	// Check goroutine count
+	finalGoroutines := runtime.NumGoroutine()
+	goroutineIncrease := finalGoroutines - initialGoroutines
+
+	t.Logf("Initial goroutines: %d", originalGoroutines)
+	t.Logf("After cleanup start: %d", initialGoroutines)
+	t.Logf("Final goroutines: %d", finalGoroutines)
+	t.Logf("Goroutine increase: %d", goroutineIncrease)
+
+	// Should not have significant goroutine leak (allow 1-2 for cleanup)
+	if goroutineIncrease > 5 {
+		t.Errorf("Potential ticker resource leak: goroutines increased by %d", goroutineIncrease)
+	}
+
+	// Restore original config
+	SetCRLCacheConfig(originalConfig)
+	time.Sleep(100 * time.Millisecond)
+}
+
+// TestTickerRaceCondition tests for race conditions during ticker replacement
+func TestTickerRaceCondition(t *testing.T) {
+	// Start cleanup
+	ctx := t.Context()
+
+	StartCRLCacheCleanup(ctx)
+
+	// Wait for initial setup
+	time.Sleep(50 * time.Millisecond)
+
+	// Concurrent config changes to trigger race conditions
+	var wg sync.WaitGroup
+	for i := range 10 {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			newInterval := time.Duration(id+1) * time.Millisecond
+			SetCRLCacheConfig(&CRLCacheConfig{
+				MaxSize:         100,
+				CleanupInterval: newInterval,
+			})
+		}(i)
+	}
+
+	// Add some CRLs to trigger cleanup operations
+	SetCachedCRL("test1", []byte("test data 1"), time.Now().Add(1*time.Hour))
+	SetCachedCRL("test2", []byte("test data 2"), time.Now().Add(-1*time.Hour)) // Expired
+
+	// Wait for concurrent operations
+	wg.Wait()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify cache is still functional
+	_, found := GetCachedCRL("test1")
+	if !found {
+		t.Error("Cache should still be functional after concurrent config changes")
+	}
+
+	// Clear cache for cleanup
+	ClearCRLCache()
+}
+
+// TestConcurrentCleanupManagement tests multiple cleanup goroutine lifecycle
+func TestConcurrentCleanupManagement(t *testing.T) {
+	originalGoroutines := runtime.NumGoroutine()
+
+	// Try to start multiple cleanup goroutines concurrently
+	var wg sync.WaitGroup
+	for i := range 3 {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			StartCRLCacheCleanup(ctx)
+			time.Sleep(50 * time.Millisecond)
+		}(i)
+	}
+
+	// Wait for all goroutines
+	wg.Wait()
+	time.Sleep(100 * time.Millisecond)
+
+	finalGoroutines := runtime.NumGoroutine()
+	goroutineIncrease := finalGoroutines - originalGoroutines
+
+	t.Logf("Goroutine increase after multiple cleanup starts: %d", goroutineIncrease)
+
+	// Should not create multiple cleanup goroutines (only one should run)
+	if goroutineIncrease > 2 { // Allow 1-2 for proper cleanup
+		t.Errorf("Multiple cleanup goroutines may be running: increase by %d", goroutineIncrease)
+	}
+
+	// Stop cleanup and verify
+	StopCRLCacheCleanup()
+	time.Sleep(100 * time.Millisecond)
+}
+
+// TestMemoryLeakDetection tests for memory leaks in cache cleanup
+func TestMemoryLeakDetection(t *testing.T) {
+	// Clear cache to start fresh
+	ClearCRLCache()
+
+	// Add many CRL entries
+	const numEntries = 50
+	for i := range numEntries {
+		url := "test-url-" + string(rune(i))
+		data := make([]byte, 1024) // 1KB each
+		SetCachedCRL(url, data, time.Now().Add(1*time.Hour))
+	}
+
+	// Verify entries are cached
+	metrics := GetCRLCacheMetrics()
+	if metrics.Size != int64(numEntries) {
+		t.Errorf("Expected %d entries, got %d", numEntries, metrics.Size)
+	}
+
+	// Start cleanup to trigger expired entry removal
+	ctx := t.Context()
+
+	// Set short cleanup interval for testing
+	SetCRLCacheConfig(&CRLCacheConfig{
+		MaxSize:         100,
+		CleanupInterval: 50 * time.Millisecond,
+	})
+
+	StartCRLCacheCleanup(ctx)
+
+	// Add expired entries that should be cleaned up
+	for i := range 10 {
+		url := "expired-url-" + string(rune(i))
+		data := make([]byte, 512)
+		SetCachedCRL(url, data, time.Now().Add(-1*time.Hour)) // Expired
+	}
+
+	// Wait for cleanup cycle
+	time.Sleep(200 * time.Millisecond)
+
+	// Check that expired entries were removed
+	expiredCount := 0
+	for i := range 10 {
+		url := "expired-url-" + string(rune(i))
+		_, found := GetCachedCRL(url)
+		if found {
+			expiredCount++
+		}
+	}
+
+	if expiredCount > 2 { // Allow some timing tolerance
+		t.Errorf("Expected expired entries to be cleaned up, but %d remain", expiredCount)
+	}
+
+	// Verify memory is not growing unbounded
+	finalMetrics := GetCRLCacheMetrics()
+	if finalMetrics.TotalMemory > metrics.TotalMemory*2 { // Should not double
+		t.Errorf("Potential memory leak: memory grew from %d to %d",
+			metrics.TotalMemory, finalMetrics.TotalMemory)
+	}
+
+	// Cleanup
+	StopCRLCacheCleanup()
+	ClearCRLCache()
+}
+
+// TestTickerReplacementDuringCleanup tests ticker replacement during active cleanup
+func TestTickerReplacementDuringCleanup(t *testing.T) {
+	// Add entries that will take time to cleanup
+	for i := range 100 {
+		url := "slow-cleanup-url-" + string(rune(i))
+		data := make([]byte, 1024)
+		// Make some entries expired to trigger cleanup logic
+		expiryTime := time.Now().Add(-1 * time.Hour)
+		if i%10 == 0 {
+			expiryTime = time.Now().Add(1 * time.Hour) // Some fresh
+		}
+		SetCachedCRL(url, data, expiryTime)
+	}
+
+	// Start cleanup with slow interval
+	ctx := t.Context()
+
+	SetCRLCacheConfig(&CRLCacheConfig{
+		MaxSize:         100,
+		CleanupInterval: 100 * time.Millisecond,
+	})
+
+	StartCRLCacheCleanup(ctx)
+
+	// Wait for cleanup to start
+	time.Sleep(50 * time.Millisecond)
+
+	// Change config rapidly to trigger ticker replacement during cleanup
+	for i := range 5 {
+		go func(id int) {
+			newInterval := time.Duration(id+1) * time.Millisecond
+			SetCRLCacheConfig(&CRLCacheConfig{
+				MaxSize:         100,
+				CleanupInterval: newInterval,
+			})
+		}(i)
+	}
+
+	// Wait for cleanup cycles and config changes
+	time.Sleep(300 * time.Millisecond)
+
+	// Verify cache is still functional (no crashes)
+	testData := []byte("final test data")
+	SetCachedCRL("final-test", testData, time.Now().Add(1*time.Hour))
+	retrievedData, found := GetCachedCRL("final-test")
+	if !found {
+		t.Error("Cache should be functional after ticker replacement stress test")
+	}
+	if string(retrievedData) != string(testData) {
+		t.Error("Data integrity compromised after ticker replacement stress test")
+	}
+
+	// Cleanup
+	StopCRLCacheCleanup()
+	ClearCRLCache()
 }

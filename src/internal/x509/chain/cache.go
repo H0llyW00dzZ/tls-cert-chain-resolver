@@ -170,9 +170,15 @@ func GetCRLCacheMetrics() CRLCacheMetrics {
 		totalMemory += entry.memoryUsage()
 	}
 
-	metrics := crlCacheMetrics
-	metrics.Size = int64(len(crlCache))
-	metrics.TotalMemory = totalMemory
+	// Read all metrics atomically to avoid race conditions
+	metrics := CRLCacheMetrics{
+		Size:        int64(len(crlCache)),
+		TotalMemory: totalMemory,
+		Hits:        atomic.LoadInt64(&crlCacheMetrics.Hits),
+		Misses:      atomic.LoadInt64(&crlCacheMetrics.Misses),
+		Evictions:   atomic.LoadInt64(&crlCacheMetrics.Evictions),
+		Cleanups:    atomic.LoadInt64(&crlCacheMetrics.Cleanups),
+	}
 
 	return metrics
 }

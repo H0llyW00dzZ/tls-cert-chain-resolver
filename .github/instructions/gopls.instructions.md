@@ -296,40 +296,48 @@ read("src/internal/x509/certs/certs.go")
 
 ```
 # Start with workspace
- gopls_go_workspace()
- 
- # Find MCP server tool implementations
- gopls_go_search("resolve_cert_chain")
- gopls_go_search("validate_cert_chain")
- gopls_go_search("check_cert_expiry")
- gopls_go_search("batch_resolve_cert_chain")
- gopls_go_search("fetch_remote_cert")
- gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis entry points
- gopls_go_search("addResources") → Find MCP server resource implementations
- gopls_go_search("addPrompts") → Find MCP server prompt implementations
- gopls_go_search("ServerBuilder") → Find builder pattern implementation
- gopls_go_search("WithSampling") → Locate sampling registration on the server builder
- gopls_go_search("DefaultSamplingHandler") → Inspect bidirectional AI streaming handler (`src/mcp-server/framework.go`)
- gopls_go_search("SamplingRequest") → Explore sampling request markers
- gopls_go_search("handleStatusResource") → Find status resource handler
- gopls_go_search("certificate-analysis") → Find certificate analysis prompts
- gopls_go_search("security-audit") → Find security audit prompts
- 
- # Understand MCP server package API
- gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
- 
- # Read MCP server implementations
- read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI streaming integration with buffer pooling
- read("src/mcp-server/resources.go")  # Resource definitions including status resource
- read("src/mcp-server/prompts.go")    # Prompt definitions
- read("src/mcp-server/templates/certificate-analysis-system-prompt.md")  # Embedded system prompt for AI analysis
- read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis with analysis types
- read("src/mcp-server/config.go")     # AI and MCP configuration
- read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
+gopls_go_workspace()
 
+# Find MCP server tool implementations
+gopls_go_search("resolve_cert_chain")
+gopls_go_search("validate_cert_chain")
+gopls_go_search("check_cert_expiry")
+gopls_go_search("batch_resolve_cert_chain")
+gopls_go_search("fetch_remote_cert")
+gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis entry points
+gopls_go_search("addResources") → Find MCP server resource implementations
+gopls_go_search("addPrompts") → Find MCP server prompt implementations
+gopls_go_search("ServerBuilder") → Find builder pattern implementation
+gopls_go_search("WithSampling") → Locate sampling registration on the server builder
+gopls_go_search("DefaultSamplingHandler") → Inspect bidirectional AI streaming handler (`src/mcp-server/framework.go`)
+gopls_go_search("SamplingRequest") → Explore sampling request markers
+gopls_go_search("handleStatusResource") → Find status resource handler
+gopls_go_search("certificate-analysis") → Find certificate analysis prompts
+gopls_go_search("security-audit") → Find security audit prompts
+gopls_go_search("CRLCacheEntry") → Find CRL cache entry structures
+gopls_go_search("CRLCacheConfig") → Find CRL cache configuration
+gopls_go_search("CRLCacheMetrics") → Find CRL cache metrics tracking
+gopls_go_search("isFresh") → Find CRL freshness checking methods
+gopls_go_search("isExpired") → Find CRL expiration checking methods
+gopls_go_search("GetCachedCRL") → Find CRL cache retrieval functions
+gopls_go_search("SetCachedCRL") → Find CRL cache storage functions
+gopls_go_search("StartCRLCacheCleanup") → Find CRL cache cleanup lifecycle management
+gopls_go_search("StopCRLCacheCleanup") → Find CRL cache cleanup termination
+gopls_go_search("updateCacheOrder") → Find LRU access order management
+gopls_go_search("removeFromCacheOrder") → Find LRU order removal functions
+gopls_go_search("pruneCRLCache") → Find LRU eviction implementation
 
-### 3. Adding New CLI Flags
+# Understand MCP server package API
+gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
 
+# Read MCP server implementations
+read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI streaming integration with buffer pooling
+read("src/mcp-server/resources.go")  # Resource definitions including status resource
+read("src/mcp-server/prompts.go")    # Prompt definitions
+read("src/mcp-server/templates/certificate-analysis-system-prompt.md")  # Embedded system prompt for AI analysis
+read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis with analysis types
+read("src/mcp-server/config.go")     # AI and MCP configuration
+read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
 ```
 # Understand CLI structure
 gopls_go_file_context("src/cli/root.go")
@@ -547,6 +555,12 @@ grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
 
 # Find revocation checking patterns
 grep("CheckRevocationStatus\\|ParseCRLResponse\\|RevocationStatus\\|OCSPStatus\\|CRLStatus\\|getCachedCRL\\|setCachedCRL\\|tryOCSPServer\\|tryCRLDistributionPoint", include="*.go")
+
+# Find CRL cache patterns
+grep("CRLCacheEntry\\|CRLCacheConfig\\|CRLCacheMetrics\\|GetCachedCRL\\|SetCachedCRL\\|StartCRLCacheCleanup\\|StopCRLCacheCleanup\\|updateCacheOrder\\|removeFromCacheOrder\\|pruneCRLCache\\|isFresh\\|isExpired", include="*.go")
+
+# Find LRU eviction patterns
+grep("updateCacheOrder\\|removeFromCacheOrder\\|pruneCRLCache", include="*.go")
 
 # Find HTTP client configuration
 grep("HTTPConfig\\|Client\\(\\)\\|GetUserAgent", include="*.go")
