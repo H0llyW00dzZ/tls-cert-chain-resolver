@@ -3,7 +3,7 @@
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
 
-package x509chain_test
+package x509chain
 
 import (
 	"context"
@@ -12,11 +12,11 @@ import (
 	"math/big"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
-	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 )
 
 // Test certificate from www.google.com (valid until December 15, 2025)
@@ -57,12 +57,12 @@ func TestChainOperations(t *testing.T) {
 		name        string
 		certPEM     string
 		skipOnMacOS bool
-		testFunc    func(t *testing.T, manager *x509chain.Chain)
+		testFunc    func(t *testing.T, manager *Chain)
 	}{
 		{
 			name:    "Fetch Certificate Chain",
 			certPEM: testCertPEM,
-			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+			testFunc: func(t *testing.T, manager *Chain) {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
@@ -87,7 +87,7 @@ func TestChainOperations(t *testing.T) {
 			name:        "Add Root CA",
 			certPEM:     testCertPEM,
 			skipOnMacOS: true,
-			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+			testFunc: func(t *testing.T, manager *Chain) {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
@@ -110,7 +110,7 @@ func TestChainOperations(t *testing.T) {
 		{
 			name:    "Filter Intermediates",
 			certPEM: testCertPEM,
-			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+			testFunc: func(t *testing.T, manager *Chain) {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
@@ -136,7 +136,7 @@ func TestChainOperations(t *testing.T) {
 		{
 			name:    "IsSelfSigned - Root Certificate",
 			certPEM: testCertPEM,
-			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+			testFunc: func(t *testing.T, manager *Chain) {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
@@ -158,7 +158,7 @@ func TestChainOperations(t *testing.T) {
 		{
 			name:    "IsRootNode",
 			certPEM: testCertPEM,
-			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+			testFunc: func(t *testing.T, manager *Chain) {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
@@ -180,7 +180,7 @@ func TestChainOperations(t *testing.T) {
 		{
 			name:    "FilterIntermediates - No Intermediates",
 			certPEM: testCertPEM,
-			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+			testFunc: func(t *testing.T, manager *Chain) {
 				manager.Certs = manager.Certs[:1]
 
 				intermediates := manager.FilterIntermediates()
@@ -192,7 +192,7 @@ func TestChainOperations(t *testing.T) {
 		{
 			name:    "VerifyChain - Valid Chain",
 			certPEM: testCertPEM,
-			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+			testFunc: func(t *testing.T, manager *Chain) {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
@@ -208,7 +208,7 @@ func TestChainOperations(t *testing.T) {
 		{
 			name:    "New Chain Creation",
 			certPEM: testCertPEM,
-			testFunc: func(t *testing.T, manager *x509chain.Chain) {
+			testFunc: func(t *testing.T, manager *Chain) {
 				if manager.HTTPConfig.Version != version {
 					t.Errorf("expected version %s, got %s", version, manager.HTTPConfig.Version)
 				}
@@ -248,7 +248,7 @@ func TestChainOperations(t *testing.T) {
 				t.Fatalf("failed to parse certificate: %v", err)
 			}
 
-			manager := x509chain.New(cert, version)
+			manager := New(cert, version)
 			tt.testFunc(t, manager)
 		})
 	}
@@ -265,7 +265,7 @@ func TestChain_ContextCancellation(t *testing.T) {
 		t.Fatalf("failed to parse certificate: %v", err)
 	}
 
-	manager := x509chain.New(cert, version)
+	manager := New(cert, version)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -323,7 +323,7 @@ func TestFetchRemoteChain(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
 			defer cancel()
 
-			chain, certs, err := x509chain.FetchRemoteChain(ctx, tt.hostname, tt.port, tt.timeout, version)
+			chain, certs, err := FetchRemoteChain(ctx, tt.hostname, tt.port, tt.timeout, version)
 
 			if tt.expectError {
 				if err == nil {
@@ -407,7 +407,7 @@ func TestCheckRevocationStatus(t *testing.T) {
 				t.Fatalf("failed to parse certificate: %v", err)
 			}
 
-			manager := x509chain.New(cert, version)
+			manager := New(cert, version)
 
 			// Fetch the chain first
 			ctx, cancel := context.WithTimeout(context.Background(), tt.setupTimeout)
@@ -451,24 +451,24 @@ func TestParseCRLResponse(t *testing.T) {
 	}
 
 	// Test that function signature works correctly
-	_, err = x509chain.ParseCRLResponse([]byte("invalid"), big.NewInt(12345), cert)
+	_, err = ParseCRLResponse([]byte("invalid"), big.NewInt(12345), cert)
 	if err == nil {
 		t.Error("expected error for invalid CRL data")
 	}
 
-	_, err = x509chain.ParseCRLResponse([]byte{}, big.NewInt(12345), cert)
+	_, err = ParseCRLResponse([]byte{}, big.NewInt(12345), cert)
 	if err == nil {
 		t.Error("expected error for empty CRL data")
 	}
 
 	// Test with nil serial
-	_, err = x509chain.ParseCRLResponse([]byte("data"), nil, cert)
+	_, err = ParseCRLResponse([]byte("data"), nil, cert)
 	if err == nil {
 		t.Error("expected error for nil serial")
 	}
 
 	// Test with nil issuer
-	_, err = x509chain.ParseCRLResponse([]byte("data"), big.NewInt(12345), nil)
+	_, err = ParseCRLResponse([]byte("data"), big.NewInt(12345), nil)
 	if err == nil {
 		t.Error("expected error for nil issuer")
 	}
@@ -486,7 +486,7 @@ func TestChain_AddRootCA_Error(t *testing.T) {
 		t.Fatalf("failed to parse certificate: %v", err)
 	}
 
-	manager := x509chain.New(cert, version)
+	manager := New(cert, version)
 
 	// Add a malformed certificate to the chain to trigger verification error
 	manager.Certs = append(manager.Certs, &x509.Certificate{Raw: []byte("invalid")})
@@ -509,7 +509,7 @@ func TestChain_VerifyChain_Error(t *testing.T) {
 		t.Fatalf("failed to parse certificate: %v", err)
 	}
 
-	manager := x509chain.New(cert, version)
+	manager := New(cert, version)
 
 	// Replace with a self-signed cert that doesn't match the chain
 	fakeCert := &x509.Certificate{
@@ -541,7 +541,7 @@ func TestRevocationStatus_Timeout(t *testing.T) {
 		t.Fatalf("failed to parse certificate: %v", err)
 	}
 
-	manager := x509chain.New(cert, version)
+	manager := New(cert, version)
 
 	// Fetch the chain first
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -577,7 +577,7 @@ func TestRevocationStatus_ContextCancellation(t *testing.T) {
 		t.Fatalf("failed to parse certificate: %v", err)
 	}
 
-	manager := x509chain.New(cert, version)
+	manager := New(cert, version)
 
 	// Fetch the chain first
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -627,7 +627,7 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 				}
 
 				// 2. Create chain manager
-				manager := x509chain.New(cert, version)
+				manager := New(cert, version)
 
 				// 3. Fetch certificate chain
 				fetchCtx, fetchCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -712,7 +712,7 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 				}
 
 				// 2. Create chain manager
-				manager := x509chain.New(cert, version)
+				manager := New(cert, version)
 
 				// 3. Fetch certificate chain
 				fetchCtx, fetchCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -766,15 +766,15 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 
 func TestCRLCacheConfig(t *testing.T) {
 	// Test setting custom configuration
-	originalConfig := x509chain.GetCRLCacheConfig()
+	originalConfig := GetCRLCacheConfig()
 
-	customConfig := &x509chain.CRLCacheConfig{
+	customConfig := &CRLCacheConfig{
 		MaxSize:         50,
 		CleanupInterval: 30 * time.Minute,
 	}
-	x509chain.SetCRLCacheConfig(customConfig)
+	SetCRLCacheConfig(customConfig)
 
-	currentConfig := x509chain.GetCRLCacheConfig()
+	currentConfig := GetCRLCacheConfig()
 	if currentConfig.MaxSize != 50 {
 		t.Errorf("expected MaxSize 50, got %d", currentConfig.MaxSize)
 	}
@@ -783,22 +783,22 @@ func TestCRLCacheConfig(t *testing.T) {
 	}
 
 	// Test nil config falls back to defaults
-	x509chain.SetCRLCacheConfig(nil)
-	defaultConfig := x509chain.GetCRLCacheConfig()
+	SetCRLCacheConfig(nil)
+	defaultConfig := GetCRLCacheConfig()
 	if defaultConfig.MaxSize != 100 {
 		t.Errorf("expected default MaxSize 100, got %d", defaultConfig.MaxSize)
 	}
 
 	// Restore original config
-	x509chain.SetCRLCacheConfig(originalConfig)
+	SetCRLCacheConfig(originalConfig)
 }
 
 func TestCRLCacheMetrics(t *testing.T) {
 	// Clear cache for clean test
-	x509chain.ClearCRLCache()
+	ClearCRLCache()
 
 	// Test initial metrics
-	metrics := x509chain.GetCRLCacheMetrics()
+	metrics := GetCRLCacheMetrics()
 	if metrics.Size != 0 {
 		t.Errorf("expected initial size 0, got %d", metrics.Size)
 	}
@@ -815,16 +815,18 @@ func TestCRLCacheMetrics(t *testing.T) {
 	testNextUpdate := time.Now().Add(24 * time.Hour)
 
 	// Set a CRL
-	x509chain.SetCachedCRL(testURL, testData, testNextUpdate)
+	if err := SetCachedCRL(testURL, testData, testNextUpdate); err != nil {
+		t.Fatalf("failed to set cached CRL: %v", err)
+	}
 
 	// Check metrics after set
-	metrics = x509chain.GetCRLCacheMetrics()
+	metrics = GetCRLCacheMetrics()
 	if metrics.Size != 1 {
 		t.Errorf("expected size 1 after set, got %d", metrics.Size)
 	}
 
 	// Get the CRL (should be a hit)
-	data, found := x509chain.GetCachedCRL(testURL)
+	data, found := GetCachedCRL(testURL)
 	if !found {
 		t.Error("expected CRL to be found")
 	}
@@ -833,7 +835,7 @@ func TestCRLCacheMetrics(t *testing.T) {
 	}
 
 	// Check metrics after get
-	metrics = x509chain.GetCRLCacheMetrics()
+	metrics = GetCRLCacheMetrics()
 	if metrics.Hits != 1 {
 		t.Errorf("expected 1 hit, got %d", metrics.Hits)
 	}
@@ -842,13 +844,13 @@ func TestCRLCacheMetrics(t *testing.T) {
 	}
 
 	// Get non-existent CRL (should be a miss)
-	_, found = x509chain.GetCachedCRL("http://nonexistent.com/crl")
+	_, found = GetCachedCRL("http://nonexistent.com/crl")
 	if found {
 		t.Error("expected non-existent CRL to not be found")
 	}
 
 	// Check metrics after miss
-	metrics = x509chain.GetCRLCacheMetrics()
+	metrics = GetCRLCacheMetrics()
 	if metrics.Misses != 1 {
 		t.Errorf("expected 1 miss, got %d", metrics.Misses)
 	}
@@ -856,7 +858,7 @@ func TestCRLCacheMetrics(t *testing.T) {
 
 func TestCRLCacheStats(t *testing.T) {
 	// Clear cache for clean test
-	x509chain.ClearCRLCache()
+	ClearCRLCache()
 
 	// Add some test data
 	testURL1 := "http://example1.com/crl"
@@ -864,13 +866,17 @@ func TestCRLCacheStats(t *testing.T) {
 	testData1 := []byte("test data 1")
 	testData2 := make([]byte, 1024) // 1KB data for memory calculation
 
-	x509chain.SetCachedCRL(testURL1, testData1, time.Now().Add(24*time.Hour))
-	x509chain.SetCachedCRL(testURL2, testData2, time.Now().Add(24*time.Hour))
+	if err := SetCachedCRL(testURL1, testData1, time.Now().Add(24*time.Hour)); err != nil {
+		t.Fatalf("failed to set cached CRL 1: %v", err)
+	}
+	if err := SetCachedCRL(testURL2, testData2, time.Now().Add(24*time.Hour)); err != nil {
+		t.Fatalf("failed to set cached CRL 2: %v", err)
+	}
 
 	// Get one to create a hit
-	x509chain.GetCachedCRL(testURL1)
+	GetCachedCRL(testURL1)
 
-	stats := x509chain.GetCRLCacheStats()
+	stats := GetCRLCacheStats()
 
 	// Check that stats contains expected information
 	expectedStrings := []string{
@@ -890,8 +896,8 @@ func TestCRLCacheStats(t *testing.T) {
 	}
 
 	// Test with no requests (should show 0% hit rate)
-	x509chain.ClearCRLCache()
-	stats = x509chain.GetCRLCacheStats()
+	ClearCRLCache()
+	stats = GetCRLCacheStats()
 	if !strings.Contains(stats, "Hit Rate: 0.0%") {
 		t.Errorf("expected 0.0%% hit rate for empty cache, got:\n%s", stats)
 	}
@@ -903,7 +909,7 @@ func TestCRLCacheCleanupExpired(t *testing.T) {
 	}
 
 	// Clear cache for clean test
-	x509chain.ClearCRLCache()
+	ClearCRLCache()
 
 	// Add CRLs with different expiry times
 	expiredURL := "http://expired.com/crl"
@@ -912,27 +918,31 @@ func TestCRLCacheCleanupExpired(t *testing.T) {
 	expiredTime := time.Now().Add(-2 * time.Hour) // Already expired
 	validTime := time.Now().Add(24 * time.Hour)   // Still valid
 
-	x509chain.SetCachedCRL(expiredURL, []byte("expired"), expiredTime)
-	x509chain.SetCachedCRL(validURL, []byte("valid"), validTime)
+	if err := SetCachedCRL(expiredURL, []byte("expired"), expiredTime); err != nil {
+		t.Fatalf("failed to set expired CRL: %v", err)
+	}
+	if err := SetCachedCRL(validURL, []byte("valid"), validTime); err != nil {
+		t.Fatalf("failed to set valid CRL: %v", err)
+	}
 
 	// Check that valid CRL is retrievable but expired one is not
-	if _, found := x509chain.GetCachedCRL(expiredURL); found {
+	if _, found := GetCachedCRL(expiredURL); found {
 		t.Error("expected expired CRL to not be retrievable")
 	}
-	if _, found := x509chain.GetCachedCRL(validURL); !found {
+	if _, found := GetCachedCRL(validURL); !found {
 		t.Error("expected valid CRL to be retrievable")
 	}
 
 	// Trigger cleanup (this should remove any cached entries that are expired)
-	x509chain.CleanupExpiredCRLs()
+	CleanupExpiredCRLs()
 
 	// Check that valid CRL is still retrievable
-	if _, found := x509chain.GetCachedCRL(validURL); !found {
+	if _, found := GetCachedCRL(validURL); !found {
 		t.Error("expected valid CRL to remain retrievable after cleanup")
 	}
 
 	// Verify cache metrics were updated (if any expired entries were cleaned)
-	metrics := x509chain.GetCRLCacheMetrics()
+	metrics := GetCRLCacheMetrics()
 	if metrics.Size > 1 {
 		t.Errorf("expected cache size to be at most 1 after cleanup, got %d", metrics.Size)
 	}
@@ -940,36 +950,42 @@ func TestCRLCacheCleanupExpired(t *testing.T) {
 
 func TestCRLCacheEviction(t *testing.T) {
 	// Set small cache size for testing
-	originalConfig := x509chain.GetCRLCacheConfig()
-	smallConfig := &x509chain.CRLCacheConfig{
+	originalConfig := GetCRLCacheConfig()
+	smallConfig := &CRLCacheConfig{
 		MaxSize:         2,
 		CleanupInterval: 1 * time.Hour,
 	}
-	x509chain.SetCRLCacheConfig(smallConfig)
-	defer x509chain.SetCRLCacheConfig(originalConfig)
+	SetCRLCacheConfig(smallConfig)
+	defer SetCRLCacheConfig(originalConfig)
 
 	// Clear cache
-	x509chain.ClearCRLCache()
+	ClearCRLCache()
 
 	// Add CRLs up to the limit
 	url1 := "http://test1.com/crl"
 	url2 := "http://test2.com/crl"
 	url3 := "http://test3.com/crl"
 
-	x509chain.SetCachedCRL(url1, []byte("data1"), time.Now().Add(24*time.Hour))
-	x509chain.SetCachedCRL(url2, []byte("data2"), time.Now().Add(24*time.Hour))
+	if err := SetCachedCRL(url1, []byte("data1"), time.Now().Add(24*time.Hour)); err != nil {
+		t.Fatalf("failed to set CRL 1: %v", err)
+	}
+	if err := SetCachedCRL(url2, []byte("data2"), time.Now().Add(24*time.Hour)); err != nil {
+		t.Fatalf("failed to set CRL 2: %v", err)
+	}
 
 	// Check initial size
-	metrics := x509chain.GetCRLCacheMetrics()
+	metrics := GetCRLCacheMetrics()
 	if metrics.Size != 2 {
 		t.Errorf("expected size 2, got %d", metrics.Size)
 	}
 
 	// Add third CRL (should trigger eviction)
-	x509chain.SetCachedCRL(url3, []byte("data3"), time.Now().Add(24*time.Hour))
+	if err := SetCachedCRL(url3, []byte("data3"), time.Now().Add(24*time.Hour)); err != nil {
+		t.Fatalf("failed to set CRL 3: %v", err)
+	}
 
 	// Check final size and evictions
-	metrics = x509chain.GetCRLCacheMetrics()
+	metrics = GetCRLCacheMetrics()
 	if metrics.Size != 2 {
 		t.Errorf("expected size to remain 2 after eviction, got %d", metrics.Size)
 	}
@@ -978,13 +994,37 @@ func TestCRLCacheEviction(t *testing.T) {
 	}
 
 	// The first URL should have been evicted (LRU)
-	if _, found := x509chain.GetCachedCRL(url1); found {
+	if _, found := GetCachedCRL(url1); found {
 		t.Error("expected first URL to be evicted")
 	}
-	if _, found := x509chain.GetCachedCRL(url2); !found {
+	if _, found := GetCachedCRL(url2); !found {
 		t.Error("expected second URL to remain")
 	}
-	if _, found := x509chain.GetCachedCRL(url3); !found {
+	if _, found := GetCachedCRL(url3); !found {
 		t.Error("expected third URL to be cached")
 	}
+}
+
+func TestCRLCacheCleanup_ContextCancellation(t *testing.T) {
+	// Reset the cleanup running flag to allow test instance
+	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
+
+	// Create a cancelled context
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	// Start cleanup with cancelled context
+	startCRLCacheCleanup(ctx)
+
+	// Wait briefly for goroutine to potentially start and exit
+	time.Sleep(50 * time.Millisecond)
+
+	// Verify the flag is still 0 (goroutine didn't start or exited immediately)
+	if atomic.LoadInt32(&crlCacheCleanupRunning) != 0 {
+		t.Error("Cleanup goroutine should not be running after context cancellation")
+	}
+
+	// Clean up test state
+	ClearCRLCache()
+	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
 }

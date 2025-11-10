@@ -255,7 +255,10 @@ func (ch *Chain) tryCRLDistributionPoint(ctx context.Context, cert *x509.Certifi
 	crl, parseErr := x509.ParseRevocationList(crlData)
 	if parseErr == nil && !crl.NextUpdate.IsZero() {
 		// Cache the CRL with its next update time
-		SetCachedCRL(crlURL, crlData, crl.NextUpdate)
+		if err := SetCachedCRL(crlURL, crlData, crl.NextUpdate); err != nil {
+			// Log error but don't fail the operation
+			// The CRL is still valid for this request
+		}
 	}
 
 	// Process the CRL data
