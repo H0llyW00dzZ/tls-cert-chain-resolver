@@ -66,7 +66,7 @@
 **CLI Framework**: Use `github.com/spf13/cobra` for command-line interface  
 **Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race ./...` before merging.  
 **Memory Management**: Use buffer pooling via `gc.Pool` interface (`src/internal/helper/gc/`) for efficient memory usage with certificates and logging. The `gc` package abstracts `bytebufferpool` to avoid direct dependencies. Always call `Reset()` on buffers before returning them to the pool. Use `gc.Default` for the default buffer pool. For AI API requests, buffer pooling is used in `DefaultSamplingHandler` to optimize HTTP streaming performance.  
-**Certificate Operations**: Use internal packages `x509certs` and `x509chain` for certificate handling. Use `HTTPConfig` struct for centralized HTTP client configuration in certificate operations (timeout, User-Agent, version). Always check revocation status using `CheckRevocationStatus` after chain resolution. CRL cache includes automatic cleanup of expired CRLs, configurable size limits (default 100), and comprehensive metrics tracking (hits, misses, evictions, cleanups) to prevent memory leaks.
+**Certificate Operations**: Use internal packages `x509certs` and `x509chain` for certificate handling. Use `HTTPConfig` struct for centralized HTTP client configuration in certificate operations (timeout, User-Agent, version). Always check revocation status using `CheckRevocationStatus` after chain resolution. CRL cache includes LRU eviction, automatic cleanup of expired CRLs with context cancellation support, configurable size limits (default 100), and comprehensive metrics tracking (hits, misses, evictions, cleanups, memory usage) to prevent memory leaks.
 
 ## Concurrency
 
@@ -78,6 +78,7 @@ Multiple agents may modify code simultaneously. Preserve others' changes and rep
 - All methods on MCPLogger are safe for concurrent use
 - When streaming AI responses, reuse pooled buffers (`gc.Default`) and reset before return to avoid leaks
 - Run `go test -race ./...` to detect race conditions before merging
+- CRL cache operations are thread-safe with `sync.RWMutex` protection and atomic operations for metrics
 
 ## MCP Server Instructions
 
