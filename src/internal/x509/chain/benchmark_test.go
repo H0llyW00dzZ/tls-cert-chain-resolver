@@ -20,11 +20,8 @@ func clearCRLCache() {
 	// Stop any running cleanup to prevent interference during benchmarks
 	StopCRLCacheCleanup()
 
-	crlCacheMutex.Lock()
-	defer crlCacheMutex.Unlock()
-	crlCache = make(map[string]*CRLCacheEntry)
-	crlCacheHead = nil
-	crlCacheTail = nil
+	// Use the existing ClearCRLCache function to keep metrics consistent
+	ClearCRLCache()
 }
 
 func BenchmarkFetchCertificateChain(b *testing.B) {
