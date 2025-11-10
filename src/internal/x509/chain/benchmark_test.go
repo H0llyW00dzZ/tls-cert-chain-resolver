@@ -26,8 +26,7 @@ func BenchmarkFetchCertificateChain(b *testing.B) {
 		b.Fatalf("failed to parse certificate: %v", err)
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		manager := New(cert, version)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -58,8 +57,7 @@ func BenchmarkCheckRevocationStatus(b *testing.B) {
 		b.Fatalf("FetchCertificate() setup error = %v", err)
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		_, err := manager.CheckRevocationStatus(revocationCtx)
 		revocationCancel()
@@ -89,8 +87,7 @@ func BenchmarkVerifyChain(b *testing.B) {
 		b.Fatalf("FetchCertificate() setup error = %v", err)
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if err := manager.VerifyChain(); err != nil && !strings.Contains(err.Error(), "issuer name does not match") {
 			b.Fatalf("VerifyChain() error = %v", err)
 		}
@@ -135,8 +132,7 @@ func BenchmarkCRLCacheOperations(b *testing.B) {
 	mockCRLData := []byte("mock CRL data for benchmarking")
 	mockNextUpdate := time.Now().Add(24 * time.Hour)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		url := fmt.Sprintf("http://example.com/crl%d.crl", i%1000) // Simulate different URLs
 
 		// Benchmark cache set operation
