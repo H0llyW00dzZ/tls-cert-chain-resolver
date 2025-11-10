@@ -489,9 +489,17 @@ func TestMCPTools(t *testing.T) {
 
 			// Check result content
 			content := ""
+			// Check both TextContent and StructuredContent
 			for _, c := range result.Content {
 				if tc, ok := c.(mcp.TextContent); ok {
 					content += tc.Text
+				}
+			}
+
+			// If no TextContent found, check StructuredContent (for JSON format)
+			if content == "" && result.StructuredContent != nil {
+				if jsonStr, err := json.Marshal(result.StructuredContent); err == nil {
+					content = string(jsonStr)
 				}
 			}
 

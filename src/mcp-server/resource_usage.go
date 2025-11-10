@@ -13,6 +13,8 @@ import (
 	"time"
 
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
+	"github.com/olekukonko/tablewriter"
 )
 
 // ResourceUsageData represents the complete resource usage information
@@ -156,19 +158,27 @@ func FormatResourceUsageAsMarkdown(data *ResourceUsageData) string {
 
 // formatMarkdownHeader adds the report header with timestamp
 func formatMarkdownHeader(buf *strings.Builder, timestamp string) {
-	buf.WriteString("# Resource Usage Report\n\n")
-	fmt.Fprintf(buf, "**Generated:** %s\n\n", timestamp)
+	fmt.Fprintf(buf, "# %s Resource Usage Report (v%s)\n\n", "X.509 Certificate Chain Resolver", version.Version)
+
+	// Parse RFC3339 timestamp and format as human-readable
+	if parsedTime, err := time.Parse(time.RFC3339, timestamp); err == nil {
+		humanTime := parsedTime.Format("January 2, 2006 at 3:04 PM MST")
+		fmt.Fprintf(buf, "**Generated:** %s\n\n", humanTime)
+	} else {
+		// Fallback to original timestamp if parsing fails
+		fmt.Fprintf(buf, "**Generated:** %s\n\n", timestamp)
+	}
 }
 
 // formatSystemInfoSection adds the system information section
 func formatSystemInfoSection(buf *strings.Builder, systemInfo map[string]any) {
 	buf.WriteString("## System Information\n\n")
 	systemFields := []string{
-		"Go Version", "go_version",
-		"Operating System", "go_os",
-		"Architecture", "go_arch",
-		"CPU Count", "num_cpu",
-		"Goroutines", "num_goroutine",
+		"Go Version       ", "go_version",
+		"Operating System ", "go_os",
+		"Architecture     ", "go_arch",
+		"CPU Count        ", "num_cpu",
+		"Goroutines       ", "num_goroutine",
 	}
 	buf.WriteString(formatMarkdownTable(systemInfo, systemFields))
 }
@@ -177,14 +187,14 @@ func formatSystemInfoSection(buf *strings.Builder, systemInfo map[string]any) {
 func formatMemoryUsageSection(buf *strings.Builder, memoryUsage map[string]any) {
 	buf.WriteString("## Memory Usage\n\n")
 	memoryFields := []string{
-		"Heap Allocated", "heap_alloc_mb",
-		"Heap System", "heap_sys_mb",
-		"Heap In Use", "heap_inuse_mb",
-		"Heap Idle", "heap_idle_mb",
-		"Heap Released", "heap_released_mb",
-		"Heap Objects", "heap_objects",
-		"Stack In Use", "stack_inuse_mb",
-		"Stack System", "stack_sys_mb",
+		"Heap Allocated ", "heap_alloc_mb",
+		"Heap System    ", "heap_sys_mb",
+		"Heap In Use    ", "heap_inuse_mb",
+		"Heap Idle      ", "heap_idle_mb",
+		"Heap Released  ", "heap_released_mb",
+		"Heap Objects   ", "heap_objects",
+		"Stack In Use   ", "stack_inuse_mb",
+		"Stack System   ", "stack_sys_mb",
 	}
 	buf.WriteString(formatMarkdownTable(memoryUsage, memoryFields))
 }
@@ -193,11 +203,11 @@ func formatMemoryUsageSection(buf *strings.Builder, memoryUsage map[string]any) 
 func formatGCStatsSection(buf *strings.Builder, gcStats map[string]any) {
 	buf.WriteString("## Garbage Collection\n\n")
 	gcFields := []string{
-		"GC Cycles", "num_gc",
-		"Forced GC", "num_forced_gc",
+		"GC Cycles      ", "num_gc",
+		"Forced GC      ", "num_forced_gc",
 		"GC CPU Fraction", "gc_cpu_fraction",
-		"GC Enabled", "enable_gc",
-		"Debug GC", "debug_gc",
+		"GC Enabled     ", "enable_gc",
+		"Debug GC       ", "debug_gc",
 	}
 	buf.WriteString(formatMarkdownTable(gcStats, gcFields))
 }
@@ -208,16 +218,16 @@ func formatDetailedSections(buf *strings.Builder, data *ResourceUsageData) {
 	if data.DetailedMemory != nil {
 		buf.WriteString("## Detailed Memory Statistics\n\n")
 		detailedFields := []string{
-			"Current Alloc", "alloc_mb",
-			"Total Alloc", "total_alloc_mb",
-			"System Memory", "sys_mb",
-			"Lookups", "lookups",
-			"Mallocs", "mallocs",
-			"Frees", "frees",
-			"Live Objects", "heap_live_objects",
-			"GC Pause Total", "gc_pause_total_ns",
-			"Next GC", "next_gc_mb",
-			"Last GC", "last_gc_mb",
+			"Current Alloc  ", "alloc_mb",
+			"Total Alloc    ", "total_alloc_mb",
+			"System Memory  ", "sys_mb",
+			"Lookups        ", "lookups",
+			"Mallocs        ", "mallocs",
+			"Frees          ", "frees",
+			"Live Objects   ", "heap_live_objects",
+			"GC Pause Total ", "gc_pause_total_ns",
+			"Next GC        ", "next_gc_mb",
+			"Last GC        ", "last_gc_mb",
 		}
 		buf.WriteString(formatMarkdownTable(data.DetailedMemory, detailedFields))
 	}
@@ -226,25 +236,25 @@ func formatDetailedSections(buf *strings.Builder, data *ResourceUsageData) {
 	if data.CRLCache != nil {
 		buf.WriteString("## CRL Cache Metrics\n\n")
 		cacheFields := []string{
-			"Cache Size", "size",
-			"Max Size", "max_size",
-			"Total Memory", "total_memory_mb",
-			"Cache Hits", "hits",
-			"Cache Misses", "misses",
-			"Evictions", "evictions",
-			"Cleanups", "cleanups",
-			"Hit Rate", "hit_rate_percent",
+			"Cache Size   ", "size",
+			"Max Size     ", "max_size",
+			"Total Memory ", "total_memory_mb",
+			"Cache Hits   ", "hits",
+			"Cache Misses ", "misses",
+			"Evictions    ", "evictions",
+			"Cleanups     ", "cleanups",
+			"Hit Rate     ", "hit_rate_percent",
 		}
 		buf.WriteString(formatMarkdownTable(data.CRLCache, cacheFields))
 	}
 }
 
-// formatMarkdownTable creates a markdown table from a map of data
+// formatMarkdownTable creates a markdown table using tablewriter library
 func formatMarkdownTable(data map[string]any, fieldPairs []string) string {
 	var buf strings.Builder
-	buf.WriteString("| Metric | Value |\n")
-	buf.WriteString("|--------|-------|\n")
 
+	// Prepare data rows - no emojis in data, only in headers
+	var rows [][]string
 	for i := 0; i < len(fieldPairs); i += 2 {
 		if i+1 >= len(fieldPairs) {
 			break
@@ -255,10 +265,21 @@ func formatMarkdownTable(data map[string]any, fieldPairs []string) string {
 
 		if value, ok := data[key]; ok {
 			formattedValue := formatValueForMarkdown(value, key)
-			fmt.Fprintf(&buf, "| %s | %s |\n", label, formattedValue)
+			rows = append(rows, []string{label, formattedValue})
 		}
 	}
 
+	// Create table with emoji headers only
+	table := tablewriter.NewWriter(&buf)
+	table.SetHeader([]string{"📊 METRIC", "📈 VALUE"})
+	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	table.SetCenterSeparator("|")
+	table.SetAutoWrapText(false)
+	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER})
+	table.AppendBulk(rows)
+	table.Render()
+
+	// Add trailing newline for better markdown formatting
 	buf.WriteString("\n")
 	return buf.String()
 }
