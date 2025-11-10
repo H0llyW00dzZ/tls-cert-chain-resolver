@@ -343,6 +343,7 @@ func cleanupExpiredCRLs() {
 
 	// Second pass: remove expired entries with write lock (brief)
 	if len(expiredURLs) > 0 {
+		var actuallyRemoved int
 		crlCacheMutex.Lock()
 		for _, url := range expiredURLs {
 			if entry, exists := crlCache[url]; exists && entry.isExpired() {
@@ -352,11 +353,12 @@ func cleanupExpiredCRLs() {
 				}
 				// Remove from cache map
 				delete(crlCache, url)
+				actuallyRemoved++
 			}
 		}
 		crlCacheMutex.Unlock()
 
-		atomic.AddInt64(&crlCacheMetrics.Cleanups, int64(len(expiredURLs)))
+		atomic.AddInt64(&crlCacheMetrics.Cleanups, int64(actuallyRemoved))
 	}
 }
 
@@ -379,8 +381,12 @@ func GetCachedCRL(url string) ([]byte, bool) {
 
 	// Need write lock to update access order
 	crlCacheMutex.Lock()
-	if entry.node != nil {
-		moveToTail(entry.node)
+	// Re-fetch map entry after acquiring write lock to ensure node still exists and is valid
+	if currentEntry, exists := crlCache[url]; exists && currentEntry.node != nil {
+		// Additional safety check: ensure node is still part of the list
+		if currentEntry.node.prev != nil || currentEntry.node == crlCacheHead {
+			moveToTail(currentEntry.node)
+		}
 	}
 	crlCacheMutex.Unlock()
 
