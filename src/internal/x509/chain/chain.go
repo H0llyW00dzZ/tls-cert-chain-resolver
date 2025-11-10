@@ -94,11 +94,15 @@ func New(cert *x509.Certificate, version string) *Chain {
 //
 // [Rust]: https://www.rust-lang.org/
 func (ch *Chain) FetchCertificate(ctx context.Context) error {
-	ch.mu.Lock()
-	defer ch.mu.Unlock()
-
-	for ch.Certs[len(ch.Certs)-1].IssuingCertificateURL != nil {
-		parentURL := ch.Certs[len(ch.Certs)-1].IssuingCertificateURL[0]
+	for {
+		ch.mu.RLock()
+		last := ch.Certs[len(ch.Certs)-1]
+		if last.IssuingCertificateURL == nil {
+			ch.mu.RUnlock()
+			break
+		}
+		parentURL := last.IssuingCertificateURL[0]
+		ch.mu.RUnlock()
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, parentURL, nil)
 		if err != nil {
@@ -113,31 +117,37 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
 
 		// Get a buffer from the pool
 		buf := gc.Default.Get()
-
-		defer func() {
-			buf.Reset()         // Reset the buffer to prevent data leaks
-			gc.Default.Put(buf) // Return the buffer to the pool for reuse
-		}()
-
-		// Read the response body into the buffer
 		if _, err := buf.ReadFrom(resp.Body); err != nil {
+			resp.Body.Close()
+			buf.Reset()
+			gc.Default.Put(buf)
 			return err
 		}
+		resp.Body.Close()
 
-		data := buf.Bytes()
+		data := append([]byte(nil), buf.Bytes()...)
+		buf.Reset()
+		gc.Default.Put(buf)
 
 		cert, err := ch.Certificate.Decode(data)
 		if err != nil {
 			return err
 		}
 
+		ch.mu.Lock()
+		current := ch.Certs[len(ch.Certs)-1]
+		if current != last {
+			ch.mu.Unlock()
+			continue
+		}
 		ch.Certs = append(ch.Certs, cert)
+		isRoot := ch.IsRootNode(cert)
+		ch.mu.Unlock()
 
-		if ch.IsRootNode(cert) {
+		if isRoot {
 			break
 		}
 	}
