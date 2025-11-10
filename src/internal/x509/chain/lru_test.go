@@ -6,7 +6,6 @@
 package x509chain
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -15,6 +14,7 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -562,23 +562,26 @@ func TestTickerRaceCondition(t *testing.T) {
 func TestConcurrentCleanupManagement(t *testing.T) {
 	originalGoroutines := runtime.NumGoroutine()
 
+	// Create a long-lived context for cleanup - automatically cancelled when test ends
+	ctx := t.Context()
+
 	// Try to start multiple cleanup goroutines concurrently
 	var wg sync.WaitGroup
-	for i := range 3 {
+	for i := range 10 {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
 
 			StartCRLCacheCleanup(ctx)
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(200 * time.Millisecond) // Longer runtime to ensure cleanup establishes
 		}(i)
 	}
 
-	// Wait for all goroutines
+	// Wait for all goroutines to complete their attempts
 	wg.Wait()
-	time.Sleep(100 * time.Millisecond)
+
+	// Wait longer for cleanup to establish and stabilize
+	time.Sleep(500 * time.Millisecond) // Increased from 100ms to 500ms for reliability
 
 	finalGoroutines := runtime.NumGoroutine()
 	goroutineIncrease := finalGoroutines - originalGoroutines
@@ -590,9 +593,19 @@ func TestConcurrentCleanupManagement(t *testing.T) {
 		t.Errorf("Multiple cleanup goroutines may be running: increase by %d", goroutineIncrease)
 	}
 
-	// Stop cleanup and verify
+	// Verify cleanup state is correct
+	if atomic.LoadInt32(&crlCacheCleanupRunning) != 1 {
+		t.Errorf("Expected exactly 1 cleanup goroutine running, got %d", atomic.LoadInt32(&crlCacheCleanupRunning))
+	}
+
+	// Stop cleanup and verify proper shutdown
 	StopCRLCacheCleanup()
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond) // Wait for cleanup to exit
+
+	// Verify cleanup has stopped
+	if atomic.LoadInt32(&crlCacheCleanupRunning) != 0 {
+		t.Errorf("Expected cleanup goroutine to be stopped, but still running")
+	}
 }
 
 // TestMemoryLeakDetection tests for memory leaks in cache cleanup
