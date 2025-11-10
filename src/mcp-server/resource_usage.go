@@ -158,7 +158,15 @@ func FormatResourceUsageAsMarkdown(data *ResourceUsageData) string {
 // formatMarkdownHeader adds the report header with timestamp
 func formatMarkdownHeader(buf *strings.Builder, timestamp string) {
 	buf.WriteString("# Resource Usage Report\n\n")
-	fmt.Fprintf(buf, "**Generated:** %s\n\n", timestamp)
+
+	// Parse RFC3339 timestamp and format as human-readable
+	if parsedTime, err := time.Parse(time.RFC3339, timestamp); err == nil {
+		humanTime := parsedTime.Format("January 2, 2006 at 3:04 PM MST")
+		fmt.Fprintf(buf, "**Generated:** %s\n\n", humanTime)
+	} else {
+		// Fallback to original timestamp if parsing fails
+		fmt.Fprintf(buf, "**Generated:** %s\n\n", timestamp)
+	}
 }
 
 // formatSystemInfoSection adds the system information section
