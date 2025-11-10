@@ -1198,6 +1198,21 @@ func handleGetResourceUsage(ctx context.Context, request mcp.CallToolRequest) (*
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to format resource usage: %v", err)), nil
 		}
-		return mcp.NewToolResultText(jsonData), nil
+
+		// Parse the JSON string back to a map for structured content
+		var structuredData map[string]any
+		if err := json.Unmarshal([]byte(jsonData), &structuredData); err != nil {
+			// Fallback to text if parsing fails
+			return mcp.NewToolResultText(jsonData), nil
+		}
+
+		// Return structured JSON content for programmatic access
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{Text: jsonData},
+			},
+			StructuredContent: structuredData,
+			IsError:           false,
+		}, nil
 	}
 }
