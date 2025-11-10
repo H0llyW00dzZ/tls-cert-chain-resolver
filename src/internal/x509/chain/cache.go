@@ -72,29 +72,60 @@ func init() {
 
 // SetCRLCacheConfig sets the CRL cache configuration
 func SetCRLCacheConfig(config *CRLCacheConfig) {
-	var configCopy *CRLCacheConfig
-	if config == nil {
-		configCopy = &CRLCacheConfig{
-			MaxSize:         defaultCRLCacheConfig.MaxSize,
-			CleanupInterval: defaultCRLCacheConfig.CleanupInterval,
-		}
-	} else {
-		configCopy = &CRLCacheConfig{
-			MaxSize:         config.MaxSize,
-			CleanupInterval: config.CleanupInterval,
-		}
+	cfg := &CRLCacheConfig{
+		MaxSize:         defaultCRLCacheConfig.MaxSize,
+		CleanupInterval: defaultCRLCacheConfig.CleanupInterval,
+	}
+
+	if config != nil {
+		cfg.MaxSize = config.MaxSize
+		cfg.CleanupInterval = config.CleanupInterval
 	}
 
 	// Validate configuration
-	if configCopy.MaxSize < 0 {
-		configCopy.MaxSize = 0 // 0 means unlimited, but not recommended
+	if cfg.MaxSize < 0 {
+		cfg.MaxSize = 0 // 0 means unlimited, but not recommended
 	}
-	if configCopy.CleanupInterval <= 0 {
-		configCopy.CleanupInterval = 1 * time.Hour
+	if cfg.CleanupInterval <= 0 {
+		cfg.CleanupInterval = 1 * time.Hour
 	}
 
 	// Store a copy to prevent external mutation
-	crlCacheConfig.Store(configCopy)
+	crlCacheConfig.Store(&CRLCacheConfig{
+		MaxSize:         cfg.MaxSize,
+		CleanupInterval: cfg.CleanupInterval,
+	})
+
+	pruneCRLCache(cfg.MaxSize)
+}
+
+func pruneCRLCache(maxSize int) {
+	if maxSize <= 0 {
+		return
+	}
+
+	crlCacheMutex.Lock()
+	defer crlCacheMutex.Unlock()
+
+	if len(crlCache) <= maxSize {
+		return
+	}
+
+	removed := int64(0)
+	for len(crlCache) > maxSize {
+		if len(crlCacheOrder) == 0 {
+			break
+		}
+
+		lruURL := crlCacheOrder[0]
+		delete(crlCache, lruURL)
+		crlCacheOrder = crlCacheOrder[1:]
+		removed++
+	}
+
+	if removed > 0 {
+		atomic.AddInt64(&crlCacheMetrics.Evictions, removed)
+	}
 }
 
 // GetCRLCacheConfig returns the current CRL cache configuration
@@ -186,7 +217,7 @@ func updateCacheOrder(url string) {
 	crlCacheOrder = append(crlCacheOrder, url)
 }
 
-// getCachedCRL retrieves a fresh CRL from cache and updates access order
+// GetCachedCRL retrieves a fresh CRL from cache and updates access order
 func GetCachedCRL(url string) ([]byte, bool) {
 	crlCacheMutex.Lock()
 	defer crlCacheMutex.Unlock()
@@ -208,7 +239,7 @@ func GetCachedCRL(url string) ([]byte, bool) {
 	return dataCopy, true
 }
 
-// setCachedCRL stores a CRL in cache with metadata and implements LRU eviction
+// SetCachedCRL stores a CRL in cache with metadata and implements LRU eviction
 func SetCachedCRL(url string, data []byte, nextUpdate time.Time) {
 	crlCacheMutex.Lock()
 	defer crlCacheMutex.Unlock()
@@ -258,7 +289,7 @@ func ClearCRLCache() {
 	atomic.StoreInt64(&crlCacheMetrics.Cleanups, 0)
 }
 
-// cleanupExpiredCRLs removes CRLs that have expired beyond their NextUpdate time
+// CleanupExpiredCRLs removes CRLs that have expired beyond their NextUpdate time
 func CleanupExpiredCRLs() {
 	cleanupExpiredCRLs()
 }
