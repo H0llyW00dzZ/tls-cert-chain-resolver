@@ -648,8 +648,8 @@ src/internal/x509/certs/cert_test.go
 src/internal/x509/chain/chain.go
 src/internal/x509/chain/chain_test.go
 src/internal/x509/chain/benchmark_test.go  # Chain resolution and revocation benchmarks
-src/internal/x509/chain/cache.go  # CRL cache implementation with LRU eviction and metrics
-src/internal/x509/chain/lru_test.go  # LRU cache tests for access, eviction, and concurrency
+src/internal/x509/chain/cache.go  # O(1) LRU CRL cache implementation with hashmap, doubly-linked list, and atomic metrics
+src/internal/x509/chain/lru_test.go  # O(1) LRU cache tests for access order, eviction correctness, concurrency, and leak detection
 src/internal/x509/chain/remote.go  # Context-aware remote TLS chain helper
 src/internal/x509/chain/revocation.go  # OCSP/CRL revocation status checking
 
@@ -697,8 +697,8 @@ grep("Encode.*PEM", include="*.go")
 # Find CRL cache patterns
 grep("CRLCacheEntry\\|CRLCacheConfig\\|CRLCacheMetrics", include="*.go")
 
-# Find LRU cache patterns
-grep("updateCacheOrder\\|removeFromCacheOrder\\|pruneCRLCache", include="*.go")
+# Find O(1) LRU cache patterns
+grep("LRUNode\\|updateCacheOrder\\|removeFromCacheOrder\\|pruneCRLCache", include="*.go")
 
 # Find CRL cache lifecycle patterns
 grep("StartCRLCacheCleanup\\|StopCRLCacheCleanup\\|cleanupExpiredCRLs", include="*.go")
