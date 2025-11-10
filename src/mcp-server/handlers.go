@@ -585,7 +585,7 @@ func handleStatusResource(ctx context.Context, request mcp.ReadResourceRequest) 
 		"server":    "X509 Certificate Chain Resolver MCP Server",
 		"version":   version.Version,
 		"capabilities": map[string]any{
-			"tools":     []string{"resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai"},
+			"tools":     []string{"resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai", "get_resource_usage"},
 			"resources": []string{"config://template", "info://version", "docs://certificate-formats", "status://server-status"},
 			"prompts":   []string{"certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting"},
 		},
@@ -1175,5 +1175,29 @@ Based on the certificate data above, provide a comprehensive analysis covering:
 6. Any notable characteristics or potential concerns
 
 Provide actionable insights for certificate management and security.`
+	}
+}
+
+// handleGetResourceUsage handles requests for current resource usage statistics
+func handleGetResourceUsage(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	detailed := request.GetBool("detailed", false)
+	format := request.GetString("format", "json")
+
+	// Collect resource usage data
+	data := CollectResourceUsage(detailed)
+
+	// Format output based on format parameter
+	switch format {
+	case "markdown":
+		markdown := FormatResourceUsageAsMarkdown(data)
+		return mcp.NewToolResultText(markdown), nil
+	case "json":
+		fallthrough
+	default:
+		jsonData, err := FormatResourceUsageAsJSON(data)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to format resource usage: %v", err)), nil
+		}
+		return mcp.NewToolResultText(jsonData), nil
 	}
 }
