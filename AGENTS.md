@@ -54,6 +54,7 @@
 - `github.com/cloudflare/cfssl` - Certificate utilities
 - `github.com/valyala/bytebufferpool` - Memory pooling
 - `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with enhanced bidirectional AI sampling support
+- `github.com/olekukonko/tablewriter` v1.1.1 - Enhanced markdown table formatting with emoji headers
 - `golang.org/x/crypto` (via Go 1.25.4) - Standard crypto updates leveraged in recent releases
 **Imports**: Use `goimports` with standard formatting  
 **Formatting**: Use `gofmt -s`  
