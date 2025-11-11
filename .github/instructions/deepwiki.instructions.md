@@ -375,6 +375,9 @@ deepwiki_ask_question("cloudflare/cfssl", "What's the difference between PEM and
 # Buffer pooling
 deepwiki_ask_question("valyala/bytebufferpool", "When should I use bytebufferpool vs sync.Pool?")
 
+# Table formatting
+deepwiki_ask_question("olekukonko/tablewriter", "How do I create markdown tables with emoji headers?")
+
 # MCP server implementation
 deepwiki_ask_question("mark3labs/mcp-go", "How do I implement MCP resources in a Go server?")
 deepwiki_ask_question("mark3labs/mcp-go", "How do I add prompts to an MCP server?")

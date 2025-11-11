@@ -207,6 +207,8 @@ x509_resolver_get_resource_usage(detailed=true, format="markdown")
 - Integrates with CRL cache metrics from `src/internal/x509/chain/cache.go`
 - Provides hit rate calculations and memory usage in MB for readability
 - Thread-safe data collection using atomic operations for cache metrics
+- Enhanced markdown formatting using `github.com/olekukonko/tablewriter` v1.1.1 with emoji headers and structured tables
+- Human-readable timestamp formatting for better user experience
 
 ## MCP Resources
 
@@ -254,8 +256,8 @@ Read resource: info://version
   "name": "X509 Certificate Chain Resolver",
   "version": "0.3.0",
   "type": "MCP Server",
-   "capabilities": {
-    "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai"],
+  "capabilities": {
+    "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai", "get_resource_usage"],
     "resources": ["config://template", "info://version", "docs://certificate-formats", "status://server-status"],
     "prompts": ["certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting"]
   },
