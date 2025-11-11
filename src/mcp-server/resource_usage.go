@@ -15,6 +15,8 @@ import (
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/renderer"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 // ResourceUsageData represents the complete resource usage information
@@ -270,13 +272,12 @@ func formatMarkdownTable(data map[string]any, fieldPairs []string) string {
 	}
 
 	// Create table with emoji headers only
-	table := tablewriter.NewWriter(&buf)
-	table.SetHeader([]string{"📊 METRIC", "📈 VALUE"})
-	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	table.SetCenterSeparator("|")
-	table.SetAutoWrapText(false)
-	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_CENTER})
-	table.AppendBulk(rows)
+	table := tablewriter.NewTable(&buf,
+		tablewriter.WithRenderer(renderer.NewMarkdown(tw.Rendition{Streaming: true})),
+	)
+
+	table.Header([]string{"📊 METRIC", "📈 VALUE"})
+	table.Bulk(rows)
 	table.Render()
 
 	// Add trailing newline for better markdown formatting
