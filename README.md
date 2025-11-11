@@ -185,19 +185,22 @@ Additional targets are available in `Makefile`, including race detection and pla
 ### Project Layout
 
 ```
-cmd/
-  run.go            # CLI entry point
-  mcp-server/
-    run.go          # MCP server entry point
-src/
-  cli/              # Cobra-based CLI implementation
-  internal/x509/
-    certs/          # Certificate encoding/decoding helpers
-    chain/          # Chain resolution logic
-  logger/           # Thread-safe logging abstraction
-  mcp-server/       # MCP server framework, tools, prompts, resources
-  helper/gc/        # Buffer pooling utilities
-  version/          # Build metadata
+tls-cert-chain-resolver/
+├── cmd/
+│   ├── run.go            # CLI entry point
+│   └── mcp-server/
+│       └── run.go        # MCP server entry point
+└── src/
+    ├── cli/              # Cobra-based CLI implementation
+    ├── internal/
+    │   └── x509/
+    │       ├── certs/    # Certificate encoding/decoding helpers
+    │       └── chain/    # Chain resolution logic
+    ├── logger/           # Thread-safe logging abstraction
+    ├── mcp-server/       # MCP server framework, tools, prompts, resources
+    ├── helper/
+    │   └── gc/           # Buffer pooling utilities
+    └── version/          # Build metadata
 ```
 
 ### TODO List
