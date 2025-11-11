@@ -87,7 +87,7 @@ func CollectResourceUsage(detailed bool) *ResourceUsageData {
 			"gc_pause_total_ns": memStats.PauseTotalNs,
 			"gc_pause_ns":       memStats.PauseNs[:memStats.NumGC],
 			"next_gc_mb":        float64(memStats.NextGC) / (1024 * 1024),
-			"last_gc_mb":        float64(memStats.LastGC) / (1024 * 1024),
+			"last_gc_ns":        memStats.LastGC,
 		}
 		data.DetailedMemory = detailedMemory
 
@@ -229,7 +229,7 @@ func formatDetailedSections(buf *strings.Builder, data *ResourceUsageData) {
 			"Live Objects   ", "heap_live_objects",
 			"GC Pause Total ", "gc_pause_total_ns",
 			"Next GC        ", "next_gc_mb",
-			"Last GC        ", "last_gc_mb",
+			"Last GC        ", "last_gc_ns",
 		}
 		buf.WriteString(formatMarkdownTable(data.DetailedMemory, detailedFields))
 	}
@@ -302,6 +302,13 @@ func formatValueForMarkdown(value any, key string) string {
 	case uint64:
 		if key == "pause_total_ns" {
 			return fmt.Sprintf("%.2f", float64(v)/1e6)
+		}
+		if key == "last_gc_ns" {
+			if v == 0 {
+				return "Never"
+			}
+			gcTime := time.Unix(0, int64(v))
+			return gcTime.Format("2006-01-02 15:04:05")
 		}
 		return fmt.Sprintf("%d", v)
 	case float64:
