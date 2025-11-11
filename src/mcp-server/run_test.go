@@ -15,8 +15,11 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"math/big"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"runtime"
 	"strings"
@@ -27,6 +30,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcptest"
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 )
 
@@ -1946,4 +1950,1386 @@ func TestHandleAnalyzeCertificateWithAI_NoAPIKey(t *testing.T) {
 	if !strings.Contains(resultText, "Certificate Context Prepared") {
 		t.Error("Expected certificate context in fallback response")
 	}
+}
+
+// TestDefaultSamplingHandler_CreateMessage tests CreateMessage method of DefaultSamplingHandler
+func TestDefaultSamplingHandler_CreateMessage(t *testing.T) {
+	tests := []struct {
+		name           string
+		apiKey         string
+		model          string
+		endpoint       string
+		request        mcp.CreateMessageRequest
+		expectedError  string
+		expectFallback bool
+	}{
+		{
+			name:   "No API Key - Fallback Response",
+			apiKey: "",
+			model:  "test-model",
+			request: mcp.CreateMessageRequest{
+				CreateMessageParams: mcp.CreateMessageParams{
+					Messages: []mcp.SamplingMessage{
+						{
+							Role:    mcp.RoleUser,
+							Content: mcp.NewTextContent("Test message"),
+						},
+					},
+					MaxTokens:   100,
+					Temperature: 0.7,
+				},
+			},
+			expectFallback: true,
+		},
+		{
+			name:   "Valid Request with API Key",
+			apiKey: "test-api-key",
+			model:  "test-model",
+			request: mcp.CreateMessageRequest{
+				CreateMessageParams: mcp.CreateMessageParams{
+					Messages: []mcp.SamplingMessage{
+						{
+							Role:    mcp.RoleUser,
+							Content: mcp.NewTextContent("Test message"),
+						},
+					},
+					MaxTokens:   100,
+					Temperature: 0.7,
+				},
+			},
+			expectFallback: false,
+		},
+		{
+			name:   "Request with System Prompt",
+			apiKey: "test-api-key",
+			model:  "test-model",
+			request: mcp.CreateMessageRequest{
+				CreateMessageParams: mcp.CreateMessageParams{
+					Messages: []mcp.SamplingMessage{
+						{
+							Role:    mcp.RoleUser,
+							Content: mcp.NewTextContent("Test message"),
+						},
+					},
+					SystemPrompt: "You are a helpful assistant",
+					MaxTokens:    100,
+					Temperature:  0.7,
+				},
+			},
+			expectFallback: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a mock HTTP server for testing
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tt.apiKey == "" {
+					// Should not reach here for fallback case
+					t.Errorf("HTTP server called when API key is empty")
+					return
+				}
+
+				// Verify request headers
+				if auth := r.Header.Get("Authorization"); auth != "Bearer "+tt.apiKey {
+					t.Errorf("Expected Authorization header 'Bearer %s', got '%s'", tt.apiKey, auth)
+				}
+
+				if userAgent := r.Header.Get("User-Agent"); !strings.Contains(userAgent, "X.509-Certificate-Chain-Resolver-MCP") {
+					t.Errorf("Expected User-Agent to contain 'X.509-Certificate-Chain-Resolver-MCP', got '%s'", userAgent)
+				}
+
+				// Verify request body
+				var payload map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+					t.Errorf("Failed to decode request body: %v", err)
+					return
+				}
+
+				if payload["model"] != tt.model {
+					t.Errorf("Expected model '%s', got '%v'", tt.model, payload["model"])
+				}
+
+				// Send streaming response
+				w.Header().Set("Content-Type", "text/event-stream")
+				w.Header().Set("Cache-Control", "no-cache")
+				w.Header().Set("Connection", "keep-alive")
+				w.WriteHeader(http.StatusOK)
+				flusher, _ := w.(http.Flusher)
+				flusher.Flush()
+
+				w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null}],\"model\":\"test-model\"}\n"))
+				w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\" world\"},\"finish_reason\":\"stop\"}],\"model\":\"test-model\"}\n"))
+				w.Write([]byte("data: [DONE]\n"))
+				flusher.Flush()
+			}))
+			defer server.Close()
+
+			handler := &DefaultSamplingHandler{
+				apiKey:   tt.apiKey,
+				model:    tt.model,
+				version:  "test-version",
+				client:   &http.Client{Timeout: 5 * time.Second},
+				endpoint: server.URL,
+			}
+
+			result, err := handler.CreateMessage(context.Background(), tt.request)
+
+			if tt.expectFallback {
+				if err != nil {
+					t.Errorf("Expected no error for fallback, got: %v", err)
+				}
+				if result == nil {
+					t.Error("Expected result for fallback, got nil")
+				}
+				if result != nil && !strings.Contains(result.SamplingMessage.Content.(mcp.TextContent).Text, "AI API key not configured") {
+					t.Errorf("Expected fallback message about API key, got: %s", result.SamplingMessage.Content.(mcp.TextContent).Text)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got: %v", err)
+				}
+				if result == nil {
+					t.Error("Expected result, got nil")
+				}
+				if result != nil && result.SamplingMessage.Content.(mcp.TextContent).Text != "Hello world" {
+					t.Errorf("Expected 'Hello world', got: %s", result.SamplingMessage.Content.(mcp.TextContent).Text)
+				}
+			}
+		})
+	}
+}
+
+// TestDefaultSamplingHandler_handleNoAPIKey tests handleNoAPIKey method
+func TestDefaultSamplingHandler_handleNoAPIKey(t *testing.T) {
+	handler := &DefaultSamplingHandler{
+		version: "test-version",
+	}
+
+	result, err := handler.handleNoAPIKey()
+
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Error("Expected result, got nil")
+	}
+
+	if result.Model != "not-configured" {
+		t.Errorf("Expected model 'not-configured', got '%s'", result.Model)
+	}
+
+	if result.StopReason != "end" {
+		t.Errorf("Expected stop reason 'end', got '%s'", result.StopReason)
+	}
+
+	content, ok := result.SamplingMessage.Content.(mcp.TextContent)
+	if !ok {
+		t.Error("Expected TextContent, got different type")
+	}
+
+	if !strings.Contains(content.Text, "AI API key not configured") {
+		t.Errorf("Expected message about API key not configured, got: %s", content.Text)
+	}
+
+	if !strings.Contains(content.Text, "X509_AI_APIKEY") {
+		t.Errorf("Expected message to mention X509_AI_APIKEY, got: %s", content.Text)
+	}
+}
+
+// TestDefaultSamplingHandler_convertMessages tests convertMessages method
+func TestDefaultSamplingHandler_convertMessages(t *testing.T) {
+	handler := &DefaultSamplingHandler{}
+
+	tests := []struct {
+		name     string
+		messages []mcp.SamplingMessage
+		expected []map[string]any
+	}{
+		{
+			name: "Single Text Message",
+			messages: []mcp.SamplingMessage{
+				{
+					Role:    mcp.RoleUser,
+					Content: mcp.NewTextContent("Hello world"),
+				},
+			},
+			expected: []map[string]any{
+				{
+					"role":    "user",
+					"content": "Hello world",
+				},
+			},
+		},
+		{
+			name: "Multiple Messages",
+			messages: []mcp.SamplingMessage{
+				{
+					Role:    mcp.RoleUser,
+					Content: mcp.NewTextContent("Hello"),
+				},
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("Hi there!"),
+				},
+				{
+					Role:    mcp.RoleUser,
+					Content: mcp.NewTextContent("How are you?"),
+				},
+			},
+			expected: []map[string]any{
+				{
+					"role":    "user",
+					"content": "Hello",
+				},
+				{
+					"role":    "assistant",
+					"content": "Hi there!",
+				},
+				{
+					"role":    "user",
+					"content": "How are you?",
+				},
+			},
+		},
+		{
+			name: "Non-Text Content",
+			messages: []mcp.SamplingMessage{
+				{
+					Role:    mcp.RoleUser,
+					Content: mcp.ImageContent{Data: "base64data", MIMEType: "image/png"},
+				},
+			},
+			expected: []map[string]any{
+				{
+					"role":    "user",
+					"content": "{{<nil>} <nil>  base64data image/png}",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := handler.convertMessages(tt.messages)
+
+			if len(result) != len(tt.expected) {
+				t.Errorf("Expected %d messages, got %d", len(tt.expected), len(result))
+				return
+			}
+
+			for i, expectedMsg := range tt.expected {
+				if result[i]["role"] != expectedMsg["role"] {
+					t.Errorf("Message %d: expected role '%s', got '%s'", i, expectedMsg["role"], result[i]["role"])
+				}
+
+				if result[i]["content"] != expectedMsg["content"] {
+					t.Errorf("Message %d: expected content '%s', got '%s'", i, expectedMsg["content"], result[i]["content"])
+				}
+			}
+		})
+	}
+}
+
+// TestDefaultSamplingHandler_parseStreamingResponse tests parseStreamingResponse method
+func TestDefaultSamplingHandler_parseStreamingResponse(t *testing.T) {
+	handler := &DefaultSamplingHandler{}
+
+	tests := []struct {
+		name            string
+		response        string
+		expectedContent string
+		expectedModel   string
+		expectedStop    string
+		expectError     bool
+	}{
+		{
+			name: "Valid Streaming Response",
+			response: `data: {"choices":[{"delta":{"content":"Hello"}}],"model":"test-model"}
+data: {"choices":[{"delta":{"content":" world"}}],"model":"test-model"}
+data: {"choices":[{"finish_reason":"stop"}],"model":"test-model"}
+data: [DONE]`,
+			expectedContent: "Hello world",
+			expectedModel:   "test-model",
+			expectedStop:    "stop",
+			expectError:     false,
+		},
+		{
+			name:            "Empty Response",
+			response:        "",
+			expectedContent: "",
+			expectedModel:   "",
+			expectedStop:    "stop",
+			expectError:     false,
+		},
+		{
+			name:            "Invalid JSON",
+			response:        `data: {"invalid json}`,
+			expectedContent: "",
+			expectedModel:   "",
+			expectedStop:    "stop",
+			expectError:     false, // Should not error, just skip invalid chunks
+		},
+		{
+			name: "Response with Comments",
+			response: `: This is a comment
+data: {"choices":[{"delta":{"content":"Test"}}],"model":"test-model"}
+data: [DONE]`,
+			expectedContent: "Test",
+			expectedModel:   "test-model",
+			expectedStop:    "stop",
+			expectError:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.response)
+			content, model, stopReason, err := handler.parseStreamingResponse(reader, "")
+
+			if tt.expectError && err == nil {
+				t.Error("Expected error, got nil")
+			}
+
+			if !tt.expectError && err != nil {
+				t.Errorf("Expected no error, got: %v", err)
+			}
+
+			if content != tt.expectedContent {
+				t.Errorf("Expected content '%s', got '%s'", tt.expectedContent, content)
+			}
+
+			if model != tt.expectedModel {
+				t.Errorf("Expected model '%s', got '%s'", tt.expectedModel, model)
+			}
+
+			if stopReason != tt.expectedStop {
+				t.Errorf("Expected stop reason '%s', got '%s'", tt.expectedStop, stopReason)
+			}
+		})
+	}
+}
+
+// TestServerBuilder tests ServerBuilder pattern
+func TestServerBuilder(t *testing.T) {
+	tests := []struct {
+		name     string
+		builder  *ServerBuilder
+		setup    func(*ServerBuilder) *ServerBuilder
+		validate func(*testing.T, *server.MCPServer)
+	}{
+		{
+			name:    "Default Builder",
+			builder: NewServerBuilder(),
+			setup: func(sb *ServerBuilder) *ServerBuilder {
+				return sb
+			},
+			validate: func(t *testing.T, server *server.MCPServer) {
+				if server == nil {
+					t.Error("Expected server, got nil")
+					return
+				}
+			},
+		},
+		{
+			name:    "Builder With Config",
+			builder: NewServerBuilder(),
+			setup: func(sb *ServerBuilder) *ServerBuilder {
+				config := &Config{}
+				config.Defaults.Format = "json"
+				config.Defaults.IncludeSystemRoot = true
+				config.Defaults.IntermediateOnly = false
+				config.Defaults.WarnDays = 60
+				config.Defaults.Timeout = 15
+				return sb.WithConfig(config)
+			},
+			validate: func(t *testing.T, server *server.MCPServer) {
+				if server == nil {
+					t.Error("Expected server, got nil")
+					return
+				}
+			},
+		},
+		{
+			name:    "Builder With Default Tools",
+			builder: NewServerBuilder(),
+			setup: func(sb *ServerBuilder) *ServerBuilder {
+				return sb.WithDefaultTools()
+			},
+			validate: func(t *testing.T, server *server.MCPServer) {
+				if server == nil {
+					t.Error("Expected server, got nil")
+					return
+				}
+				// Server built successfully with tools is sufficient validation
+			},
+		},
+		{
+			name:    "Builder With Sampling",
+			builder: NewServerBuilder(),
+			setup: func(sb *ServerBuilder) *ServerBuilder {
+				config := &Config{}
+				config.AI.APIKey = "test-key"
+				config.AI.Model = "test-model"
+				config.AI.Endpoint = "https://api.test.com"
+				handler := NewDefaultSamplingHandler(config, "test-version")
+				return sb.WithConfig(config).WithSampling(handler)
+			},
+			validate: func(t *testing.T, server *server.MCPServer) {
+				if server == nil {
+					t.Error("Expected server, got nil")
+					return
+				}
+				// Sampling is enabled internally, we can't directly check it
+				// but we can verify server was built successfully
+			},
+		},
+		{
+			name:    "Builder With All Options",
+			builder: NewServerBuilder(),
+			setup: func(sb *ServerBuilder) *ServerBuilder {
+				config := &Config{}
+				config.Defaults.Format = "pem"
+				config.Defaults.IncludeSystemRoot = false
+				config.Defaults.IntermediateOnly = true
+				config.Defaults.WarnDays = 30
+				config.Defaults.Timeout = 10
+				config.AI.APIKey = "test-api-key"
+				config.AI.Model = "test-model"
+				config.AI.Endpoint = "https://api.test.com"
+				handler := NewDefaultSamplingHandler(config, "test-version")
+				return sb.WithConfig(config).WithDefaultTools().WithSampling(handler)
+			},
+			validate: func(t *testing.T, server *server.MCPServer) {
+				if server == nil {
+					t.Error("Expected server, got nil")
+					return
+				}
+				// Server built successfully with all options is sufficient validation
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server, err := tt.setup(tt.builder).Build()
+			if err != nil {
+				t.Errorf("Expected no error building server, got: %v", err)
+				return
+			}
+			tt.validate(t, server)
+		})
+	}
+}
+
+// TestDefaultSamplingHandler_bufferPooling tests that buffer pooling works correctly
+func TestDefaultSamplingHandler_bufferPooling(t *testing.T) {
+	// Create a mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"Test\"}],\"model\":\"test-model\"}\n\n"))
+		w.Write([]byte("data: [DONE]\n\n"))
+	}))
+	defer server.Close()
+
+	handler := &DefaultSamplingHandler{
+		apiKey:   "test-key",
+		model:    "test-model",
+		version:  "test-version",
+		client:   &http.Client{Timeout: 5 * time.Second},
+		endpoint: server.URL,
+	}
+
+	request := mcp.CreateMessageRequest{
+		CreateMessageParams: mcp.CreateMessageParams{
+			Messages: []mcp.SamplingMessage{
+				{
+					Role:    mcp.RoleUser,
+					Content: mcp.NewTextContent("Test message"),
+				},
+			},
+			MaxTokens:   100,
+			Temperature: 0.7,
+		},
+	}
+
+	// Call CreateMessage multiple times to test buffer pooling
+	for i := range 10 {
+		result, err := handler.CreateMessage(context.Background(), request)
+		if err != nil {
+			t.Errorf("Iteration %d: Expected no error, got: %v", i, err)
+		}
+		if result == nil {
+			t.Errorf("Iteration %d: Expected result, got nil", i)
+		}
+	}
+}
+
+// TestDefaultSamplingHandler_errorHandling tests error handling in CreateMessage
+func TestDefaultSamplingHandler_errorHandling(t *testing.T) {
+	tests := []struct {
+		name          string
+		serverStatus  int
+		response      string
+		expectedError string
+	}{
+		{
+			name:          "HTTP Error Response",
+			serverStatus:  400,
+			response:      `{"error": "Bad request"}`,
+			expectedError: "AI API error (status 400): {\"error\": \"Bad request\"}",
+		},
+		{
+			name:          "HTTP Unauthorized",
+			serverStatus:  401,
+			response:      `{"error": "Unauthorized"}`,
+			expectedError: "AI API error (status 401): {\"error\": \"Unauthorized\"}",
+		},
+		{
+			name:          "HTTP Server Error",
+			serverStatus:  500,
+			response:      `{"error": "Internal server error"}`,
+			expectedError: "AI API error (status 500): {\"error\": \"Internal server error\"}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.serverStatus)
+				w.Write([]byte(tt.response))
+			}))
+			defer server.Close()
+
+			handler := &DefaultSamplingHandler{
+				apiKey:   "test-key",
+				model:    "test-model",
+				version:  "test-version",
+				client:   &http.Client{Timeout: 5 * time.Second},
+				endpoint: server.URL,
+			}
+
+			request := mcp.CreateMessageRequest{
+				CreateMessageParams: mcp.CreateMessageParams{
+					Messages: []mcp.SamplingMessage{
+						{
+							Role:    mcp.RoleUser,
+							Content: mcp.NewTextContent("Test message"),
+						},
+					},
+					MaxTokens:   100,
+					Temperature: 0.7,
+				},
+			}
+
+			result, err := handler.CreateMessage(context.Background(), request)
+
+			if err == nil {
+				t.Error("Expected error, got nil")
+			}
+
+			if !strings.Contains(err.Error(), tt.expectedError) {
+				t.Errorf("Expected error to contain '%s', got '%s'", tt.expectedError, err.Error())
+			}
+
+			if result != nil {
+				t.Error("Expected nil result on error, got result")
+			}
+		})
+	}
+}
+
+// TestNewDefaultSamplingHandler tests NewDefaultSamplingHandler function
+func TestNewDefaultSamplingHandler(t *testing.T) {
+	config := &Config{}
+	config.AI.APIKey = "test-key"
+	config.AI.Endpoint = "https://api.test.com"
+	config.AI.Model = "test-model"
+	config.AI.Timeout = 30
+
+	handler := NewDefaultSamplingHandler(config, "test-version")
+
+	if handler == nil {
+		t.Error("Expected handler, got nil")
+	}
+
+	defaultHandler, ok := handler.(*DefaultSamplingHandler)
+	if !ok {
+		t.Error("Expected DefaultSamplingHandler, got different type")
+	}
+
+	if defaultHandler.apiKey != "test-key" {
+		t.Errorf("Expected API key 'test-key', got '%s'", defaultHandler.apiKey)
+	}
+
+	if defaultHandler.endpoint != "https://api.test.com" {
+		t.Errorf("Expected endpoint 'https://api.test.com', got '%s'", defaultHandler.endpoint)
+	}
+
+	if defaultHandler.model != "test-model" {
+		t.Errorf("Expected model 'test-model', got '%s'", defaultHandler.model)
+	}
+
+	if defaultHandler.version != "test-version" {
+		t.Errorf("Expected version 'test-version', got '%s'", defaultHandler.version)
+	}
+}
+
+// TestDefaultSamplingHandler_helperMethods tests helper methods
+func TestDefaultSamplingHandler_helperMethods(t *testing.T) {
+	handler := &DefaultSamplingHandler{
+		model: "default-model",
+	}
+
+	// Test selectModel
+	t.Run("selectModel", func(t *testing.T) {
+		// Test with no preferences
+		model := handler.selectModel(nil)
+		if model != "default-model" {
+			t.Errorf("Expected default model, got '%s'", model)
+		}
+
+		// Test with preferences
+		preferences := &mcp.ModelPreferences{
+			Hints: []mcp.ModelHint{{Name: "preferred-model"}},
+		}
+		model = handler.selectModel(preferences)
+		if model != "preferred-model" {
+			t.Errorf("Expected preferred model, got '%s'", model)
+		}
+	})
+
+	// Test prepareMessages
+	t.Run("prepareMessages", func(t *testing.T) {
+		messages := []map[string]any{
+			{"role": "user", "content": "Hello"},
+		}
+
+		// Test without system prompt
+		result := handler.prepareMessages(messages, "")
+		if len(result) != 1 {
+			t.Errorf("Expected 1 message without system prompt, got %d", len(result))
+		}
+
+		// Test with system prompt
+		result = handler.prepareMessages(messages, "You are helpful")
+		if len(result) != 2 {
+			t.Errorf("Expected 2 messages with system prompt, got %d", len(result))
+		}
+
+		if result[0]["role"] != "system" {
+			t.Errorf("Expected first message to be system, got '%s'", result[0]["role"])
+		}
+
+		if result[0]["content"] != "You are helpful" {
+			t.Errorf("Expected system prompt 'You are helpful', got '%s'", result[0]["content"])
+		}
+	})
+
+	// Test buildAPIRequest
+	t.Run("buildAPIRequest", func(t *testing.T) {
+		messages := []map[string]any{
+			{"role": "user", "content": "Hello"},
+		}
+
+		request := mcp.CreateMessageRequest{
+			CreateMessageParams: mcp.CreateMessageParams{
+				MaxTokens:     100,
+				Temperature:   0.7,
+				StopSequences: []string{"\n"},
+			},
+		}
+
+		result := handler.buildAPIRequest("test-model", messages, request)
+
+		if result["model"] != "test-model" {
+			t.Errorf("Expected model 'test-model', got '%v'", result["model"])
+		}
+
+		if result["max_tokens"] != 100 {
+			t.Errorf("Expected max_tokens 100, got %v", result["max_tokens"])
+		}
+
+		if result["temperature"] != 0.7 {
+			t.Errorf("Expected temperature 0.7, got %v", result["temperature"])
+		}
+
+		if result["stream"] != true {
+			t.Errorf("Expected stream true, got %v", result["stream"])
+		}
+
+		stopSequences, ok := result["stop"].([]string)
+		if !ok {
+			t.Errorf("Expected stop sequences to be []string, got %T", result["stop"])
+		}
+
+		if len(stopSequences) != 1 || stopSequences[0] != "\n" {
+			t.Errorf("Expected stop sequences ['\\n'], got %v", result["stop"])
+		}
+	})
+
+	// Test buildSamplingResult
+	t.Run("buildSamplingResult", func(t *testing.T) {
+		result := handler.buildSamplingResult("Hello world", "test-model", "stop")
+
+		if result.SamplingMessage.Role != mcp.RoleAssistant {
+			t.Errorf("Expected assistant role, got '%s'", result.SamplingMessage.Role)
+		}
+
+		content, ok := result.SamplingMessage.Content.(mcp.TextContent)
+		if !ok {
+			t.Error("Expected TextContent, got different type")
+		}
+
+		if content.Text != "Hello world" {
+			t.Errorf("Expected content 'Hello world', got '%s'", content.Text)
+		}
+
+		if result.Model != "test-model" {
+			t.Errorf("Expected model 'test-model', got '%s'", result.Model)
+		}
+
+		if result.StopReason != "stop" {
+			t.Errorf("Expected stop reason 'stop', got '%s'", result.StopReason)
+		}
+	})
+}
+
+// TestBuildCertificateContextWithRevocation tests the buildCertificateContextWithRevocation function
+func TestBuildCertificateContextWithRevocation(t *testing.T) {
+	// Create a test certificate
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	tests := []struct {
+		name             string
+		revocationStatus string
+		analysisType     string
+		expectedFields   []string
+	}{
+		{
+			name:             "Certificate with Good Revocation Status",
+			revocationStatus: "Good",
+			analysisType:     "security",
+			expectedFields:   []string{"Chain Length", "Analysis Type", "REVOCATION STATUS", "Methodology", "Redundancy", "Security"},
+		},
+		{
+			name:             "Certificate with Revoked Status",
+			revocationStatus: "Revoked",
+			analysisType:     "compliance",
+			expectedFields:   []string{"Chain Length", "Analysis Type", "REVOCATION STATUS", "Methodology", "Redundancy", "Security"},
+		},
+		{
+			name:             "Certificate with Unknown Status",
+			revocationStatus: "Unknown",
+			analysisType:     "general",
+			expectedFields:   []string{"Chain Length", "Analysis Type", "REVOCATION STATUS", "Methodology", "Redundancy", "Security"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := buildCertificateContextWithRevocation([]*x509.Certificate{cert}, tt.revocationStatus, tt.analysisType)
+
+			// Check that expected fields are present
+			for _, field := range tt.expectedFields {
+				if !strings.Contains(result, field) {
+					t.Errorf("Expected field '%s' not found in result", field)
+				}
+			}
+
+			// Check that revocation status is included
+			if !strings.Contains(result, tt.revocationStatus) {
+				t.Errorf("Expected revocation status '%s' not found in result", tt.revocationStatus)
+			}
+
+			// Check that analysis type is included
+			if !strings.Contains(result, tt.analysisType) {
+				t.Errorf("Expected analysis type '%s' not found in result", tt.analysisType)
+			}
+
+			// Check for certificate information
+			expectedCertFields := []string{"SUBJECT", "ISSUER", "VALIDITY", "CRYPTOGRAPHY"}
+			for _, field := range expectedCertFields {
+				if !strings.Contains(result, field) {
+					t.Errorf("Expected certificate field '%s' not found in result", field)
+				}
+			}
+		})
+	}
+}
+
+// TestAppendSubjectInfo tests the appendSubjectInfo function
+func TestAppendSubjectInfo(t *testing.T) {
+	// Create a test certificate with known subject
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	var context strings.Builder
+	appendSubjectInfo(&context, cert)
+
+	result := context.String()
+
+	// Check that subject information is included
+	expectedFields := []string{
+		"SUBJECT:",
+		"Common Name:",
+		"Organization:",
+	}
+
+	for _, field := range expectedFields {
+		if !strings.Contains(result, field) {
+			t.Errorf("Expected subject field '%s' not found in result", field)
+		}
+	}
+}
+
+// TestAppendIssuerInfo tests the appendIssuerInfo function
+func TestAppendIssuerInfo(t *testing.T) {
+	// Create a test certificate
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	var context strings.Builder
+	appendIssuerInfo(&context, cert)
+
+	result := context.String()
+
+	// Check that issuer information is included
+	expectedFields := []string{
+		"ISSUER:",
+		"Common Name:",
+		"Organization:",
+	}
+
+	for _, field := range expectedFields {
+		if !strings.Contains(result, field) {
+			t.Errorf("Expected issuer field '%s' not found in result", field)
+		}
+	}
+}
+
+// TestAppendValidityInfo tests the appendValidityInfo function
+func TestAppendValidityInfo(t *testing.T) {
+	// Create a test certificate
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	var context strings.Builder
+	appendValidityInfo(&context, cert)
+
+	result := context.String()
+
+	// Check that validity information is included
+	expectedFields := []string{
+		"VALIDITY:",
+		"Not Before:",
+		"Not After:",
+		"Days until expiry:",
+	}
+
+	for _, field := range expectedFields {
+		if !strings.Contains(result, field) {
+			t.Errorf("Expected validity field '%s' not found in result", field)
+		}
+	}
+}
+
+// TestAppendCryptoInfo tests the appendCryptoInfo function
+func TestAppendCryptoInfo(t *testing.T) {
+	// Create a test certificate
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	var context strings.Builder
+	appendCryptoInfo(&context, cert)
+
+	result := context.String()
+
+	// Check that cryptographic information is included
+	expectedFields := []string{
+		"CRYPTOGRAPHY:",
+		"Signature Algorithm:",
+		"Public Key Algorithm:",
+		"Key Size:",
+	}
+
+	for _, field := range expectedFields {
+		if !strings.Contains(result, field) {
+			t.Errorf("Expected crypto field '%s' not found in result", field)
+		}
+	}
+}
+
+// TestAppendCertProperties tests the appendCertProperties function
+func TestAppendCertProperties(t *testing.T) {
+	// Create a test certificate
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	var context strings.Builder
+	appendCertProperties(&context, cert)
+
+	result := context.String()
+
+	// Check that certificate properties are included
+	expectedFields := []string{
+		"PROPERTIES:",
+		"Serial Number:",
+		"Version:",
+		"Is CA:",
+	}
+
+	for _, field := range expectedFields {
+		if !strings.Contains(result, field) {
+			t.Errorf("Expected properties field '%s' not found in result", field)
+		}
+	}
+}
+
+// TestAppendCertExtensions tests the appendCertExtensions function
+func TestAppendCertExtensions(t *testing.T) {
+	// Create a test certificate
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	var context strings.Builder
+	appendCertExtensions(&context, cert)
+
+	result := context.String()
+
+	// Check that extensions information is included
+	expectedFields := []string{
+		"Key Usage:",
+		"Extended Key Usage:",
+		"DNS Names:",
+	}
+
+	for _, field := range expectedFields {
+		if !strings.Contains(result, field) {
+			t.Errorf("Expected extensions field '%s' not found in result", field)
+		}
+	}
+}
+
+// TestAppendCAInfo tests the appendCAInfo function
+func TestAppendCAInfo(t *testing.T) {
+	// Create a test certificate
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	var context strings.Builder
+	appendCAInfo(&context, cert)
+
+	result := context.String()
+
+	// Check that CA information is included
+	expectedFields := []string{
+		"Issuer URLs:",
+		"CRL Distribution Points:",
+		"OCSP Servers:",
+		"Serial Number:",
+	}
+
+	for _, field := range expectedFields {
+		if !strings.Contains(result, field) {
+			t.Errorf("Expected CA info field '%s' not found in result", field)
+		}
+	}
+}
+
+// TestAppendChainValidationContext tests the appendChainValidationContext function
+func TestAppendChainValidationContext(t *testing.T) {
+	// Create a test certificate
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	var context strings.Builder
+	appendChainValidationContext(&context, []*x509.Certificate{cert})
+
+	result := context.String()
+
+	// Check that chain validation context is included
+	expectedFields := []string{
+		"=== CHAIN VALIDATION CONTEXT ===",
+	}
+
+	for _, field := range expectedFields {
+		if !strings.Contains(result, field) {
+			t.Errorf("Expected chain validation field '%s' not found in result", field)
+		}
+	}
+}
+
+// TestAppendSecurityContext tests the appendSecurityContext function
+func TestAppendSecurityContext(t *testing.T) {
+	var context strings.Builder
+	appendSecurityContext(&context)
+
+	result := context.String()
+
+	// Check that security context is included
+	expectedFields := []string{
+		"=== SECURITY CONTEXT ===",
+		"Current TLS/SSL Best Practices:",
+	}
+
+	for _, field := range expectedFields {
+		if !strings.Contains(result, field) {
+			t.Errorf("Expected security context field '%s' not found in result", field)
+		}
+	}
+}
+
+// TestHandleAnalyzeCertificateWithAI tests the handleAnalyzeCertificateWithAI function
+func TestHandleAnalyzeCertificateWithAI(t *testing.T) {
+	// Create test request
+	certData := base64.StdEncoding.EncodeToString([]byte(testCertPEM))
+
+	request := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "analyze_certificate_with_ai",
+			Arguments: map[string]any{
+				"certificate":   certData,
+				"analysis_type": "general",
+			},
+		},
+	}
+
+	// Test with config without AI API key (should return certificate context)
+	config := &Config{
+		Defaults: struct {
+			Format            string `json:"format"`
+			IncludeSystemRoot bool   `json:"includeSystemRoot"`
+			IntermediateOnly  bool   `json:"intermediateOnly"`
+			WarnDays          int    `json:"warnDays"`
+			Timeout           int    `json:"timeoutSeconds"`
+		}{
+			Timeout: 30,
+		},
+	}
+
+	result, err := handleAnalyzeCertificateWithAI(context.Background(), request, config)
+	if err != nil {
+		t.Fatalf("handleAnalyzeCertificateWithAI failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected non-nil result")
+	}
+
+	// Check that result contains expected content
+	resultText := string(result.Content[0].(mcp.TextContent).Text)
+	expectedFields := []string{
+		"Chain Length:",
+		"Analysis Type:",
+		"REVOCATION STATUS SUMMARY:",
+		"Methodology:",
+		"Redundancy:",
+		"Security:",
+	}
+
+	for _, field := range expectedFields {
+		if !strings.Contains(resultText, field) {
+			t.Errorf("Expected field '%s' not found in result", field)
+		}
+	}
+}
+
+// TestBufferPoolIntegration tests buffer pool usage in certificate context building
+func TestBufferPoolIntegration(t *testing.T) {
+	// Create a test certificate
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	// Test multiple concurrent context building
+	const numGoroutines = 10
+	const numIterations = 100
+
+	for range numGoroutines {
+		go func() {
+			for range numIterations {
+				// This should use buffer pooling internally
+				result := buildCertificateContextWithRevocation(
+					[]*x509.Certificate{cert},
+					"Good",
+					"security",
+				)
+
+				// Verify result contains expected content
+				if !strings.Contains(result, "Chain Length") {
+					t.Errorf("Expected 'Chain Length' not found in result")
+				}
+			}
+		}()
+	}
+
+	// Allow goroutines to complete
+	time.Sleep(100 * time.Millisecond)
+}
+
+// TestConcurrentCertificateAnalysis tests concurrent certificate analysis
+func TestConcurrentCertificateAnalysis(t *testing.T) {
+	// Create test request
+	certData := base64.StdEncoding.EncodeToString([]byte(testCertPEM))
+
+	config := &Config{
+		Defaults: struct {
+			Format            string `json:"format"`
+			IncludeSystemRoot bool   `json:"includeSystemRoot"`
+			IntermediateOnly  bool   `json:"intermediateOnly"`
+			WarnDays          int    `json:"warnDays"`
+			Timeout           int    `json:"timeoutSeconds"`
+		}{
+			Timeout: 30,
+		},
+	}
+
+	// Test concurrent analysis
+	const numGoroutines = 5
+	const numIterations = 20
+
+	for i := range numGoroutines {
+		go func(id int) {
+			for range numIterations {
+				request := mcp.CallToolRequest{
+					Params: mcp.CallToolParams{
+						Name: "analyze_certificate_with_ai",
+						Arguments: map[string]any{
+							"certificate":   certData,
+							"analysis_type": "general",
+						},
+					},
+				}
+
+				result, err := handleAnalyzeCertificateWithAI(context.Background(), request, config)
+				if err != nil {
+					t.Errorf("Concurrent analysis failed: %v", err)
+					continue
+				}
+
+				if result == nil {
+					t.Error("Expected non-nil result in concurrent analysis")
+					continue
+				}
+
+				// Verify result contains expected content
+				resultText := string(result.Content[0].(mcp.TextContent).Text)
+				if !strings.Contains(resultText, "Chain Length") {
+					t.Errorf("Expected 'Chain Length' not found in concurrent result")
+				}
+			}
+		}(i)
+	}
+
+	// Allow goroutines to complete
+	time.Sleep(200 * time.Millisecond)
+}
+
+// TestMemoryUsageInContextBuilding tests memory usage patterns in context building
+func TestMemoryUsageInContextBuilding(t *testing.T) {
+	// Create a test certificate
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	// Test memory usage with multiple context builds
+	const numIterations = 1000
+
+	for range numIterations {
+		// Use buffer pool to minimize allocations
+		buf := gc.Default.Get()
+		defer func() {
+			buf.Reset()
+			gc.Default.Put(buf)
+		}()
+
+		// Build context using buffer
+		result := buildCertificateContextWithRevocation(
+			[]*x509.Certificate{cert},
+			"Good",
+			"general",
+		)
+
+		// Write result to buffer
+		buf.WriteString(result)
+
+		// Verify buffer has content
+		if buf.Len() == 0 {
+			t.Error("Expected non-empty buffer")
+		}
+	}
+}
+
+// TestErrorHandlingInContextBuilding tests error handling in context building functions
+func TestErrorHandlingInContextBuilding(t *testing.T) {
+	// Test with nil certificate
+	t.Run("Nil Certificate", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r != nil {
+				t.Errorf("buildCertificateContextWithRevocation panicked with nil certificate: %v", r)
+			}
+		}()
+
+		result := buildCertificateContextWithRevocation(nil, "Unknown", "general")
+
+		// Should handle gracefully
+		if !strings.Contains(result, "Chain Length: 0") {
+			t.Errorf("Expected 'Chain Length: 0' for nil certificate, got: %s", result)
+		}
+	})
+
+	// Test with empty revocation status
+	t.Run("Empty Revocation Status", func(t *testing.T) {
+		block, _ := pem.Decode([]byte(testCertPEM))
+		if block == nil {
+			t.Fatal("Failed to decode test certificate")
+		}
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			t.Fatalf("Failed to parse certificate: %v", err)
+		}
+
+		result := buildCertificateContextWithRevocation([]*x509.Certificate{cert}, "", "security")
+
+		// Should handle empty status gracefully
+		if !strings.Contains(result, "REVOCATION STATUS") {
+			t.Errorf("Expected 'REVOCATION STATUS' even with empty status")
+		}
+	})
+}
+
+// TestURLHandlingInExtensions tests URL handling in certificate extensions
+func TestURLHandlingInExtensions(t *testing.T) {
+	// Create a test certificate with various URL types in extensions
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("Failed to decode test certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse certificate: %v", err)
+	}
+
+	var context strings.Builder
+	appendCertExtensions(&context, cert)
+	result := context.String()
+
+	// Test URL validation by checking for common URL patterns
+	urlPatterns := []string{
+		"http://",
+		"https://",
+		"ldap://",
+	}
+
+	for _, pattern := range urlPatterns {
+		if strings.Contains(result, pattern) {
+			// If URL pattern is found, it should be properly formatted
+			urlStart := strings.Index(result, pattern)
+			if urlStart != -1 {
+				// Extract a portion around the URL for basic validation
+				start := max(0, urlStart-10)
+				end := min(len(result), urlStart+50)
+				urlContext := result[start:end]
+
+				// Basic URL validation - should contain valid characters
+				if !isValidURLContext(urlContext) {
+					t.Errorf("Potentially invalid URL found in context: %s", urlContext)
+				}
+			}
+		}
+	}
+}
+
+// Helper function to validate URL context
+func isValidURLContext(context string) bool {
+	// Basic validation - check for common URL characters
+	validChars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=%"
+
+	for _, char := range context {
+		if !strings.ContainsRune(validChars, char) && char != ' ' && char != '\n' && char != '\t' {
+			return false
+		}
+	}
+	return true
 }
