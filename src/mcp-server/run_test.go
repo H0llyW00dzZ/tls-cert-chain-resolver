@@ -299,6 +299,51 @@ func TestMCPTools(t *testing.T) {
 			expectContains: []string{"BEGIN CERTIFICATE"},
 		},
 		{
+			name:     "fetch_remote_cert with include_system_root",
+			toolName: "fetch_remote_cert",
+			args: map[string]any{
+				"hostname":            "example.com",
+				"port":                443,
+				"include_system_root": true,
+			},
+			expectError:    false,
+			expectContains: []string{"BEGIN CERTIFICATE"},
+			skipOnMacOS:    true,
+		},
+		{
+			name:     "fetch_remote_cert with intermediate_only",
+			toolName: "fetch_remote_cert",
+			args: map[string]any{
+				"hostname":          "example.com",
+				"port":              443,
+				"intermediate_only": true,
+			},
+			expectError:    false,
+			expectContains: []string{"BEGIN CERTIFICATE"},
+		},
+		{
+			name:     "fetch_remote_cert with json format",
+			toolName: "fetch_remote_cert",
+			args: map[string]any{
+				"hostname": "example.com",
+				"port":     443,
+				"format":   "json",
+			},
+			expectError:    false,
+			expectContains: []string{`"listCertificates"`, "Certificate Chain"},
+		},
+		{
+			name:     "fetch_remote_cert with der format",
+			toolName: "fetch_remote_cert",
+			args: map[string]any{
+				"hostname": "example.com",
+				"port":     443,
+				"format":   "der",
+			},
+			expectError:    false,
+			expectContains: []string{}, // DER is binary, no text to check
+		},
+		{
 			name:     "resolve_cert_chain with json format",
 			toolName: "resolve_cert_chain",
 			args: map[string]any{
