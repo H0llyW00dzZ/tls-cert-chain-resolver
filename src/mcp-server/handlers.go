@@ -756,37 +756,37 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
 	var context strings.Builder
 
 	// Chain overview
-	context.WriteString(fmt.Sprintf("Chain Length: %d certificates\n", len(certs)))
-	context.WriteString(fmt.Sprintf("Analysis Type: %s\n", analysisType))
-	context.WriteString(fmt.Sprintf("Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05")))
+	fmt.Fprintf(&context, "Chain Length: %d certificates\n", len(certs))
+	fmt.Fprintf(&context, "Analysis Type: %s\n", analysisType)
+	fmt.Fprintf(&context, "Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05"))
 
 	// Detailed certificate information
 	for i, cert := range certs {
-		context.WriteString(fmt.Sprintf("=== CERTIFICATE %d ===\n", i+1))
-		context.WriteString(fmt.Sprintf("Role: %s\n", getCertificateRole(i, len(certs))))
+		fmt.Fprintf(&context, "=== CERTIFICATE %d ===\n", i+1)
+		fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(certs)))
 
 		// Subject information
 		context.WriteString("SUBJECT:\n")
-		context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Subject.CommonName))
-		context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Subject.Organization, ", ")))
-		context.WriteString(fmt.Sprintf("  Organizational Unit: %s\n", strings.Join(cert.Subject.OrganizationalUnit, ", ")))
-		context.WriteString(fmt.Sprintf("  Country: %s\n", strings.Join(cert.Subject.Country, ", ")))
-		context.WriteString(fmt.Sprintf("  State/Province: %s\n", strings.Join(cert.Subject.Province, ", ")))
-		context.WriteString(fmt.Sprintf("  Locality: %s\n", strings.Join(cert.Subject.Locality, ", ")))
+		fmt.Fprintf(&context, "  Common Name: %s\n", cert.Subject.CommonName)
+		fmt.Fprintf(&context, "  Organization: %s\n", strings.Join(cert.Subject.Organization, ", "))
+		fmt.Fprintf(&context, "  Organizational Unit: %s\n", strings.Join(cert.Subject.OrganizationalUnit, ", "))
+		fmt.Fprintf(&context, "  Country: %s\n", strings.Join(cert.Subject.Country, ", "))
+		fmt.Fprintf(&context, "  State/Province: %s\n", strings.Join(cert.Subject.Province, ", "))
+		fmt.Fprintf(&context, "  Locality: %s\n", strings.Join(cert.Subject.Locality, ", "))
 
 		// Issuer information
 		context.WriteString("ISSUER:\n")
-		context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Issuer.CommonName))
-		context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Issuer.Organization, ", ")))
+		fmt.Fprintf(&context, "  Common Name: %s\n", cert.Issuer.CommonName)
+		fmt.Fprintf(&context, "  Organization: %s\n", strings.Join(cert.Issuer.Organization, ", "))
 
 		// Validity period
 		context.WriteString("VALIDITY:\n")
-		context.WriteString(fmt.Sprintf("  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST")))
-		context.WriteString(fmt.Sprintf("  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST")))
+		fmt.Fprintf(&context, "  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST"))
+		fmt.Fprintf(&context, "  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST"))
 
 		now := time.Now()
 		daysUntilExpiry := int(cert.NotAfter.Sub(now).Hours() / 24)
-		context.WriteString(fmt.Sprintf("  Days until expiry: %d\n", daysUntilExpiry))
+		fmt.Fprintf(&context, "  Days until expiry: %d\n", daysUntilExpiry)
 		if daysUntilExpiry < 0 {
 			context.WriteString("  Status: EXPIRED\n")
 		} else if daysUntilExpiry < 30 {
@@ -797,48 +797,48 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
 
 		// Cryptographic information
 		context.WriteString("CRYPTOGRAPHY:\n")
-		context.WriteString(fmt.Sprintf("  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String()))
-		context.WriteString(fmt.Sprintf("  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String()))
-		context.WriteString(fmt.Sprintf("  Key Size: %d bits\n", getKeySize(cert)))
+		fmt.Fprintf(&context, "  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String())
+		fmt.Fprintf(&context, "  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String())
+		fmt.Fprintf(&context, "  Key Size: %d bits\n", getKeySize(cert))
 
 		// Certificate properties
 		context.WriteString("PROPERTIES:\n")
-		context.WriteString(fmt.Sprintf("  Version: %d\n", cert.Version))
-		context.WriteString(fmt.Sprintf("  Serial Number: %s\n", cert.SerialNumber.String()))
-		context.WriteString(fmt.Sprintf("  Is CA: %t\n", cert.IsCA))
+		fmt.Fprintf(&context, "  Version: %d\n", cert.Version)
+		fmt.Fprintf(&context, "  Serial Number: %s\n", cert.SerialNumber.String())
+		fmt.Fprintf(&context, "  Is CA: %t\n", cert.IsCA)
 
 		// Key usage and extended key usage
 		if cert.KeyUsage != 0 {
-			context.WriteString(fmt.Sprintf("  Key Usage: %s\n", formatKeyUsage(cert.KeyUsage)))
+			fmt.Fprintf(&context, "  Key Usage: %s\n", formatKeyUsage(cert.KeyUsage))
 		}
 		if len(cert.ExtKeyUsage) > 0 {
-			context.WriteString(fmt.Sprintf("  Extended Key Usage: %s\n", formatExtKeyUsage(cert.ExtKeyUsage)))
+			fmt.Fprintf(&context, "  Extended Key Usage: %s\n", formatExtKeyUsage(cert.ExtKeyUsage))
 		}
 
 		// Subject Alternative Names
 		if len(cert.DNSNames) > 0 {
-			context.WriteString(fmt.Sprintf("  DNS Names: %s\n", strings.Join(cert.DNSNames, ", ")))
+			fmt.Fprintf(&context, "  DNS Names: %s\n", strings.Join(cert.DNSNames, ", "))
 		}
 		if len(cert.EmailAddresses) > 0 {
-			context.WriteString(fmt.Sprintf("  Email Addresses: %s\n", strings.Join(cert.EmailAddresses, ", ")))
+			fmt.Fprintf(&context, "  Email Addresses: %s\n", strings.Join(cert.EmailAddresses, ", "))
 		}
 		if len(cert.IPAddresses) > 0 {
 			ips := make([]string, len(cert.IPAddresses))
 			for j, ip := range cert.IPAddresses {
 				ips[j] = ip.String()
 			}
-			context.WriteString(fmt.Sprintf("  IP Addresses: %s\n", strings.Join(ips, ", ")))
+			fmt.Fprintf(&context, "  IP Addresses: %s\n", strings.Join(ips, ", "))
 		}
 
 		// Certificate Authority Information
 		if cert.IssuingCertificateURL != nil {
-			context.WriteString(fmt.Sprintf("  Issuer URLs: %s\n", strings.Join(cert.IssuingCertificateURL, ", ")))
+			fmt.Fprintf(&context, "  Issuer URLs: %s\n", strings.Join(cert.IssuingCertificateURL, ", "))
 		}
 		if cert.CRLDistributionPoints != nil {
-			context.WriteString(fmt.Sprintf("  CRL Distribution Points: %s\n", strings.Join(cert.CRLDistributionPoints, ", ")))
+			fmt.Fprintf(&context, "  CRL Distribution Points: %s\n", strings.Join(cert.CRLDistributionPoints, ", "))
 		}
 		if cert.OCSPServer != nil {
-			context.WriteString(fmt.Sprintf("  OCSP Servers: %s\n", strings.Join(cert.OCSPServer, ", ")))
+			fmt.Fprintf(&context, "  OCSP Servers: %s\n", strings.Join(cert.OCSPServer, ", "))
 		}
 
 		context.WriteString("\n")
@@ -853,11 +853,11 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
 			nextSubject := certs[i+1].Subject.CommonName
 
 			if issuer == nextSubject {
-				context.WriteString(fmt.Sprintf("✓ Certificate %d (%s) is properly signed by Certificate %d (%s)\n",
-					i+1, subject, i+2, nextSubject))
+				fmt.Fprintf(&context, "✓ Certificate %d (%s) is properly signed by Certificate %d (%s)\n",
+					i+1, subject, i+2, nextSubject)
 			} else {
-				context.WriteString(fmt.Sprintf("⚠ Certificate %d (%s) issuer (%s) doesn't match Certificate %d subject (%s)\n",
-					i+1, subject, issuer, i+2, nextSubject))
+				fmt.Fprintf(&context, "⚠ Certificate %d (%s) issuer (%s) doesn't match Certificate %d subject (%s)\n",
+					i+1, subject, issuer, i+2, nextSubject)
 			}
 		}
 	}
@@ -882,9 +882,9 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 	var context strings.Builder
 
 	// Chain overview
-	context.WriteString(fmt.Sprintf("Chain Length: %d certificates\n", len(certs)))
-	context.WriteString(fmt.Sprintf("Analysis Type: %s\n", analysisType))
-	context.WriteString(fmt.Sprintf("Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05")))
+	fmt.Fprintf(&context, "Chain Length: %d certificates\n", len(certs))
+	fmt.Fprintf(&context, "Analysis Type: %s\n", analysisType)
+	fmt.Fprintf(&context, "Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05"))
 
 	// Include revocation status summary with methodology explanation
 	context.WriteString("REVOCATION STATUS SUMMARY:\n")
@@ -896,8 +896,8 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 
 	// Detailed certificate information
 	for i, cert := range certs {
-		context.WriteString(fmt.Sprintf("=== CERTIFICATE %d ===\n", i+1))
-		context.WriteString(fmt.Sprintf("Role: %s\n", getCertificateRole(i, len(certs))))
+		fmt.Fprintf(&context, "=== CERTIFICATE %d ===\n", i+1)
+		fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(certs)))
 
 		appendSubjectInfo(&context, cert)
 		appendIssuerInfo(&context, cert)
@@ -919,30 +919,30 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 // appendSubjectInfo adds subject information to the context
 func appendSubjectInfo(context *strings.Builder, cert *x509.Certificate) {
 	context.WriteString("SUBJECT:\n")
-	context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Subject.CommonName))
-	context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Subject.Organization, ", ")))
-	context.WriteString(fmt.Sprintf("  Organizational Unit: %s\n", strings.Join(cert.Subject.OrganizationalUnit, ", ")))
-	context.WriteString(fmt.Sprintf("  Country: %s\n", strings.Join(cert.Subject.Country, ", ")))
-	context.WriteString(fmt.Sprintf("  State/Province: %s\n", strings.Join(cert.Subject.Province, ", ")))
-	context.WriteString(fmt.Sprintf("  Locality: %s\n", strings.Join(cert.Subject.Locality, ", ")))
+	fmt.Fprintf(context, "  Common Name: %s\n", cert.Subject.CommonName)
+	fmt.Fprintf(context, "  Organization: %s\n", strings.Join(cert.Subject.Organization, ", "))
+	fmt.Fprintf(context, "  Organizational Unit: %s\n", strings.Join(cert.Subject.OrganizationalUnit, ", "))
+	fmt.Fprintf(context, "  Country: %s\n", strings.Join(cert.Subject.Country, ", "))
+	fmt.Fprintf(context, "  State/Province: %s\n", strings.Join(cert.Subject.Province, ", "))
+	fmt.Fprintf(context, "  Locality: %s\n", strings.Join(cert.Subject.Locality, ", "))
 }
 
 // appendIssuerInfo adds issuer information to the context
 func appendIssuerInfo(context *strings.Builder, cert *x509.Certificate) {
 	context.WriteString("ISSUER:\n")
-	context.WriteString(fmt.Sprintf("  Common Name: %s\n", cert.Issuer.CommonName))
-	context.WriteString(fmt.Sprintf("  Organization: %s\n", strings.Join(cert.Issuer.Organization, ", ")))
+	fmt.Fprintf(context, "  Common Name: %s\n", cert.Issuer.CommonName)
+	fmt.Fprintf(context, "  Organization: %s\n", strings.Join(cert.Issuer.Organization, ", "))
 }
 
 // appendValidityInfo adds validity period and status to the context
 func appendValidityInfo(context *strings.Builder, cert *x509.Certificate) {
 	context.WriteString("VALIDITY:\n")
-	context.WriteString(fmt.Sprintf("  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST")))
-	context.WriteString(fmt.Sprintf("  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST")))
+	fmt.Fprintf(context, "  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST"))
+	fmt.Fprintf(context, "  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST"))
 
 	now := time.Now()
 	daysUntilExpiry := int(cert.NotAfter.Sub(now).Hours() / 24)
-	context.WriteString(fmt.Sprintf("  Days until expiry: %d\n", daysUntilExpiry))
+	fmt.Fprintf(context, "  Days until expiry: %d\n", daysUntilExpiry)
 
 	if daysUntilExpiry < 0 {
 		context.WriteString("  Status: EXPIRED\n")
@@ -956,42 +956,42 @@ func appendValidityInfo(context *strings.Builder, cert *x509.Certificate) {
 // appendCryptoInfo adds cryptographic information to the context
 func appendCryptoInfo(context *strings.Builder, cert *x509.Certificate) {
 	context.WriteString("CRYPTOGRAPHY:\n")
-	context.WriteString(fmt.Sprintf("  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String()))
-	context.WriteString(fmt.Sprintf("  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String()))
-	context.WriteString(fmt.Sprintf("  Key Size: %d bits\n", getKeySize(cert)))
+	fmt.Fprintf(context, "  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String())
+	fmt.Fprintf(context, "  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String())
+	fmt.Fprintf(context, "  Key Size: %d bits\n", getKeySize(cert))
 }
 
 // appendCertProperties adds basic certificate properties to the context
 func appendCertProperties(context *strings.Builder, cert *x509.Certificate) {
 	context.WriteString("PROPERTIES:\n")
-	context.WriteString(fmt.Sprintf("  Version: %d\n", cert.Version))
-	context.WriteString(fmt.Sprintf("  Serial Number: %s\n", cert.SerialNumber.String()))
-	context.WriteString(fmt.Sprintf("  Is CA: %t\n", cert.IsCA))
+	fmt.Fprintf(context, "  Version: %d\n", cert.Version)
+	fmt.Fprintf(context, "  Serial Number: %s\n", cert.SerialNumber.String())
+	fmt.Fprintf(context, "  Is CA: %t\n", cert.IsCA)
 }
 
 // appendCertExtensions adds certificate extensions to the context
 func appendCertExtensions(context *strings.Builder, cert *x509.Certificate) {
 	// Key usage and extended key usage
 	if cert.KeyUsage != 0 {
-		context.WriteString(fmt.Sprintf("  Key Usage: %s\n", formatKeyUsage(cert.KeyUsage)))
+		fmt.Fprintf(context, "  Key Usage: %s\n", formatKeyUsage(cert.KeyUsage))
 	}
 	if len(cert.ExtKeyUsage) > 0 {
-		context.WriteString(fmt.Sprintf("  Extended Key Usage: %s\n", formatExtKeyUsage(cert.ExtKeyUsage)))
+		fmt.Fprintf(context, "  Extended Key Usage: %s\n", formatExtKeyUsage(cert.ExtKeyUsage))
 	}
 
 	// Subject Alternative Names
 	if len(cert.DNSNames) > 0 {
-		context.WriteString(fmt.Sprintf("  DNS Names: %s\n", strings.Join(cert.DNSNames, ", ")))
+		fmt.Fprintf(context, "  DNS Names: %s\n", strings.Join(cert.DNSNames, ", "))
 	}
 	if len(cert.EmailAddresses) > 0 {
-		context.WriteString(fmt.Sprintf("  Email Addresses: %s\n", strings.Join(cert.EmailAddresses, ", ")))
+		fmt.Fprintf(context, "  Email Addresses: %s\n", strings.Join(cert.EmailAddresses, ", "))
 	}
 	if len(cert.IPAddresses) > 0 {
 		ips := make([]string, len(cert.IPAddresses))
 		for j, ip := range cert.IPAddresses {
 			ips[j] = ip.String()
 		}
-		context.WriteString(fmt.Sprintf("  IP Addresses: %s\n", strings.Join(ips, ", ")))
+		fmt.Fprintf(context, "  IP Addresses: %s\n", strings.Join(ips, ", "))
 	}
 }
 
@@ -999,17 +999,17 @@ func appendCertExtensions(context *strings.Builder, cert *x509.Certificate) {
 func appendCAInfo(context *strings.Builder, cert *x509.Certificate) {
 	// Certificate Authority Information
 	if cert.IssuingCertificateURL != nil {
-		context.WriteString(fmt.Sprintf("  Issuer URLs: %s\n", strings.Join(cert.IssuingCertificateURL, ", ")))
+		fmt.Fprintf(context, "  Issuer URLs: %s\n", strings.Join(cert.IssuingCertificateURL, ", "))
 	}
 	if cert.CRLDistributionPoints != nil {
-		context.WriteString(fmt.Sprintf("  CRL Distribution Points: %s\n", strings.Join(cert.CRLDistributionPoints, ", ")))
+		fmt.Fprintf(context, "  CRL Distribution Points: %s\n", strings.Join(cert.CRLDistributionPoints, ", "))
 	}
 	if cert.OCSPServer != nil {
-		context.WriteString(fmt.Sprintf("  OCSP Servers: %s\n", strings.Join(cert.OCSPServer, ", ")))
+		fmt.Fprintf(context, "  OCSP Servers: %s\n", strings.Join(cert.OCSPServer, ", "))
 	}
 
 	// Serial Number for revocation tracking (duplicate but explicit for AI context)
-	context.WriteString(fmt.Sprintf("  Serial Number: %s\n", cert.SerialNumber.String()))
+	fmt.Fprintf(context, "  Serial Number: %s\n", cert.SerialNumber.String())
 }
 
 // appendChainValidationContext adds chain validation information
@@ -1022,11 +1022,11 @@ func appendChainValidationContext(context *strings.Builder, certs []*x509.Certif
 			nextSubject := certs[i+1].Subject.CommonName
 
 			if issuer == nextSubject {
-				context.WriteString(fmt.Sprintf("✓ Certificate %d (%s) is properly signed by Certificate %d (%s)\n",
-					i+1, subject, i+2, nextSubject))
+				fmt.Fprintf(context, "✓ Certificate %d (%s) is properly signed by Certificate %d (%s)\n",
+					i+1, subject, i+2, nextSubject)
 			} else {
-				context.WriteString(fmt.Sprintf("⚠ Certificate %d (%s) issuer (%s) doesn't match Certificate %d subject (%s)\n",
-					i+1, subject, issuer, i+2, nextSubject))
+				fmt.Fprintf(context, "⚠ Certificate %d (%s) issuer (%s) doesn't match Certificate %d subject (%s)\n",
+					i+1, subject, issuer, i+2, nextSubject)
 			}
 		}
 	}
