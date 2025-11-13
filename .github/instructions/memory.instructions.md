@@ -11,7 +11,7 @@ Guidelines for efficient memory usage, context management, and resource optimiza
 **Critical**: Always pass and use `context.Context` for certificate fetching
 
 ```go
-// Good - context-aware certificate fetching
+// ✅ Good - context-aware certificate fetching
 func fetchCertificateChain(ctx context.Context, cert *x509.Certificate, version string) (*x509chain.Chain, error) {
     chain := x509chain.New(cert, version)
     
@@ -237,7 +237,7 @@ defer func() {
 ### 2. Avoid Memory Leaks
 
 ```go
-❌ BAD - potential memory leak:
+// ❌ BAD - potential memory leak:
 func fetchAllCerts() []*x509.Certificate {
     var certs []*x509.Certificate
     for {
@@ -250,7 +250,7 @@ func fetchAllCerts() []*x509.Certificate {
     return certs
 }
 
-✅ GOOD - bounded with context:
+// ✅ GOOD - bounded with context:
 func fetchAllCerts(ctx context.Context, maxCerts int) ([]*x509.Certificate, error) {
     certs := make([]*x509.Certificate, 0, maxCerts)
     for i := 0; i < maxCerts; i++ {
@@ -276,7 +276,7 @@ func fetchAllCerts(ctx context.Context, maxCerts int) ([]*x509.Certificate, erro
 ### 3. Efficient Certificate Handling
 
 ```go
-// Good - process certificates without loading all into memory at once
+// ✅ Good - process certificates without loading all into memory at once
 func processCertificateStream(reader io.Reader, processor func(*x509.Certificate) error) error {
     decoder := pem.NewDecoder(reader)
     
@@ -338,7 +338,7 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
     return context.String()
 }
 
-❌ BAD - inefficient string concatenation:
+// ❌ BAD - inefficient string concatenation:
 func badBuildContext(certs []*x509.Certificate) string {
     result := ""
     for _, cert := range certs {
@@ -348,7 +348,7 @@ func badBuildContext(certs []*x509.Certificate) string {
     return result
 }
 
-✅ GOOD - efficient with fmt.Fprintf:
+// ✅ GOOD - efficient with fmt.Fprintf:
 func goodBuildContext(certs []*x509.Certificate) string {
     var buf strings.Builder
     for _, cert := range certs {
@@ -370,7 +370,7 @@ func goodBuildContext(certs []*x509.Certificate) string {
 ### 1. Proper Goroutine Lifecycle
 
 ```go
-✅ GOOD - controlled goroutine with cleanup:
+// ✅ GOOD - controlled goroutine with cleanup:
 func fetchWithTimeout(ctx context.Context) error {
     result := make(chan error, 1)  // Buffered channel prevents goroutine leak
     
@@ -396,7 +396,7 @@ func fetchWithTimeout(ctx context.Context) error {
 ### 2. Avoid Goroutine Leaks
 
 ```go
-❌ BAD - goroutine leak:
+// ❌ BAD - goroutine leak:
 func badFetch() error {
     result := make(chan error)  // Unbuffered!
     
@@ -408,7 +408,7 @@ func badFetch() error {
     return nil
 }
 
-✅ GOOD - buffered channel prevents leak:
+// ✅ GOOD - buffered channel prevents leak:
 func goodFetch(ctx context.Context) error {
     result := make(chan error, 1)  // Buffered - goroutine won't block
     
@@ -671,7 +671,7 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 ### 2. File Operations
 
 ```go
-// Good - streaming file processing
+// ✅ Good - streaming file processing
 func processCertificateFile(path string) error {
     file, err := os.Open(path)
     if err != nil {
