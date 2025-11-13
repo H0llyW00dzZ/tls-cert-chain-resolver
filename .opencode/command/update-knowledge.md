@@ -42,6 +42,16 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
    - Verify commands in examples work correctly
    - Check that code examples compile
    - Run race detection tests: `go test -v -race ./... 2>&1 | cat` (recommended for verifying changes)
+     - If output is truncated due to length limits, use alternative methods to check for failures:
+       - Check exit code: `go test -race ./...; echo "Exit code: $?"`
+       - Filter for results: `go test -race ./... 2>&1 | grep -E "(FAIL|panic|ok|WARNING: DATA RACE)" | tail -10`
+       - View last lines for summary: `go test -race ./... 2>&1 | tail -20`
+       - Or run tests on individual packages:
+         - `go test -race ./src/cli 2>&1 | cat`
+         - `go test -race ./src/internal/x509/certs 2>&1 | cat`
+         - `go test -race ./src/internal/x509/chain 2>&1 | cat`
+         - `go test -race ./src/logger 2>&1 | cat`
+         - `go test -race ./src/mcp-server 2>&1 | cat`
 
 5. **Update AGENTS.md**:
    - Add new commands if build process changed
