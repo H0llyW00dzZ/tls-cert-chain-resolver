@@ -11,7 +11,7 @@ Guidelines for efficient memory usage, context management, and resource optimiza
 **Critical**: Always pass and use `context.Context` for certificate fetching
 
 ```go
-// Good - context-aware certificate fetching
+// ✅ Good - context-aware certificate fetching
 func fetchCertificateChain(ctx context.Context, cert *x509.Certificate, version string) (*x509chain.Chain, error) {
     chain := x509chain.New(cert, version)
     
@@ -143,7 +143,7 @@ func (m *MCPLogger) Printf(format string, v ...any) {
 The `gc` package wraps `bytebufferpool` to avoid direct dependencies while providing reusable buffers for high-throughput operations such as MCP AI sampling (`src/mcp-server/framework.go:246`).
 
 ```go
-// Good - using gc.Default buffer pool for certificate data
+// ✅ Good - using gc.Default buffer pool for certificate data
 import "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 
 func processCertificates(certs []*x509.Certificate) []byte {
@@ -237,7 +237,7 @@ defer func() {
 ### 2. Avoid Memory Leaks
 
 ```go
-❌ BAD - potential memory leak:
+// ❌ BAD - potential memory leak:
 func fetchAllCerts() []*x509.Certificate {
     var certs []*x509.Certificate
     for {
@@ -250,7 +250,7 @@ func fetchAllCerts() []*x509.Certificate {
     return certs
 }
 
-✅ GOOD - bounded with context:
+// ✅ GOOD - bounded with context:
 func fetchAllCerts(ctx context.Context, maxCerts int) ([]*x509.Certificate, error) {
     certs := make([]*x509.Certificate, 0, maxCerts)
     for i := 0; i < maxCerts; i++ {
@@ -276,7 +276,7 @@ func fetchAllCerts(ctx context.Context, maxCerts int) ([]*x509.Certificate, erro
 ### 3. Efficient Certificate Handling
 
 ```go
-// Good - process certificates without loading all into memory at once
+// ✅ Good - process certificates without loading all into memory at once
 func processCertificateStream(reader io.Reader, processor func(*x509.Certificate) error) error {
     decoder := pem.NewDecoder(reader)
     
@@ -305,12 +305,72 @@ func processCertificateStream(reader io.Reader, processor func(*x509.Certificate
 }
 ```
 
+### 4. Efficient String Building with fmt.Fprintf
+
+**Pattern**: Use `fmt.Fprintf` with `strings.Builder` or buffer pools for efficient string construction (see `src/mcp-server/handlers.go`)
+
+**Why**: Avoids intermediate string allocations and concatenation overhead
+
+```go
+// ✅ Good - efficient string building for certificate context (see src/mcp-server/handlers.go)
+func buildCertificateContext(certs []*x509.Certificate, analysisType string) string {
+    var context strings.Builder
+    
+    // Direct writing to builder - no intermediate allocations
+    fmt.Fprintf(&context, "Chain Length: %d certificates\n", len(certs))
+    fmt.Fprintf(&context, "Analysis Type: %s\n", analysisType)
+    fmt.Fprintf(&context, "Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05"))
+    
+    for i, cert := range certs {
+        fmt.Fprintf(&context, "=== CERTIFICATE %d ===\n", i+1)
+        fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(certs)))
+        
+        // Certificate details with direct formatting
+        fmt.Fprintf(&context, "  Common Name: %s\n", cert.Subject.CommonName)
+        fmt.Fprintf(&context, "  Organization: %s\n", strings.Join(cert.Subject.Organization, ", "))
+        // ... more fields
+        
+        fmt.Fprintf(&context, "  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST"))
+        fmt.Fprintf(&context, "  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST"))
+        // ... more fields
+    }
+    
+    return context.String()
+}
+
+// ❌ BAD - inefficient string concatenation:
+func badBuildContext(certs []*x509.Certificate) string {
+    result := ""
+    for _, cert := range certs {
+        result += "Certificate: " + cert.Subject.CommonName + "\n"  // Creates new string each time
+        result += "Issuer: " + cert.Issuer.CommonName + "\n"        // More allocations
+    }
+    return result
+}
+
+// ✅ GOOD - efficient with fmt.Fprintf:
+func goodBuildContext(certs []*x509.Certificate) string {
+    var buf strings.Builder
+    for _, cert := range certs {
+        fmt.Fprintf(&buf, "Certificate: %s\n", cert.Subject.CommonName)  // Direct to buffer
+        fmt.Fprintf(&buf, "Issuer: %s\n", cert.Issuer.CommonName)        // No intermediate strings
+    }
+    return buf.String()
+}
+```
+
+**Performance Benefits**:
+- Reduces memory allocations
+- Avoids string concatenation overhead
+- Direct writing to destination buffer
+- Used extensively in certificate analysis functions
+
 ## Goroutine Management
 
 ### 1. Proper Goroutine Lifecycle
 
 ```go
-✅ GOOD - controlled goroutine with cleanup:
+// ✅ GOOD - controlled goroutine with cleanup:
 func fetchWithTimeout(ctx context.Context) error {
     result := make(chan error, 1)  // Buffered channel prevents goroutine leak
     
@@ -336,7 +396,7 @@ func fetchWithTimeout(ctx context.Context) error {
 ### 2. Avoid Goroutine Leaks
 
 ```go
-❌ BAD - goroutine leak:
+// ❌ BAD - goroutine leak:
 func badFetch() error {
     result := make(chan error)  // Unbuffered!
     
@@ -348,7 +408,7 @@ func badFetch() error {
     return nil
 }
 
-✅ GOOD - buffered channel prevents leak:
+// ✅ GOOD - buffered channel prevents leak:
 func goodFetch(ctx context.Context) error {
     result := make(chan error, 1)  // Buffered - goroutine won't block
     
@@ -428,7 +488,7 @@ todowrite([
 ### 1. Network Operations
 
 ```go
-// Good - timeout and resource limits for HTTP requests
+// ✅ Good - timeout and resource limits for HTTP requests
 func fetchCertificateFromURL(ctx context.Context, url string) (*x509.Certificate, error) {
     client := &http.Client{
         Timeout: 10 * time.Second,
@@ -611,7 +671,7 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 ### 2. File Operations
 
 ```go
-// Good - streaming file processing
+// ✅ Good - streaming file processing
 func processCertificateFile(path string) error {
     file, err := os.Open(path)
     if err != nil {
