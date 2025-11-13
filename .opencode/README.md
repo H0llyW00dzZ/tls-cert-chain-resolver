@@ -7,7 +7,7 @@ This directory contains custom commands for OpenCode agents to assist with repos
 | Command | Description | Usage |
 |---------|-------------|-------|
 | [`update-knowledge`](./command/update-knowledge.md) | Update agent instruction files when code changes | `/update-knowledge` |
-| [`test`](./command/test.md) | Run tests with coverage and analyze failures | `/test` |
+| [`test`](./command/test.md) | Run tests with race detection and coverage, then analyze failures | `/test` |
 | [`test-capabilities`](./command/test-capabilities.md) | Test agent capabilities including MCP servers and built-in tools | `/test-capabilities` |
 | [`create-changelog`](./command/create-changelog.md) | Generate changelog by comparing tags against main/master and save to temporary file | `/create-changelog` |
 
