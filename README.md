@@ -174,10 +174,10 @@ Artifacts are written to `./bin/<platform>/`.
 
 ### Testing
 
-Run the full suite:
+Run the full suite with race detection and coverage:
 
 ```bash
-go test -race -v ./... 2>&1 | cat
+go test -race -cover ./... 2>&1 | cat
 ```
 
 Additional targets are available in `Makefile`, including race detection and platform-specific builds.

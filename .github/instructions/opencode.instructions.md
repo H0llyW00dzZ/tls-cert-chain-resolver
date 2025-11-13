@@ -79,7 +79,7 @@ This file explains the OpenCode configuration and how to use the instruction fil
 
 **Available Commands**:
 - `/update-knowledge` - Update instruction files when code changes (handles instruction consistency and .opencode command sync)
-- `/test` - Run tests with coverage and analyze failures
+- `/test` - Run tests with race detection and coverage, then analyze failures
 - `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools
 - `/create-changelog` - Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
 
