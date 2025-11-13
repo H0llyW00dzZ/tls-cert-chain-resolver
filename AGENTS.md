@@ -555,7 +555,7 @@ func getKeySize(cert *x509.Certificate) int {
 - Run specific tests: `go test -run TestName ./package -v 2>&1 | cat`
 - Run package tests: `go test -v ./src/internal/x509/certs 2>&1 | cat` or `go test -v ./src/internal/x509/chain 2>&1 | cat` or `go test -v ./src/logger 2>&1 | cat`
 - Run all tests: `go test -v ./... 2>&1 | cat` or `make test`
-- Run race + coverage detection: `go test -race -cover ./... 2>&1 | cat` (recommended before merges)
+- Run race + coverage detection: `go test -race -cover ./... 2>&1 | cat` (recommended primary test approach)
 - Run benchmarks: `go test -bench=. ./src/logger 2>&1 | cat` (performance testing)
 - **Piping to `cat`**: Use `2>&1 | cat` with test commands to ensure bash tool captures and displays all test output
 - Test certificate operations with both PEM and DER formats
