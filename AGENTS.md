@@ -38,8 +38,7 @@
 **Test all**: `go test -v ./... 2>&1 | cat` or `make test`  
 **Test single**: `go test -run TestName ./package -v 2>&1 | cat`  
 **Test package**: `go test -v ./src/internal/x509/certs 2>&1 | cat`, `go test -v ./src/internal/x509/chain 2>&1 | cat`, `go test -v ./src/mcp-server 2>&1 | cat`, or `go test -v ./src/logger 2>&1 | cat`  
-**Test race**: `go test -race ./... 2>&1 | cat` (recommended before merges)  
-**Test coverage**: `go test -cover ./... 2>&1 | cat` (view test coverage)  
+**Test race + coverage**: `go test -race -cover ./... 2>&1 | cat` (recommended primary test approach)  
 **Benchmark**: `go test -bench=. ./src/logger ./src/internal/x509/chain 2>&1 | cat` (performance testing)  
 **Clean**: `make clean` (removes build artifacts from `./bin/`)
 
@@ -65,7 +64,7 @@
 **Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection and uses `gc.Pool` for efficient memory usage under high concurrency.  
 **Context**: Always pass and use `context.Context` for lifecycle management, especially for certificate fetching operations  
 **CLI Framework**: Use `github.com/spf13/cobra` for command-line interface  
-**Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race ./...` before merging.  
+**Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race -cover ./...` before merging.  
 **Memory Management**: Use buffer pooling via `gc.Pool` interface (`src/internal/helper/gc/`) for efficient memory usage with certificates and logging. The `gc` package abstracts `bytebufferpool` to avoid direct dependencies. Always call `Reset()` on buffers before returning them to the pool. Use `gc.Default` for the default buffer pool. For AI API requests, buffer pooling is used in `DefaultSamplingHandler` to optimize HTTP streaming performance.  
 **Certificate Operations**: Use internal packages `x509certs` and `x509chain` for certificate handling. Use `HTTPConfig` struct for centralized HTTP client configuration in certificate operations (timeout, User-Agent, version). Always check revocation status using `CheckRevocationStatus` after chain resolution. CRL cache includes O(1) LRU eviction with hashmap and doubly-linked list, automatic cleanup of expired CRLs with context cancellation support, configurable size limits (default 100), comprehensive metrics tracking (hits, misses, evictions, cleanups, memory usage), atomic operations to prevent race conditions, and resource usage monitoring via `get_resource_usage` tool.
 
@@ -78,7 +77,7 @@ Multiple agents may modify code simultaneously. Preserve others' changes and rep
 - Document thread-safety guarantees in function/type comments
 - All methods on MCPLogger are safe for concurrent use
 - When streaming AI responses, reuse pooled buffers (`gc.Default`) and reset before return to avoid leaks
-- Run `go test -race ./...` to detect race conditions before merging
+- Run `go test -race -cover ./...` to detect race conditions before merging
 - CRL cache operations are thread-safe with `sync.RWMutex` protection, atomic operations for metrics, and O(1) LRU implementation using hashmap and doubly-linked list
 
 ## MCP Server Instructions
@@ -418,7 +417,7 @@ bash("ls -la directory/")                    # Use list instead
 ```bash
 # GOOD - These are appropriate bash uses (pipe to cat for output):
 bash("go test -v ./... 2>&1 | cat")              # Running tests
-bash("go test -race ./... 2>&1 | cat")           # Race detection
+bash("go test -race -cover ./... 2>&1 | cat")           # Race detection with coverage
 bash("make build-linux")                         # Build operations
 bash("git status")                               # Git operations
 bash("make clean")                               # Cleaning build artifacts
@@ -505,7 +504,7 @@ func getKeySize(cert *x509.Certificate) int {
 - Run specific tests: `go test -run TestName ./package -v 2>&1 | cat`
 - Run package tests: `go test -v ./src/internal/x509/certs 2>&1 | cat` or `go test -v ./src/internal/x509/chain 2>&1 | cat` or `go test -v ./src/logger 2>&1 | cat`
 - Run all tests: `go test -v ./... 2>&1 | cat` or `make test`
-- Run race detection: `go test -race ./... 2>&1 | cat` (recommended before merges)
+- Run race + coverage detection: `go test -race -cover ./... 2>&1 | cat` (recommended before merges)
 - Run benchmarks: `go test -bench=. ./src/logger 2>&1 | cat` (performance testing)
 - **Piping to `cat`**: Use `2>&1 | cat` with test commands to ensure bash tool captures and displays all test output
 - Test certificate operations with both PEM and DER formats
