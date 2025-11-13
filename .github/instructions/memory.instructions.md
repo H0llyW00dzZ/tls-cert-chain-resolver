@@ -305,6 +305,66 @@ func processCertificateStream(reader io.Reader, processor func(*x509.Certificate
 }
 ```
 
+### 4. Efficient String Building with fmt.Fprintf
+
+**Pattern**: Use `fmt.Fprintf` with `strings.Builder` or buffer pools for efficient string construction (see `src/mcp-server/handlers.go`)
+
+**Why**: Avoids intermediate string allocations and concatenation overhead
+
+```go
+// ✅ Good - efficient string building for certificate context (see src/mcp-server/handlers.go)
+func buildCertificateContext(certs []*x509.Certificate, analysisType string) string {
+    var context strings.Builder
+    
+    // Direct writing to builder - no intermediate allocations
+    fmt.Fprintf(&context, "Chain Length: %d certificates\n", len(certs))
+    fmt.Fprintf(&context, "Analysis Type: %s\n", analysisType)
+    fmt.Fprintf(&context, "Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05"))
+    
+    for i, cert := range certs {
+        fmt.Fprintf(&context, "=== CERTIFICATE %d ===\n", i+1)
+        fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(certs)))
+        
+        // Certificate details with direct formatting
+        fmt.Fprintf(&context, "  Common Name: %s\n", cert.Subject.CommonName)
+        fmt.Fprintf(&context, "  Organization: %s\n", strings.Join(cert.Subject.Organization, ", "))
+        // ... more fields
+        
+        fmt.Fprintf(&context, "  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST"))
+        fmt.Fprintf(&context, "  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST"))
+        // ... more fields
+    }
+    
+    return context.String()
+}
+
+❌ BAD - inefficient string concatenation:
+func badBuildContext(certs []*x509.Certificate) string {
+    result := ""
+    for _, cert := range certs {
+        result += "Certificate: " + cert.Subject.CommonName + "\n"  // Creates new string each time
+        result += "Issuer: " + cert.Issuer.CommonName + "\n"        // More allocations
+    }
+    return result
+}
+
+✅ GOOD - efficient with fmt.Fprintf:
+func goodBuildContext(certs []*x509.Certificate) string {
+    var buf strings.Builder
+    for _, cert := range certs {
+        fmt.Fprintf(&buf, "Certificate: %s\n", cert.Subject.CommonName)  // Direct to buffer
+        fmt.Fprintf(&buf, "Issuer: %s\n", cert.Issuer.CommonName)        // No intermediate strings
+    }
+    return buf.String()
+}
+```
+
+**Performance Benefits**:
+- Reduces memory allocations
+- Avoids string concatenation overhead
+- Direct writing to destination buffer
+- Used extensively in certificate analysis functions
+
 ## Goroutine Management
 
 ### 1. Proper Goroutine Lifecycle
