@@ -143,7 +143,7 @@ func (m *MCPLogger) Printf(format string, v ...any) {
 The `gc` package wraps `bytebufferpool` to avoid direct dependencies while providing reusable buffers for high-throughput operations such as MCP AI sampling (`src/mcp-server/framework.go:246`).
 
 ```go
-// Good - using gc.Default buffer pool for certificate data
+// ✅ Good - using gc.Default buffer pool for certificate data
 import "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 
 func processCertificates(certs []*x509.Certificate) []byte {
@@ -488,7 +488,7 @@ todowrite([
 ### 1. Network Operations
 
 ```go
-// Good - timeout and resource limits for HTTP requests
+// ✅ Good - timeout and resource limits for HTTP requests
 func fetchCertificateFromURL(ctx context.Context, url string) (*x509.Certificate, error) {
     client := &http.Client{
         Timeout: 10 * time.Second,
