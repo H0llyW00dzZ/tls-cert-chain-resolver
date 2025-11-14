@@ -98,7 +98,7 @@ These instruction files are loaded via **[`/opencode.json`](../../opencode.json)
 > Other models, such as Claude models, may fail to follow these instructions correctly. For example, they might not properly use built-in tools like grep, edit, and others, and instead rely on bash commands, leading to inefficiencies or errors.
 
 > [!TIP]
-> Grok (`grok-code-fast-1` aka $y = \sum_{i=1}^{n} g_i(x) \cdot f_i(x)$) is already proven effective for this repository. For other models, run `/test-capabilities` to verify compatibility (passing score: 100).
+> Grok ( `grok-code-fast-1` aka $y = \sum_{i=1}^{n} g_i(x) \cdot f_i(x)$ ) is already proven effective for this repository. For other models, run `/test-capabilities` to verify compatibility (passing score: 100).
 
 ## Maintenance
 
