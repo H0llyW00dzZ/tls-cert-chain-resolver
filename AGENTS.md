@@ -410,7 +410,7 @@ gopls_go_search("MyFunction")  # ✅ Returns results
 **❌ Bad: Using `bash` with `find`/`grep` for code search**
 
 ```bash
-# BAD - Ignores .ignore file, searches build artifacts, slow
+# ❌ BAD - Ignores .ignore file, searches build artifacts, slow
 bash("find . -name '*.go' | xargs grep 'Certificate'")
 bash("grep -r 'pattern' .")
 ```
@@ -418,7 +418,7 @@ bash("grep -r 'pattern' .")
 **✅ Good: Use composable tools ([Unix Philosophy](https://grokipedia.com/page/Unix_philosophy))**
 
 ```
-# GOOD - Respects .ignore, fast, structured output
+# ✅ GOOD - Respects .ignore, fast, structured output
 glob("src/**/*.go")
 grep("Certificate", path="/path/to/src", include="*.go")
 ```
@@ -434,14 +434,14 @@ grep("Certificate", path="/path/to/src", include="*.go")
 **❌ Bad: Reading entire large files unnecessarily**
 
 ```
-# BAD - Reads all 5000 lines when you only need lines 100-120
+# ❌ BAD - Reads all 5000 lines when you only need lines 100-120
 read("/path/to/large-file.go")
 ```
 
 **✅ Good: Use offset and limit for windowed reading**
 
 ```
-# GOOD - After grep finds line 105, read only needed context
+# ✅ GOOD - After grep finds line 105, read only needed context
 grep("functionName", include="*.go")  # Finds match at line 105
 read("/path/to/large-file.go", offset=100, limit=30)  # Read lines 100-130 (selective/windowed reading)
 ```
@@ -451,14 +451,14 @@ read("/path/to/large-file.go", offset=100, limit=30)  # Read lines 100-130 (sele
 **❌ Bad: Inefficient workflow**
 
 ```
-# BAD - Searches all files without filtering
+# ❌ BAD - Searches all files without filtering
 grep("Certificate")  # Returns matches from bin, test files, etc.
 ```
 
 **✅ Good: Filter early, compose tools ([Unix Philosophy](https://grokipedia.com/page/Unix_philosophy))**
 
 ```
-# GOOD - Filter with glob first, then search
+# ✅ GOOD - Filter with glob first, then search
 glob("src/internal/**/*.go")  # Get source files only
 grep("Certificate", path="src/internal", include="*.go")  # Search filtered set
 ```
@@ -468,7 +468,7 @@ grep("Certificate", path="src/internal", include="*.go")  # Search filtered set
 **❌ Bad: Manually excluding paths in every command**
 
 ```bash
-# BAD - Repeating exclusions, error-prone
+# ❌ BAD - Repeating exclusions, error-prone
 bash("find . -name '*.go' -not -path '*/bin/*' -not -path '*/.git/*'")
 ```
 
@@ -485,7 +485,7 @@ bin
 *.cer
 *.pem
 
-# GOOD - glob/grep respect .ignore configuration
+# ✅ GOOD - glob/grep respect .ignore configuration
 glob("**/*.go")  # Automatically excludes patterns defined in .ignore
 
 # Note: .ignore file is organized with directories first (most reliable)
@@ -497,7 +497,7 @@ glob("**/*.go")  # Automatically excludes patterns defined in .ignore
 **❌ Bad: Using bash for searches that built-in tools handle better**
 
 ```bash
-# BAD - All of these should use composable tools (Unix Philosophy) instead
+# ❌ BAD - All of these should use composable tools (Unix Philosophy) instead
 bash("find . -type f -name '*.go'")          # Use glob instead
 bash("grep -r 'pattern' src/")               # Use grep tool instead
 bash("cat file.go")                          # Use read instead
@@ -507,7 +507,7 @@ bash("ls -la directory/")                    # Use list instead
 **✅ Good: Use bash only for operations built-in tools can't do**
 
 ```bash
-# GOOD - These are appropriate bash uses (pipe to cat for output):
+# ✅ GOOD - These are appropriate bash uses (pipe to cat for output):
 bash("go test -v ./... 2>&1 | cat")              # Running tests
 bash("go test -race -cover ./... 2>&1 | cat")    # Race detection with coverage
 bash("make build-linux")                         # Build operations
@@ -520,7 +520,7 @@ bash("make clean")                               # Cleaning build artifacts
 **❌ Bad: Sequential when parallel is possible**
 
 ```
-# BAD - Reads files one by one
+# ❌ BAD - Reads files one by one
 read("file1.go")
 # wait...
 read("file2.go")
@@ -531,7 +531,7 @@ read("file3.go")
 **✅ Good: Batch operations when possible**
 
 ```
-# GOOD - Multiple tool calls in single message execute in parallel
+# ✅ GOOD - Multiple tool calls in single message execute in parallel
 read("file1.go")
 read("file2.go")
 read("file3.go")
@@ -543,14 +543,14 @@ read("file3.go")
 **❌ Bad: Using wrong MCP server for the task**
 
 ```
-# BAD - Using bash to search Go symbols
+# ❌ BAD - Using bash to search Go symbols
 bash("grep -r 'func.*ProcessRequest' .")
 ```
 
 **✅ Good: Use appropriate MCP server**
 
 ```
-# GOOD - Use Gopls for Go intelligence
+# ✅ GOOD - Use Gopls for Go intelligence
 gopls_go_search("ProcessRequest")
 gopls_go_symbol_references(file, "ProcessRequest")
 ```
@@ -560,7 +560,7 @@ gopls_go_symbol_references(file, "ProcessRequest")
 **❌ Bad: Missing pointer type handling in type switches**
 
 ```go
-// BAD - Only handles value types, misses pointer types
+// ❌ BAD - Only handles value types, misses pointer types
 func getKeySize(cert *x509.Certificate) int {
     switch pub := cert.PublicKey.(type) {
     case rsa.PublicKey:     // ❌ Misses *rsa.PublicKey
@@ -576,7 +576,7 @@ func getKeySize(cert *x509.Certificate) int {
 **✅ Good: Handle both pointer and value types**
 
 ```go
-// GOOD - Handles both pointer and value types for RSA and ECDSA
+// ✅ GOOD - Handles both pointer and value types for RSA and ECDSA
 func getKeySize(cert *x509.Certificate) int {
     switch pub := cert.PublicKey.(type) {
     case *rsa.PublicKey:      // ✅ Handle pointer type
