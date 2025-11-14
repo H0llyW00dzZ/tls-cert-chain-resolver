@@ -218,7 +218,7 @@ x509_resolver_fetch_remote_cert("example.com", port=443)
 
 Agents also have access to built-in file and project tools:
 
-**File Operations**:
+### File Operations
 
 - `read(filePath, offset?, limit?)`: Read file contents with line numbers (default: first 2000 lines)
   - `offset`: 0-based line number to start reading from
@@ -229,11 +229,11 @@ Agents also have access to built-in file and project tools:
 - `glob(pattern)`: Find files by pattern (e.g., `**/*.go`)
 - `grep(pattern)`: Search file contents with regex
 
-**Code Execution**:
+### Code Execution
 
 - `bash(command)`: Execute shell commands for builds, tests, git operations
 
-**Task Management**:
+### Task Management
 
 - `todowrite(todos)`: Create/update task lists for complex multi-step work
   - Each todo has: `id`, `content`, `status` (`pending`|`in_progress`|`completed`|`cancelled`), `priority` (`high`|`medium`|`low`)
