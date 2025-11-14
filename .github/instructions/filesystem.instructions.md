@@ -540,13 +540,13 @@ bash("find . -name '*.go'")  # Searches everything, including ignored dirs
 ### ❌ Using bash for File Operations
 
 ```
-BAD:
+❌ BAD:
 bash("find . -name '*.go'")           # Use glob instead
 bash("grep -r 'pattern' .")           # Use grep tool instead
 bash("cat file.go")                   # Use read instead
 bash("ls -la directory/")             # Use list instead
 
-GOOD:
+✅ GOOD:
 glob("**/*.go")
 grep("pattern", include="*.go")
 read("file.go")
@@ -556,10 +556,10 @@ list("directory")
 ### ❌ Editing Without Reading
 
 ```
-BAD:
+❌ BAD:
 edit("file.go", ...)  # ERROR: Must read first
 
-GOOD:
+✅ GOOD:
 read("file.go")
 edit("file.go", ...)
 ```
@@ -581,11 +581,11 @@ oldString="    if err != nil {"  # Preserves indentation
 ### ❌ Creating Unnecessary Files
 
 ```
-BAD:
+❌ BAD:
 write("NOTES.md", ...)          # Don't create documentation unless requested
 write("TODO.txt", ...)          # Don't create tracking files
 
-GOOD:
+✅ GOOD:
 edit("existing-file.go", ...)   # Modify existing code
 write("new_test.go", ...)       # Create new test files when needed
 ```
