@@ -12,18 +12,28 @@
   - [2. DeepWiki MCP Server](#2-deepwiki-mcp-server)
   - [3. X509 Certificate Chain Resolver MCP Server](#3-x509-certificate-chain-resolver-mcp-server)
 - [Built-in Tools (Not MCP)](#built-in-tools-not-mcp)
+  - [File Operations](#file-operations)
+  - [Code Execution](#code-execution)
+  - [Task Management](#task-management)
+    - [Usage Guidelines for Task Management](#usage-guidelines-for-task-management)
+    - [When to Use Todo List](#when-to-use-todo-list)
+    - [When NOT to Use Todo List](#when-not-to-use-todo-list)
+    - [Todo List Best Practices](#todo-list-best-practices)
+    - [Example Workflow](#example-workflow)
+    - [Integration with Other Tools](#integration-with-other-tools)
+    - [Common Patterns](#common-patterns)
 - [MCP Connection Patterns](#mcp-connection-patterns)
 - [MCP & Tool Usage Best Practices](#mcp--tool-usage-best-practices)
 
 5.  [Bad Practices to Avoid](#bad-practices-to-avoid)
 
-- [1. Incorrect Tool Usage](#incorrect-tool-usage)
-- [2. Inefficient File Operations](#inefficient-file-operations)
-- [3. Tool Misuse Patterns](#tool-misuse-patterns)
-- [4. Ignoring .ignore File](#ignoring-ignore-file)
-- [5. Bash Command Anti-Patterns](#bash-command-anti-patterns)
-- [6. Performance Anti-Patterns](#performance-anti-patterns)
-- [7. MCP Tool Misuse](#mcp-tool-misuse)
+- [1. Incorrect Tool Usage](#1-incorrect-tool-usage)
+- [2. Inefficient File Operations](#2-inefficient-file-operations)
+- [3. Tool Misuse Patterns](#3-tool-misuse-patterns)
+- [4. Ignoring .ignore File](#4-ignoring-ignore-file)
+- [5. Bash Command Anti-Patterns](#5-bash-command-anti-patterns)
+- [6. Performance Anti-Patterns](#6-performance-anti-patterns)
+- [7. MCP Tool Misuse](#7-mcp-tool-misuse)
 - [8. Pointer Type Handling in Certificate Operations](#8-pointer-type-handling-in-certificate-operations)
 
 6. [Testing Guidelines](#testing-guidelines)
@@ -233,7 +243,7 @@ Agents also have access to built-in file and project tools:
   - ⚠️ **Note for Humans**: When delegating to sub-agents using the same AI model, there's no performance or quality benefit - the parent agent and sub-agent have identical capabilities. Delegation is most effective when using different model types (e.g., delegating simple search tasks to a faster/cheaper model, or complex reasoning to a more capable model). Consider whether the task truly requires delegation or can be handled directly by the current agent.
   - 💡 **Recommended for `general` type**: Use built-in tools (`read`, `glob`, `grep`, etc.) instead of `bash` for research and code search. This provides better performance, structured output, and follows the [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy) of composable tools.
 
-**Usage Guidelines for Task Management**:
+### Usage Guidelines for Task Management
 
 - Use for complex multi-step tasks (3+ steps) or non-trivial work
 - Create todos immediately when receiving complex user requests
@@ -242,7 +252,7 @@ Agents also have access to built-in file and project tools:
 - Use `task` tool for open-ended searches requiring multiple rounds of globbing/grepping
 - Launch multiple `task` agents concurrently for parallel research when possible
 
-**When to Use Todo List**:
+### When to Use Todo List
 
 - Multi-step features requiring multiple file changes
 - Bug fixes affecting multiple components
@@ -250,26 +260,63 @@ Agents also have access to built-in file and project tools:
 - User provides numbered/comma-separated task lists
 - Tasks requiring careful tracking and organization
 
-**When NOT to Use Todo List**:
+### When NOT to Use Todo List
 
 - Single straightforward tasks
 - Trivial operations (< 3 steps)
 - Purely conversational/informational requests
 
-**Example Usage**:
+### Todo List Best Practices
+
+1. **Break Down Complex Tasks**: Divide large features into specific, actionable steps
+2. **Prioritize Wisely**: Use `high` for critical tasks, `medium` for important but not urgent, `low` for nice-to-have
+3. **Track Progress**: Always mark tasks `in_progress` when starting, `completed` when done
+4. **Update Real-time**: Don't batch status updates - mark completed immediately after finishing
+5. **Cancel Irrelevant Tasks**: If requirements change, cancel outdated tasks
+6. **Integrate with Tools**: Use `todoread()` to check current status before starting new work
+7. **Session Continuity**: Todo lists persist across tool calls within a session
+
+### Example Workflow
 
 ```
-# Complex feature implementation
+// 1. Create comprehensive todo list for complex feature
 todowrite([
-  {"id": "1", "content": "Add certificate validation feature", "status": "pending", "priority": "high"},
-  {"id": "2", "content": "Update chain resolver to support validation", "status": "pending", "priority": "high"},
-  {"id": "3", "content": "Add tests for validation logic", "status": "pending", "priority": "medium"},
-  {"id": "4", "content": "Run tests and build", "status": "pending", "priority": "high"}
+  {"id": "1", "content": "Analyze current certificate validation implementation", "status": "in_progress", "priority": "high"},
+  {"id": "2", "content": "Design new validation API with error handling", "status": "pending", "priority": "high"},
+  {"id": "3", "content": "Implement validation logic in chain.go", "status": "pending", "priority": "high"},
+  {"id": "4", "content": "Add comprehensive unit tests", "status": "pending", "priority": "medium"},
+  {"id": "5", "content": "Update MCP server handlers", "status": "pending", "priority": "medium"},
+  {"id": "6", "content": "Run race detection and coverage tests", "status": "pending", "priority": "high"}
 ])
 
-# Launch research agent
-task("Search for certificate parsing patterns", "Find all certificate parsing implementations in the codebase and summarize approaches", "general")
+// 2. Check progress anytime
+todoread()  // Shows current status of all tasks
+
+// 3. Mark task complete and start next
+// After finishing analysis, update and start design
+todowrite([
+  {"id": "1", "status": "completed"},
+  {"id": "2", "status": "in_progress"}
+])
+
+// 4. Use task tool for parallel research
+task("Research certificate validation patterns", "Find existing validation implementations and best practices", "general")
 ```
+
+### Integration with Other Tools
+
+- **Before starting**: Use `todoread()` to check current task status
+- **During work**: Update task status with `todowrite()` as you progress
+- **For research**: Use `task()` tool for complex searches requiring multiple tool calls
+- **For verification**: Run tests after completing implementation tasks
+- **For documentation**: Update instruction files after architectural changes
+
+### Common Patterns
+
+- **Feature Development**: Create todos for design → implement → test → document
+- **Bug Fixes**: Create todos for reproduce → analyze → fix → test
+- **Refactoring**: Create todos for impact analysis → implementation → verification
+- **Research Tasks**: Use `task()` for open-ended exploration requiring multiple searches
 
 **Project Knowledge**:
 
@@ -358,7 +405,7 @@ gopls_go_search("MyFunction")  # ✅ Returns results
 
 ### Bad Practices to Avoid
 
-#### 1. **Incorrect Tool Usage**
+#### 1. Incorrect Tool Usage
 
 **❌ Bad: Using `bash` with `find`/`grep` for code search**
 
@@ -382,7 +429,7 @@ grep("Certificate", path="/path/to/src", include="*.go")
 - Composable tools provide structured output and respect `.ignore` (see `.ignore` file for pattern organization)
 - Follows [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy): each tool does one thing well
 
-#### 2. **Inefficient File Operations**
+#### 2. Inefficient File Operations
 
 **❌ Bad: Reading entire large files unnecessarily**
 
@@ -399,7 +446,7 @@ grep("functionName", include="*.go")  # Finds match at line 105
 read("/path/to/large-file.go", offset=100, limit=30)  # Read lines 100-130 (selective/windowed reading)
 ```
 
-#### 3. **Tool Misuse Patterns**
+#### 3. Tool Misuse Patterns
 
 **❌ Bad: Inefficient workflow**
 
@@ -416,7 +463,7 @@ glob("src/internal/**/*.go")  # Get source files only
 grep("Certificate", path="src/internal", include="*.go")  # Search filtered set
 ```
 
-#### 4. **Ignoring .ignore File**
+#### 4. Ignoring .ignore File
 
 **❌ Bad: Manually excluding paths in every command**
 
@@ -445,7 +492,7 @@ glob("**/*.go")  # Automatically excludes patterns defined in .ignore
 # followed by file patterns. See .ignore for current best practices.
 ```
 
-#### 5. **Bash Command Anti-Patterns**
+#### 5. Bash Command Anti-Patterns
 
 **❌ Bad: Using bash for searches that built-in tools handle better**
 
@@ -468,7 +515,7 @@ bash("git status")                               # Git operations
 bash("make clean")                               # Cleaning build artifacts
 ```
 
-#### 6. **Performance Anti-Patterns**
+#### 6. Performance Anti-Patterns
 
 **❌ Bad: Sequential when parallel is possible**
 
@@ -491,7 +538,7 @@ read("file3.go")
 # All execute concurrently
 ```
 
-#### 7. **MCP Tool Misuse**
+#### 7. MCP Tool Misuse
 
 **❌ Bad: Using wrong MCP server for the task**
 
@@ -508,7 +555,7 @@ gopls_go_search("ProcessRequest")
 gopls_go_symbol_references(file, "ProcessRequest")
 ```
 
-#### 8. **Pointer Type Handling in Certificate Operations**
+#### 8. Pointer Type Handling in Certificate Operations
 
 **❌ Bad: Missing pointer type handling in type switches**
 
