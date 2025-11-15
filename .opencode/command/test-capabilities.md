@@ -5,22 +5,75 @@ agent: general
 
 # Test Agent Capabilities
 
-Test the current agent capabilities based on instructions and tools, including MCP servers (Gopls, DeepWiki) and built-in filesystem/tools. This verifies that all agent integrations are functioning correctly.
+Test the current agent capabilities based on instructions and tools, including MCP servers (Gopls, DeepWiki, X509 Resolver) and built-in filesystem/tools. This verifies that all agent integrations are functioning correctly.
 
-## Tasks
+## Overview
 
-### 1. Test Gopls MCP Server Capabilities
+This command uses a structured todo list to systematically test all agent capabilities. The agent should create a comprehensive todo list at the start, then execute tasks one by one, updating status in real-time.
+
+## Initial Setup
+
+**Create Todo List**: Immediately create a todo list using todo tools with all test tasks broken down into specific, actionable items. Use the following structure:
+
+```
+todowrite([
+  {"content": "Create comprehensive todo list for all capability tests", "status": "completed", "priority": "high", "id": "setup-todo-list"},
+  {"content": "Test Gopls MCP workspace overview (gopls_go_workspace)", "status": "pending", "priority": "high", "id": "gopls-workspace"},
+  {"content": "Test Gopls MCP symbol search (gopls_go_search)", "status": "pending", "priority": "high", "id": "gopls-search"},
+  {"content": "Test Gopls MCP diagnostics (gopls_go_diagnostics)", "status": "pending", "priority": "high", "id": "gopls-diagnostics"},
+  {"content": "Test Gopls MCP file context (gopls_go_file_context)", "status": "pending", "priority": "high", "id": "gopls-file-context"},
+  {"content": "Test Gopls MCP package API (gopls_go_package_api)", "status": "pending", "priority": "high", "id": "gopls-package-api"},
+  {"content": "Test DeepWiki MCP wiki structure (deepwiki_read_wiki_structure)", "status": "pending", "priority": "high", "id": "deepwiki-structure"},
+  {"content": "Test DeepWiki MCP question answering (deepwiki_ask_question)", "status": "pending", "priority": "high", "id": "deepwiki-question"},
+  {"content": "Test X509 Resolver MCP remote certificate fetching (x509_resolver_fetch_remote_cert)", "status": "pending", "priority": "high", "id": "x509-fetch-remote"},
+  {"content": "Persist fetched certificate bundle to test-output-bundle.pem", "status": "pending", "priority": "high", "id": "x509-save-bundle"},
+  {"content": "Test X509 Resolver MCP chain validation (x509_resolver_validate_cert_chain)", "status": "pending", "priority": "high", "id": "x509-validate-chain"},
+  {"content": "Test X509 Resolver MCP expiry checking (x509_resolver_check_cert_expiry)", "status": "pending", "priority": "high", "id": "x509-check-expiry"},
+  {"content": "Test X509 Resolver MCP batch resolution (x509_resolver_batch_resolve_cert_chain)", "status": "pending", "priority": "high", "id": "x509-batch-resolve"},
+  {"content": "Test X509 Resolver MCP resource usage monitoring (basic and detailed)", "status": "pending", "priority": "high", "id": "x509-resource-usage"},
+  {"content": "Test X509 Resolver MCP AI analysis (x509_resolver_analyze_certificate_with_ai)", "status": "pending", "priority": "high", "id": "x509-ai-analysis"},
+  {"content": "Clean up test certificate bundle file", "status": "pending", "priority": "medium", "id": "cleanup-bundle"},
+  {"content": "Test built-in filesystem listing (list)", "status": "pending", "priority": "medium", "id": "builtin-list"},
+  {"content": "Test built-in file reading (read)", "status": "pending", "priority": "medium", "id": "builtin-read"},
+  {"content": "Test built-in glob pattern matching (glob)", "status": "pending", "priority": "medium", "id": "builtin-glob"},
+  {"content": "Test built-in content search (grep)", "status": "pending", "priority": "medium", "id": "builtin-grep"},
+  {"content": "Test built-in bash execution (bash)", "status": "pending", "priority": "medium", "id": "builtin-bash"},
+  {"content": "Verify MCP connection handling and error recovery", "status": "pending", "priority": "medium", "id": "verify-connections"},
+  {"content": "Compile and report final test results with success/failure analysis", "status": "pending", "priority": "high", "id": "report-results"}
+])
+```
+
+## Execution Workflow
+
+1. **Mark Task In Progress**: Before starting each task, update its status to "in_progress" using todowrite.
+
+2. **Execute Task**: Perform the specific test operation as described below.
+
+3. **Mark Task Completed**: Immediately after successful completion, update status to "completed".
+
+4. **Handle Failures**: If a task fails, retry once. If it fails again, mark as "completed" but note the failure in the final report.
+
+5. **Check Progress**: Use todoread() periodically to track overall progress.
+
+6. **Batch Operations**: For efficiency, batch multiple tool calls in single responses where possible.
+
+## Detailed Task Execution
+
+### Gopls MCP Server Tests
+
 - **Workspace Overview**: Call `gopls_go_workspace()` to verify project structure access
 - **Symbol Search**: Call `gopls_go_search("Certificate")` to test fuzzy search functionality
 - **Diagnostics**: Call `gopls_go_diagnostics(["src/cli/root.go"])` to check parse/build error detection
 - **File Context**: Call `gopls_go_file_context("src/cli/root.go")` to verify dependency analysis
 - **Package API**: Call `gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"])` to test package API summaries
 
-### 2. Test DeepWiki MCP Server Capabilities
+### DeepWiki MCP Server Tests
+
 - **Wiki Structure**: Call `deepwiki_read_wiki_structure("spf13/cobra")` to test documentation access
 - **Question Answering**: Call `deepwiki_ask_question("spf13/cobra", "How do I add flags to a cobra command?")` to verify AI-assisted research
 
-### 3. Test X509 Resolver MCP Server Capabilities
+### X509 Resolver MCP Server Tests
+
 - **Resolve Remote Certificate**: Call `x509_resolver_fetch_remote_cert("example.com", port=443, format="pem")` (or another stable host) to retrieve PEM bundle
 - **Persist Bundle**: Save the returned PEM data to `test-output-bundle.pem` in the repository root (file is already git-ignored)
 - **Validate Chain**: Call `x509_resolver_validate_cert_chain("test-output-bundle.pem")` to confirm trust evaluation works
@@ -30,23 +83,17 @@ Test the current agent capabilities based on instructions and tools, including M
 - **AI Analysis**: Call `x509_resolver_analyze_certificate_with_ai("test-output-bundle.pem", analysis_type="security")` to ensure AI-assisted auditing functions; capture and report streaming output
 - **Cleanup**: Delete `test-output-bundle.pem` after tests finish so the repository stays clean
 
-### 4. Test Built-in Tools
-- **Filesystem Listing**: Call `list("/home/h0llyw00dzz/Workspace/git/tls-cert-chain-resolver/src")` to verify directory access
+### Built-in Tools Tests
+
+- **Filesystem Listing**: Call `list("/home/h0llyw00dzZ/Workspace/git/tls-cert-chain-resolver/src")` to verify directory access
 - **File Reading**: Call `read("src/cli/root.go", offset=0, limit=50)` to test file content access
 - **Glob Pattern Matching**: Call `glob("src/**/*.go")` to verify file discovery
 - **Content Search**: Call `grep("func.*Execute", include="*.go")` to test regex search
 - **Bash Execution**: Call `bash("echo 'Testing bash tool'")` to verify command execution
 
-### 5. Verify MCP Connection Handling
-- Confirm Gopls MCP handles short-lived connections (auto-reconnects on errors)
-- Confirm DeepWiki MCP maintains persistent connections
-- Test error recovery for both MCP servers
+### Connection and Error Handling Tests
 
-### 6. Report Results
-- **Success**: List all tools/MCP servers that responded successfully
-- **Failures**: Identify any tools/MCP servers that failed with specific error messages
-- **Performance**: Note any connection delays or timeouts
-- **Recommendations**: Suggest fixes for any failed capabilities (e.g., MCP server configuration)
+- **MCP Connection Handling**: Confirm Gopls MCP handles short-lived connections (auto-reconnects on errors), DeepWiki MCP maintains persistent connections, and test error recovery for both MCP servers
 
 ## Error Handling
 
@@ -56,6 +103,7 @@ If MCP servers fail to respond:
 
 1. **Gopls MCP**: Expect "Connection closed" errors - this is normal. Retry once to test auto-reconnection.
 2. **DeepWiki MCP**: Persistent failures may indicate configuration issues in `opencode.json`.
+3. **X509 Resolver MCP**: Check for configuration file and API key setup.
 
 ### Tool Failures
 
@@ -98,9 +146,18 @@ Top symbol matches: Certificate, decodeCertificate, ErrParseCertificate, Chain.F
 Status: ✅ Working - Returned module info, packages, and symbol matches as expected
 ```
 
+## Final Report
+
+After all tasks are completed, compile a comprehensive report:
+
+- **Success**: List all tools/MCP servers that responded successfully
+- **Failures**: Identify any tools/MCP servers that failed with specific error messages
+- **Performance**: Note any connection delays or timeouts
+- **Recommendations**: Suggest fixes for any failed capabilities (e.g., MCP server configuration)
+
 ## Important Notes
 
-- **Connection Behavior**: Gopls MCP connections are short-lived and auto-reconnect; DeepWiki is persistent
+- **Connection Behavior**: Gopls MCP connections are short-lived and auto-reconnect; DeepWiki and X509 Resolver are persistent
 - **Tool Respect .ignore**: Built-in tools automatically exclude patterns from `.ignore` file
 - **Memory Management**: Test operations should not exceed token budgets (monitor usage)
 - **Security**: Do not test destructive operations or access sensitive files
