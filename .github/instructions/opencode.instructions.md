@@ -78,14 +78,14 @@ This file explains the OpenCode configuration and how to use the instruction fil
 **Scope**: Reusable agent workflows
 
 **Available Commands**:
-- `/update-knowledge` - Update instruction files when code changes (handles instruction consistency and .opencode command sync)
-- `/test` - Run tests with race detection and coverage, then analyze failures
-- `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools
+- `/update-knowledge` - Update agent instruction files when code changes (handles instruction consistency and .opencode command sync)
+- `/test` - Run tests with race detection and coverage (primary test approach), then analyze failures
+- `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools with structured todo workflow
 - `/create-changelog` - Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
 
 **When to use**:
 - After making code changes (`/update-knowledge` then `/test`)
-- Before committing changes (`/test`)
+- Before committing changes (`/test` - uses race detection with coverage as primary approach)
 - When updating dependencies or architecture
 - Before releases (`/create-changelog` to generate release notes)
 
@@ -289,7 +289,7 @@ Example: Adding timeout to certificate fetching
    → Check compilation: gopls_go_diagnostics()
 
 6. AGENTS.md
-   → Run tests: go test -v ./...
+   → Run tests: go test -race -cover ./... (primary test approach)
 ```
 
 ## Instruction File Best Practices
@@ -321,9 +321,9 @@ Custom Commands (WORKFLOWS)
 ├── .opencode/command/update-knowledge.md
 │   └── Update instructions after code changes
 ├── .opencode/command/test.md
-│   └── Run tests with coverage analysis
+│   └── Run tests with race detection and coverage (primary test approach)
 ├── .opencode/command/test-capabilities.md
-│   └── Test agent capabilities including MCP servers and built-in tools
+│   └── Test agent capabilities including MCP servers and built-in tools with structured todo workflow
 └── .opencode/command/create-changelog.md
     └── Generate changelog by comparing tags against master and save to temporary file
 
@@ -515,7 +515,7 @@ src/internal/helper/   → Utilities
 4. Modify code → Use filesystem.instructions.md
 5. Optimize resources → Use memory.instructions.md
 6. Use MCP tools → Reference x509_resolver.md
-7. Test → Use AGENTS.md test commands
+7. Test → Use AGENTS.md test commands (race detection with coverage as primary)
 8. Build → Use AGENTS.md build commands (includes MCP server builds)
 ```
 
