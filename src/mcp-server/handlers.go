@@ -713,12 +713,8 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 		// Call the AI API
 		samplingResult, err := samplingHandler.CreateMessage(ctx, samplingRequest)
 		if err != nil {
-			// If sampling fails, fall back to showing the context
-			result := fmt.Sprintf("AI Analysis Request Failed: %v\n\n", err)
-			result += fmt.Sprintf("Analysis Type: %s\n\n", analysisType)
-			result += "Certificate Context Prepared:\n"
-			result += certificateContext
-			result += fmt.Sprintf("\n\nPrompt that would be sent:\n%s", analysisPrompt)
+			// If sampling fails, return only the error
+			result := fmt.Sprintf("AI Analysis Request Failed: %v", err)
 			return mcp.NewToolResultText(result), nil
 		}
 
