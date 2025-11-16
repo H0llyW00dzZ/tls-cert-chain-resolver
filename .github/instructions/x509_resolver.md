@@ -154,7 +154,7 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993, intermediate_only=t
 **Implementation Notes**:
 - Requires bidirectional sampling with `DefaultSamplingHandler` (`src/mcp-server/framework.go:246`) and streams responses using buffer pooling.
 - Uses embedded system prompt from `src/mcp-server/templates/certificate-analysis-system-prompt.md` including revocation status analysis.
-- Falls back to showing the prepared certificate context when `X509_AI_APIKEY` is not configured.
+- Returns only the error message when AI sampling fails.
 - Includes OCSP/CRL status verification using `CheckRevocationStatus` from `src/internal/x509/chain/revocation.go`.
 - Provides methodology explanations for revocation status checks (OCSP priority over CRL, multi-endpoint redundancy, signature verification requirements).
 - CRL cache includes O(1) LRU eviction with hashmap and doubly-linked list, automatic cleanup with context cancellation support, configurable size limits, comprehensive metrics tracking (hits, misses, evictions, cleanups, memory usage), and atomic operations to prevent race conditions and prevent memory leaks.
