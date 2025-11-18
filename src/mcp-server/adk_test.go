@@ -214,7 +214,7 @@ func TestInMemoryTransport_JSONRPC(t *testing.T) {
 			})
 
 			// Create transport and connect server
-			transport := NewInMemoryTransport()
+			transport := NewInMemoryTransport(t.Context())
 			err := transport.ConnectServer(t.Context(), s)
 			if err != nil {
 				t.Fatalf("Failed to connect server: %v", err)
@@ -303,7 +303,7 @@ func TestADKTransportConnection(t *testing.T) {
 	})
 
 	// Create transport
-	transport := NewInMemoryTransport()
+	transport := NewInMemoryTransport(ctx)
 
 	// Connect transport to server (this is what BuildInMemoryTransport does)
 	if err := transport.ConnectServer(ctx, s); err != nil {

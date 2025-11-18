@@ -31,8 +31,8 @@ type InMemoryTransport struct {
 
 // NewInMemoryTransport creates a new in-memory transport that implements mcp.Transport
 // This is designed to work with ADK's [mcptoolset.New] expectations
-func NewInMemoryTransport() *InMemoryTransport {
-	ctx, cancel := context.WithCancel(context.Background())
+func NewInMemoryTransport(ctx context.Context) *InMemoryTransport {
+	ctx, cancel := context.WithCancel(ctx)
 	return &InMemoryTransport{
 		recvCh: make(chan []byte, 1),
 		sendCh: make(chan []byte, 1),
@@ -332,7 +332,7 @@ func (b *TransportBuilder) BuildInMemoryTransport(ctx context.Context) (any, err
 	}
 
 	// Create transport and connect server
-	transport := NewInMemoryTransport()
+	transport := NewInMemoryTransport(ctx)
 	if err := transport.ConnectServer(ctx, srv); err != nil {
 		return nil, fmt.Errorf("failed to connect server to transport: %w", err)
 	}
