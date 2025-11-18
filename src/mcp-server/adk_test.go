@@ -983,8 +983,8 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 			}
 
 			// Validate response - handle jsonrpc.Message format
-			if resp["Error"] != nil {
-				t.Errorf("Response contains error: %v", resp["Error"])
+			if resp["error"] != nil {
+				t.Errorf("Response contains error: %v", resp["error"])
 			}
 
 			result, ok := resp["Result"].(map[string]any)

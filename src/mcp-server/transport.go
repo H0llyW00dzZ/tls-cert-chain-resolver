@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	"github.com/mark3labs/mcp-go/client"
@@ -283,22 +284,23 @@ func (c *ADKTransportConnection) Write(ctx context.Context, msg jsonrpc.Message)
 
 	fixed := make(map[string]any)
 	for k, v := range temp {
-		switch k {
-		case "ID":
+		key := strings.ToLower(k)
+		switch key {
+		case "id":
 			// Handle ID specially - it might be an empty map, if so use null
 			if idMap, ok := v.(map[string]any); ok && len(idMap) == 0 {
 				fixed["id"] = 1 // Use the original ID from the test
 			} else {
 				fixed["id"] = v
 			}
-		case "Method":
+		case "method":
 			fixed["method"] = v
-		case "Params":
+		case "params":
 			fixed["params"] = v
-		case "Jsonrpc":
+		case "jsonrpc":
 			fixed["jsonrpc"] = v
 		default:
-			fixed[k] = v
+			fixed[key] = v
 		}
 	}
 
