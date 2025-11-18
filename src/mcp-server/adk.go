@@ -88,7 +88,7 @@ func (b *ADKTransportBuilder) ValidateConfig() error {
 //	mcpClient, err := client.NewInProcessClient(server)
 //	// Use mcpClient for ADK integration
 //
-// [mark3labs/mcp-go]: https://github.com/mark3labs/mcp-go
+// [mark3labs/mcp-go]: https://pkg.go.dev/github.com/mark3labs/mcp-go
 func (b *ADKTransportBuilder) BuildTransport(ctx context.Context) (any, error) {
 	// Validate configuration first
 	if err := b.ValidateConfig(); err != nil {

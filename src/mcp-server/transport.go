@@ -17,7 +17,7 @@ import (
 // InMemoryTransport implements ADK SDK mcp.Transport interface
 // It bridges between [Official MCP SDK] transport expectations and [mark3labs/mcp-go] client
 //
-// [mark3labs/mcp-go]: https://github.com/mark3labs/mcp-go
+// [mark3labs/mcp-go]: https://pkg.go.dev/github.com/mark3labs/mcp-go
 // [Official MCP SDK]: https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk
 type InMemoryTransport struct {
 	client  *client.Client // mark3labs in-process client
@@ -323,7 +323,7 @@ func (b *TransportBuilder) WithDefaultTools() *TransportBuilder {
 // For our implementation using [mark3labs/mcp-go], we create the server using
 // ServerBuilder, then return a transport that can communicate with it.
 //
-// [mark3labs/mcp-go]: https://github.com/mark3labs/mcp-go
+// [mark3labs/mcp-go]: https://pkg.go.dev/github.com/mark3labs/mcp-go
 func (b *TransportBuilder) BuildInMemoryTransport(ctx context.Context) (any, error) {
 	// Build the server using ServerBuilder
 	srv, err := b.serverBuilder.Build()
