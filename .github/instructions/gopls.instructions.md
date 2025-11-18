@@ -13,14 +13,16 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 - **`src/cli/`** — Cobra CLI implementation  
 - **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and gc.Pool)
 - **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
-- **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler, AI API integration
-- **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
-- **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
-- **`handlers.go`** — Core certificate processing utilities, AI analysis, and individual tool handlers
-- **`resource_usage.go`** — Resource usage monitoring and formatting functions
-- **`server.go`** — Server execution and lifecycle management
-- **`tools.go`** — Tool definitions and creation functions
-- **`config.go`** — Configuration management for AI and MCP settings
+  - **`adk.go`** — Google ADK integration support with transport builder pattern
+  - **`adk_test.go`** — ADK transport builder tests
+  - **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler, AI API integration
+  - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
+  - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
+  - **`handlers.go`** — Core certificate processing utilities, AI analysis, and individual tool handlers
+  - **`resource_usage.go`** — Resource usage monitoring and formatting functions
+  - **`server.go`** — Server execution and lifecycle management
+  - **`tools.go`** — Tool definitions and creation functions
+  - **`config.go`** — Configuration management for AI and MCP settings
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
   - **`cache.go`** — CRL cache implementation with LRU eviction and metrics
@@ -115,6 +117,10 @@ gopls_go_search("createPrompts") → Find prompt creation functions
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis tools
 gopls_go_search("DefaultSamplingHandler") → Find AI sampling implementation
+gopls_go_search("ADKTransportBuilder") → Find Google ADK transport builder
+gopls_go_search("NewADKTransportBuilder") → Find ADK transport builder constructor
+gopls_go_search("WithInMemoryTransport") → Find ADK in-memory transport configuration
+gopls_go_search("BuildTransport") → Find ADK transport building methods
 gopls_go_search("FetchRemoteChain") → Find remote TLS chain retrieval helper (`src/internal/x509/chain/remote.go`)
 gopls_go_search("CheckRevocationStatus") → Find OCSP/CRL revocation checking (`src/internal/x509/chain/revocation.go`)
 gopls_go_search("RevocationStatus") → Find revocation status structures
@@ -318,6 +324,10 @@ gopls_go_search("ServerBuilder") → Find builder pattern implementation
 gopls_go_search("WithSampling") → Locate sampling registration on the server builder
 gopls_go_search("DefaultSamplingHandler") → Inspect bidirectional AI streaming handler (`src/mcp-server/framework.go`)
 gopls_go_search("SamplingRequest") → Explore sampling request markers
+gopls_go_search("ADKTransportBuilder") → Find Google ADK transport builder implementation
+gopls_go_search("NewADKTransportBuilder") → Find ADK transport builder constructor
+gopls_go_search("WithInMemoryTransport") → Find ADK in-memory transport configuration
+gopls_go_search("BuildTransport") → Find ADK transport building methods
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("certificate-analysis") → Find certificate analysis prompts
 gopls_go_search("security-audit") → Find security audit prompts
@@ -553,6 +563,9 @@ grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|Max
 
 # Find MCP server builder pattern
 grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")
+
+# Find ADK integration patterns
+grep("ADKTransportBuilder\\|NewADKTransportBuilder\\|WithInMemoryTransport\\|BuildTransport\\|ADKTransportConfig", include="*.go")
 
 # Find MCP server status resource
 grep("handleStatusResource\\|status://server-status", include="*.go")
