@@ -68,6 +68,8 @@
 - `github.com/cloudflare/cfssl` - Certificate utilities
 - `github.com/valyala/bytebufferpool` - Memory pooling
 - `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with enhanced bidirectional AI sampling support
+- `github.com/modelcontextprotocol/go-sdk` v1.1.0 - Official MCP SDK for transport implementations
+- `google.golang.org/adk` v0.1.0 - Google ADK integration for MCP transport creation
 - `github.com/olekukonko/tablewriter` v1.1.1 - Enhanced markdown table formatting with emoji headers
 - `golang.org/x/crypto` (via Go 1.25.4) - Standard crypto updates leveraged in recent releases
   **Imports**: Use `goimports` with standard formatting  

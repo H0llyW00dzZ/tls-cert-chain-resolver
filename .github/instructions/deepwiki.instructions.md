@@ -359,6 +359,8 @@ Current external dependencies to research:
 - `github.com/cloudflare/cfssl` - Certificate utilities
 - `github.com/valyala/bytebufferpool` - Memory pooling
 - `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with enhanced bidirectional AI sampling support
+- `github.com/modelcontextprotocol/go-sdk` v1.1.0 - Official MCP SDK for transport implementations
+- `google.golang.org/adk` v0.1.0 - Google ADK integration for MCP transport creation
 - `golang/go` (standard library) - Review Go 1.25.4 crypto/tls and net/http updates
 
 ### Useful Queries for This Project
@@ -381,6 +383,14 @@ deepwiki_ask_question("olekukonko/tablewriter", "How do I create markdown tables
 # MCP server implementation
 deepwiki_ask_question("mark3labs/mcp-go", "How do I implement MCP resources in a Go server?")
 deepwiki_ask_question("mark3labs/mcp-go", "How do I add prompts to an MCP server?")
+
+# Official MCP SDK
+deepwiki_ask_question("modelcontextprotocol/go-sdk", "How do I implement MCP transports in Go?")
+deepwiki_ask_question("modelcontextprotocol/go-sdk", "What's the difference between MCP SDK and mark3labs/mcp-go?")
+
+# Google ADK integration
+deepwiki_ask_question("google/adk", "How do I create MCP transports for ADK integration?")
+deepwiki_ask_question("google/adk", "What are the transport types supported by ADK?")
 
 # Go standard library
 deepwiki_ask_question("golang/go", "How do I handle certificate verification errors in crypto/x509?")
@@ -437,4 +447,6 @@ Solutions:
 - `cloudflare/cfssl` - For certificate handling
 - `valyala/bytebufferpool` - For memory optimization
 - `mark3labs/mcp-go` - For MCP server features
+- `modelcontextprotocol/go-sdk` - For official MCP transport implementations
+- `google.golang.org/adk` - For Google ADK integration
 - `golang/go` - For standard library best practices

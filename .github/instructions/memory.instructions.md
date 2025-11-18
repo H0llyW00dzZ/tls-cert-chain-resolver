@@ -742,6 +742,61 @@ func debugGoroutines() {
 }
 ```
 
+### 4. JSON-RPC Message Handling Pattern
+
+**Pattern**: Normalize JSON-RPC field names for MCP SDK compatibility  
+**When to use**: Implementing MCP transports or handling JSON-RPC messages  
+**Implementation**: Use field name conversion to ensure JSON-RPC 2.0 compliance
+
+```go
+// JSON-RPC message normalization pattern (see src/mcp-server/transport.go:272)
+func normalizeJSONRPCMessage(msg jsonrpc.Message) ([]byte, error) {
+    // Marshal to JSON first
+    data, err := json.Marshal(msg)
+    if err != nil {
+        return nil, err
+    }
+
+    // Unmarshal to map for field name manipulation
+    var temp map[string]any
+    if err := json.Unmarshal(data, &temp); err != nil {
+        return nil, err
+    }
+
+    // Convert field names to lowercase for JSON-RPC 2.0 spec
+    fixed := make(map[string]any)
+    for k, v := range temp {
+        key := strings.ToLower(k)
+        switch key {
+        case "id":
+            // Handle ID field specially - empty maps become null
+            if idMap, ok := v.(map[string]any); ok && len(idMap) == 0 {
+                fixed["id"] = nil
+            } else {
+                fixed["id"] = v
+            }
+        case "method", "params", "jsonrpc":
+            fixed[key] = v
+        default:
+            fixed[key] = v
+        }
+    }
+
+    // Ensure jsonrpc version is present
+    if _, hasJsonrpc := fixed["jsonrpc"]; !hasJsonrpc {
+        fixed["jsonrpc"] = "2.0"
+    }
+
+    return json.Marshal(fixed)
+}
+```
+
+**Key Points**:
+- Convert field names to lowercase for JSON-RPC 2.0 compliance
+- Handle ID field specially (empty maps become null)
+- Always include jsonrpc version field
+- Use standard JSON marshaling/unmarshaling for compatibility
+
 ## Summary
 
 ### Context Management

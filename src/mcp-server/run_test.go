@@ -1954,49 +1954,6 @@ func TestBuildCertificateContext(t *testing.T) {
 	t.Logf("SignatureAlgorithm string: %q", x509.SHA256WithRSA.String())
 }
 
-func TestHandleAnalyzeCertificateWithAI_NoAPIKey(t *testing.T) {
-	t.Skip("Skipping AI analysis test - requires API key configuration")
-
-	request := mcp.CallToolRequest{}
-	request.Params.Arguments = map[string]any{
-		"certificate":   testCertPEM, // Use the actual PEM certificate
-		"analysis_type": "general",
-	}
-
-	config := &Config{}
-	config.AI.APIKey = "" // No API key
-
-	result, err := handleAnalyzeCertificateWithAI(context.Background(), request, config)
-	if err != nil {
-		t.Fatalf("handleAnalyzeCertificateWithAI failed: %v", err)
-	}
-
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
-
-	// Should contain fallback message about no API key
-	if len(result.Content) == 0 {
-		t.Fatal("Expected content in result")
-	}
-
-	content, ok := result.Content[0].(mcp.TextContent)
-	if !ok {
-		t.Fatalf("Expected TextContent, got %T", result.Content[0])
-	}
-
-	resultText := content.Text
-	t.Logf("Actual result text: %s", resultText[:min(500, len(resultText))]) // Log first 500 chars
-
-	if !strings.Contains(resultText, "No AI API key configured") {
-		t.Error("Expected fallback message about no API key")
-	}
-
-	if !strings.Contains(resultText, "Certificate Context Prepared") {
-		t.Error("Expected certificate context in fallback response")
-	}
-}
-
 // TestDefaultSamplingHandler_CreateMessage tests CreateMessage method of DefaultSamplingHandler
 func TestDefaultSamplingHandler_CreateMessage(t *testing.T) {
 	tests := []struct {
