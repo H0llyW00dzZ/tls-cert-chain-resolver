@@ -15,7 +15,10 @@ import (
 )
 
 // InMemoryTransport implements ADK SDK mcp.Transport interface
-// It bridges between official MCP SDK transport expectations and mark3labs/mcp-go client
+// It bridges between [Official MCP SDK] transport expectations and [mark3labs/mcp-go] client
+//
+// [mark3labs/mcp-go]: https://github.com/mark3labs/mcp-go
+// [Official MCP SDK]: https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk
 type InMemoryTransport struct {
 	client  *client.Client // mark3labs in-process client
 	started bool
@@ -27,7 +30,7 @@ type InMemoryTransport struct {
 }
 
 // NewInMemoryTransport creates a new in-memory transport that implements mcp.Transport
-// This is designed to work with ADK's mcptoolset.New() expectations
+// This is designed to work with ADK's [mcptoolset.New] expectations
 func NewInMemoryTransport() *InMemoryTransport {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &InMemoryTransport{
@@ -38,7 +41,7 @@ func NewInMemoryTransport() *InMemoryTransport {
 	}
 }
 
-// ReadMessage implements mcp.Transport.ReadMessage()
+// ReadMessage implements [mcp.Transport.ReadMessage]
 // For ADK compatibility, this should return JSON-RPC messages
 // Uses channel-based message passing for in-memory communication
 func (t *InMemoryTransport) ReadMessage() ([]byte, error) {
@@ -50,7 +53,7 @@ func (t *InMemoryTransport) ReadMessage() ([]byte, error) {
 	}
 }
 
-// WriteMessage implements mcp.Transport.WriteMessage()
+// WriteMessage implements [mcp.Transport.WriteMessage]
 // For ADK compatibility, this should accept JSON-RPC messages
 // Uses channel-based message passing for in-memory communication
 func (t *InMemoryTransport) WriteMessage(data []byte) error {
@@ -237,7 +240,7 @@ type ADKTransportConnection struct {
 	transport *InMemoryTransport
 }
 
-// Read implements mcptransport.Connection.Read
+// Read implements [mcptransport.Connection.Read]
 func (c *ADKTransportConnection) Read(ctx context.Context) (jsonrpc.Message, error) {
 	// Delegate to underlying transport's ReadMessage
 	data, err := c.transport.ReadMessage()
@@ -313,12 +316,14 @@ func (b *TransportBuilder) WithDefaultTools() *TransportBuilder {
 
 // BuildInMemoryTransport creates an in-memory MCP transport for ADK integration
 //
-// This follows the ADK pattern where mcp.NewInMemoryTransports() creates paired
+// This follows the ADK pattern where [mcp.NewInMemoryTransports] creates paired
 // client and server transports, server connects to server transport, and client
-// transport is returned for use with mcptoolset.New().
+// transport is returned for use with [mcptoolset.New].
 //
-// For our implementation using mark3labs/mcp-go, we create the server using
+// For our implementation using [mark3labs/mcp-go], we create the server using
 // ServerBuilder, then return a transport that can communicate with it.
+//
+// [mark3labs/mcp-go]: https://github.com/mark3labs/mcp-go
 func (b *TransportBuilder) BuildInMemoryTransport(ctx context.Context) (any, error) {
 	// Build the server using ServerBuilder
 	srv, err := b.serverBuilder.Build()
