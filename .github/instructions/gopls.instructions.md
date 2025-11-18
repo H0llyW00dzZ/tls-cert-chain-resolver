@@ -12,9 +12,10 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 - **`cmd/`** — Main CLI entry point and MCP server binaries
 - **`src/cli/`** — Cobra CLI implementation  
 - **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and gc.Pool)
-- **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
+ - **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
   - **`adk.go`** — Google ADK integration support with transport builder pattern
-  - **`adk_test.go`** — ADK transport builder tests
+  - **`adk_test.go`** — Comprehensive ADK transport builder tests with JSON-RPC cycle testing
+  - **`transport.go`** — In-memory transport implementation bridging ADK SDK and mark3labs/mcp-go with JSON-RPC normalization
   - **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler, AI API integration
   - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
   - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
@@ -329,11 +330,12 @@ gopls_go_search("NewADKTransportBuilder") → Find ADK transport builder constru
 gopls_go_search("WithInMemoryTransport") → Find ADK in-memory transport configuration
 gopls_go_search("BuildTransport") → Find ADK transport building methods
 gopls_go_search("InMemoryTransport") → Find in-memory transport implementation
-gopls_go_search("NewInMemoryTransport") → Find in-memory transport constructor
+gopls_go_search("NewInMemoryTransport") → Find in-memory transport constructor with context parameter
 gopls_go_search("ConnectServer") → Find server connection methods
 gopls_go_search("TransportBuilder") → Find transport builder pattern
 gopls_go_search("NewTransportBuilder") → Find transport builder constructor
 gopls_go_search("BuildInMemoryTransport") → Find in-memory transport building
+gopls_go_search("ADKTransportConnection") → Find ADK transport bridge implementation
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("certificate-analysis") → Find certificate analysis prompts
 gopls_go_search("security-audit") → Find security audit prompts
@@ -361,7 +363,8 @@ read("src/mcp-server/templates/certificate-analysis-system-prompt.md")  # Embedd
 read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis with analysis types
 read("src/mcp-server/config.go")     # AI and MCP configuration
 read("src/mcp-server/adk.go")        # Google ADK integration support
-read("src/mcp-server/transport.go")  # In-memory transport for ADK compatibility
+read("src/mcp-server/transport.go")  # In-memory transport for ADK compatibility with JSON-RPC normalization
+read("src/mcp-server/adk_test.go")   # Comprehensive ADK transport tests with JSON-RPC cycle testing
 read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
 ```
 # Understand CLI structure
