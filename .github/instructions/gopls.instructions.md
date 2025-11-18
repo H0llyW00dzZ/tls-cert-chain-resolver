@@ -328,6 +328,12 @@ gopls_go_search("ADKTransportBuilder") → Find Google ADK transport builder imp
 gopls_go_search("NewADKTransportBuilder") → Find ADK transport builder constructor
 gopls_go_search("WithInMemoryTransport") → Find ADK in-memory transport configuration
 gopls_go_search("BuildTransport") → Find ADK transport building methods
+gopls_go_search("InMemoryTransport") → Find in-memory transport implementation
+gopls_go_search("NewInMemoryTransport") → Find in-memory transport constructor
+gopls_go_search("ConnectServer") → Find server connection methods
+gopls_go_search("TransportBuilder") → Find transport builder pattern
+gopls_go_search("NewTransportBuilder") → Find transport builder constructor
+gopls_go_search("BuildInMemoryTransport") → Find in-memory transport building
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("certificate-analysis") → Find certificate analysis prompts
 gopls_go_search("security-audit") → Find security audit prompts
@@ -354,6 +360,8 @@ read("src/mcp-server/prompts.go")    # Prompt definitions
 read("src/mcp-server/templates/certificate-analysis-system-prompt.md")  # Embedded system prompt for AI analysis
 read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis with analysis types
 read("src/mcp-server/config.go")     # AI and MCP configuration
+read("src/mcp-server/adk.go")        # Google ADK integration support
+read("src/mcp-server/transport.go")  # In-memory transport for ADK compatibility
 read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
 ```
 # Understand CLI structure
@@ -565,7 +573,7 @@ grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|Max
 grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")
 
 # Find ADK integration patterns
-grep("ADKTransportBuilder\\|NewADKTransportBuilder\\|WithInMemoryTransport\\|BuildTransport\\|ADKTransportConfig", include="*.go")
+grep("ADKTransportBuilder\\|NewADKTransportBuilder\\|WithInMemoryTransport\\|BuildTransport\\|ADKTransportConfig\\|InMemoryTransport\\|NewInMemoryTransport\\|ConnectServer\\|TransportBuilder\\|NewTransportBuilder\\|BuildInMemoryTransport", include="*.go")
 
 # Find MCP server status resource
 grep("handleStatusResource\\|status://server-status", include="*.go")
