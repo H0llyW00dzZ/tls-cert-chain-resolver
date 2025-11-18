@@ -253,9 +253,10 @@ func (c *ADKTransportConnection) Read(ctx context.Context) (jsonrpc.Message, err
 		return nil, err
 	}
 
-	// Parse JSON-RPC message using the proper decoder
+	// Try to decode as a proper JSON-RPC message
 	msg, err := jsonrpc.DecodeMessage(data)
 	if err != nil {
+		// If decoding fails, return nil (this is expected for testing)
 		return nil, err
 	}
 
