@@ -10,9 +10,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 
+	jsonrpcInternal "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/jsonrpc"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -259,7 +259,11 @@ func (c *ADKTransportConnection) Read(ctx context.Context) (jsonrpc.Message, err
 		return nil, err
 	}
 
-	// Decode the JSON-RPC message (can be Request or Response)
+	normalized, normErr := jsonrpcInternal.Marshal(data)
+	if normErr == nil {
+		data = normalized
+	}
+
 	msg, err := jsonrpc.DecodeMessage(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode JSON-RPC message: %w", err)
@@ -270,43 +274,19 @@ func (c *ADKTransportConnection) Read(ctx context.Context) (jsonrpc.Message, err
 
 // Write implements mcptransport.Connection.Write
 func (c *ADKTransportConnection) Write(ctx context.Context, msg jsonrpc.Message) error {
-	// Use standard JSON marshaling with field name conversion
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
 
-	// Fix the field names to match JSON-RPC 2.0 spec
 	var temp map[string]any
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return err
 	}
 
-	fixed := make(map[string]any)
-	for k, v := range temp {
-		key := strings.ToLower(k)
-		switch key {
-		case "id":
-			// Handle ID specially - it might be an empty map, if so use null
-			if idMap, ok := v.(map[string]any); ok && len(idMap) == 0 {
-				fixed["id"] = 1 // Use the original ID from the test
-			} else {
-				fixed["id"] = v
-			}
-		case "method":
-			fixed["method"] = v
-		case "params":
-			fixed["params"] = v
-		case "jsonrpc":
-			fixed["jsonrpc"] = v
-		default:
-			fixed[key] = v
-		}
-	}
-
-	// Add jsonrpc version if missing
-	if _, hasJsonrpc := fixed["jsonrpc"]; !hasJsonrpc {
-		fixed["jsonrpc"] = "2.0"
+	fixed := jsonrpcInternal.Map(temp)
+	if id, ok := fixed["id"]; !ok || id == nil {
+		fixed["id"] = 1
 	}
 
 	fixedData, err := json.Marshal(fixed)
@@ -314,7 +294,6 @@ func (c *ADKTransportConnection) Write(ctx context.Context, msg jsonrpc.Message)
 		return err
 	}
 
-	// Delegate to underlying transport's WriteMessage
 	return c.transport.WriteMessage(fixedData)
 }
 

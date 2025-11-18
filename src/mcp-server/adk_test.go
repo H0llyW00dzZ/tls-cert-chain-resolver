@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	jsonrpcInternal "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/jsonrpc"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
@@ -973,11 +975,17 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 				t.Fatalf("Failed to marshal response: %v", err)
 			}
 
-			t.Logf("Received JSON response: %s", string(respData))
+			normalized, err := jsonrpcInternal.Marshal(respData)
+			if err != nil {
+				t.Fatalf("Failed to normalize response: %v", err)
+			}
+
+			t.Logf("Received JSON response: %s", string(normalized))
 
 			// Parse the jsonrpc.Message format (capitalized fields)
 			var resp map[string]any
 			err = json.Unmarshal(respData, &resp)
+
 			if err != nil {
 				t.Fatalf("Failed to unmarshal response: %v", err)
 			}
