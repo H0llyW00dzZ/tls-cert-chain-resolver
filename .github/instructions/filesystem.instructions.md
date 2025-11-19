@@ -65,6 +65,7 @@ tls-cert-chain-resolver/
 │   │   ├── config.go                         # MCP server configuration and AI settings
 │   │   ├── adk.go                            # Google ADK integration support
 │   │   ├── adk_test.go                       # Google ADK integration tests
+│   │   ├── analysis_coverage_test.go         # Analysis coverage tests
 │   │   ├── framework.go                      # ServerBuilder pattern, sampling registration, streaming buffer pooling
 │   │   ├── handlers.go                       # MCP tool handlers, AI certificate analysis, certificate processing utilities
 │   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
@@ -635,6 +636,9 @@ src/logger/benchmark_test.go
 # MCP server implementation
 src/mcp-server/config.example.json
 src/mcp-server/config.go
+src/mcp-server/adk.go        # Google ADK integration support
+src/mcp-server/adk_test.go   # Google ADK integration tests
+src/mcp-server/analysis_coverage_test.go # Analysis coverage tests
 src/mcp-server/framework.go  # ServerBuilder pattern, AI sampling with buffer pooling (DefaultSamplingHandler)
 src/mcp-server/handlers.go   # MCP tool handlers, AI certificate analysis, certificate processing utilities
 src/mcp-server/prompts.go    # MCP prompt definitions and handlers for certificate workflows
@@ -644,6 +648,7 @@ src/mcp-server/run_graceful_test.go  # Graceful shutdown test (non-Windows)
 src/mcp-server/run_test.go   # Comprehensive tool coverage tests with macOS skip for validation
 src/mcp-server/server.go
 src/mcp-server/tools.go
+src/mcp-server/transport.go  # In-memory transport implementation for ADK integration
 src/mcp-server/templates/certificate-analysis-system-prompt.md  # Embedded AI system prompt
 src/mcp-server/templates/certificate-formats.md
 
@@ -780,6 +785,9 @@ grep("t\\.TempDir\\|t\\.Cleanup", include="*_test.go")
 
 # Find JSON escaping tests
 grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
+
+# Find JSON-RPC normalization patterns
+grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue", include="*.go")
 
 # Find concurrent test patterns
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
