@@ -176,6 +176,7 @@ func TestLRUEvictionCorrectness(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to generate test CRL for %s: %v", urls[i], err)
 		}
+
 		crlData[i] = data
 	}
 
@@ -847,4 +848,60 @@ func TestTickerReplacementDuringCleanup(t *testing.T) {
 	// Cleanup
 	StopCRLCacheCleanup()
 	ClearCRLCache()
+}
+
+// TestValidateCRLData tests validation logic for CRL caching
+func TestValidateCRLData(t *testing.T) {
+	tests := []struct {
+		name       string
+		url        string
+		data       []byte
+		nextUpdate time.Time
+		wantErr    bool
+	}{
+		{
+			name:       "Valid CRL",
+			url:        "http://example.com/crl",
+			data:       []byte("valid data"),
+			nextUpdate: time.Now().Add(24 * time.Hour),
+			wantErr:    false,
+		},
+		{
+			name:       "Empty URL",
+			url:        "",
+			data:       []byte("valid data"),
+			nextUpdate: time.Now().Add(24 * time.Hour),
+			wantErr:    true,
+		},
+		{
+			name:       "Empty Data",
+			url:        "http://example.com/crl",
+			data:       []byte{},
+			nextUpdate: time.Now().Add(24 * time.Hour),
+			wantErr:    true,
+		},
+		{
+			name:       "NextUpdate too far in past",
+			url:        "http://example.com/crl",
+			data:       []byte("valid data"),
+			nextUpdate: time.Now().Add(-366 * 24 * time.Hour),
+			wantErr:    true,
+		},
+		{
+			name:       "NextUpdate too far in future",
+			url:        "http://example.com/crl",
+			data:       []byte("valid data"),
+			nextUpdate: time.Now().Add(366 * 24 * time.Hour),
+			wantErr:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := SetCachedCRL(tt.url, tt.data, tt.nextUpdate)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SetCachedCRL() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
