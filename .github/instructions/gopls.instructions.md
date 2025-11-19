@@ -16,8 +16,8 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`adk.go`** — Google ADK integration support with transport builder pattern
   - **`adk_test.go`** — Comprehensive ADK transport builder tests with JSON-RPC cycle testing
   - **`analysis_coverage_test.go`** — Analysis coverage tests
-  - **`transport.go`** — In-memory transport implementation bridging ADK SDK and mark3labs/mcp-go with JSON-RPC normalization
-  - **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler, AI API integration
+  - **`transport.go`** — In-memory transport implementation bridging ADK SDK and mark3labs/mcp-go with JSON-RPC normalization and blocking reads
+  - **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler with streaming support, AI API integration
   - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
   - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
   - **`handlers.go`** — Core certificate processing utilities, AI analysis, and individual tool handlers
@@ -337,6 +337,8 @@ gopls_go_search("addPrompts") → Find MCP server prompt implementations
 gopls_go_search("ServerBuilder") → Find builder pattern implementation
 gopls_go_search("WithSampling") → Locate sampling registration on the server builder
 gopls_go_search("DefaultSamplingHandler") → Inspect bidirectional AI streaming handler (`src/mcp-server/framework.go`)
+gopls_go_search("TokenCallback") → Find streaming token callback configuration
+gopls_go_search("parseStreamingResponse") → Find SSE streaming response parser
 gopls_go_search("SamplingRequest") → Explore sampling request markers
 gopls_go_search("ADKTransportBuilder") → Find Google ADK transport builder implementation
 gopls_go_search("NewADKTransportBuilder") → Find ADK transport builder constructor
@@ -349,6 +351,9 @@ gopls_go_search("TransportBuilder") → Find transport builder pattern
 gopls_go_search("NewTransportBuilder") → Find transport builder constructor
 gopls_go_search("BuildInMemoryTransport") → Find in-memory transport building
 gopls_go_search("ADKTransportConnection") → Find ADK transport bridge implementation
+gopls_go_search("SendJSONRPCNotification") → Find JSON-RPC notification sender
+gopls_go_search("jsonRPCError") → Find JSON-RPC error struct
+gopls_go_search("jsonRPCResponse") → Find JSON-RPC response struct
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("certificate-analysis") → Find certificate analysis prompts
 gopls_go_search("security-audit") → Find security audit prompts
@@ -583,7 +588,7 @@ grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\
 grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
 
 # Find AI integration patterns
-grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens\\|handleNoAPIKey\\|convertMessages\\|selectModel\\|prepareMessages\\|buildAPIRequest\\|sendAPIRequest\\|handleAPIError\\|parseStreamingResponse\\|buildSamplingResult", include="*.go")
+grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens\\|handleNoAPIKey\\|convertMessages\\|selectModel\\|prepareMessages\\|buildAPIRequest\\|sendAPIRequest\\|handleAPIError\\|parseStreamingResponse\\|buildSamplingResult\\|TokenCallback", include="*.go")
 
 # Find MCP server builder pattern
 grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")

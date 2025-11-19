@@ -819,7 +819,7 @@ grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\
 grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
 
 # Find AI integration patterns
-grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens", include="*.go")
+grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens\\|handleNoAPIKey\\|convertMessages\\|selectModel\\|prepareMessages\\|buildAPIRequest\\|sendAPIRequest\\|handleAPIError\\|parseStreamingResponse\\|buildSamplingResult\\|TokenCallback", include="*.go")
 
 # Find MCP server builder pattern
 grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")

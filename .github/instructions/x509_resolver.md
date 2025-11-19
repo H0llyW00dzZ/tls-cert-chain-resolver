@@ -153,6 +153,7 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993, intermediate_only=t
 
 **Implementation Notes**:
 - Requires bidirectional sampling with `DefaultSamplingHandler` (`src/mcp-server/framework.go:246`) and streams responses using buffer pooling.
+- Supports real-time token streaming via `TokenCallback` which sends `notifications/sampling/progress` JSON-RPC notifications to the client.
 - Uses embedded system prompt from `src/mcp-server/templates/certificate-analysis-system-prompt.md` including revocation status analysis.
 - Returns only the error message string when AI sampling fails (simplified error handling) instead of a complex error object.
 - Includes OCSP/CRL status verification using `CheckRevocationStatus` from `src/internal/x509/chain/revocation.go`.
