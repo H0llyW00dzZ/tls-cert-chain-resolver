@@ -952,6 +952,14 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 				t.Fatalf("Failed to decode message: %v", err)
 			}
 
+			// Re-encode using MCP SDK for consistent formatting
+			encodedData, err := jsonrpc.EncodeMessage(jsonrpcMsg)
+			if err != nil {
+				t.Fatalf("Failed to encode message: %v", err)
+			}
+
+			t.Logf("Sending JSON-RPC request: %s", string(encodedData))
+
 			// Write through bridge
 			err = bridge.Write(ctx, jsonrpcMsg)
 			if err != nil {
@@ -967,17 +975,18 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 				t.Fatalf("Bridge Read failed: %v", err)
 			}
 
-			// Convert response back to JSON
-			respData, err := json.Marshal(respMsg)
+			// Use proper wire format encoding
+			wireData, err := jsonrpc.EncodeMessage(respMsg)
 			if err != nil {
-				t.Fatalf("Failed to marshal response: %v", err)
+				t.Fatalf("Failed to encode message: %v", err)
 			}
 
-			t.Logf("Received JSON response: %s", string(respData))
+			t.Logf("Received JSON response: %s", string(wireData))
 
-			// Parse the jsonrpc.Message format (capitalized fields)
+			// Parse the response using proper wire format
 			var resp map[string]any
-			err = json.Unmarshal(respData, &resp)
+			err = json.Unmarshal(wireData, &resp)
+
 			if err != nil {
 				t.Fatalf("Failed to unmarshal response: %v", err)
 			}
@@ -987,16 +996,18 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 				t.Errorf("Response contains error: %v", resp["error"])
 			}
 
-			result, ok := resp["Result"].(map[string]any)
+			result, ok := resp["result"].(map[string]any)
 			if !ok {
-				t.Errorf("Expected Result field in response")
+				t.Errorf("Expected result field in response")
 			}
 
 			// Validate response id
-			if idField, ok := resp["id"]; ok {
-				if idMap, ok := idField.(map[string]any); ok && len(idMap) == 0 {
-					// Empty id map means id was null/empty, which is fine for our test
+			if idValue, ok := resp["id"].(float64); ok {
+				if idValue != tc.expectID {
+					t.Errorf("Expected id %v, got %v", tc.expectID, idValue)
 				}
+			} else {
+				t.Errorf("Expected id field to be a number, got %T", resp["id"])
 			}
 
 			// Check content based on test case

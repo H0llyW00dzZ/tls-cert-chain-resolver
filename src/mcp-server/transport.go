@@ -10,9 +10,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 
+	jsonrpcInternal "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/jsonrpc"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -152,83 +152,108 @@ func (t *InMemoryTransport) processMessages() {
 					"id": nil,
 				}
 				t.sendResponse(resp)
-				continue
-			}
-
-			id := req["id"]
-			method, _ := req["method"].(string)
-			params := req["params"]
-
-			var result any
-			var err error
-
-			switch method {
-			case "initialize":
-				initParams, ok := params.(map[string]any)
-				if !ok {
-					err = fmt.Errorf("invalid initialize params")
-				} else {
-					initReq := mcp.InitializeRequest{
-						Params: mcp.InitializeParams{
-							ProtocolVersion: initParams["protocolVersion"].(string),
-							Capabilities:    mcp.ClientCapabilities{},
-						},
-					}
-					resp, e := t.client.Initialize(t.ctx, initReq)
-					if e != nil {
-						// Check if this is an unsupported protocol version error
-						if mcp.IsUnsupportedProtocolVersion(e) {
-							err = fmt.Errorf("unsupported protocol version: %w", e)
-						} else {
-							err = e
-						}
-					} else {
-						result = resp
-					}
-				}
-			case "tools/list":
-				listReq := mcp.ListToolsRequest{}
-				resp, e := t.client.ListTools(t.ctx, listReq)
-				if e != nil {
-					err = e
-				} else {
-					result = resp
-				}
-			case "tools/call":
-				callParams, ok := params.(map[string]any)
-				if !ok {
-					err = fmt.Errorf("invalid tools/call params")
-				} else {
-					callReq := mcp.CallToolRequest{
-						Params: mcp.CallToolParams{
-							Name:      callParams["name"].(string),
-							Arguments: callParams["arguments"].(map[string]any),
-						},
-					}
-					resp, e := t.client.CallTool(t.ctx, callReq)
-					if e != nil {
-						err = e
-					} else {
-						result = resp
-					}
-				}
-			default:
-				err = fmt.Errorf("method not supported: %s", method)
-			}
-
-			resp := map[string]any{
-				"jsonrpc": "2.0",
-				"id":      id,
-			}
-			if err != nil {
-				resp["error"] = map[string]any{
-					"code":    -32603,
-					"message": err.Error(),
-				}
 			} else {
-				resp["result"] = result
+				// Normalize request keys to handle both lowercase and capitalized
+				normalizedReq := jsonrpcInternal.Map(req)
+				id := normalizedReq["id"]
+				var idInt any
+				if id != nil {
+					// Handle different ID types - preserve as-is
+					idInt = id
+				} else {
+					// For requests without ID (notifications), use null
+					idInt = nil
+				}
+
+				method, ok := normalizedReq["method"].(string)
+				if !ok {
+					err := fmt.Errorf("invalid method: expected string, got %T", normalizedReq["method"])
+					resp := map[string]any{
+						"jsonrpc": "2.0",
+						"id":      idInt,
+						"error": map[string]any{
+							"code":    -32600,
+							"message": err.Error(),
+						},
+					}
+					t.sendResponse(resp)
+					continue
+				}
+
+				var result any
+				var err error
+				switch method {
+				case "initialize":
+					initParams, ok := normalizedReq["params"].(map[string]any)
+					if !ok {
+						err = fmt.Errorf("invalid initialize params")
+					} else {
+						initReq := mcp.InitializeRequest{
+							Params: mcp.InitializeParams{
+								ProtocolVersion: initParams["protocolVersion"].(string),
+								Capabilities:    mcp.ClientCapabilities{},
+							},
+						}
+						resp, e := t.client.Initialize(t.ctx, initReq)
+						if e != nil {
+							// Check if this is an unsupported protocol version error
+							if mcp.IsUnsupportedProtocolVersion(e) {
+								err = fmt.Errorf("unsupported protocol version: %w", e)
+							} else {
+								err = e
+							}
+						} else {
+							result = resp
+						}
+					}
+				case "tools/list":
+					if t.client != nil {
+						listReq := mcp.ListToolsRequest{}
+						resp, e := t.client.ListTools(t.ctx, listReq)
+						if e != nil {
+							err = e
+						} else {
+							result = resp
+						}
+					}
+				case "tools/call":
+					if t.client != nil {
+						callParams, ok := normalizedReq["params"].(map[string]any)
+						if !ok {
+							err = fmt.Errorf("invalid tools/call params")
+						} else {
+							callReq := mcp.CallToolRequest{
+								Params: mcp.CallToolParams{
+									Name:      callParams["name"].(string),
+									Arguments: callParams["arguments"].(map[string]any),
+								},
+							}
+							resp, e := t.client.CallTool(t.ctx, callReq)
+							if e != nil {
+								err = e
+							} else {
+								result = resp
+							}
+						}
+					}
+				default:
+					err = fmt.Errorf("method not supported: %s", method)
+				}
+
+				resp := map[string]any{
+					"jsonrpc": "2.0",
+					"id":      idInt, // Use the request ID for responses
+				}
+				if err != nil {
+					resp["error"] = map[string]any{
+						"code":    -32603,
+						"message": err.Error(),
+					}
+				} else {
+					resp["result"] = result
+				}
+				t.sendResponse(resp)
 			}
-			t.sendResponse(resp)
 		}
 	}
 }
@@ -259,7 +284,7 @@ func (c *ADKTransportConnection) Read(ctx context.Context) (jsonrpc.Message, err
 		return nil, err
 	}
 
-	// Decode the JSON-RPC message (can be Request or Response)
+	// Decode directly without normalization for responses
 	msg, err := jsonrpc.DecodeMessage(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode JSON-RPC message: %w", err)
@@ -270,52 +295,13 @@ func (c *ADKTransportConnection) Read(ctx context.Context) (jsonrpc.Message, err
 
 // Write implements mcptransport.Connection.Write
 func (c *ADKTransportConnection) Write(ctx context.Context, msg jsonrpc.Message) error {
-	// Use standard JSON marshaling with field name conversion
-	data, err := json.Marshal(msg)
+	// Use MCP SDK's EncodeMessage to properly serialize the message
+	data, err := jsonrpc.EncodeMessage(msg)
 	if err != nil {
 		return err
 	}
 
-	// Fix the field names to match JSON-RPC 2.0 spec
-	var temp map[string]any
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return err
-	}
-
-	fixed := make(map[string]any)
-	for k, v := range temp {
-		key := strings.ToLower(k)
-		switch key {
-		case "id":
-			// Handle ID specially - it might be an empty map, if so use null
-			if idMap, ok := v.(map[string]any); ok && len(idMap) == 0 {
-				fixed["id"] = 1 // Use the original ID from the test
-			} else {
-				fixed["id"] = v
-			}
-		case "method":
-			fixed["method"] = v
-		case "params":
-			fixed["params"] = v
-		case "jsonrpc":
-			fixed["jsonrpc"] = v
-		default:
-			fixed[key] = v
-		}
-	}
-
-	// Add jsonrpc version if missing
-	if _, hasJsonrpc := fixed["jsonrpc"]; !hasJsonrpc {
-		fixed["jsonrpc"] = "2.0"
-	}
-
-	fixedData, err := json.Marshal(fixed)
-	if err != nil {
-		return err
-	}
-
-	// Delegate to underlying transport's WriteMessage
-	return c.transport.WriteMessage(fixedData)
+	return c.transport.WriteMessage(data)
 }
 
 // Close implements mcptransport.Connection.Close
@@ -346,21 +332,21 @@ func NewTransportBuilder() *TransportBuilder {
 }
 
 // WithConfig sets the server configuration
-func (b *TransportBuilder) WithConfig(config *Config) *TransportBuilder {
-	b.serverBuilder.WithConfig(config)
-	return b
+func (tb *TransportBuilder) WithConfig(config *Config) *TransportBuilder {
+	tb.serverBuilder.WithConfig(config)
+	return tb
 }
 
 // WithVersion sets the server version
-func (b *TransportBuilder) WithVersion(version string) *TransportBuilder {
-	b.serverBuilder.WithVersion(version)
-	return b
+func (tb *TransportBuilder) WithVersion(version string) *TransportBuilder {
+	tb.serverBuilder.WithVersion(version)
+	return tb
 }
 
 // WithDefaultTools adds the default X509 certificate tools
-func (b *TransportBuilder) WithDefaultTools() *TransportBuilder {
-	b.serverBuilder.WithDefaultTools()
-	return b
+func (tb *TransportBuilder) WithDefaultTools() *TransportBuilder {
+	tb.serverBuilder.WithDefaultTools()
+	return tb
 }
 
 // BuildInMemoryTransport creates an in-memory MCP transport for ADK integration
@@ -373,9 +359,9 @@ func (b *TransportBuilder) WithDefaultTools() *TransportBuilder {
 // ServerBuilder, then return a transport that can communicate with it.
 //
 // [mark3labs/mcp-go]: https://pkg.go.dev/github.com/mark3labs/mcp-go
-func (b *TransportBuilder) BuildInMemoryTransport(ctx context.Context) (any, error) {
+func (tb *TransportBuilder) BuildInMemoryTransport(ctx context.Context) (any, error) {
 	// Build the server using ServerBuilder
-	srv, err := b.serverBuilder.Build()
+	srv, err := tb.serverBuilder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build server: %w", err)
 	}
