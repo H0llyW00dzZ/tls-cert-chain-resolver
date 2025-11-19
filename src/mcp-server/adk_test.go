@@ -224,6 +224,44 @@ func TestInMemoryTransport_JSONRPC(t *testing.T) {
 			}
 			defer transport.Close()
 
+			// Send initialize request first (required for tools/call)
+			initRequest := map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "initialize",
+				"params": map[string]any{
+					"protocolVersion": "2024-11-05",
+					"capabilities":    map[string]any{},
+					"clientInfo": map[string]any{
+						"name":    "test-client",
+						"version": "1.0.0",
+					},
+				},
+				"id": 0,
+			}
+
+			initData, _ := json.Marshal(initRequest)
+			if err := transport.WriteMessage(initData); err != nil {
+				t.Fatalf("Failed to write init message: %v", err)
+			}
+
+			// Wait for processing
+			time.Sleep(500 * time.Millisecond)
+
+			// Read init response
+			if _, err := transport.ReadMessage(); err != nil {
+				t.Fatalf("Failed to read init response: %v", err)
+			}
+
+			// Send initialized notification
+			notifyRequest := map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "notifications/initialized",
+			}
+			notifyData, _ := json.Marshal(notifyRequest)
+			if err := transport.WriteMessage(notifyData); err != nil {
+				t.Fatalf("Failed to write notify message: %v", err)
+			}
+
 			// Send JSON-RPC request
 			data, err := json.Marshal(tt.request)
 			if err != nil {
@@ -236,7 +274,7 @@ func TestInMemoryTransport_JSONRPC(t *testing.T) {
 			}
 
 			// Wait for processing
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 
 			// Read response
 			respData, err := transport.ReadMessage()
@@ -372,6 +410,10 @@ func TestADKTransportConnection(t *testing.T) {
 				if err = conn.Write(ctx, jsonrpcMsg); err != nil {
 					t.Errorf("Write returned unexpected error: %v", err)
 				}
+
+				// Consume response to clear channel for next tests
+				time.Sleep(50 * time.Millisecond)
+				conn.Read(ctx)
 			},
 		},
 		{
@@ -501,6 +543,41 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 
 	if err := transport.ConnectServer(ctx, s); err != nil {
 		t.Fatalf("Failed to connect server: %v", err)
+	}
+
+	// Initialize client
+	initRequest := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "initialize",
+		"params": map[string]any{
+			"protocolVersion": "2024-11-05",
+			"capabilities":    map[string]any{},
+			"clientInfo": map[string]any{
+				"name":    "test-client",
+				"version": "1.0.0",
+			},
+		},
+		"id": 0,
+	}
+	initData, _ := json.Marshal(initRequest)
+	if err := transport.WriteMessage(initData); err != nil {
+		t.Fatalf("Failed to write init message: %v", err)
+	}
+
+	// Wait for processing
+	time.Sleep(100 * time.Millisecond)
+
+	if _, err := transport.ReadMessage(); err != nil {
+		t.Fatalf("Failed to read init response: %v", err)
+	}
+
+	notifyRequest := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "notifications/initialized",
+	}
+	notifyData, _ := json.Marshal(notifyRequest)
+	if err := transport.WriteMessage(notifyData); err != nil {
+		t.Fatalf("Failed to write notify message: %v", err)
 	}
 
 	// Note: This test uses internal transport methods for comprehensive testing
@@ -714,6 +791,41 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 		t.Fatalf("Failed to connect server: %v", err)
 	}
 
+	// Initialize client
+	initRequest := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "initialize",
+		"params": map[string]any{
+			"protocolVersion": "2024-11-05",
+			"capabilities":    map[string]any{},
+			"clientInfo": map[string]any{
+				"name":    "test-client",
+				"version": "1.0.0",
+			},
+		},
+		"id": 0,
+	}
+	initData, _ := json.Marshal(initRequest)
+	if err := transport.WriteMessage(initData); err != nil {
+		t.Fatalf("Failed to write init message: %v", err)
+	}
+
+	// Wait for processing
+	time.Sleep(100 * time.Millisecond)
+
+	if _, err := transport.ReadMessage(); err != nil {
+		t.Fatalf("Failed to read init response: %v", err)
+	}
+
+	notifyRequest := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "notifications/initialized",
+	}
+	notifyData, _ := json.Marshal(notifyRequest)
+	if err := transport.WriteMessage(notifyData); err != nil {
+		t.Fatalf("Failed to write notify message: %v", err)
+	}
+
 	conn, err := transport.Connect(ctx)
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
@@ -745,7 +857,7 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 	}
 
 	// Wait for processing
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	// Read response
 	respMsg, err := conn.Read(ctx)
@@ -931,6 +1043,41 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 	}
 	defer transport.Close()
 
+	// Initialize client via transport methods (since we're using bridge)
+	initRequest := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "initialize",
+		"params": map[string]any{
+			"protocolVersion": "2024-11-05",
+			"capabilities":    map[string]any{},
+			"clientInfo": map[string]any{
+				"name":    "test-client",
+				"version": "1.0.0",
+			},
+		},
+		"id": 0,
+	}
+	initData, _ := json.Marshal(initRequest)
+	if err := transport.WriteMessage(initData); err != nil {
+		t.Fatalf("Failed to write init message: %v", err)
+	}
+
+	// Wait for processing
+	time.Sleep(100 * time.Millisecond)
+
+	if _, err := transport.ReadMessage(); err != nil {
+		t.Fatalf("Failed to read init response: %v", err)
+	}
+
+	notifyRequest := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "notifications/initialized",
+	}
+	notifyData, _ := json.Marshal(notifyRequest)
+	if err := transport.WriteMessage(notifyData); err != nil {
+		t.Fatalf("Failed to write notify message: %v", err)
+	}
+
 	// Create bridge
 	bridge := &ADKTransportConnection{transport: transport}
 
@@ -1051,7 +1198,7 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 			}
 
 			// Wait for processing
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 
 			// Read response through bridge
 			respMsg, err := bridge.Read(ctx)
@@ -1189,7 +1336,7 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 			}
 
 			// Wait for processing
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 
 			// Read response through bridge
 			respMsg, err := bridge.Read(ctx)

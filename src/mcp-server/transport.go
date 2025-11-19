@@ -132,17 +132,6 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 		return fmt.Errorf("failed to start client: %w", err)
 	}
 
-	// Initialize the client
-	initReq := mcp.InitializeRequest{
-		Params: mcp.InitializeParams{
-			ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
-			Capabilities:    mcp.ClientCapabilities{},
-		},
-	}
-	if _, err := t.client.Initialize(t.ctx, initReq); err != nil {
-		return fmt.Errorf("failed to initialize client: %w", err)
-	}
-
 	// Start message processing goroutine
 	go t.processMessages()
 
@@ -153,6 +142,7 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 // processMessages handles JSON-RPC message processing between ADK and the MCP client
 func (t *InMemoryTransport) processMessages() {
 	for {
+
 		select {
 		case <-t.ctx.Done():
 			return
@@ -213,10 +203,18 @@ func (t *InMemoryTransport) processMessages() {
 					if !ok {
 						err = fmt.Errorf("invalid initialize params")
 					} else {
+						// Preserve capabilities by marshaling/unmarshaling
+						var capabilities mcp.ClientCapabilities
+						if caps, ok := initParams["capabilities"]; ok {
+							if capsJSON, e := json.Marshal(caps); e == nil {
+								_ = json.Unmarshal(capsJSON, &capabilities)
+							}
+						}
+
 						initReq := mcp.InitializeRequest{
 							Params: mcp.InitializeParams{
 								ProtocolVersion: initParams["protocolVersion"].(string),
-								Capabilities:    mcp.ClientCapabilities{},
+								Capabilities:    capabilities,
 							},
 						}
 						resp, e := t.client.Initialize(t.ctx, initReq)
@@ -229,6 +227,13 @@ func (t *InMemoryTransport) processMessages() {
 							}
 						} else {
 							result = resp
+						}
+					}
+				case "ping":
+					if t.client != nil {
+						err = t.client.Ping(t.ctx)
+						if err == nil {
+							result = map[string]any{}
 						}
 					}
 				case "tools/list":
