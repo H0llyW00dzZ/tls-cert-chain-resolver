@@ -738,21 +738,19 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 		t.Fatalf("Failed to decode message: %v", err)
 	}
 
-	// Note: ADK bridge has compatibility issues with complex message processing
+	// Note: ADK bridge requires time for processing
 	// This test verifies basic bridge connectivity
 	if err := conn.Write(ctx, jsonrpcMsg); err != nil {
-		t.Logf("ADK bridge write failed as expected: %v", err)
-		t.Logf("This is expected due to bridge compatibility limitations")
-		// Test passes if Write doesn't panic and returns an error gracefully
-		return
+		t.Fatalf("ADK bridge write failed: %v", err)
 	}
 
-	// If write succeeded, try to read (though it may fail)
+	// Wait for processing
+	time.Sleep(100 * time.Millisecond)
+
+	// Read response
 	respMsg, err := conn.Read(ctx)
 	if err != nil {
-		t.Logf("ADK bridge read failed as expected: %v", err)
-		t.Logf("This is expected due to bridge compatibility limitations")
-		return
+		t.Fatalf("ADK bridge read failed: %v", err)
 	}
 
 	// If we got here, basic bridge functionality works
