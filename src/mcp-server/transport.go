@@ -158,33 +158,30 @@ func (t *InMemoryTransport) processMessages() {
 				id := normalizedReq["id"]
 				var idInt any
 				if id != nil {
-					// Handle different ID types
-					switch v := id.(type) {
-					case float64:
-						idInt = v // Keep as float64
-					case map[string]any:
-						// For test compatibility, assign IDs based on method
-						switch normalizedReq["method"] {
-						case "tools/list":
-							idInt = 1
-						case "tools/call":
-							idInt = 2
-						default:
-							idInt = nil
-						}
-					default:
-						idInt = v
-					}
+					// Handle different ID types - preserve as-is
+					idInt = id
 				} else {
 					// For requests without ID (notifications), use null
 					idInt = nil
 				}
 
-				method, _ := normalizedReq["method"].(string)
+				method, ok := normalizedReq["method"].(string)
+				if !ok {
+					err := fmt.Errorf("invalid method: expected string, got %T", normalizedReq["method"])
+					resp := map[string]any{
+						"jsonrpc": "2.0",
+						"id":      idInt,
+						"error": map[string]any{
+							"code":    -32600,
+							"message": err.Error(),
+						},
+					}
+					t.sendResponse(resp)
+					continue
+				}
 
 				var result any
 				var err error
-
 				switch method {
 				case "initialize":
 					initParams, ok := normalizedReq["params"].(map[string]any)
