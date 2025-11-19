@@ -1166,6 +1166,17 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 			expectResult:  true,
 			expectContent: "Test Message",
 		},
+		{
+			name: "ping",
+			request: map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "ping",
+				"id":      7,
+			},
+			expectID:      7,
+			expectResult:  true,
+			expectContent: "",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1427,6 +1438,9 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 							}
 						}
 					}
+				case "ping":
+					// Ping returns empty result, content check is empty string
+					content = ""
 				default: // tools/call
 					if resultContent, ok := result["content"].([]any); ok && len(resultContent) > 0 {
 						if textContent, ok := resultContent[0].(map[string]any); ok {
