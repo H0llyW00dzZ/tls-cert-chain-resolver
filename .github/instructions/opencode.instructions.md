@@ -491,7 +491,7 @@ New to repository?
 ### Package Structure
 
 ```
-cmd/                   → Main entry point
+cmd/                   → Main entry point (CLI, MCP, ADK example)
 src/cli/               → CLI implementation (cobra)
 src/logger/            → Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex)
 src/mcp-server/        → MCP server implementation with X509 certificate tools
@@ -505,7 +505,8 @@ src/internal/x509/     → Certificate operations
   ├── certs/           → Encoding/decoding
   └── chain/           → Chain resolution
 src/internal/helper/   → Utilities
-  └── gc/              → Garbage collection optimization
+  ├── gc/              → Garbage collection optimization
+  └── jsonrpc/         → JSON-RPC canonicalization
 ```
 
 ### Development Workflow

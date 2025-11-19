@@ -55,6 +55,7 @@
 **Test race + coverage**: `go test -race -cover ./... 2>&1 | cat` (recommended primary test approach)  
 **Benchmark**: `go test -bench=. ./src/logger ./src/internal/x509/chain 2>&1 | cat` (performance testing)  
 **Clean**: `make clean` (removes build artifacts from `./bin/`)
+**Run ADK Example**: `go run ./cmd/adk-go` (runs the ADK integration example)
 
 **Note**: Piping test commands to `cat` (e.g., `2>&1 | cat`) ensures bash tool captures and displays all test output.
 
@@ -83,6 +84,7 @@
   **CLI Framework**: Use `github.com/spf13/cobra` for command-line interface  
   **Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race -cover ./...` before merging.  
   **Memory Management**: Use buffer pooling via `gc.Pool` interface (`src/internal/helper/gc/`) for efficient memory usage with certificates and logging. The `gc` package abstracts `bytebufferpool` to avoid direct dependencies. Always call `Reset()` on buffers before returning them to the pool. Use `gc.Default` for the default buffer pool. For AI API requests, buffer pooling is used in `DefaultSamplingHandler` to optimize HTTP streaming performance.  
+  **JSON-RPC Utilities**: Use `src/internal/helper/jsonrpc/` for JSON-RPC 2.0 canonicalization and normalization (lowercase keys, ID handling) when implementing MCP transports.
   **Certificate Operations**: Use internal packages `x509certs` and `x509chain` for certificate handling. Use `HTTPConfig` struct for centralized HTTP client configuration in certificate operations (timeout, User-Agent, version). Always check revocation status using `CheckRevocationStatus` after chain resolution. CRL cache includes O(1) LRU eviction with hashmap and doubly-linked list, automatic cleanup of expired CRLs with context cancellation support, configurable size limits (default 100), comprehensive metrics tracking (hits, misses, evictions, cleanups, memory usage), atomic operations to prevent race conditions, and resource usage monitoring via `get_resource_usage` tool.
 
 ## Concurrency

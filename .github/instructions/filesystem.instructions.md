@@ -28,6 +28,8 @@ tls-cert-chain-resolver/
 │   │   └── update-knowledge.md               # Update instruction files workflow
 │   └── README.md                             # Custom commands documentation
 ├── cmd/
+│   ├── adk-go/
+│   │   └── run.go                            # ADK integration example
 │   ├── mcp-server/
 │   │   └── run.go                            # MCP server entry point
 │   └── run.go                                # Main CLI entry point
@@ -620,6 +622,9 @@ write("new_test.go", ...)       # Create new test files when needed
 
 # Main entry point
 cmd/run.go
+
+# ADK example runner
+cmd/adk-go/run.go
 
 # MCP server entry point
 cmd/mcp-server/run.go

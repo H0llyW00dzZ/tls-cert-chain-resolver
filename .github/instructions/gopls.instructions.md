@@ -9,7 +9,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 **Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
 **Go Version**: 1.25.4 or later  
 **Key Packages**:
-- **`cmd/`** — Main CLI entry point and MCP server binaries
+- **`cmd/`** — Main CLI entry point, MCP server binaries, and ADK example runner (`adk-go/`)
 - **`src/cli/`** — Cobra CLI implementation  
 - **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and gc.Pool)
  - **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
@@ -96,6 +96,7 @@ Packages:
 - src/internal/x509/certs
 - src/internal/x509/chain
 - src/internal/helper/gc
+- src/internal/helper/jsonrpc
 ```
 
 ### gopls_go_search(query)
