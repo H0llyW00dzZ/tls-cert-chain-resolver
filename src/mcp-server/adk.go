@@ -8,6 +8,7 @@ package mcpserver
 import (
 	"context"
 	"fmt"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 	"os"
 )
 
@@ -41,7 +42,7 @@ func NewADKTransportBuilder() *ADKTransportBuilder {
 	return &ADKTransportBuilder{
 		config: ADKTransportConfig{
 			MCPConfigFile: os.Getenv("MCP_X509_CONFIG_FILE"),
-			Version:       "1.0.0",
+			Version:       version.Version,
 			TransportType: "inmemory",
 		},
 	}
