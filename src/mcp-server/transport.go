@@ -171,15 +171,23 @@ func (t *InMemoryTransport) processMessages() {
 				method, ok := normalizedReq["method"].(string)
 				if !ok {
 					err := fmt.Errorf("invalid method: expected string, got %T", normalizedReq["method"])
-					resp := map[string]any{
-						"jsonrpc": "2.0",
-						"id":      idInt,
-						"error": map[string]any{
-							"code":    -32600,
-							"message": err.Error(),
-						},
+					// Only send error if it's a request (has ID)
+					if idInt != nil {
+						resp := map[string]any{
+							"jsonrpc": "2.0",
+							"id":      idInt,
+							"error": map[string]any{
+								"code":    -32600,
+								"message": err.Error(),
+							},
+						}
+						t.sendResponse(resp)
 					}
-					t.sendResponse(resp)
+					continue
+				}
+
+				// Handle notifications that don't require a response or action in this bridge
+				if method == "notifications/initialized" {
 					continue
 				}
 
@@ -327,6 +335,11 @@ func (t *InMemoryTransport) processMessages() {
 					}
 				default:
 					err = fmt.Errorf("method not supported: %s", method)
+				}
+
+				// JSON-RPC 2.0: Server MUST NOT reply to a Notification (request without ID)
+				if idInt == nil {
+					continue
 				}
 
 				resp := map[string]any{
