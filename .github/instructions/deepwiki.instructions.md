@@ -391,10 +391,7 @@ deepwiki_ask_question("modelcontextprotocol/go-sdk", "What's the difference betw
 # Google ADK integration
 deepwiki_ask_question("google/adk", "How do I create MCP transports for ADK integration?")
 deepwiki_ask_question("google/adk", "What are the transport types supported by ADK?")
-
-# Go standard library
-deepwiki_ask_question("golang/go", "How do I handle certificate verification errors in crypto/x509?")
-deepwiki_ask_question("golang/go", "What's the proper way to use context with HTTP client requests?")
+deepwiki_ask_question("google/adk", "How do I use mcptoolset with a custom transport?")
 ```
 
 ## Troubleshooting

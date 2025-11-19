@@ -152,8 +152,8 @@ gopls_go_search("CollectResourceUsage") → Find resource usage data collection 
 gopls_go_search("FormatResourceUsageAsJSON") → Find JSON formatting for resource usage
 gopls_go_search("FormatResourceUsageAsMarkdown") → Find Markdown formatting for resource usage
 gopls_go_search("ResourceUsageData") → Find resource usage data structures
-gopls_go_search("Marshal") → Find JSON-RPC marshaling functions
-gopls_go_search("Map") → Find JSON-RPC field normalization functions
+gopls_go_search("jsonrpc.Marshal") → Find JSON-RPC marshaling functions
+gopls_go_search("jsonrpc.Map") → Find JSON-RPC field normalization functions
 gopls_go_search("normalizeIDValue") → Find ID value normalization functions
 ```
 

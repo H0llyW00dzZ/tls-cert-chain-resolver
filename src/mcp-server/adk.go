@@ -79,14 +79,16 @@ func (b *ADKTransportBuilder) ValidateConfig() error {
 //
 // NOTE: This returns an [any] because the actual MCP server types
 // depend on the [mark3labs/mcp-go] library. When used with ADK, you would
-// create an in-process client using client.NewInProcessClient(server).
+// use the returned transport directly with mcptoolset.
 //
 // Example usage when ADK packages are available:
 //
-//	transport := NewADKTransportBuilder().WithInMemoryTransport().BuildTransport(ctx)
-//	server := transport.(*server.MCPServer)  // Cast to actual type
-//	mcpClient, err := client.NewInProcessClient(server)
-//	// Use mcpClient for ADK integration
+//	transport, err := NewADKTransportBuilder().WithInMemoryTransport().BuildTransport(ctx)
+//	if err != nil {
+//		// handle error
+//	}
+//	// Use transport with ADK mcptoolset
+//	// mcpToolSet, err := mcptoolset.New(mcptoolset.Config{Transport: transport})
 //
 // [mark3labs/mcp-go]: https://pkg.go.dev/github.com/mark3labs/mcp-go
 func (b *ADKTransportBuilder) BuildTransport(ctx context.Context) (any, error) {
