@@ -131,7 +131,11 @@ func (t *InMemoryTransport) Connect(ctx context.Context) (mcptransport.Connectio
 	}, nil
 }
 
-// ConnectServer connects a mark3labs MCP server to this transport (public method for testing/docs)
+// ConnectServer connects a mark3labs MCP server to this transport using an in-process client.
+//
+// This enables direct in-memory communication without process overhead, making it ideal
+// for embedding the server in custom integration scenarios (like Google ADK).
+// It also configures notification forwarding to support bidirectional features such as AI sampling.
 func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPServer) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
