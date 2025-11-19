@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
@@ -29,7 +30,7 @@ func TestADKTransportBuilder_WithVersion(t *testing.T) {
 		{
 			name:         "default version",
 			version:      "",
-			expectResult: "1.0.0", // Default version
+			expectResult: version.Version, // Default version
 		},
 		{
 			name:         "custom version",
