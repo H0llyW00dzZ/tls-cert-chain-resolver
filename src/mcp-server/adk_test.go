@@ -801,8 +801,8 @@ func TestADKTransportConnection_ErrorScenarios(t *testing.T) {
 				conn.Close() // Close connection
 				return transport
 			},
-			expectError: false, // Transport write should still work, just no response
-			description: "Writing after connection close should not fail at transport level",
+			expectError: true, // Transport write should fail if context is cancelled
+			description: "Writing after connection close should fail at transport level",
 		},
 	}
 
@@ -865,11 +865,13 @@ func TestADKTransportBridge(t *testing.T) {
 
 // TestADKTransportBridge_FullJSONRPC tests complete JSON-RPC request-response cycle through the bridge
 func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
-	// Create MCP server with tools
+	// Create MCP server with tools, resources, and prompts
 	s := server.NewMCPServer(
 		"Bridge Test Server",
 		"1.0.0",
 		server.WithToolCapabilities(true),
+		server.WithResourceCapabilities(true, true),
+		server.WithPromptCapabilities(true),
 	)
 
 	// Add test tools
@@ -885,6 +887,35 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				mcp.NewTextContent("Echo: " + msg),
+			},
+		}, nil
+	})
+
+	// Add test resource
+	testResource := mcp.NewResource("test://resource",
+		"Test Resource",
+		mcp.WithMIMEType("text/plain"),
+	)
+	s.AddResource(testResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      "test://resource",
+				MIMEType: "text/plain",
+				Text:     "This is a test resource",
+			},
+		}, nil
+	})
+
+	// Add test prompt
+	testPrompt := mcp.NewPrompt("test_prompt", mcp.WithPromptDescription("Test Prompt"))
+	s.AddPrompt(testPrompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "Test Prompt",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleUser,
+					Content: mcp.NewTextContent("Test Message"),
+				},
 			},
 		}, nil
 	})
@@ -935,6 +966,56 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 			expectID:      2,
 			expectResult:  true,
 			expectContent: "Echo: Hello Bridge",
+		},
+		{
+			name: "resources/list",
+			request: map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "resources/list",
+				"id":      3,
+			},
+			expectID:      3,
+			expectResult:  true,
+			expectContent: "Test Resource",
+		},
+		{
+			name: "resources/read",
+			request: map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "resources/read",
+				"params": map[string]any{
+					"uri": "test://resource",
+				},
+				"id": 4,
+			},
+			expectID:      4,
+			expectResult:  true,
+			expectContent: "This is a test resource",
+		},
+		{
+			name: "prompts/list",
+			request: map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "prompts/list",
+				"id":      5,
+			},
+			expectID:      5,
+			expectResult:  true,
+			expectContent: "test_prompt",
+		},
+		{
+			name: "prompts/get",
+			request: map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "prompts/get",
+				"params": map[string]any{
+					"name": "test_prompt",
+				},
+				"id": 6,
+			},
+			expectID:      6,
+			expectResult:  true,
+			expectContent: "Test Message",
 		},
 	}
 
@@ -1000,6 +1081,7 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 			result, ok := resp["result"].(map[string]any)
 			if !ok {
 				t.Errorf("Expected result field in response")
+				return
 			}
 
 			// Validate response id
@@ -1015,8 +1097,8 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 			if tc.expectContent != "" {
 				content := ""
 
-				if tc.name == "tools/list" {
-					// For tools/list, check tools array
+				switch tc.name {
+				case "tools/list":
 					if tools, ok := result["tools"].([]any); ok && len(tools) > 0 {
 						if tool, ok := tools[0].(map[string]any); ok {
 							if name, ok := tool["name"].(string); ok {
@@ -1024,8 +1106,179 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 							}
 						}
 					}
-				} else {
-					// For tools/call, check content array
+				case "resources/list":
+					if resources, ok := result["resources"].([]any); ok && len(resources) > 0 {
+						if resource, ok := resources[0].(map[string]any); ok {
+							if name, ok := resource["name"].(string); ok {
+								content = name
+							}
+						}
+					}
+				case "resources/read":
+					if contents, ok := result["contents"].([]any); ok && len(contents) > 0 {
+						if item, ok := contents[0].(map[string]any); ok {
+							if text, ok := item["text"].(string); ok {
+								content = text
+							}
+						}
+					}
+				case "prompts/list":
+					if prompts, ok := result["prompts"].([]any); ok && len(prompts) > 0 {
+						if prompt, ok := prompts[0].(map[string]any); ok {
+							if name, ok := prompt["name"].(string); ok {
+								content = name
+							}
+						}
+					}
+				case "prompts/get":
+					if messages, ok := result["messages"].([]any); ok && len(messages) > 0 {
+						if message, ok := messages[0].(map[string]any); ok {
+							if contentMap, ok := message["content"].(map[string]any); ok {
+								if text, ok := contentMap["text"].(string); ok {
+									content = text
+								}
+							}
+						}
+					}
+				default: // tools/call
+					if resultContent, ok := result["content"].([]any); ok && len(resultContent) > 0 {
+						if textContent, ok := resultContent[0].(map[string]any); ok {
+							if text, ok := textContent["text"].(string); ok {
+								content = text
+							}
+						}
+					}
+				}
+
+				if content != tc.expectContent {
+					t.Errorf("Expected content %q, got %q", tc.expectContent, content)
+				}
+			}
+		})
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Convert request to JSON-RPC message
+			data, err := json.Marshal(tc.request)
+			if err != nil {
+				t.Fatalf("Failed to marshal request: %v", err)
+			}
+
+			t.Logf("Sending JSON request: %s", string(data))
+
+			jsonrpcMsg, err := jsonrpc.DecodeMessage(data)
+			if err != nil {
+				t.Fatalf("Failed to decode message: %v", err)
+			}
+
+			// Re-encode using MCP SDK for consistent formatting
+			encodedData, err := jsonrpc.EncodeMessage(jsonrpcMsg)
+			if err != nil {
+				t.Fatalf("Failed to encode message: %v", err)
+			}
+
+			t.Logf("Sending JSON-RPC request: %s", string(encodedData))
+
+			// Write through bridge
+			err = bridge.Write(ctx, jsonrpcMsg)
+			if err != nil {
+				t.Fatalf("Write failed: %v", err)
+			}
+
+			// Wait for processing
+			time.Sleep(100 * time.Millisecond)
+
+			// Read response through bridge
+			respMsg, err := bridge.Read(ctx)
+			if err != nil {
+				t.Fatalf("Bridge Read failed: %v", err)
+			}
+
+			// Use proper wire format encoding
+			wireData, err := jsonrpc.EncodeMessage(respMsg)
+			if err != nil {
+				t.Fatalf("Failed to encode message: %v", err)
+			}
+
+			t.Logf("Received JSON response: %s", string(wireData))
+
+			// Parse the response using proper wire format
+			var resp map[string]any
+			err = json.Unmarshal(wireData, &resp)
+
+			if err != nil {
+				t.Fatalf("Failed to unmarshal response: %v", err)
+			}
+
+			// Validate response - handle jsonrpc.Message format
+			if resp["error"] != nil {
+				t.Errorf("Response contains error: %v", resp["error"])
+			}
+
+			result, ok := resp["result"].(map[string]any)
+			if !ok {
+				t.Errorf("Expected result field in response")
+				return
+			}
+
+			// Validate response id
+			if idValue, ok := resp["id"].(float64); ok {
+				if idValue != tc.expectID {
+					t.Errorf("Expected id %v, got %v", tc.expectID, idValue)
+				}
+			} else {
+				t.Errorf("Expected id field to be a number, got %T", resp["id"])
+			}
+
+			// Check content based on test case
+			if tc.expectContent != "" {
+				content := ""
+
+				switch tc.name {
+				case "tools/list":
+					if tools, ok := result["tools"].([]any); ok && len(tools) > 0 {
+						if tool, ok := tools[0].(map[string]any); ok {
+							if name, ok := tool["name"].(string); ok {
+								content = name
+							}
+						}
+					}
+				case "resources/list":
+					if resources, ok := result["resources"].([]any); ok && len(resources) > 0 {
+						if resource, ok := resources[0].(map[string]any); ok {
+							if name, ok := resource["name"].(string); ok {
+								content = name
+							}
+						}
+					}
+				case "resources/read":
+					if contents, ok := result["contents"].([]any); ok && len(contents) > 0 {
+						if item, ok := contents[0].(map[string]any); ok {
+							if text, ok := item["text"].(string); ok {
+								content = text
+							}
+						}
+					}
+				case "prompts/list":
+					if prompts, ok := result["prompts"].([]any); ok && len(prompts) > 0 {
+						if prompt, ok := prompts[0].(map[string]any); ok {
+							if name, ok := prompt["name"].(string); ok {
+								content = name
+							}
+						}
+					}
+				case "prompts/get":
+					if messages, ok := result["messages"].([]any); ok && len(messages) > 0 {
+						if message, ok := messages[0].(map[string]any); ok {
+							if contentMap, ok := message["content"].(map[string]any); ok {
+								if text, ok := contentMap["text"].(string); ok {
+									content = text
+								}
+							}
+						}
+					}
+				default: // tools/call
 					if resultContent, ok := result["content"].([]any); ok && len(resultContent) > 0 {
 						if textContent, ok := resultContent[0].(map[string]any); ok {
 							if text, ok := textContent["text"].(string); ok {
