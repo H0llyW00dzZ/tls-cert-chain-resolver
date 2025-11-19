@@ -64,11 +64,12 @@ func NewInMemoryTransport(ctx context.Context) *InMemoryTransport {
 // ReadMessage implements [mcp.Transport.ReadMessage]
 // For ADK compatibility, this should return JSON-RPC messages
 // Uses channel-based message passing for in-memory communication
+// This method blocks until a message is available or the context is cancelled
 func (t *InMemoryTransport) ReadMessage() ([]byte, error) {
 	select {
 	case msg := <-t.recvCh:
 		return msg, nil
-	default:
+	case <-t.ctx.Done():
 		return nil, io.EOF
 	}
 }

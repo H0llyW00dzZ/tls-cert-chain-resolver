@@ -378,15 +378,7 @@ func TestADKTransportConnection(t *testing.T) {
 				}
 			},
 		},
-		{
-			name: "read returns EOF when no message available",
-			testFunc: func(t *testing.T, conn mcptransport.Connection) {
-
-				if _, err := conn.Read(ctx); err != io.EOF {
-					t.Errorf("Expected EOF when no message available, got %v", err)
-				}
-			},
-		},
+		// read blocks test case removed - moved to TestADKTransportConnection_Blocking
 		{
 			name: "write method accepts valid message",
 			testFunc: func(t *testing.T, conn mcptransport.Connection) {
@@ -421,30 +413,62 @@ func TestADKTransportConnection(t *testing.T) {
 			testFunc: func(t *testing.T, conn mcptransport.Connection) {
 
 				if err := conn.Close(); err != nil {
-					t.Errorf("Failed to close connection: %v", err)
+					t.Errorf("Close returned unexpected error: %v", err)
 				}
 			},
 		},
 		{
 			name: "read fails after close",
 			testFunc: func(t *testing.T, conn mcptransport.Connection) {
-
 				if _, err := conn.Read(ctx); err == nil {
-					t.Error("Expected error when reading from closed connection")
+					t.Error("Read expected to fail after close, but it succeeded")
 				}
 			},
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.testFunc(t, conn)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.testFunc(t, conn)
 		})
+	}
+}
+
+// TestADKTransportConnection_Blocking tests that Read blocks correctly until message or close
+func TestADKTransportConnection_Blocking(t *testing.T) {
+	ctx := context.Background() // Background context for manual control
+	transport := NewInMemoryTransport(ctx)
+	conn, _ := transport.Connect(ctx)
+
+	done := make(chan error)
+	go func() {
+		_, err := conn.Read(ctx)
+		done <- err
+	}()
+
+	select {
+	case <-done:
+		t.Error("Read returned immediately, expected to block")
+	case <-time.After(50 * time.Millisecond):
+		// Blocked correctly
+	}
+
+	// Unblock by closing transport
+	transport.Close()
+
+	select {
+	case err := <-done:
+		if err != io.EOF {
+			t.Errorf("Expected EOF on close, got %v", err)
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("Read did not return after close")
 	}
 }
 
 // TestADKTransportConnection_Advanced tests advanced connection scenarios
 func TestADKTransportConnection_Advanced(t *testing.T) {
+
 	// Create MCP server with multiple tools
 	s := server.NewMCPServer(
 		"Advanced Test Server",
@@ -968,11 +992,18 @@ func TestADKTransportBridge(t *testing.T) {
 		}
 	})
 
-	// Test Read when no message available
-	t.Run("read_empty", func(t *testing.T) {
+	// Test Read when context cancelled
+	t.Run("read_cancelled", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
+
+		// Re-create transport with cancelled context
+		transport := NewInMemoryTransport(ctx)
+		bridge := &ADKTransportConnection{transport: transport}
+
 		_, err := bridge.Read(ctx)
 		if err != io.EOF {
-			t.Errorf("Expected EOF when no message available, got: %v", err)
+			t.Errorf("Expected EOF when context cancelled, got: %v", err)
 		}
 	})
 }
@@ -1300,6 +1331,9 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 							}
 						}
 					}
+				case "ping":
+					// Ping returns empty result, content check is empty string
+					content = ""
 				default: // tools/call
 					if resultContent, ok := result["content"].([]any); ok && len(resultContent) > 0 {
 						if textContent, ok := resultContent[0].(map[string]any); ok {
@@ -1315,5 +1349,106 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestADKTransportBridge_WithSDKClient (Robust) tests the bridge using the official SDK client
+// This simulates how ADK uses the transport (since ADK wraps the SDK)
+func TestADKTransportBridge_WithSDKClient(t *testing.T) {
+	// Create MCP server
+	s := server.NewMCPServer(
+		"SDK Client Test Server",
+		"1.0.0",
+		server.WithToolCapabilities(true),
+	)
+
+	// Add a simple tool
+	testTool := mcp.NewTool("sdk_echo",
+		mcp.WithDescription("Echoes message"),
+		mcp.WithString("message", mcp.Required(), mcp.Description("Message to echo")),
+	)
+
+	s.AddTool(testTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		params := request.Params
+		args := params.Arguments.(map[string]any)
+		msg := args["message"].(string)
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.NewTextContent("Echo: " + msg),
+			},
+		}, nil
+	})
+
+	ctx := t.Context()
+	transport := NewInMemoryTransport(ctx)
+
+	// Connect server to transport (bridge side)
+	if err := transport.ConnectServer(ctx, s); err != nil {
+		t.Fatalf("Failed to connect server: %v", err)
+	}
+	defer transport.Close()
+
+	// Create official SDK client
+	client := mcptransport.NewClient(&mcptransport.Implementation{
+		Name:    "test-client",
+		Version: "1.0.0",
+	}, nil)
+
+	// Connect client to transport (this establishes session and performs handshake)
+	session, err := client.Connect(ctx, transport, nil)
+	if err != nil {
+		t.Fatalf("Failed to connect SDK client: %v", err)
+	}
+	defer session.Close()
+
+	// List tools
+	listParams := mcptransport.ListToolsParams{}
+	toolsResult, err := session.ListTools(ctx, &listParams)
+	if err != nil {
+		t.Fatalf("Failed to list tools: %v", err)
+	}
+
+	found := false
+	for _, tool := range toolsResult.Tools {
+		if tool.Name == "sdk_echo" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("Expected to find 'sdk_echo' tool")
+	}
+
+	// Call tool
+	callParams := mcptransport.CallToolParams{
+		Name: "sdk_echo",
+		Arguments: map[string]any{
+			"message": "Hello SDK",
+		},
+	}
+	callResult, err := session.CallTool(ctx, &callParams)
+	if err != nil {
+		t.Fatalf("Failed to call tool: %v", err)
+	}
+
+	if len(callResult.Content) == 0 {
+		t.Fatal("Expected content in tool result")
+	}
+
+	// Content is interface{}, need to type assert
+	// SDK usually returns []Content interface
+	// Check if it's TextContent (pointer receiver)
+	if textContent, ok := callResult.Content[0].(*mcptransport.TextContent); ok {
+		if textContent.Text != "Echo: Hello SDK" {
+			t.Errorf("Expected 'Echo: Hello SDK', got '%s'", textContent.Text)
+		}
+	} else {
+		// It might be a pointer or different structure depending on SDK version
+		t.Logf("Content type: %T", callResult.Content[0])
+		// Try simplified check via JSON marshalling if type assertion fails
+		bytes, _ := json.Marshal(callResult.Content[0])
+		if !strings.Contains(string(bytes), "Echo: Hello SDK") {
+			t.Errorf("Expected content to contain 'Echo: Hello SDK', got %s", string(bytes))
+		}
 	}
 }
