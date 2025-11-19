@@ -41,6 +41,9 @@ tls-cert-chain-resolver/
 │   │   │       ├── mock_buffer_test.go       # Mock buffer for testing
 │   │   │       ├── reduce_overhead.go        # Buffer pool abstraction (gc.Pool interface)
 │   │   │       └── reduce_overhead_test.go   # Buffer pool tests
+│   │   │   └── jsonrpc/
+│   │   │       ├── json_rpc.go               # JSON-RPC canonicalization helper
+│   │   │       └── json_rpc_test.go          # JSON-RPC helper tests
 │   │   └── x509/
 │   │       ├── certs/
 │   │       │   ├── cert_test.go              # Certificate tests
@@ -60,6 +63,8 @@ tls-cert-chain-resolver/
 │   ├── mcp-server/
 │   │   ├── config.example.json               # MCP server configuration example
 │   │   ├── config.go                         # MCP server configuration and AI settings
+│   │   ├── adk.go                            # Google ADK integration support
+│   │   ├── adk_test.go                       # Google ADK integration tests
 │   │   ├── framework.go                      # ServerBuilder pattern, sampling registration, streaming buffer pooling
 │   │   ├── handlers.go                       # MCP tool handlers, AI certificate analysis, certificate processing utilities
 │   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
@@ -71,7 +76,8 @@ tls-cert-chain-resolver/
 │   │   ├── templates/
 │   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt used for sampling
 │   │   │   └── certificate-formats.md                    # Certificate format documentation
-│   │   └── tools.go                          # Tool definitions and creation functions
+│   │   ├── tools.go                          # Tool definitions and creation functions
+│   │   └── transport.go                      # In-memory transport implementation for ADK integration
 │   └── version/
 │       └── version.go                        # Version information and build metadata
 ├── .gitignore                                # Git ignore patterns
@@ -659,6 +665,10 @@ src/internal/x509/chain/revocation.go  # OCSP/CRL revocation status checking
 src/internal/helper/gc/reduce_overhead.go
 src/internal/helper/gc/reduce_overhead_test.go
 src/internal/helper/gc/mock_buffer_test.go
+
+# JSON-RPC utilities
+src/internal/helper/jsonrpc/json_rpc.go
+src/internal/helper/jsonrpc/json_rpc_test.go
 
 # Version information
 src/version/version.go
