@@ -34,6 +34,19 @@ func fetchCertificateChain(ctx context.Context, cert *x509.Certificate, version 
 }
 ```
 
+**Transport Context Pattern**: Always pass context to transport constructors for proper lifecycle management
+
+```go
+// ✅ Good - context-aware transport creation (see src/mcp-server/transport.go)
+func createTransport(ctx context.Context) (*InMemoryTransport, error) {
+    // Pass context to constructor for proper cancellation handling
+    transport := NewInMemoryTransport(ctx)
+    
+    // Transport will be cancelled when context is cancelled
+    return transport, nil
+}
+```
+
 ### 2. Context Cancellation Handling
 
 **Pattern**: Use context for graceful shutdown

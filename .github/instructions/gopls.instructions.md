@@ -30,6 +30,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`remote.go`** — Context-aware remote TLS chain retrieval (`FetchRemoteChain`)
   - **`revocation.go`** — OCSP/CRL revocation status checking (`CheckRevocationStatus`, `ParseCRLResponse`)
 - **`src/internal/helper/gc/`** — Memory management utilities
+- **`src/internal/helper/jsonrpc/`** — JSON-RPC canonicalization helper for MCP transport normalization
 - **`src/version/`** — Version information
 
 ## Core Workflows
@@ -151,6 +152,9 @@ gopls_go_search("CollectResourceUsage") → Find resource usage data collection 
 gopls_go_search("FormatResourceUsageAsJSON") → Find JSON formatting for resource usage
 gopls_go_search("FormatResourceUsageAsMarkdown") → Find Markdown formatting for resource usage
 gopls_go_search("ResourceUsageData") → Find resource usage data structures
+gopls_go_search("Marshal") → Find JSON-RPC marshaling functions
+gopls_go_search("Map") → Find JSON-RPC field normalization functions
+gopls_go_search("normalizeIDValue") → Find ID value normalization functions
 ```
 
 ### gopls_go_file_context(file)
@@ -598,6 +602,9 @@ grep("HTTPConfig\\|Client\\(\\)\\|GetUserAgent", include="*.go")
 
 # Find certificate context builders
 grep("buildCertificateContextWithRevocation\\|buildCertificateContext", include="*.go")
+
+# Find JSON-RPC normalization patterns
+grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue", include="*.go")
 ```
 
 ## Summary
