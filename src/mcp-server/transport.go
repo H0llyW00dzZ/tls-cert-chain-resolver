@@ -63,11 +63,14 @@ func (t *InMemoryTransport) ReadMessage() ([]byte, error) {
 // For ADK compatibility, this should accept JSON-RPC messages
 // Uses channel-based message passing for in-memory communication
 func (t *InMemoryTransport) WriteMessage(data []byte) error {
+	if err := t.ctx.Err(); err != nil {
+		return err
+	}
 	select {
 	case t.sendCh <- data:
 		return nil
-	default:
-		return fmt.Errorf("send channel full")
+	case <-t.ctx.Done():
+		return t.ctx.Err()
 	}
 }
 
@@ -236,6 +239,92 @@ func (t *InMemoryTransport) processMessages() {
 							}
 						}
 					}
+				case "resources/list":
+					if t.client != nil {
+						listReq := mcp.ListResourcesRequest{}
+						if params, ok := normalizedReq["params"].(map[string]any); ok {
+							if cursor, ok := params["cursor"].(string); ok {
+								listReq.Params.Cursor = mcp.Cursor(cursor)
+							}
+						}
+						resp, e := t.client.ListResources(t.ctx, listReq)
+						if e != nil {
+							err = e
+						} else {
+							result = resp
+						}
+					}
+				case "resources/read":
+					if t.client != nil {
+						readParams, ok := normalizedReq["params"].(map[string]any)
+						if !ok {
+							err = fmt.Errorf("invalid resources/read params")
+						} else {
+							uri, ok := readParams["uri"].(string)
+							if !ok {
+								err = fmt.Errorf("invalid uri parameter")
+							} else {
+								readReq := mcp.ReadResourceRequest{
+									Params: mcp.ReadResourceParams{
+										URI: uri,
+									},
+								}
+								resp, e := t.client.ReadResource(t.ctx, readReq)
+								if e != nil {
+									err = e
+								} else {
+									result = resp
+								}
+							}
+						}
+					}
+				case "prompts/list":
+					if t.client != nil {
+						listReq := mcp.ListPromptsRequest{}
+						if params, ok := normalizedReq["params"].(map[string]any); ok {
+							if cursor, ok := params["cursor"].(string); ok {
+								listReq.Params.Cursor = mcp.Cursor(cursor)
+							}
+						}
+						resp, e := t.client.ListPrompts(t.ctx, listReq)
+						if e != nil {
+							err = e
+						} else {
+							result = resp
+						}
+					}
+				case "prompts/get":
+					if t.client != nil {
+						getParams, ok := normalizedReq["params"].(map[string]any)
+						if !ok {
+							err = fmt.Errorf("invalid prompts/get params")
+						} else {
+							name, ok := getParams["name"].(string)
+							if !ok {
+								err = fmt.Errorf("invalid name parameter")
+							} else {
+								var arguments map[string]string
+								if args, ok := getParams["arguments"].(map[string]any); ok {
+									arguments = make(map[string]string)
+									for k, v := range args {
+										arguments[k] = fmt.Sprint(v)
+									}
+								}
+								getReq := mcp.GetPromptRequest{
+									Params: mcp.GetPromptParams{
+										Name:      name,
+										Arguments: arguments,
+									},
+								}
+								resp, e := t.client.GetPrompt(t.ctx, getReq)
+								if e != nil {
+									err = e
+								} else {
+									result = resp
+								}
+							}
+						}
+					}
 				default:
 					err = fmt.Errorf("method not supported: %s", method)
 				}
@@ -266,8 +355,8 @@ func (t *InMemoryTransport) sendResponse(resp map[string]any) {
 	}
 	select {
 	case t.recvCh <- data:
-	default:
-		// Channel full, drop response
+	case <-t.ctx.Done():
+		// Context cancelled, drop response
 	}
 }
 
