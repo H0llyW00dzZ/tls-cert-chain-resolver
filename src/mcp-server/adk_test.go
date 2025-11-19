@@ -754,7 +754,11 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 	}
 
 	// If we got here, basic bridge functionality works
-	t.Logf("ADK bridge basic functionality works: %v", respMsg)
+	respBytes, err := jsonrpc.EncodeMessage(respMsg)
+	if err != nil {
+		t.Fatalf("Failed to encode response message: %v", err)
+	}
+	t.Logf("ADK bridge basic functionality works: %s", string(respBytes))
 }
 
 // TestADKTransportConnection_ErrorScenarios tests various error scenarios
