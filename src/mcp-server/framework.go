@@ -223,16 +223,17 @@ func (b *ServerBuilder) Build() (*server.MCPServer, error) {
 
 // DefaultSamplingHandler provides configurable AI API integration for bidirectional communication
 type DefaultSamplingHandler struct {
-	apiKey   string
-	endpoint string
-	model    string
-	timeout  time.Duration
-	client   *http.Client
-	version  string
+	apiKey        string
+	endpoint      string
+	model         string
+	timeout       time.Duration
+	client        *http.Client
+	version       string
+	TokenCallback func(string) // Callback for streaming tokens
 }
 
 // NewDefaultSamplingHandler creates a new sampling handler with configurable AI settings
-func NewDefaultSamplingHandler(config *Config, version string) client.SamplingHandler {
+func NewDefaultSamplingHandler(config *Config, version string) *DefaultSamplingHandler {
 	return &DefaultSamplingHandler{
 		apiKey:   config.AI.APIKey,
 		endpoint: config.AI.Endpoint,
@@ -440,6 +441,10 @@ func (h *DefaultSamplingHandler) parseStreamingResponse(body io.Reader, defaultM
 					if delta, ok := choice["delta"].(map[string]any); ok {
 						if content, ok := delta["content"].(string); ok {
 							fullContent.WriteString(content)
+							// Stream token via callback if configured
+							if h.TokenCallback != nil {
+								h.TokenCallback(content)
+							}
 						}
 					}
 

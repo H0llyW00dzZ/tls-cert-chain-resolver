@@ -2552,30 +2552,24 @@ func TestNewDefaultSamplingHandler(t *testing.T) {
 	config.AI.Timeout = 30
 
 	handler := NewDefaultSamplingHandler(config, "test-version")
-
 	if handler == nil {
 		t.Error("Expected handler, got nil")
 	}
 
-	defaultHandler, ok := handler.(*DefaultSamplingHandler)
-	if !ok {
-		t.Error("Expected DefaultSamplingHandler, got different type")
+	if handler.apiKey != "test-key" {
+		t.Errorf("Expected API key 'test-key', got '%s'", handler.apiKey)
 	}
 
-	if defaultHandler.apiKey != "test-key" {
-		t.Errorf("Expected API key 'test-key', got '%s'", defaultHandler.apiKey)
+	if handler.endpoint != "https://api.test.com" {
+		t.Errorf("Expected endpoint 'https://api.test.com', got '%s'", handler.endpoint)
 	}
 
-	if defaultHandler.endpoint != "https://api.test.com" {
-		t.Errorf("Expected endpoint 'https://api.test.com', got '%s'", defaultHandler.endpoint)
+	if handler.model != "test-model" {
+		t.Errorf("Expected model 'test-model', got '%s'", handler.model)
 	}
 
-	if defaultHandler.model != "test-model" {
-		t.Errorf("Expected model 'test-model', got '%s'", defaultHandler.model)
-	}
-
-	if defaultHandler.version != "test-version" {
-		t.Errorf("Expected version 'test-version', got '%s'", defaultHandler.version)
+	if handler.version != "test-version" {
+		t.Errorf("Expected version 'test-version', got '%s'", handler.version)
 	}
 }
 

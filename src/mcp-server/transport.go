@@ -40,13 +40,32 @@ type jsonRPCResponse struct {
 // [mark3labs/mcp-go]: https://pkg.go.dev/github.com/mark3labs/mcp-go
 // [Official MCP SDK]: https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk
 type InMemoryTransport struct {
-	client  *client.Client // mark3labs in-process client
-	started bool
-	mu      sync.Mutex
-	recvCh  chan []byte // channel for receiving messages (ReadMessage)
-	sendCh  chan []byte // channel for sending messages (WriteMessage)
-	ctx     context.Context
-	cancel  context.CancelFunc
+	client          *client.Client // mark3labs in-process client
+	started         bool
+	mu              sync.Mutex
+	recvCh          chan []byte // channel for receiving messages (ReadMessage)
+	sendCh          chan []byte // channel for sending messages (WriteMessage)
+	ctx             context.Context
+	cancel          context.CancelFunc
+	samplingHandler client.SamplingHandler
+}
+
+// SetSamplingHandler sets the sampling handler for the transport
+func (t *InMemoryTransport) SetSamplingHandler(handler client.SamplingHandler) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.samplingHandler = handler
+}
+
+// SendJSONRPCNotification sends a JSON-RPC notification to the receive channel
+// This is useful for streaming progress or other server-initiated events
+func (t *InMemoryTransport) SendJSONRPCNotification(method string, params any) {
+	notification := map[string]any{
+		"jsonrpc": mcp.JSONRPC_VERSION,
+		"method":  method,
+		"params":  params,
+	}
+	t.sendResponse(notification)
 }
 
 // NewInMemoryTransport creates a new in-memory transport that implements mcp.Transport
@@ -123,10 +142,27 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 
 	// Create mark3labs in-process client
 	var err error
-	t.client, err = client.NewInProcessClient(srv)
+	if t.samplingHandler != nil {
+		t.client, err = client.NewInProcessClientWithSamplingHandler(srv, t.samplingHandler)
+	} else {
+		t.client, err = client.NewInProcessClient(srv)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to create in-process client: %w", err)
 	}
+
+	// Register notification handler to forward server notifications to the bridge
+	// This enables streaming support by forwarding server-initiated notifications
+	t.client.OnNotification(func(n mcp.JSONRPCNotification) {
+		// Create a generic JSON-RPC notification structure
+		notification := map[string]any{
+			"jsonrpc": mcp.JSONRPC_VERSION,
+			"method":  n.Method,
+			"params":  n.Params,
+		}
+		// Send to the ADK receive channel using sendResponse which handles marshaling
+		t.sendResponse(notification)
+	})
 
 	// Start the client
 	if err := t.client.Start(t.ctx); err != nil {
