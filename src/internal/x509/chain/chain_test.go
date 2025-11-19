@@ -1106,3 +1106,42 @@ func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
 	StopCRLCacheCleanup()
 	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
 }
+
+func TestGetUserAgent(t *testing.T) {
+	// Test custom UserAgent
+	conf := NewHTTPConfig("1.0.0")
+	conf.UserAgent = "Custom-Agent/1.0"
+	if ua := conf.GetUserAgent(); ua != "Custom-Agent/1.0" {
+		t.Errorf("expected Custom-Agent/1.0, got %s", ua)
+	}
+
+	// Test default
+	confDefault := NewHTTPConfig("1.2.3")
+	expected := "X.509-Certificate-Chain-Resolver/1.2.3 (+https://github.com/H0llyW00dzZ/tls-cert-chain-resolver)"
+	if ua := confDefault.GetUserAgent(); ua != expected {
+		t.Errorf("expected %s, got %s", expected, ua)
+	}
+}
+
+func TestHTTPConfig_Client_Update(t *testing.T) {
+	conf := NewHTTPConfig("1.0.0")
+	conf.Timeout = 5 * time.Second
+
+	// First call creates client
+	client1 := conf.Client()
+	if client1.Timeout != 5*time.Second {
+		t.Errorf("expected timeout 5s, got %v", client1.Timeout)
+	}
+
+	// Update timeout
+	conf.Timeout = 10 * time.Second
+
+	// Second call should update existing client
+	client2 := conf.Client()
+	if client2 != client1 {
+		t.Error("expected same client instance")
+	}
+	if client2.Timeout != 10*time.Second {
+		t.Errorf("expected updated timeout 10s, got %v", client2.Timeout)
+	}
+}

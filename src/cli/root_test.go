@@ -404,3 +404,31 @@ func TestExecute_StdoutOutput(t *testing.T) {
 		})
 	}
 }
+
+func TestExecute_WriteError(t *testing.T) {
+	ctx := context.Background()
+	log := logger.NewMCPLogger(io.Discard, true)
+
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "google.cer")
+
+	// Create input file
+	if err := os.WriteFile(inputFile, []byte(testCertPEM), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Use directory as output file to force write error
+	outputFile := tmpDir
+
+	os.Args = []string{"cmd", "-f", inputFile, "-o", outputFile}
+
+	err := cli.Execute(ctx, version, log)
+
+	if err == nil {
+		t.Error("expected error writing to directory, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "error writing to output file") {
+		t.Errorf("expected 'error writing to output file' error, got: %v", err)
+	}
+}

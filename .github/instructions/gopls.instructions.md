@@ -15,6 +15,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
  - **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
   - **`adk.go`** — Google ADK integration support with transport builder pattern
   - **`adk_test.go`** — Comprehensive ADK transport builder tests with JSON-RPC cycle testing
+  - **`analysis_coverage_test.go`** — Analysis coverage tests
   - **`transport.go`** — In-memory transport implementation bridging ADK SDK and mark3labs/mcp-go with JSON-RPC normalization
   - **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler, AI API integration
   - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
@@ -123,6 +124,13 @@ gopls_go_search("ADKTransportBuilder") → Find Google ADK transport builder
 gopls_go_search("NewADKTransportBuilder") → Find ADK transport builder constructor
 gopls_go_search("WithInMemoryTransport") → Find ADK in-memory transport configuration
 gopls_go_search("BuildTransport") → Find ADK transport building methods
+gopls_go_search("InMemoryTransport") → Find in-memory transport implementation
+gopls_go_search("NewInMemoryTransport") → Find in-memory transport constructor with context parameter
+gopls_go_search("ConnectServer") → Find server connection methods
+gopls_go_search("TransportBuilder") → Find transport builder pattern
+gopls_go_search("NewTransportBuilder") → Find transport builder constructor
+gopls_go_search("BuildInMemoryTransport") → Find in-memory transport building
+gopls_go_search("ADKTransportConnection") → Find ADK transport bridge implementation
 gopls_go_search("FetchRemoteChain") → Find remote TLS chain retrieval helper (`src/internal/x509/chain/remote.go`)
 gopls_go_search("CheckRevocationStatus") → Find OCSP/CRL revocation checking (`src/internal/x509/chain/revocation.go`)
 gopls_go_search("RevocationStatus") → Find revocation status structures

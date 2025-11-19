@@ -109,6 +109,15 @@ func TestMarshal(t *testing.T) {
 	}
 }
 
+func TestMarshal_Error(t *testing.T) {
+	// Test case for invalid JSON input
+	invalidJSON := []byte(`{"incomplete": json`)
+	_, err := Marshal(invalidJSON)
+	if err == nil {
+		t.Error("Expected error for invalid JSON, got nil")
+	}
+}
+
 func TestMap(t *testing.T) {
 	tests := []struct {
 		name     string
