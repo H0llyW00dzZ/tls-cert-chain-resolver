@@ -124,5 +124,30 @@ func (b *ADKTransportBuilder) buildInMemoryTransport(ctx context.Context) (any, 
 		WithVersion(b.config.Version).
 		WithDefaultTools()
 
-	return transportBuilder.BuildInMemoryTransport(ctx)
+	// Build the server
+	srv, err := transportBuilder.serverBuilder.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build server: %w", err)
+	}
+
+	// Create transport and connect server with sampling handler support
+	transport := NewInMemoryTransport(ctx)
+
+	// Create DefaultSamplingHandler with streaming support
+	// This handler is attached to the client side (transport) to process sampling requests from the server
+	samplingHandler := NewDefaultSamplingHandler(config, b.config.Version)
+	samplingHandler.TokenCallback = func(token string) {
+		// Stream token via custom notification to the ADK receive channel
+		// We use "notifications/sampling/progress" which is a custom method for this bridge
+		transport.SendJSONRPCNotification("notifications/sampling/progress", map[string]string{
+			"content": token,
+		})
+	}
+	transport.SetSamplingHandler(samplingHandler)
+
+	if err := transport.ConnectServer(ctx, srv); err != nil {
+		return nil, fmt.Errorf("failed to connect server to transport: %w", err)
+	}
+
+	return transport, nil
 }
