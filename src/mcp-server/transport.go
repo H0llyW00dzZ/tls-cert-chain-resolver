@@ -20,6 +20,20 @@ import (
 	mcptransport "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+// jsonRPCError represents a JSON-RPC 2.0 error object
+type jsonRPCError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+// jsonRPCResponse represents a JSON-RPC 2.0 response object
+type jsonRPCResponse struct {
+	JSONRPC string        `json:"jsonrpc"`
+	ID      any           `json:"id"`
+	Result  any           `json:"result,omitempty"`
+	Error   *jsonRPCError `json:"error,omitempty"`
+}
+
 // InMemoryTransport implements ADK SDK mcp.Transport interface
 // It bridges between [Official MCP SDK] transport expectations and [mark3labs/mcp-go] client
 //
@@ -146,13 +160,13 @@ func (t *InMemoryTransport) processMessages() {
 			var req map[string]any
 			if err := json.Unmarshal(data, &req); err != nil {
 				// Send parse error response
-				resp := map[string]any{
-					"jsonrpc": "2.0",
-					"error": map[string]any{
-						"code":    -32700,
-						"message": "Parse error",
+				resp := jsonRPCResponse{
+					JSONRPC: mcp.JSONRPC_VERSION,
+					Error: &jsonRPCError{
+						Code:    -32700,
+						Message: "Parse error",
 					},
-					"id": nil,
+					ID: nil,
 				}
 				t.sendResponse(resp)
 			} else {
@@ -173,12 +187,12 @@ func (t *InMemoryTransport) processMessages() {
 					err := fmt.Errorf("invalid method: expected string, got %T", normalizedReq["method"])
 					// Only send error if it's a request (has ID)
 					if idInt != nil {
-						resp := map[string]any{
-							"jsonrpc": "2.0",
-							"id":      idInt,
-							"error": map[string]any{
-								"code":    -32600,
-								"message": err.Error(),
+						resp := jsonRPCResponse{
+							JSONRPC: mcp.JSONRPC_VERSION,
+							ID:      idInt,
+							Error: &jsonRPCError{
+								Code:    -32600,
+								Message: err.Error(),
 							},
 						}
 						t.sendResponse(resp)
@@ -342,17 +356,17 @@ func (t *InMemoryTransport) processMessages() {
 					continue
 				}
 
-				resp := map[string]any{
-					"jsonrpc": "2.0",
-					"id":      idInt, // Use the request ID for responses
+				resp := jsonRPCResponse{
+					JSONRPC: mcp.JSONRPC_VERSION,
+					ID:      idInt,
 				}
 				if err != nil {
-					resp["error"] = map[string]any{
-						"code":    -32603,
-						"message": err.Error(),
+					resp.Error = &jsonRPCError{
+						Code:    -32603,
+						Message: err.Error(),
 					}
 				} else {
-					resp["result"] = result
+					resp.Result = result
 				}
 				t.sendResponse(resp)
 			}
@@ -361,7 +375,7 @@ func (t *InMemoryTransport) processMessages() {
 }
 
 // sendResponse sends a JSON-RPC response to the receive channel
-func (t *InMemoryTransport) sendResponse(resp map[string]any) {
+func (t *InMemoryTransport) sendResponse(resp any) {
 	data, err := json.Marshal(resp)
 	if err != nil {
 		return
