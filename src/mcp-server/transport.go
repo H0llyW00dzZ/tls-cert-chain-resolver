@@ -51,6 +51,7 @@ type InMemoryTransport struct {
 	samplingHandler client.SamplingHandler
 	sem             chan struct{}  // Semaphore to limit concurrency
 	shutdownWg      sync.WaitGroup // WaitGroup for graceful shutdown
+	processWg       sync.WaitGroup // WaitGroup for message processing loop
 }
 
 // SetSamplingHandler sets the sampling handler for the transport
@@ -121,6 +122,9 @@ func (t *InMemoryTransport) Close() error {
 		t.cancel()
 	}
 
+	// Wait for message processor to stop (no new tasks added)
+	t.processWg.Wait()
+
 	// Wait for active goroutines to finish
 	t.shutdownWg.Wait()
 
@@ -181,6 +185,7 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 	}
 
 	// Start message processing goroutine
+	t.processWg.Add(1)
 	go t.processMessages()
 
 	t.started = true
@@ -189,6 +194,8 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 
 // processMessages handles JSON-RPC message processing between ADK and the MCP client
 func (t *InMemoryTransport) processMessages() {
+	defer t.processWg.Done()
+
 	for {
 
 		select {

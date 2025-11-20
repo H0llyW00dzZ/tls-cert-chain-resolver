@@ -1604,13 +1604,27 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 	}
 
 	// Consumer loop to read responses and prevent blocking
+	receivedCount := 0
+	responseIds := make(map[float64]bool)
+	var respMu sync.Mutex
+
 	done := make(chan struct{})
 	go func() {
 		for range count {
-			_, err := transport.ReadMessage()
+			msg, err := transport.ReadMessage()
 			if err != nil {
 				// Ignore errors during shutdown/close
 				break
+			}
+
+			var resp map[string]any
+			if err := json.Unmarshal(msg, &resp); err == nil {
+				if id, ok := resp["id"].(float64); ok {
+					respMu.Lock()
+					responseIds[id] = true
+					receivedCount++
+					respMu.Unlock()
+				}
 			}
 		}
 		close(done)
@@ -1624,6 +1638,18 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("Timeout waiting for responses")
 	}
+
+	// Verify responses
+	respMu.Lock()
+	if len(responseIds) != count {
+		t.Errorf("Expected %d responses, got %d", count, len(responseIds))
+	}
+	for i := range count {
+		if !responseIds[float64(i)] {
+			t.Errorf("Missing response for request ID %d", i)
+		}
+	}
+	respMu.Unlock()
 
 	if maxActive <= 1 {
 		t.Logf("Warning: Max concurrent executions was %d, expected > 1. (This may vary based on environment)", maxActive)
