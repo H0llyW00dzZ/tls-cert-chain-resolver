@@ -16,7 +16,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`adk.go`** — Google ADK integration support with transport builder pattern
   - **`adk_test.go`** — Comprehensive ADK transport builder tests with JSON-RPC cycle testing
   - **`analysis_coverage_test.go`** — Analysis coverage tests
-  - **`transport.go`** — In-memory transport implementation bridging ADK SDK and mark3labs/mcp-go with JSON-RPC normalization and blocking reads
+  - **`transport.go`** — In-memory transport implementation bridging ADK SDK and mark3labs/mcp-go with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
   - **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler with streaming support, AI API integration
   - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
   - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
@@ -165,6 +165,9 @@ gopls_go_search("ResourceUsageData") → Find resource usage data structures
 gopls_go_search("jsonrpc.Marshal") → Find JSON-RPC marshaling functions
 gopls_go_search("jsonrpc.Map") → Find JSON-RPC field normalization functions
 gopls_go_search("normalizeIDValue") → Find ID value normalization functions
+gopls_go_search("getParams") → Find JSON-RPC parameter extraction helper (`src/mcp-server/helper.go`)
+gopls_go_search("processMessages") → Find transport message processing with concurrent goroutines
+gopls_go_search("SendJSONRPCNotification") → Find JSON-RPC notification sender for streaming
 ```
 
 ### gopls_go_file_context(file)
@@ -382,7 +385,8 @@ read("src/mcp-server/templates/certificate-analysis-system-prompt.md")  # Embedd
 read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis with analysis types
 read("src/mcp-server/config.go")     # AI and MCP configuration
 read("src/mcp-server/adk.go")        # Google ADK integration support
-read("src/mcp-server/transport.go")  # In-memory transport for ADK compatibility with JSON-RPC normalization
+read("src/mcp-server/transport.go")  # In-memory transport for ADK compatibility with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
+read("src/mcp-server/helper.go")     # JSON-RPC parameter extraction helper (getParams)
 read("src/mcp-server/adk_test.go")   # Comprehensive ADK transport tests with JSON-RPC cycle testing
 read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
 ```
