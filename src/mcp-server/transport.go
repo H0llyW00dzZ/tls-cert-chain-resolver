@@ -240,9 +240,8 @@ func (t *InMemoryTransport) processMessages() {
 				var err error
 				switch method {
 				case "initialize":
-					initParams, ok := normalizedReq["params"].(map[string]any)
-					if !ok {
-						err = fmt.Errorf("invalid initialize params")
+					if initParams, e := getParams(normalizedReq, "initialize"); e != nil {
+						err = e
 					} else {
 						// Preserve capabilities by marshaling/unmarshaling
 						var capabilities mcp.ClientCapabilities
@@ -289,9 +288,8 @@ func (t *InMemoryTransport) processMessages() {
 					}
 				case "tools/call":
 					if t.client != nil {
-						callParams, ok := normalizedReq["params"].(map[string]any)
-						if !ok {
-							err = fmt.Errorf("invalid tools/call params")
+						if callParams, e := getParams(normalizedReq, "tools/call"); e != nil {
+							err = e
 						} else {
 							callReq := mcp.CallToolRequest{
 								Params: mcp.CallToolParams{
@@ -324,9 +322,8 @@ func (t *InMemoryTransport) processMessages() {
 					}
 				case "resources/read":
 					if t.client != nil {
-						readParams, ok := normalizedReq["params"].(map[string]any)
-						if !ok {
-							err = fmt.Errorf("invalid resources/read params")
+						if readParams, e := getParams(normalizedReq, "resources/read"); e != nil {
+							err = e
 						} else {
 							uri, ok := readParams["uri"].(string)
 							if !ok {
@@ -363,16 +360,15 @@ func (t *InMemoryTransport) processMessages() {
 					}
 				case "prompts/get":
 					if t.client != nil {
-						getParams, ok := normalizedReq["params"].(map[string]any)
-						if !ok {
-							err = fmt.Errorf("invalid prompts/get params")
+						if params, e := getParams(normalizedReq, "prompts/get"); e != nil {
+							err = e
 						} else {
-							name, ok := getParams["name"].(string)
+							name, ok := params["name"].(string)
 							if !ok {
 								err = fmt.Errorf("invalid name parameter")
 							} else {
 								var arguments map[string]string
-								if args, ok := getParams["arguments"].(map[string]any); ok {
+								if args, ok := params["arguments"].(map[string]any); ok {
 									arguments = make(map[string]string)
 									for k, v := range args {
 										arguments[k] = fmt.Sprint(v)

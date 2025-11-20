@@ -247,6 +247,8 @@ func NewDefaultSamplingHandler(config *Config, version string) *DefaultSamplingH
 // CreateMessage handles sampling requests by calling the configured AI API
 func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
 	// Get buffer from pool for efficient memory usage
+	// Note: Buffer is primarily used for error response reading.
+	// During successful streaming, it remains allocated but unused until the function returns.
 	buf := gc.Default.Get()
 	defer func() {
 		buf.Reset()         // Reset buffer to prevent data leaks
