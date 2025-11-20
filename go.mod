@@ -9,7 +9,7 @@ require (
 	github.com/olekukonko/tablewriter v1.1.1
 	github.com/spf13/cobra v1.10.1
 	github.com/valyala/bytebufferpool v1.0.0
-	golang.org/x/crypto v0.44.0
+	golang.org/x/crypto v0.45.0
 	google.golang.org/adk v0.1.0
 )
 
@@ -51,7 +51,7 @@ require (
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
-	golang.org/x/net v0.46.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.32.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
