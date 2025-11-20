@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	jsonrpcInternal "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/jsonrpc"
@@ -48,6 +49,9 @@ type InMemoryTransport struct {
 	ctx             context.Context
 	cancel          context.CancelFunc
 	samplingHandler client.SamplingHandler
+	sem             chan struct{}  // Semaphore to limit concurrency
+	shutdownWg      sync.WaitGroup // WaitGroup for graceful shutdown
+	processWg       sync.WaitGroup // WaitGroup for message processing loop
 }
 
 // SetSamplingHandler sets the sampling handler for the transport
@@ -77,6 +81,7 @@ func NewInMemoryTransport(ctx context.Context) *InMemoryTransport {
 		sendCh: make(chan []byte, 1),
 		ctx:    ctx,
 		cancel: cancel,
+		sem:    make(chan struct{}, 100), // Limit to 100 concurrent requests
 	}
 }
 
@@ -116,6 +121,12 @@ func (t *InMemoryTransport) Close() error {
 	if t.cancel != nil {
 		t.cancel()
 	}
+
+	// Wait for message processor to stop (no new tasks added)
+	t.processWg.Wait()
+
+	// Wait for active goroutines to finish
+	t.shutdownWg.Wait()
 
 	// Don't close channels here as they may still be used by goroutines
 	// The context cancellation will cause goroutines to exit cleanly
@@ -174,6 +185,7 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 	}
 
 	// Start message processing goroutine
+	t.processWg.Add(1)
 	go t.processMessages()
 
 	t.started = true
@@ -182,241 +194,270 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 
 // processMessages handles JSON-RPC message processing between ADK and the MCP client
 func (t *InMemoryTransport) processMessages() {
+	defer t.processWg.Done()
+
 	for {
 
 		select {
 		case <-t.ctx.Done():
 			return
 		case data := <-t.sendCh:
-			// Handle message in a goroutine to avoid blocking the transport loop
-			// This ensures that long-running tool calls don't prevent other messages
-			// (like notifications or concurrent requests) from being processed.
-			go func(data []byte) {
-				var req map[string]any
-				if err := json.Unmarshal(data, &req); err != nil {
-					// Send parse error response
-					resp := jsonRPCResponse{
-						JSONRPC: mcp.JSONRPC_VERSION,
-						Error: &jsonRPCError{
-							Code:    -32700,
-							Message: "Parse error",
-						},
-						ID: nil,
-					}
-					t.sendResponse(resp)
-				} else {
-					// Normalize request keys to handle both lowercase and capitalized
-					normalizedReq := jsonrpcInternal.Map(req)
-					id := normalizedReq["id"]
-					var idInt any
-					if id != nil {
-						// Handle different ID types - preserve as-is
-						idInt = id
+			// Acquire semaphore token (non-blocking check for context)
+			select {
+			case t.sem <- struct{}{}:
+				t.shutdownWg.Add(1)
+				// Handle message in a goroutine to avoid blocking the transport loop
+				// This ensures that long-running tool calls don't prevent other messages
+				// (like notifications or concurrent requests) from being processed.
+				go func(data []byte) {
+					defer func() {
+						<-t.sem // Release token
+						t.shutdownWg.Done()
+					}()
+
+					var req map[string]any
+					if err := json.Unmarshal(data, &req); err != nil {
+						// Send parse error response
+						resp := jsonRPCResponse{
+							JSONRPC: mcp.JSONRPC_VERSION,
+							Error: &jsonRPCError{
+								Code:    -32700,
+								Message: "Parse error",
+							},
+							ID: nil,
+						}
+						t.sendResponse(resp)
 					} else {
-						// For requests without ID (notifications), use null
-						idInt = nil
-					}
-
-					method, ok := normalizedReq["method"].(string)
-					if !ok {
-						err := fmt.Errorf("invalid method: expected string, got %T", normalizedReq["method"])
-						// Only send error if it's a request (has ID)
-						if idInt != nil {
-							resp := jsonRPCResponse{
-								JSONRPC: mcp.JSONRPC_VERSION,
-								ID:      idInt,
-								Error: &jsonRPCError{
-									Code:    -32600,
-									Message: err.Error(),
-								},
-							}
-							t.sendResponse(resp)
-						}
-						return
-					}
-
-					// Handle notifications that don't require a response or action in this bridge
-					if method == "notifications/initialized" {
-						return
-					}
-
-					var result any
-					var err error
-					switch method {
-					case "initialize":
-						if initParams, e := getParams(normalizedReq, "initialize"); e != nil {
-							err = e
+						// Normalize request keys to handle both lowercase and capitalized
+						normalizedReq := jsonrpcInternal.Map(req)
+						id := normalizedReq["id"]
+						var idInt any
+						if id != nil {
+							// Handle different ID types - preserve as-is
+							idInt = id
 						} else {
-							// Preserve capabilities by marshaling/unmarshaling
-							var capabilities mcp.ClientCapabilities
-							if caps, ok := initParams["capabilities"]; ok {
-								if capsJSON, e := json.Marshal(caps); e == nil {
-									_ = json.Unmarshal(capsJSON, &capabilities)
-								}
-							}
+							// For requests without ID (notifications), use null
+							idInt = nil
+						}
 
-							initReq := mcp.InitializeRequest{
-								Params: mcp.InitializeParams{
-									ProtocolVersion: initParams["protocolVersion"].(string),
-									Capabilities:    capabilities,
-								},
-							}
-							resp, e := t.client.Initialize(t.ctx, initReq)
-							if e != nil {
-								// Check if this is an unsupported protocol version error
-								if mcp.IsUnsupportedProtocolVersion(e) {
-									err = fmt.Errorf("unsupported protocol version: %w", e)
-								} else {
-									err = e
-								}
-							} else {
-								result = resp
-							}
-						}
-					case "ping":
-						if t.client != nil {
-							err = t.client.Ping(t.ctx)
-							if err == nil {
-								result = map[string]any{}
-							}
-						}
-					case "tools/list":
-						if t.client != nil {
-							listReq := mcp.ListToolsRequest{}
-							resp, e := t.client.ListTools(t.ctx, listReq)
-							if e != nil {
-								err = e
-							} else {
-								result = resp
-							}
-						}
-					case "tools/call":
-						if t.client != nil {
-							if callParams, e := getParams(normalizedReq, "tools/call"); e != nil {
-								err = e
-							} else {
-								callReq := mcp.CallToolRequest{
-									Params: mcp.CallToolParams{
-										Name:      callParams["name"].(string),
-										Arguments: callParams["arguments"].(map[string]any),
+						method, ok := normalizedReq["method"].(string)
+						if !ok {
+							err := fmt.Errorf("invalid method: expected string, got %T", normalizedReq["method"])
+							// Only send error if it's a request (has ID)
+							if idInt != nil {
+								resp := jsonRPCResponse{
+									JSONRPC: mcp.JSONRPC_VERSION,
+									ID:      idInt,
+									Error: &jsonRPCError{
+										Code:    -32600,
+										Message: err.Error(),
 									},
 								}
-								resp, e := t.client.CallTool(t.ctx, callReq)
+								t.sendResponse(resp)
+							}
+							return
+						}
+
+						// Handle notifications that don't require a response or action in this bridge
+						if method == "notifications/initialized" {
+							return
+						}
+
+						var result any
+						var err error
+						switch method {
+						case "initialize":
+							if initParams, e := getParams(normalizedReq, "initialize"); e != nil {
+								err = e
+							} else {
+								protocolVersion, ok := initParams["protocolVersion"].(string)
+								if !ok {
+									err = fmt.Errorf("invalid params for initialize: 'protocolVersion' must be string")
+								} else {
+									// Preserve capabilities by marshaling/unmarshaling
+									var capabilities mcp.ClientCapabilities
+									if caps, ok := initParams["capabilities"]; ok {
+										if capsJSON, e := json.Marshal(caps); e == nil {
+											_ = json.Unmarshal(capsJSON, &capabilities)
+										}
+									}
+
+									initReq := mcp.InitializeRequest{
+										Params: mcp.InitializeParams{
+											ProtocolVersion: protocolVersion,
+											Capabilities:    capabilities,
+										},
+									}
+									resp, e := t.client.Initialize(t.ctx, initReq)
+									if e != nil {
+										// Check if this is an unsupported protocol version error
+										if mcp.IsUnsupportedProtocolVersion(e) {
+											err = fmt.Errorf("unsupported protocol version: %w", e)
+										} else {
+											err = e
+										}
+									} else {
+										result = resp
+									}
+								}
+							}
+						case "ping":
+							if t.client != nil {
+								err = t.client.Ping(t.ctx)
+								if err == nil {
+									result = map[string]any{}
+								}
+							}
+						case "tools/list":
+							if t.client != nil {
+								listReq := mcp.ListToolsRequest{}
+								resp, e := t.client.ListTools(t.ctx, listReq)
 								if e != nil {
 									err = e
 								} else {
 									result = resp
 								}
 							}
-						}
-					case "resources/list":
-						if t.client != nil {
-							listReq := mcp.ListResourcesRequest{}
-							if params, ok := normalizedReq["params"].(map[string]any); ok {
-								if cursor, ok := params["cursor"].(string); ok {
-									listReq.Params.Cursor = mcp.Cursor(cursor)
-								}
-							}
-							resp, e := t.client.ListResources(t.ctx, listReq)
-							if e != nil {
-								err = e
-							} else {
-								result = resp
-							}
-						}
-					case "resources/read":
-						if t.client != nil {
-							if readParams, e := getParams(normalizedReq, "resources/read"); e != nil {
-								err = e
-							} else {
-								uri, ok := readParams["uri"].(string)
-								if !ok {
-									err = fmt.Errorf("invalid uri parameter")
+						case "tools/call":
+							if t.client != nil {
+								if callParams, e := getParams(normalizedReq, "tools/call"); e != nil {
+									err = e
 								} else {
-									readReq := mcp.ReadResourceRequest{
-										Params: mcp.ReadResourceParams{
-											URI: uri,
-										},
-									}
-									resp, e := t.client.ReadResource(t.ctx, readReq)
-									if e != nil {
-										err = e
+									name, okName := callParams["name"].(string)
+									args, okArgs := callParams["arguments"].(map[string]any)
+									if !okName || !okArgs {
+										err = fmt.Errorf("invalid params for tools/call: 'name' must be string and 'arguments' must be object")
 									} else {
-										result = resp
-									}
-								}
-							}
-						}
-					case "prompts/list":
-						if t.client != nil {
-							listReq := mcp.ListPromptsRequest{}
-							if params, ok := normalizedReq["params"].(map[string]any); ok {
-								if cursor, ok := params["cursor"].(string); ok {
-									listReq.Params.Cursor = mcp.Cursor(cursor)
-								}
-							}
-							resp, e := t.client.ListPrompts(t.ctx, listReq)
-							if e != nil {
-								err = e
-							} else {
-								result = resp
-							}
-						}
-					case "prompts/get":
-						if t.client != nil {
-							if params, e := getParams(normalizedReq, "prompts/get"); e != nil {
-								err = e
-							} else {
-								name, ok := params["name"].(string)
-								if !ok {
-									err = fmt.Errorf("invalid name parameter")
-								} else {
-									var arguments map[string]string
-									if args, ok := params["arguments"].(map[string]any); ok {
-										arguments = make(map[string]string)
-										for k, v := range args {
-											arguments[k] = fmt.Sprint(v)
+										callReq := mcp.CallToolRequest{
+											Params: mcp.CallToolParams{
+												Name:      name,
+												Arguments: args,
+											},
+										}
+										resp, e := t.client.CallTool(t.ctx, callReq)
+										if e != nil {
+											err = e
+										} else {
+											result = resp
 										}
 									}
-									getReq := mcp.GetPromptRequest{
-										Params: mcp.GetPromptParams{
-											Name:      name,
-											Arguments: arguments,
-										},
+								}
+							}
+						case "resources/list":
+							if t.client != nil {
+								listReq := mcp.ListResourcesRequest{}
+								if params, ok := normalizedReq["params"].(map[string]any); ok {
+									if cursor, ok := params["cursor"].(string); ok {
+										listReq.Params.Cursor = mcp.Cursor(cursor)
 									}
-									resp, e := t.client.GetPrompt(t.ctx, getReq)
-									if e != nil {
-										err = e
+								}
+								resp, e := t.client.ListResources(t.ctx, listReq)
+								if e != nil {
+									err = e
+								} else {
+									result = resp
+								}
+							}
+						case "resources/read":
+							if t.client != nil {
+								if readParams, e := getParams(normalizedReq, "resources/read"); e != nil {
+									err = e
+								} else {
+									uri, ok := readParams["uri"].(string)
+									if !ok {
+										err = fmt.Errorf("invalid params for resources/read: 'uri' must be string")
 									} else {
-										result = resp
+										readReq := mcp.ReadResourceRequest{
+											Params: mcp.ReadResourceParams{
+												URI: uri,
+											},
+										}
+										resp, e := t.client.ReadResource(t.ctx, readReq)
+										if e != nil {
+											err = e
+										} else {
+											result = resp
+										}
 									}
 								}
 							}
+						case "prompts/list":
+							if t.client != nil {
+								listReq := mcp.ListPromptsRequest{}
+								if params, ok := normalizedReq["params"].(map[string]any); ok {
+									if cursor, ok := params["cursor"].(string); ok {
+										listReq.Params.Cursor = mcp.Cursor(cursor)
+									}
+								}
+								resp, e := t.client.ListPrompts(t.ctx, listReq)
+								if e != nil {
+									err = e
+								} else {
+									result = resp
+								}
+							}
+						case "prompts/get":
+							if t.client != nil {
+								if params, e := getParams(normalizedReq, "prompts/get"); e != nil {
+									err = e
+								} else {
+									name, ok := params["name"].(string)
+									if !ok {
+										err = fmt.Errorf("invalid params for prompts/get: 'name' must be string")
+									} else {
+										var arguments map[string]string
+										if args, ok := params["arguments"].(map[string]any); ok {
+											arguments = make(map[string]string)
+											for k, v := range args {
+												arguments[k] = fmt.Sprint(v)
+											}
+										}
+										getReq := mcp.GetPromptRequest{
+											Params: mcp.GetPromptParams{
+												Name:      name,
+												Arguments: arguments,
+											},
+										}
+										resp, e := t.client.GetPrompt(t.ctx, getReq)
+										if e != nil {
+											err = e
+										} else {
+											result = resp
+										}
+									}
+								}
+							}
+						default:
+							err = fmt.Errorf("method not supported: %s", method)
 						}
-					default:
-						err = fmt.Errorf("method not supported: %s", method)
-					}
 
-					// JSON-RPC 2.0: Server MUST NOT reply to a Notification (request without ID)
-					if idInt == nil {
-						return
-					}
-
-					resp := jsonRPCResponse{
-						JSONRPC: mcp.JSONRPC_VERSION,
-						ID:      idInt,
-					}
-					if err != nil {
-						resp.Error = &jsonRPCError{
-							Code:    -32603,
-							Message: err.Error(),
+						// JSON-RPC 2.0: Server MUST NOT reply to a Notification (request without ID)
+						if idInt == nil {
+							return
 						}
-					} else {
-						resp.Result = result
+
+						resp := jsonRPCResponse{
+							JSONRPC: mcp.JSONRPC_VERSION,
+							ID:      idInt,
+						}
+						if err != nil {
+							code := -32603
+							if strings.Contains(err.Error(), "invalid params") || strings.Contains(err.Error(), "missing params") {
+								code = -32602
+							}
+							resp.Error = &jsonRPCError{
+								Code:    code,
+								Message: err.Error(),
+							}
+						} else {
+							resp.Result = result
+						}
+						t.sendResponse(resp)
 					}
-					t.sendResponse(resp)
-				}
-			}(data)
+				}(data)
+			case <-t.ctx.Done():
+				return
+			}
 		}
 	}
 }
