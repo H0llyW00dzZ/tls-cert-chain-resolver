@@ -783,6 +783,54 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 	}
 }
 
+// TestInMemoryTransport_SendJSONRPCNotification tests the mechanism used for streaming tokens
+func TestInMemoryTransport_SendJSONRPCNotification(t *testing.T) {
+	ctx := t.Context()
+	transport := NewInMemoryTransport(ctx)
+
+	// Simulate streaming tokens
+	go func() {
+		tokens := []string{"Hello", " ", "World"}
+		for _, token := range tokens {
+			transport.SendJSONRPCNotification("notifications/sampling/progress", map[string]string{
+				"content": token,
+			})
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+
+	// Read notifications
+	received := ""
+	for i := 0; i < 3; i++ {
+		msg, err := transport.ReadMessage()
+		if err != nil {
+			t.Fatalf("Failed to read message: %v", err)
+		}
+
+		var notification map[string]any
+		if err := json.Unmarshal(msg, &notification); err != nil {
+			t.Fatalf("Failed to unmarshal notification: %v", err)
+		}
+
+		if notification["method"] != "notifications/sampling/progress" {
+			t.Errorf("Expected method 'notifications/sampling/progress', got %v", notification["method"])
+		}
+
+		params, ok := notification["params"].(map[string]any)
+		if !ok {
+			t.Fatalf("Expected params to be map, got %T", notification["params"])
+		}
+
+		if content, ok := params["content"].(string); ok {
+			received += content
+		}
+	}
+
+	if received != "Hello World" {
+		t.Errorf("Expected 'Hello World', got '%s'", received)
+	}
+}
+
 // TestADKTransportConnection_Concurrent tests basic transport functionality
 func TestADKTransportConnection_Concurrent(t *testing.T) {
 	s := server.NewMCPServer(
