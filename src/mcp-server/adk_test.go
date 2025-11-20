@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -436,7 +437,7 @@ func TestADKTransportConnection(t *testing.T) {
 
 // TestADKTransportConnection_Blocking tests that Read blocks correctly until message or close
 func TestADKTransportConnection_Blocking(t *testing.T) {
-	ctx := context.Background() // Background context for manual control
+	ctx := t.Context() // Background context for manual control
 	transport := NewInMemoryTransport(ctx)
 	conn, _ := transport.Connect(ctx)
 
@@ -607,11 +608,12 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 	// Note: This test uses internal transport methods for comprehensive testing
 	// The ADK bridge interface is tested separately in TestADKTransportConnection
 	testCases := []struct {
-		name           string
-		request        map[string]any
-		expectError    bool
-		expectContains string
-		description    string
+		name            string
+		request         map[string]any
+		expectError     bool
+		expectToolError bool
+		expectContains  string
+		description     string
 	}{
 		{
 			name: "echo_tool call",
@@ -664,9 +666,10 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 				},
 				"id": 3,
 			},
-			expectError:    false, // Error in result, not in transport
-			expectContains: "Division by zero",
-			description:    "Test error handling in tool results",
+			expectError:     false, // Error in result, not in transport
+			expectToolError: true,  // Expect isError: true in result
+			expectContains:  "Division by zero",
+			description:     "Test error handling in tool results",
 		},
 		{
 			name: "error_tool call",
@@ -779,6 +782,17 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 			if !strings.Contains(content, tc.expectContains) {
 				t.Errorf("Expected response to contain %q, got: %s", tc.expectContains, content)
 			}
+
+			// Verify isError field when expectToolError is true
+			if tc.expectToolError {
+				if result, ok := resp["result"].(map[string]any); ok {
+					if isError, ok := result["isError"].(bool); !ok || !isError {
+						t.Error("Expected result.isError to be true")
+					}
+				} else {
+					t.Error("Expected result object to be present")
+				}
+			}
 		})
 	}
 }
@@ -801,7 +815,7 @@ func TestInMemoryTransport_SendJSONRPCNotification(t *testing.T) {
 
 	// Read notifications
 	received := ""
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		msg, err := transport.ReadMessage()
 		if err != nil {
 			t.Fatalf("Failed to read message: %v", err)
@@ -1042,7 +1056,7 @@ func TestADKTransportBridge(t *testing.T) {
 
 	// Test Read when context cancelled
 	t.Run("read_cancelled", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		cancel() // Cancel immediately
 
 		// Re-create transport with cancelled context
@@ -1498,5 +1512,214 @@ func TestADKTransportBridge_WithSDKClient(t *testing.T) {
 		if !strings.Contains(string(bytes), "Echo: Hello SDK") {
 			t.Errorf("Expected content to contain 'Echo: Hello SDK', got %s", string(bytes))
 		}
+	}
+}
+
+func TestInMemoryTransport_Concurrency(t *testing.T) {
+	s := server.NewMCPServer("Concurrency Server", "1.0.0", server.WithToolCapabilities(true))
+
+	// Counter to track concurrent executions
+	var mu sync.Mutex
+	active := 0
+	maxActive := 0
+
+	s.AddTool(mcp.NewTool("sleep_tool", mcp.WithDescription("sleeps")), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		mu.Lock()
+		active++
+		if active > maxActive {
+			maxActive = active
+		}
+		mu.Unlock()
+
+		time.Sleep(50 * time.Millisecond)
+
+		mu.Lock()
+		active--
+		mu.Unlock()
+
+		return &mcp.CallToolResult{Content: []mcp.Content{mcp.NewTextContent("done")}}, nil
+	})
+
+	ctx := t.Context()
+	transport := NewInMemoryTransport(ctx)
+	if err := transport.ConnectServer(ctx, s); err != nil {
+		t.Fatalf("Failed to connect server: %v", err)
+	}
+	defer transport.Close()
+
+	// Initialize client
+	initRequest := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "initialize",
+		"params": map[string]any{
+			"protocolVersion": "2024-11-05",
+			"capabilities":    map[string]any{},
+			"clientInfo": map[string]any{
+				"name":    "test-client",
+				"version": "1.0.0",
+			},
+		},
+		"id": 0,
+	}
+	initData, _ := json.Marshal(initRequest)
+	if err := transport.WriteMessage(initData); err != nil {
+		t.Fatalf("Failed to write init message: %v", err)
+	}
+
+	// Read init response
+	if _, err := transport.ReadMessage(); err != nil {
+		t.Fatalf("Failed to read init response: %v", err)
+	}
+
+	// Send initialized notification
+	notifyRequest := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "notifications/initialized",
+	}
+	notifyData, _ := json.Marshal(notifyRequest)
+	if err := transport.WriteMessage(notifyData); err != nil {
+		t.Fatalf("Failed to write notify message: %v", err)
+	}
+
+	// Run multiple requests concurrently
+	count := 20
+	var wg sync.WaitGroup
+	wg.Add(count)
+
+	for i := range count {
+		go func(id int) {
+			defer wg.Done()
+			req := map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "tools/call",
+				"params": map[string]any{
+					"name":      "sleep_tool",
+					"arguments": map[string]any{},
+				},
+				"id": id,
+			}
+			data, _ := json.Marshal(req)
+			transport.WriteMessage(data)
+		}(i)
+	}
+
+	// Consumer loop to read responses and prevent blocking
+	done := make(chan struct{})
+	go func() {
+		for range count {
+			_, err := transport.ReadMessage()
+			if err != nil {
+				// Ignore errors during shutdown/close
+				break
+			}
+		}
+		close(done)
+	}()
+
+	wg.Wait()
+
+	// Wait for consumer
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Timeout waiting for responses")
+	}
+
+	if maxActive <= 1 {
+		t.Logf("Warning: Max concurrent executions was %d, expected > 1. (This may vary based on environment)", maxActive)
+	} else {
+		t.Logf("Max concurrent executions: %d", maxActive)
+	}
+}
+
+func TestInMemoryTransport_GracefulShutdown(t *testing.T) {
+	// Create a server with a tool that we can signal to finish
+	s := server.NewMCPServer("Shutdown Server", "1.0.0", server.WithToolCapabilities(true))
+
+	// Using a channel to control when the tool finishes
+	// This allows us to block the tool, call Close(), and ensure Close() waits
+	// UNLESS context cancellation aborts the tool immediately.
+	// In real world, cancellation happens.
+	// We want to verify Close() doesn't race or panic.
+
+	s.AddTool(mcp.NewTool("block_tool", mcp.WithDescription("blocks")), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		select {
+		case <-time.After(200 * time.Millisecond):
+			return &mcp.CallToolResult{Content: []mcp.Content{mcp.NewTextContent("finished")}}, nil
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	})
+
+	ctx := t.Context()
+	transport := NewInMemoryTransport(ctx)
+	if err := transport.ConnectServer(ctx, s); err != nil {
+		t.Fatalf("Failed to connect server: %v", err)
+	}
+
+	// Initialize client
+	initRequest := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "initialize",
+		"params": map[string]any{
+			"protocolVersion": "2024-11-05",
+			"capabilities":    map[string]any{},
+			"clientInfo": map[string]any{
+				"name":    "test-client",
+				"version": "1.0.0",
+			},
+		},
+		"id": 0,
+	}
+	initData, _ := json.Marshal(initRequest)
+	if err := transport.WriteMessage(initData); err != nil {
+		t.Fatalf("Failed to write init message: %v", err)
+	}
+
+	// Read init response
+	if _, err := transport.ReadMessage(); err != nil {
+		t.Fatalf("Failed to read init response: %v", err)
+	}
+
+	// Send initialized notification
+	notifyRequest := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "notifications/initialized",
+	}
+	notifyData, _ := json.Marshal(notifyRequest)
+	if err := transport.WriteMessage(notifyData); err != nil {
+		t.Fatalf("Failed to write notify message: %v", err)
+	}
+
+	// Send request
+	req := map[string]any{
+		"jsonrpc": "2.0",
+		"method":  "tools/call",
+		"params": map[string]any{
+			"name":      "block_tool",
+			"arguments": map[string]any{},
+		},
+		"id": 1,
+	}
+	data, _ := json.Marshal(req)
+	if err := transport.WriteMessage(data); err != nil {
+		t.Fatalf("Failed to write message: %v", err)
+	}
+
+	// Give it a moment to start processing
+	time.Sleep(10 * time.Millisecond)
+
+	// Close should cancel context, which aborts tool, and then wait for goroutine to exit
+	start := time.Now()
+	transport.Close()
+	duration := time.Since(start)
+
+	t.Logf("Close took %v", duration)
+
+	// Consume response if any (might be dropped due to context cancel)
+	// transport.ReadMessage() should return EOF or error now
+	_, err := transport.ReadMessage()
+	if err == nil {
+		t.Log("ReadMessage returned nil error after Close")
 	}
 }

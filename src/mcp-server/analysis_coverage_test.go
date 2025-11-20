@@ -59,7 +59,7 @@ func TestHandleAnalyzeCertificateWithAI_Resilience(t *testing.T) {
 	req := mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "analyze_certificate_with_ai",
-			Arguments: map[string]interface{}{
+			Arguments: map[string]any{
 				"certificate": certBase64,
 			},
 		},
@@ -122,7 +122,7 @@ func TestHandleAnalyzeCertificateWithAI_Sampling(t *testing.T) {
 	req := mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "analyze_certificate_with_ai",
-			Arguments: map[string]interface{}{
+			Arguments: map[string]any{
 				"certificate": certBase64,
 			},
 		},
