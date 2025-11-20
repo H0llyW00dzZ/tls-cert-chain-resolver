@@ -714,7 +714,7 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 				"id":      7,
 			},
 			expectError:    false, // Error in result
-			expectContains: "invalid tools/call params",
+			expectContains: "invalid params type for method tools/call",
 			description:    "Test handling of malformed parameters",
 		},
 	}
