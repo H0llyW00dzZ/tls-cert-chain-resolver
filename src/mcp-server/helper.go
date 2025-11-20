@@ -9,9 +9,13 @@ import "fmt"
 
 // getParams extracts parameters from a normalized JSON-RPC request.
 func getParams(req map[string]any, method string) (map[string]any, error) {
-	p, ok := req["params"].(map[string]any)
+	params, ok := req["params"]
 	if !ok {
-		return nil, fmt.Errorf("invalid %s params", method)
+		return nil, fmt.Errorf("missing params for method %s", method)
+	}
+	p, ok := params.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid params type for method %s: expected object, got %T", method, params)
 	}
 	return p, nil
 }
