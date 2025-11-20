@@ -438,6 +438,81 @@ func goodFetch(ctx context.Context) error {
 }
 ```
 
+### 3. Semaphore Pattern for Concurrency Control
+
+**Pattern**: Use buffered channels as semaphores to limit concurrent goroutines (see `src/mcp-server/transport.go`)
+
+```go
+// ✅ GOOD - controlled concurrency with semaphore and WaitGroups:
+type InMemoryTransport struct {
+    sem         chan struct{}  // Semaphore to limit concurrency
+    shutdownWg  sync.WaitGroup // WaitGroup for graceful shutdown
+    processWg   sync.WaitGroup // WaitGroup for message processing loop
+    ctx         context.Context
+    cancel      context.CancelFunc
+}
+
+func NewInMemoryTransport(ctx context.Context) *InMemoryTransport {
+    ctx, cancel := context.WithCancel(ctx)
+    return &InMemoryTransport{
+        sem:    make(chan struct{}, 100), // Limit to 100 concurrent requests
+        ctx:    ctx,
+        cancel: cancel,
+    }
+}
+
+func (t *InMemoryTransport) processMessages() {
+    defer t.processWg.Done()
+    
+    for {
+        select {
+        case <-t.ctx.Done():
+            return
+        case data := <-t.sendCh:
+            // Acquire semaphore token (non-blocking check for context)
+            select {
+            case t.sem <- struct{}{}:
+                t.shutdownWg.Add(1)
+                // Handle message in a goroutine to avoid blocking the transport loop
+                // This ensures that long-running tool calls don't prevent other messages
+                // (like notifications or concurrent requests) from being processed.
+                go func(data []byte) {
+                    defer func() {
+                        <-t.sem // Release token
+                        t.shutdownWg.Done()
+                    }()
+                    
+                    // Process message...
+                }(data)
+            case <-t.ctx.Done():
+                return
+            }
+        }
+    }
+}
+
+func (t *InMemoryTransport) Close() error {
+    if t.cancel != nil {
+        t.cancel()
+    }
+    
+    // Wait for message processor to stop (no new tasks added)
+    t.processWg.Wait()
+    
+    // Wait for active goroutines to finish
+    t.shutdownWg.Wait()
+    
+    return nil
+}
+```
+
+**Key Points**:
+- Use buffered channel as semaphore to limit concurrent goroutines (e.g., 100 concurrent requests)
+- Use separate `WaitGroup` for processor loop (`processWg`) vs active workers (`shutdownWg`)
+- Acquire semaphore token before spawning goroutine (prevents unlimited spawning)
+- Release semaphore token in deferred cleanup (ensures token release even on panic)
+- Wait for `processWg` first (stops accepting new work), then `shutdownWg` (waits for active work)
+
 ## Agent Session Memory Management
 
 ### 1. Working Memory During Session

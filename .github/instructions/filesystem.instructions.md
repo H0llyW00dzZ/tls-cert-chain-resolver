@@ -81,7 +81,7 @@ tls-cert-chain-resolver/
 │   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt used for sampling
 │   │   │   └── certificate-formats.md                    # Certificate format documentation
 │   │   ├── tools.go                          # Tool definitions and creation functions
-│   │   └── transport.go                      # In-memory transport implementation for ADK integration
+│   │   └── transport.go                      # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
 │   └── version/
 │       └── version.go                        # Version information and build metadata
 ├── .gitignore                                # Git ignore patterns
@@ -655,7 +655,7 @@ src/mcp-server/run_graceful_test.go  # Graceful shutdown test (non-Windows)
 src/mcp-server/run_test.go   # Comprehensive tool coverage tests with macOS skip for validation
 src/mcp-server/server.go
 src/mcp-server/tools.go
-src/mcp-server/transport.go  # In-memory transport implementation for ADK integration
+src/mcp-server/transport.go  # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
 src/mcp-server/templates/certificate-analysis-system-prompt.md  # Embedded AI system prompt
 src/mcp-server/templates/certificate-formats.md
 
@@ -795,6 +795,7 @@ grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
 
 # Find JSON-RPC normalization patterns
 grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue", include="*.go")
+grep("getParams", include="*.go")
 
 # Find concurrent test patterns
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
