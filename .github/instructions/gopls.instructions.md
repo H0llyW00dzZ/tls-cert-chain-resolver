@@ -21,6 +21,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
   - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
   - **`handlers.go`** — Core certificate processing utilities, AI analysis, and individual tool handlers
+  - **`helper.go`** — Helper utilities (JSON-RPC parameter extraction)
   - **`resource_usage.go`** — Resource usage monitoring and formatting functions
   - **`server.go`** — Server execution and lifecycle management
   - **`tools.go`** — Tool definitions and creation functions
@@ -619,6 +620,7 @@ grep("buildCertificateContextWithRevocation\\|buildCertificateContext", include=
 
 # Find JSON-RPC normalization patterns
 grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue", include="*.go")
+grep("getParams", include="*.go")
 ```
 
 ## Summary
