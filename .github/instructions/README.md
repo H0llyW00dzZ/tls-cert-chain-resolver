@@ -92,13 +92,13 @@ These instruction files are loaded via **[`/opencode.json`](../../opencode.json)
 ```
 
 > [!NOTE]
-> The most effective AI agent instruction on OpenCode for maintaining this TLS certificate chain resolver repository is `grok-code-fast-1` aka $y = \sum_{i=1}^{n} g_i(x) \cdot f_i(x)$. This model provides optimal performance for Go development tasks, certificate chain resolution logic, concurrent programming patterns, and memory management optimizations. Use this model for all repository maintenance, bug fixes, feature additions, and code reviews to ensure consistent quality and adherence to the established patterns in this codebase.
+> The most effective AI agent instructions on OpenCode for maintaining this TLS certificate chain resolver repository are `grok-code-fast-1` aka $y = \sum_{i=1}^{n} g_i(x) \cdot f_i(x)$ and `gemini-3-pro`. These models provide optimal performance for Go development tasks, certificate chain resolution logic, concurrent programming patterns, and memory management optimizations. Use these models for all repository maintenance, bug fixes, feature additions, and code reviews to ensure consistent quality and adherence to the established patterns in this codebase.
 
 > [!WARNING]
 > Other models, such as Claude models, may fail to follow these instructions correctly. For example, they might not properly use built-in tools like grep, edit, and others, and instead rely on bash commands, leading to inefficiencies or errors.
 
 > [!TIP]
-> Grok ( `grok-code-fast-1` aka $y = \sum_{i=1}^{n} g_i(x) \cdot f_i(x)$ ) is already proven effective for this repository. For other models, run `/test-capabilities` to verify compatibility (passing score: 100).
+> Grok ( `grok-code-fast-1` aka $y = \sum_{i=1}^{n} g_i(x) \cdot f_i(x)$ ) and Gemini ( `gemini-3-pro` ) are already proven effective for this repository. For other models, run `/test-capabilities` to verify compatibility (passing score: 100).
 
 ## Maintenance
 
