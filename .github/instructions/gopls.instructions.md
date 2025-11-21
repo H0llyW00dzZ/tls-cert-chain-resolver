@@ -166,6 +166,9 @@ gopls_go_search("jsonrpc.Marshal") → Find JSON-RPC marshaling functions
 gopls_go_search("jsonrpc.Map") → Find JSON-RPC field normalization functions
 gopls_go_search("normalizeIDValue") → Find ID value normalization functions
 gopls_go_search("getParams") → Find JSON-RPC parameter extraction helper (`src/mcp-server/helper.go`)
+gopls_go_search("getStringParam") → Find required string parameter extraction
+gopls_go_search("getOptionalStringParam") → Find optional string parameter extraction
+gopls_go_search("getMapParam") → Find map parameter extraction
 gopls_go_search("processMessages") → Find transport message processing with concurrent goroutines
 gopls_go_search("SendJSONRPCNotification") → Find JSON-RPC notification sender for streaming
 ```

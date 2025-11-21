@@ -795,7 +795,7 @@ grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
 
 # Find JSON-RPC normalization patterns
 grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue", include="*.go")
-grep("getParams", include="*.go")
+grep("getParams\\|getStringParam\\|getOptionalStringParam\\|getMapParam", include="*.go")
 
 # Find concurrent test patterns
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
