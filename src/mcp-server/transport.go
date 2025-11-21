@@ -556,7 +556,7 @@ func (tb *TransportBuilder) WithDefaultTools() *TransportBuilder {
 // ServerBuilder, then return a transport that can communicate with it.
 //
 // [mark3labs/mcp-go]: https://pkg.go.dev/github.com/mark3labs/mcp-go
-func (tb *TransportBuilder) BuildInMemoryTransport(ctx context.Context) (any, error) {
+func (tb *TransportBuilder) BuildInMemoryTransport(ctx context.Context) (mcptransport.Transport, error) {
 	// Build the server using ServerBuilder
 	srv, err := tb.serverBuilder.Build()
 	if err != nil {
