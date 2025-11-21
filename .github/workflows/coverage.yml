@@ -43,13 +43,13 @@ jobs:
       if: matrix.os != 'windows-11-arm'
       run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
       shell: bash
-      continue-on-error: true
+      # continue-on-error: true
 
     - name: Run tests with coverage (without race detector)
       if: matrix.os == 'windows-11-arm'
       run: go test -v -coverprofile=coverage.txt -covermode=atomic ./...
       shell: bash
-      continue-on-error: true
+      # continue-on-error: true
 
     - name: Run benchmarks
       run: |
@@ -58,7 +58,7 @@ jobs:
         go test -bench=. -benchmem ./src/internal/x509/chain > benchmark-chain.txt || echo "Chain benchmarks failed"
         echo "Benchmark results completed"
       shell: bash
-      continue-on-error: true
+      # continue-on-error: true
 
     - name: Display benchmark results
       run: |
@@ -73,7 +73,7 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       if: matrix.os == 'ubuntu-latest'
-      continue-on-error: true
+      # continue-on-error: true
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
