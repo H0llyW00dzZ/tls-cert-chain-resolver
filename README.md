@@ -223,12 +223,12 @@ tls-cert-chain-resolver/
 - [x] **Implement bidirectional AI communication** via MCP sampling (servers can request LLM completions from clients)
 - [x] Add OCSP/CRL revocation status checks to MCP tools
 - [x] **Add resource usage monitoring tool** with JSON and markdown output formats
+- [x] Integrate with [`google.golang.org/adk`](https://github.com/google/adk-go) (adk-go) for MCP transport creation
+- [x] Create abstraction layer for both MCP libraries (mark3labs server + ADK transport bridge)
 
 ##### Remaining (Low Priority)
 
-- [ ] Integrate with [`google.golang.org/adk`](https://github.com/google/adk-go) (adk-go) for MCP transport creation (in progress)
 - [ ] Maintain compatibility with `github.com/mark3labs/mcp-go` (ongoing)
-- [ ] Create abstraction layer for both MCP libraries
 - [ ] Document differences and use cases for each library
 
 ##### [X.509](https://grokipedia.com/page/X.509) Operations Roadmap
