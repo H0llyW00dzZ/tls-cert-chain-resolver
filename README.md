@@ -226,6 +226,7 @@ tls-cert-chain-resolver/
 
 ##### Remaining (Low Priority)
 
+- [ ] Integrate with [`google.golang.org/adk`](https://github.com/google/adk-go) (adk-go) for MCP transport creation (in progress)
 - [ ] Maintain compatibility with `github.com/mark3labs/mcp-go` (ongoing)
 - [ ] Create abstraction layer for both MCP libraries
 - [ ] Document differences and use cases for each library
