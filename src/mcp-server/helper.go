@@ -29,6 +29,21 @@ func getStringParam(params map[string]any, method, key string) (string, error) {
 	return val, nil
 }
 
+// getOptionalStringParam extracts an optional string parameter from the params map.
+// If the key is missing, it returns an empty string and no error.
+// If the key exists but is not a string, it returns an error.
+func getOptionalStringParam(params map[string]any, method, key string) (string, error) {
+	val, ok := params[key]
+	if !ok {
+		return "", nil
+	}
+	strVal, ok := val.(string)
+	if !ok {
+		return "", fmt.Errorf("invalid params for %s: '%s' must be string", method, key)
+	}
+	return strVal, nil
+}
+
 // getMapParam extracts a required map[string]any parameter from the params map.
 func getMapParam(params map[string]any, method, key string) (map[string]any, error) {
 	val, ok := params[key].(map[string]any)
