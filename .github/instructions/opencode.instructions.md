@@ -486,7 +486,7 @@ New to repository?
 - `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with bidirectional AI sampling support
 - `github.com/modelcontextprotocol/go-sdk` v1.1.0 - Official MCP SDK for transport implementations
 - `google.golang.org/adk` v0.1.0 - Google ADK integration for MCP transport creation
-- `golang.org/x/crypto` (via Go 1.25.4) - Standard crypto updates leveraged in recent releases
+- `golang.org/x/crypto` v0.45.0 (via Go 1.25.4) - Standard crypto updates leveraged in recent releases
 
 ### Package Structure
 
@@ -495,12 +495,15 @@ cmd/                   → Main entry point (CLI, MCP, ADK example)
 src/cli/               → CLI implementation (cobra)
 src/logger/            → Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex)
 src/mcp-server/        → MCP server implementation with X509 certificate tools
+  ├── adk.go           → Google ADK integration support
   ├── config.go        → Configuration handling
   ├── framework.go     → Builder pattern for server construction
   ├── handlers.go      → Tool handlers for certificate operations
+  ├── helper.go        → Helper utilities (JSON-RPC parameter extraction)
   ├── prompts.go       → MCP prompt definitions and handlers
   ├── resources.go     → MCP resource definitions and handlers
-  └── server.go        → Server execution and lifecycle
+  ├── server.go        → Server execution and lifecycle
+  └── transport.go     → In-memory transport for ADK integration
 src/internal/x509/     → Certificate operations
   ├── certs/           → Encoding/decoding
   └── chain/           → Chain resolution
