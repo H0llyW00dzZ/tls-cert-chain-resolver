@@ -509,7 +509,7 @@ src/internal/x509/     → Certificate operations
   └── chain/           → Chain resolution
 src/internal/helper/   → Utilities
   ├── gc/              → Garbage collection optimization
-  └── jsonrpc/         → JSON-RPC canonicalization
+  └── jsonrpc/         → JSON-RPC canonicalization and unmarshaling
 ```
 
 ### Development Workflow

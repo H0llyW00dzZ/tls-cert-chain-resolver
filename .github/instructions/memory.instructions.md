@@ -850,6 +850,12 @@ func normalizeJSONRPCMessage(msg jsonrpc.Message) ([]byte, error) {
     // Use helper package for canonicalization (lowercase keys, version, ID handling)
     return jsonrpc.Marshal(data)
 }
+
+// JSON-RPC unmarshaling pattern
+// Use UnmarshalFromMap for safe conversion from map[string]any to struct
+func convertParams(params map[string]any, target any) error {
+    return jsonrpc.UnmarshalFromMap(params, target)
+}
 ```
 
 **Key Points**:
@@ -857,6 +863,7 @@ func normalizeJSONRPCMessage(msg jsonrpc.Message) ([]byte, error) {
 - Automatically handles ID field (null vs value) and float-to-int conversion
 - Ensures `jsonrpc: "2.0"` is present
 - Centralized logic avoids duplication across transports
+- `UnmarshalFromMap` provides safe type conversion via JSON round-trip
 
 ## Summary
 
