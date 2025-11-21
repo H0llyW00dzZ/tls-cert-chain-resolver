@@ -233,7 +233,7 @@ func TestMCPTools(t *testing.T) {
 	srv.AddTools(tools...)
 
 	// Start the server
-	if err := srv.Start(context.Background()); err != nil {
+	if err := srv.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	defer srv.Close()
@@ -507,7 +507,7 @@ func TestMCPTools(t *testing.T) {
 				},
 			}
 
-			result, err := client.CallTool(context.Background(), req)
+			result, err := client.CallTool(t.Context(), req)
 			if tt.expectError {
 				if err != nil {
 					t.Errorf("unexpected error: %v", err)
@@ -702,17 +702,17 @@ func TestHandlerErrorPaths(t *testing.T) {
 			// Call the appropriate handler directly
 			switch tt.toolName {
 			case "resolve_cert_chain":
-				result, err = handleResolveCertChain(context.Background(), req)
+				result, err = handleResolveCertChain(t.Context(), req)
 			case "validate_cert_chain":
-				result, err = handleValidateCertChain(context.Background(), req)
+				result, err = handleValidateCertChain(t.Context(), req)
 			case "batch_resolve_cert_chain":
-				result, err = handleBatchResolveCertChain(context.Background(), req)
+				result, err = handleBatchResolveCertChain(t.Context(), req)
 			case "check_cert_expiry":
 				config, _ := loadConfig("")
-				result, err = handleCheckCertExpiry(context.Background(), req, config)
+				result, err = handleCheckCertExpiry(t.Context(), req, config)
 			case "fetch_remote_cert":
 				config, _ := loadConfig("")
-				result, err = handleFetchRemoteCert(context.Background(), req, config)
+				result, err = handleFetchRemoteCert(t.Context(), req, config)
 			default:
 				t.Fatalf("Unknown tool name: %s", tt.toolName)
 			}
@@ -769,7 +769,7 @@ func TestContextCancellation(t *testing.T) {
 			name:     "resolve_cert_chain with cancelled context",
 			toolName: "resolve_cert_chain",
 			setupCtx: func() (context.Context, context.CancelFunc) {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(t.Context())
 				cancel() // Cancel immediately
 				return ctx, cancel
 			},
@@ -782,7 +782,7 @@ func TestContextCancellation(t *testing.T) {
 			name:     "validate_cert_chain with cancelled context",
 			toolName: "validate_cert_chain",
 			setupCtx: func() (context.Context, context.CancelFunc) {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(t.Context())
 				cancel() // Cancel immediately
 				return ctx, cancel
 			},
@@ -795,7 +795,7 @@ func TestContextCancellation(t *testing.T) {
 			name:     "batch_resolve_cert_chain with cancelled context",
 			toolName: "batch_resolve_cert_chain",
 			setupCtx: func() (context.Context, context.CancelFunc) {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(t.Context())
 				cancel() // Cancel immediately
 				return ctx, cancel
 			},
@@ -808,7 +808,7 @@ func TestContextCancellation(t *testing.T) {
 			name:     "fetch_remote_cert with timeout",
 			toolName: "fetch_remote_cert",
 			setupCtx: func() (context.Context, context.CancelFunc) {
-				return context.WithTimeout(context.Background(), 1*time.Nanosecond)
+				return context.WithTimeout(t.Context(), 1*time.Nanosecond)
 			},
 			args: map[string]any{
 				"hostname": "example.com",
@@ -947,17 +947,17 @@ func TestEdgeCases(t *testing.T) {
 			// Call the appropriate handler
 			switch tt.toolName {
 			case "resolve_cert_chain":
-				result, err = handleResolveCertChain(context.Background(), req)
+				result, err = handleResolveCertChain(t.Context(), req)
 			case "validate_cert_chain":
-				result, err = handleValidateCertChain(context.Background(), req)
+				result, err = handleValidateCertChain(t.Context(), req)
 			case "batch_resolve_cert_chain":
-				result, err = handleBatchResolveCertChain(context.Background(), req)
+				result, err = handleBatchResolveCertChain(t.Context(), req)
 			case "check_cert_expiry":
 				config, _ := loadConfig("")
-				result, err = handleCheckCertExpiry(context.Background(), req, config)
+				result, err = handleCheckCertExpiry(t.Context(), req, config)
 			case "fetch_remote_cert":
 				config, _ := loadConfig("")
-				result, err = handleFetchRemoteCert(context.Background(), req, config)
+				result, err = handleFetchRemoteCert(t.Context(), req, config)
 			default:
 				t.Fatalf("Unknown tool name: %s", tt.toolName)
 			}
@@ -991,7 +991,7 @@ func TestResourceHandlers(t *testing.T) {
 	srv.AddResources(resources...)
 
 	// Start the server
-	if err := srv.Start(context.Background()); err != nil {
+	if err := srv.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	defer srv.Close()
@@ -1050,7 +1050,7 @@ func TestResourceHandlers(t *testing.T) {
 				},
 			}
 
-			result, err := client.ReadResource(context.Background(), req)
+			result, err := client.ReadResource(t.Context(), req)
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error for URI %s, but got none", tt.uri)
@@ -1151,7 +1151,7 @@ func TestHandleConfigResource(t *testing.T) {
 		},
 	}
 
-	result, err := handleConfigResource(context.Background(), req)
+	result, err := handleConfigResource(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleConfigResource failed: %v", err)
 	}
@@ -1191,7 +1191,7 @@ func TestHandleVersionResource(t *testing.T) {
 		},
 	}
 
-	result, err := handleVersionResource(context.Background(), req)
+	result, err := handleVersionResource(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleVersionResource failed: %v", err)
 	}
@@ -1234,7 +1234,7 @@ func TestHandleFormatsResource(t *testing.T) {
 		},
 	}
 
-	result, err := handleFormatsResource(context.Background(), req)
+	result, err := handleFormatsResource(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleFormatsResource failed: %v", err)
 	}
@@ -1269,7 +1269,7 @@ func TestHandleStatusResource(t *testing.T) {
 		},
 	}
 
-	result, err := handleStatusResource(context.Background(), req)
+	result, err := handleStatusResource(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleStatusResource failed: %v", err)
 	}
@@ -1319,7 +1319,7 @@ func TestHandleCertificateAnalysisPrompt(t *testing.T) {
 		},
 	}
 
-	result, err := handleCertificateAnalysisPrompt(context.Background(), req)
+	result, err := handleCertificateAnalysisPrompt(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleCertificateAnalysisPrompt failed: %v", err)
 	}
@@ -1348,7 +1348,7 @@ func TestHandleExpiryMonitoringPrompt(t *testing.T) {
 		},
 	}
 
-	result, err := handleExpiryMonitoringPrompt(context.Background(), req)
+	result, err := handleExpiryMonitoringPrompt(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleExpiryMonitoringPrompt failed: %v", err)
 	}
@@ -1377,7 +1377,7 @@ func TestHandleSecurityAuditPrompt(t *testing.T) {
 		},
 	}
 
-	result, err := handleSecurityAuditPrompt(context.Background(), req)
+	result, err := handleSecurityAuditPrompt(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleSecurityAuditPrompt failed: %v", err)
 	}
@@ -1406,7 +1406,7 @@ func TestHandleTroubleshootingPrompt_ChainIssue(t *testing.T) {
 		},
 	}
 
-	result, err := handleTroubleshootingPrompt(context.Background(), req)
+	result, err := handleTroubleshootingPrompt(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
@@ -1435,7 +1435,7 @@ func TestHandleTroubleshootingPrompt_ValidationIssue(t *testing.T) {
 		},
 	}
 
-	result, err := handleTroubleshootingPrompt(context.Background(), req)
+	result, err := handleTroubleshootingPrompt(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
@@ -1464,7 +1464,7 @@ func TestHandleTroubleshootingPrompt_ExpiryIssue(t *testing.T) {
 		},
 	}
 
-	result, err := handleTroubleshootingPrompt(context.Background(), req)
+	result, err := handleTroubleshootingPrompt(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
@@ -1493,7 +1493,7 @@ func TestHandleTroubleshootingPrompt_ConnectionIssue(t *testing.T) {
 		},
 	}
 
-	result, err := handleTroubleshootingPrompt(context.Background(), req)
+	result, err := handleTroubleshootingPrompt(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
@@ -1521,7 +1521,7 @@ func TestHandleTroubleshootingPrompt_InvalidIssueType(t *testing.T) {
 		},
 	}
 
-	result, err := handleTroubleshootingPrompt(context.Background(), req)
+	result, err := handleTroubleshootingPrompt(t.Context(), req)
 	if err != nil {
 		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
@@ -2075,7 +2075,7 @@ func TestDefaultSamplingHandler_CreateMessage(t *testing.T) {
 				endpoint: server.URL,
 			}
 
-			result, err := handler.CreateMessage(context.Background(), tt.request)
+			result, err := handler.CreateMessage(t.Context(), tt.request)
 
 			if tt.expectFallback {
 				if err != nil {
@@ -2459,7 +2459,7 @@ func TestDefaultSamplingHandler_bufferPooling(t *testing.T) {
 
 	// Call CreateMessage multiple times to test buffer pooling
 	for i := range 10 {
-		result, err := handler.CreateMessage(context.Background(), request)
+		result, err := handler.CreateMessage(t.Context(), request)
 		if err != nil {
 			t.Errorf("Iteration %d: Expected no error, got: %v", i, err)
 		}
@@ -2526,7 +2526,7 @@ func TestDefaultSamplingHandler_errorHandling(t *testing.T) {
 				},
 			}
 
-			result, err := handler.CreateMessage(context.Background(), request)
+			result, err := handler.CreateMessage(t.Context(), request)
 
 			if err == nil {
 				t.Error("Expected error, got nil")
@@ -3070,7 +3070,7 @@ func TestHandleAnalyzeCertificateWithAI(t *testing.T) {
 		},
 	}
 
-	result, err := handleAnalyzeCertificateWithAI(context.Background(), request, config)
+	result, err := handleAnalyzeCertificateWithAI(t.Context(), request, config)
 	if err != nil {
 		t.Fatalf("handleAnalyzeCertificateWithAI failed: %v", err)
 	}
@@ -3170,7 +3170,7 @@ func TestConcurrentCertificateAnalysis(t *testing.T) {
 					},
 				}
 
-				result, err := handleAnalyzeCertificateWithAI(context.Background(), request, config)
+				result, err := handleAnalyzeCertificateWithAI(t.Context(), request, config)
 				if err != nil {
 					t.Errorf("Concurrent analysis failed: %v", err)
 					continue
