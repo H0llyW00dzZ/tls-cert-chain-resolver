@@ -345,7 +345,7 @@ func (t *InMemoryTransport) processMessages() {
 							if t.client != nil {
 								listReq := mcp.ListResourcesRequest{}
 								if params, ok := normalizedReq["params"].(map[string]any); ok {
-									if cursor, ok := params["cursor"].(string); ok {
+									if cursor, err := getOptionalStringParam(params, method, "cursor"); err == nil {
 										listReq.Params.Cursor = mcp.Cursor(cursor)
 									}
 								}
@@ -381,7 +381,7 @@ func (t *InMemoryTransport) processMessages() {
 							if t.client != nil {
 								listReq := mcp.ListPromptsRequest{}
 								if params, ok := normalizedReq["params"].(map[string]any); ok {
-									if cursor, ok := params["cursor"].(string); ok {
+									if cursor, err := getOptionalStringParam(params, method, "cursor"); err == nil {
 										listReq.Params.Cursor = mcp.Cursor(cursor)
 									}
 								}
