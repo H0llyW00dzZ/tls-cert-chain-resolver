@@ -32,6 +32,7 @@ vendor/
 *.dll
 *.so
 *.dylib
+adk-go
 
 # Test binaries
 *.test
