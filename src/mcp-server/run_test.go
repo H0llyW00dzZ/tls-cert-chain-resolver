@@ -16,6 +16,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"io"
 	"math/big"
 	"net"
 	"net/http"
@@ -1118,28 +1119,491 @@ func TestAddResources(t *testing.T) {
 	}
 }
 
-func TestCreateResources(t *testing.T) {
-	resources := createResources()
-
-	// Verify we get the expected number of resources
-	if len(resources) != 4 {
-		t.Errorf("Expected 4 resources, got %d", len(resources))
+func TestGetParams(t *testing.T) {
+	tests := []struct {
+		name        string
+		req         map[string]any
+		method      string
+		expectError bool
+	}{
+		{
+			name: "valid params",
+			req: map[string]any{
+				"params": map[string]any{"key": "value"},
+			},
+			method:      "test",
+			expectError: false,
+		},
+		{
+			name: "missing params",
+			req: map[string]any{
+				"other": "field",
+			},
+			method:      "test",
+			expectError: true,
+		},
+		{
+			name: "invalid params type",
+			req: map[string]any{
+				"params": "not-an-object",
+			},
+			method:      "test",
+			expectError: true,
+		},
 	}
 
-	// Verify resource URIs
-	expectedURIs := []string{
-		"config://template",
-		"info://version",
-		"docs://certificate-formats",
-		"status://server-status",
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			params, err := getParams(tt.req, tt.method)
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if params == nil {
+				t.Error("Expected params but got nil")
+			}
+		})
+	}
+}
+
+func TestGetStringParam(t *testing.T) {
+	tests := []struct {
+		name        string
+		params      map[string]any
+		method      string
+		key         string
+		expectError bool
+		expected    string
+	}{
+		{
+			name: "valid string param",
+			params: map[string]any{
+				"message": "hello",
+			},
+			method:      "test",
+			key:         "message",
+			expectError: false,
+			expected:    "hello",
+		},
+		{
+			name: "missing param",
+			params: map[string]any{
+				"other": "field",
+			},
+			method:      "test",
+			key:         "message",
+			expectError: true,
+		},
+		{
+			name: "wrong type param",
+			params: map[string]any{
+				"message": 123,
+			},
+			method:      "test",
+			key:         "message",
+			expectError: true,
+		},
 	}
 
-	for i, resource := range resources {
-		if resource.Resource.URI != expectedURIs[i] {
-			t.Errorf("Resource %d: expected URI %s, got %s", i, expectedURIs[i], resource.Resource.URI)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := getStringParam(tt.params, tt.method, tt.key)
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if result != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestGetOptionalStringParam(t *testing.T) {
+	tests := []struct {
+		name        string
+		params      map[string]any
+		method      string
+		key         string
+		expectError bool
+		expected    string
+	}{
+		{
+			name: "valid string param",
+			params: map[string]any{
+				"message": "hello",
+			},
+			method:      "test",
+			key:         "message",
+			expectError: false,
+			expected:    "hello",
+		},
+		{
+			name: "missing param",
+			params: map[string]any{
+				"other": "field",
+			},
+			method:      "test",
+			key:         "message",
+			expectError: false,
+			expected:    "",
+		},
+		{
+			name: "wrong type param",
+			params: map[string]any{
+				"message": 123,
+			},
+			method:      "test",
+			key:         "message",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := getOptionalStringParam(tt.params, tt.method, tt.key)
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if result != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestPipeReader_Read(t *testing.T) {
+	ctx := t.Context()
+	transport := NewInMemoryTransport(ctx)
+
+	reader := &pipeReader{t: transport}
+
+	// Test reading with cancelled context
+	transport.cancel()
+	buf := make([]byte, 100)
+	n, err := reader.Read(buf)
+	if err != io.EOF {
+		t.Errorf("Expected EOF when context cancelled, got %v", err)
+	}
+	if n != 0 {
+		t.Errorf("Expected 0 bytes read, got %d", n)
+	}
+}
+
+func TestPipeWriter_Write(t *testing.T) {
+	ctx := t.Context()
+	transport := NewInMemoryTransport(ctx)
+
+	writer := &pipeWriter{t: transport}
+
+	// Test writing a complete JSON message
+	message := `{"jsonrpc":"2.0","method":"test","id":1}` + "\n"
+	data := []byte(message)
+
+	n, err := writer.Write(data)
+	if err != nil {
+		t.Errorf("Write failed: %v", err)
+	}
+	if n != len(data) {
+		t.Errorf("Expected to write %d bytes, wrote %d", len(data), n)
+	}
+
+	// Test writing partial message (should buffer)
+	partial := `{"jsonrpc":"2.0","method":"partial"`
+	n, err = writer.Write([]byte(partial))
+	if err != nil {
+		t.Errorf("Partial write failed: %v", err)
+	}
+	if n != len(partial) {
+		t.Errorf("Expected to write %d bytes, wrote %d", len(partial), n)
+	}
+}
+
+func TestPipeWriter_Write_SamplingRequest(t *testing.T) {
+	ctx := t.Context()
+	transport := NewInMemoryTransport(ctx)
+
+	// Set up the existing mock sampling handler
+	transport.SetSamplingHandler(&mockSamplingHandler{})
+
+	writer := &pipeWriter{t: transport}
+
+	// Write a sampling request with id (should trigger sampling path)
+	samplingRequest := `{"jsonrpc":"2.0","method":"sampling/createMessage","id":123,"params":{"messages":[{"role":"user","content":{"type":"text","text":"test"}}],"maxTokens":100}}` + "\n"
+	data := []byte(samplingRequest)
+
+	n, err := writer.Write(data)
+	if err != nil {
+		t.Errorf("Write failed: %v", err)
+	}
+	if n != len(data) {
+		t.Errorf("Expected to write %d bytes, wrote %d", len(data), n)
+	}
+
+	// Wait for the sampling goroutine to complete
+	transport.Close()
+}
+
+func TestTransportInternalFunctions(t *testing.T) {
+	ctx := t.Context()
+	transport := NewInMemoryTransport(ctx)
+
+	// Test sendToRecv
+	testMsg := []byte("test message")
+	transport.sendToRecv(testMsg)
+
+	select {
+	case received := <-transport.recvCh:
+		if string(received) != string(testMsg) {
+			t.Errorf("sendToRecv failed: expected %q, got %q", testMsg, received)
 		}
-		if resource.Handler == nil {
-			t.Errorf("Resource %d (%s) has nil handler", i, resource.Resource.URI)
+	case <-time.After(100 * time.Millisecond):
+		t.Error("sendToRecv did not send message to recvCh")
+	}
+
+	// Test sendErrorResponse
+	transport.sendErrorResponse(123, 400, "test error")
+
+	select {
+	case response := <-transport.recvCh:
+		var resp jsonRPCResponse
+		if err := json.Unmarshal(response, &resp); err != nil {
+			t.Errorf("sendErrorResponse produced invalid JSON: %v", err)
+		}
+		if resp.ID != 123.0 { // JSON unmarshals numbers as float64
+			t.Errorf("sendErrorResponse wrong ID: expected 123, got %v", resp.ID)
+		}
+		if resp.Error == nil || resp.Error.Code != 400 {
+			t.Errorf("sendErrorResponse wrong error code: expected 400, got %v", resp.Error)
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Error("sendErrorResponse did not send response")
+	}
+
+	// Test sendResponse
+	testResult := map[string]any{"result": "success"}
+	transport.sendResponse(testResult)
+
+	select {
+	case response := <-transport.recvCh:
+		var resp jsonRPCResponse
+		if err := json.Unmarshal(response, &resp); err != nil {
+			t.Errorf("sendResponse produced invalid JSON: %v", err)
+		}
+		if resp.Result == nil {
+			t.Error("sendResponse did not include result")
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Error("sendResponse did not send response")
+	}
+}
+
+func TestCollectResourceUsage(t *testing.T) {
+	data := CollectResourceUsage(false)
+	if data == nil {
+		t.Fatal("CollectResourceUsage returned nil")
+	}
+
+	if data.Timestamp == "" {
+		t.Error("Timestamp should not be empty")
+	}
+
+	if data.MemoryUsage == nil {
+		t.Error("MemoryUsage should not be nil")
+	}
+
+	if data.SystemInfo == nil {
+		t.Error("SystemInfo should not be nil")
+	}
+
+	// Test with detailed=true
+	dataDetailed := CollectResourceUsage(true)
+	if dataDetailed == nil {
+		t.Fatal("CollectResourceUsage with detailed=true returned nil")
+	}
+
+	if dataDetailed.DetailedMemory == nil {
+		t.Error("DetailedMemory should not be nil when detailed=true")
+	}
+
+	if dataDetailed.CRLCache == nil {
+		t.Error("CRLCache should not be nil when detailed=true")
+	}
+}
+
+func TestNewTransportBuilder(t *testing.T) {
+	builder := NewTransportBuilder()
+	if builder == nil {
+		t.Error("NewTransportBuilder returned nil")
+	}
+
+	// Test builder methods
+	builder = builder.WithConfig(&Config{})
+	builder = builder.WithVersion("1.0.0")
+	builder = builder.WithDefaultTools()
+
+	// Should not panic
+	transport, err := builder.BuildInMemoryTransport(t.Context())
+	if err != nil {
+		t.Errorf("BuildInMemoryTransport failed: %v", err)
+	}
+	if transport == nil {
+		t.Error("BuildInMemoryTransport returned nil transport")
+	}
+}
+
+func TestNewADKTransportBuilder(t *testing.T) {
+	builder := NewADKTransportBuilder()
+	if builder == nil {
+		t.Error("NewADKTransportBuilder returned nil")
+	}
+
+	// Test builder methods
+	builder = builder.WithVersion("1.0.0")
+	builder = builder.WithMCPConfig("/tmp/config.json")
+	builder = builder.WithInMemoryTransport()
+
+	// Should not panic
+	err := builder.ValidateConfig()
+	// Validation might fail due to config, but shouldn't panic
+	_ = err // We don't care about the result, just that it doesn't panic
+}
+
+func TestLoadConfig(t *testing.T) {
+	tests := []struct {
+		name        string
+		configPath  string
+		expectError bool
+	}{
+		{
+			name:        "empty config path uses defaults",
+			configPath:  "",
+			expectError: false,
+		},
+		{
+			name:        "nonexistent config file",
+			configPath:  "/nonexistent/config.json",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config, err := loadConfig(tt.configPath)
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if config == nil {
+				t.Error("Expected config but got nil")
+				return
+			}
+
+			// Verify default values
+			if config.Defaults.Format != "pem" {
+				t.Errorf("Expected default format 'pem', got %s", config.Defaults.Format)
+			}
+			if config.Defaults.WarnDays != 30 {
+				t.Errorf("Expected default warn_days 30, got %d", config.Defaults.WarnDays)
+			}
+		})
+	}
+}
+
+func TestCreateTools(t *testing.T) {
+	tools, toolsWithConfig := createTools()
+
+	// Verify we get the expected number of tools
+	if len(tools) != 4 {
+		t.Errorf("Expected 4 regular tools, got %d", len(tools))
+	}
+	if len(toolsWithConfig) != 3 {
+		t.Errorf("Expected 3 config tools, got %d", len(toolsWithConfig))
+	}
+
+	// Verify tool names
+	expectedToolNames := []string{
+		"resolve_cert_chain",
+		"validate_cert_chain",
+		"batch_resolve_cert_chain",
+		"get_resource_usage",
+		"check_cert_expiry",
+		"fetch_remote_cert",
+		"analyze_certificate_with_ai",
+	}
+
+	foundTools := make(map[string]bool)
+	for _, tool := range tools {
+		foundTools[string(tool.Tool.Name)] = true
+	}
+	for _, tool := range toolsWithConfig {
+		foundTools[string(tool.Tool.Name)] = true
+	}
+
+	for _, expectedName := range expectedToolNames {
+		if !foundTools[expectedName] {
+			t.Errorf("Expected tool %s not found", expectedName)
+		}
+	}
+}
+
+func TestCreatePrompts(t *testing.T) {
+	prompts := createPrompts()
+
+	// Verify we get the expected number of prompts
+	if len(prompts) != 4 {
+		t.Errorf("Expected 4 prompts, got %d", len(prompts))
+	}
+
+	// Verify prompt names
+	expectedPromptNames := []string{
+		"certificate-analysis",
+		"expiry-monitoring",
+		"security-audit",
+		"troubleshooting",
+	}
+
+	foundPrompts := make(map[string]bool)
+	for _, prompt := range prompts {
+		foundPrompts[string(prompt.Prompt.Name)] = true
+	}
+
+	for _, expectedName := range expectedPromptNames {
+		if !foundPrompts[expectedName] {
+			t.Errorf("Expected prompt %s not found", expectedName)
 		}
 	}
 }
@@ -3328,4 +3792,107 @@ func isValidURLContext(context string) bool {
 		}
 	}
 	return true
+}
+
+func TestInMemoryTransport_SetSamplingHandler(t *testing.T) {
+	transport := NewInMemoryTransport(t.Context())
+	if transport == nil {
+		t.Fatal("NewInMemoryTransport returned nil")
+	}
+
+	// Initially should be nil
+	if transport.samplingHandler != nil {
+		t.Error("Expected samplingHandler to be nil initially")
+	}
+
+	// Create a mock sampling handler
+	mockHandler := &mockSamplingHandler{}
+
+	// Set the handler
+	transport.SetSamplingHandler(mockHandler)
+
+	// Verify it was set
+	if transport.samplingHandler != mockHandler {
+		t.Error("Expected samplingHandler to be set to mock handler")
+	}
+}
+
+func TestInMemoryTransport_handleSampling(t *testing.T) {
+	transport := NewInMemoryTransport(t.Context())
+	if transport == nil {
+		t.Fatal("NewInMemoryTransport returned nil")
+	}
+
+	// Set up a mock sampling handler
+	mockHandler := &mockSamplingHandler{}
+	transport.SetSamplingHandler(mockHandler)
+
+	// Test request without sampling handler (should return error)
+	reqWithoutHandler := map[string]any{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "sampling/createMessage",
+		"params": map[string]any{
+			"messages": []map[string]any{
+				{"role": "user", "content": "test"},
+			},
+		},
+	}
+
+	// Remove handler to test error case
+	transport.SetSamplingHandler(nil)
+	transport.handleSampling(reqWithoutHandler)
+
+	// Check that error response was sent
+	select {
+	case data := <-transport.recvCh:
+		var resp map[string]any
+		if err := json.Unmarshal(data, &resp); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		if resp["error"].(map[string]any)["code"].(float64) != -32601 {
+			t.Errorf("Expected error code -32601, got %v", resp["error"])
+		}
+	default:
+		t.Error("Expected error response to be sent")
+	}
+
+	// Test with handler but invalid params
+	transport.SetSamplingHandler(mockHandler)
+	reqInvalidParams := map[string]any{
+		"jsonrpc": "2.0",
+		"id":      2,
+		"method":  "sampling/createMessage",
+		"params":  "invalid", // Invalid params type
+	}
+
+	transport.handleSampling(reqInvalidParams)
+
+	// Check that error response was sent
+	select {
+	case data := <-transport.recvCh:
+		var resp map[string]any
+		if err := json.Unmarshal(data, &resp); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		if resp["error"].(map[string]any)["code"].(float64) != -32602 {
+			t.Errorf("Expected error code -32602, got %v", resp["error"])
+		}
+	default:
+		t.Error("Expected error response to be sent")
+	}
+}
+
+// mockSamplingHandler implements client.SamplingHandler for testing
+type mockSamplingHandler struct{}
+
+func (m *mockSamplingHandler) CreateMessage(ctx context.Context, req mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
+	return &mcp.CreateMessageResult{
+		SamplingMessage: mcp.SamplingMessage{
+			Role:    mcp.RoleAssistant,
+			Content: mcp.NewTextContent("Mock response"),
+		},
+		Model:      "mock-model",
+		StopReason: "stop",
+	}, nil
 }
