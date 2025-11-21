@@ -8,6 +8,8 @@ package jsonrpc
 import (
 	"encoding/json"
 	"strings"
+
+	"github.com/mark3labs/mcp-go/mcp"
 )
 
 // Marshal normalizes JSON-RPC payloads to lowercase keys with default version.
@@ -43,7 +45,7 @@ func Map(temp map[string]any) map[string]any {
 	}
 
 	if _, ok := fixed["jsonrpc"]; !ok {
-		fixed["jsonrpc"] = "2.0"
+		fixed["jsonrpc"] = mcp.JSONRPC_VERSION
 	}
 
 	return fixed
@@ -58,4 +60,13 @@ func normalizeIDValue(v any) any {
 		}
 	}
 	return v
+}
+
+// UnmarshalFromMap converts a map/any to a struct via JSON round-trip.
+func UnmarshalFromMap(src any, dest any) error {
+	data, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, dest)
 }
