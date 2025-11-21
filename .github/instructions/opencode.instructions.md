@@ -500,6 +500,7 @@ src/mcp-server/        → MCP server implementation with X509 certificate tools
   ├── framework.go     → Builder pattern for server construction
   ├── handlers.go      → Tool handlers for certificate operations
   ├── helper.go        → Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
+  ├── pipe.go          → Pipe transport implementation for StdioServer input/output interception (sampling)
   ├── prompts.go       → MCP prompt definitions and handlers
   ├── resources.go     → MCP resource definitions and handlers
   ├── server.go        → Server execution and lifecycle

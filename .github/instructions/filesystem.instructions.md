@@ -71,6 +71,7 @@ tls-cert-chain-resolver/
 │   │   ├── framework.go                      # ServerBuilder pattern, sampling registration, streaming buffer pooling
 │   │   ├── handlers.go                       # MCP tool handlers, AI certificate analysis, certificate processing utilities
 │   │   ├── helper.go                         # Helper utilities (JSON-RPC parameter extraction)
+│   │   ├── pipe.go                           # Pipe transport implementation for StdioServer input/output interception (sampling)
 │   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
 │   │   ├── resource_usage.go                 # Resource usage monitoring and formatting functions
 │   │   ├── resources.go                      # MCP resource definitions and handlers (config, version, formats, status)
@@ -648,6 +649,7 @@ src/mcp-server/analysis_coverage_test.go # Analysis coverage tests
 src/mcp-server/framework.go  # ServerBuilder pattern, AI sampling with buffer pooling (DefaultSamplingHandler)
 src/mcp-server/handlers.go   # MCP tool handlers, AI certificate analysis, certificate processing utilities
 src/mcp-server/helper.go     # Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
+src/mcp-server/pipe.go       # Pipe transport implementation for StdioServer input/output interception (sampling)
 src/mcp-server/prompts.go    # MCP prompt definitions and handlers for certificate workflows
 src/mcp-server/resource_usage.go  # Resource usage monitoring and formatting functions
 src/mcp-server/resources.go  # MCP resource definitions and handlers including status resource
@@ -796,6 +798,7 @@ grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
 # Find JSON-RPC normalization patterns
 grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue\\|UnmarshalFromMap", include="*.go")
 grep("getParams\\|getStringParam\\|getOptionalStringParam\\|getMapParam", include="*.go")
+grep("pipeReader\\|pipeWriter", include="*.go")
 
 # Find concurrent test patterns
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
