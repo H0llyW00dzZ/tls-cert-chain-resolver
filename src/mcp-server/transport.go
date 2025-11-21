@@ -270,10 +270,8 @@ func (t *InMemoryTransport) processMessages() {
 							if initParams, e := getParams(normalizedReq, string(mcp.MethodInitialize)); e != nil {
 								err = e
 							} else {
-								protocolVersion, ok := initParams["protocolVersion"].(string)
-								if !ok {
-									err = fmt.Errorf("invalid params for initialize: 'protocolVersion' must be string")
-								} else {
+								var protocolVersion string
+								if protocolVersion, err = getStringParam(initParams, method, "protocolVersion"); err == nil {
 									// Preserve capabilities by marshaling/unmarshaling
 									var capabilities mcp.ClientCapabilities
 									if caps, ok := initParams["capabilities"]; ok {
@@ -323,22 +321,22 @@ func (t *InMemoryTransport) processMessages() {
 								if callParams, e := getParams(normalizedReq, string(mcp.MethodToolsCall)); e != nil {
 									err = e
 								} else {
-									name, okName := callParams["name"].(string)
-									args, okArgs := callParams["arguments"].(map[string]any)
-									if !okName || !okArgs {
-										err = fmt.Errorf("invalid params for tools/call: 'name' must be string and 'arguments' must be object")
-									} else {
-										callReq := mcp.CallToolRequest{
-											Params: mcp.CallToolParams{
-												Name:      name,
-												Arguments: args,
-											},
-										}
-										resp, e := t.client.CallTool(t.ctx, callReq)
-										if e != nil {
-											err = e
-										} else {
-											result = resp
+									var name string
+									var args map[string]any
+									if name, err = getStringParam(callParams, method, "name"); err == nil {
+										if args, err = getMapParam(callParams, method, "arguments"); err == nil {
+											callReq := mcp.CallToolRequest{
+												Params: mcp.CallToolParams{
+													Name:      name,
+													Arguments: args,
+												},
+											}
+											resp, e := t.client.CallTool(t.ctx, callReq)
+											if e != nil {
+												err = e
+											} else {
+												result = resp
+											}
 										}
 									}
 								}
@@ -363,10 +361,8 @@ func (t *InMemoryTransport) processMessages() {
 								if readParams, e := getParams(normalizedReq, string(mcp.MethodResourcesRead)); e != nil {
 									err = e
 								} else {
-									uri, ok := readParams["uri"].(string)
-									if !ok {
-										err = fmt.Errorf("invalid params for resources/read: 'uri' must be string")
-									} else {
+									var uri string
+									if uri, err = getStringParam(readParams, method, "uri"); err == nil {
 										readReq := mcp.ReadResourceRequest{
 											Params: mcp.ReadResourceParams{
 												URI: uri,
@@ -401,10 +397,8 @@ func (t *InMemoryTransport) processMessages() {
 								if params, e := getParams(normalizedReq, string(mcp.MethodPromptsGet)); e != nil {
 									err = e
 								} else {
-									name, ok := params["name"].(string)
-									if !ok {
-										err = fmt.Errorf("invalid params for prompts/get: 'name' must be string")
-									} else {
+									var name string
+									if name, err = getStringParam(params, method, "name"); err == nil {
 										var arguments map[string]string
 										if args, ok := params["arguments"].(map[string]any); ok {
 											arguments = make(map[string]string)
