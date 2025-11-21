@@ -1470,6 +1470,10 @@ func TestADKTransportBridge_WithSDKClient(t *testing.T) {
 		t.Fatalf("Failed to list tools: %v", err)
 	}
 
+	// Log ListTools response
+	toolsJSON, _ := json.MarshalIndent(toolsResult, "", "  ")
+	t.Logf("SDK ListTools Response: %s", string(toolsJSON))
+
 	found := false
 	for _, tool := range toolsResult.Tools {
 		if tool.Name == "sdk_echo" {
@@ -1492,6 +1496,10 @@ func TestADKTransportBridge_WithSDKClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to call tool: %v", err)
 	}
+
+	// Log CallTool response
+	callJSON, _ := json.MarshalIndent(callResult, "", "  ")
+	t.Logf("SDK CallTool Response: %s", string(callJSON))
 
 	if len(callResult.Content) == 0 {
 		t.Fatal("Expected content in tool result")

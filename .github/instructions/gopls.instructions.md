@@ -164,8 +164,12 @@ gopls_go_search("FormatResourceUsageAsMarkdown") → Find Markdown formatting fo
 gopls_go_search("ResourceUsageData") → Find resource usage data structures
 gopls_go_search("jsonrpc.Marshal") → Find JSON-RPC marshaling functions
 gopls_go_search("jsonrpc.Map") → Find JSON-RPC field normalization functions
+gopls_go_search("jsonrpc.UnmarshalFromMap") → Find JSON-RPC unmarshaling helper
 gopls_go_search("normalizeIDValue") → Find ID value normalization functions
 gopls_go_search("getParams") → Find JSON-RPC parameter extraction helper (`src/mcp-server/helper.go`)
+gopls_go_search("getStringParam") → Find required string parameter extraction
+gopls_go_search("getOptionalStringParam") → Find optional string parameter extraction
+gopls_go_search("getMapParam") → Find map parameter extraction
 gopls_go_search("processMessages") → Find transport message processing with concurrent goroutines
 gopls_go_search("SendJSONRPCNotification") → Find JSON-RPC notification sender for streaming
 ```
@@ -623,8 +627,8 @@ grep("HTTPConfig\\|Client\\(\\)\\|GetUserAgent", include="*.go")
 grep("buildCertificateContextWithRevocation\\|buildCertificateContext", include="*.go")
 
 # Find JSON-RPC normalization patterns
-grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue", include="*.go")
-grep("getParams", include="*.go")
+grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue\\|UnmarshalFromMap", include="*.go")
+grep("getParams\\|getStringParam\\|getOptionalStringParam\\|getMapParam", include="*.go")
 ```
 
 ## Summary

@@ -225,3 +225,74 @@ func TestNormalizeIDValue(t *testing.T) {
 		})
 	}
 }
+
+func TestUnmarshalFromMap(t *testing.T) {
+	type TestStruct struct {
+		Name  string `json:"name"`
+		Value int    `json:"value"`
+	}
+
+	tests := []struct {
+		name     string
+		input    any
+		expected TestStruct
+		wantErr  bool
+	}{
+		{
+			name: "valid map",
+			input: map[string]any{
+				"name":  "test",
+				"value": 42,
+			},
+			expected: TestStruct{
+				Name:  "test",
+				Value: 42,
+			},
+			wantErr: false,
+		},
+		{
+			name: "partial map",
+			input: map[string]any{
+				"name": "partial",
+			},
+			expected: TestStruct{
+				Name:  "partial",
+				Value: 0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "extra fields ignored",
+			input: map[string]any{
+				"name":  "extra",
+				"extra": "ignored",
+			},
+			expected: TestStruct{
+				Name:  "extra",
+				Value: 0,
+			},
+			wantErr: false,
+		},
+		{
+			name:    "unsupported type",
+			input:   func() {},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var result TestStruct
+			err := UnmarshalFromMap(tt.input, &result)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UnmarshalFromMap() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("UnmarshalFromMap() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}

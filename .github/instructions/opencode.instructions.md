@@ -499,7 +499,7 @@ src/mcp-server/        → MCP server implementation with X509 certificate tools
   ├── config.go        → Configuration handling
   ├── framework.go     → Builder pattern for server construction
   ├── handlers.go      → Tool handlers for certificate operations
-  ├── helper.go        → Helper utilities (JSON-RPC parameter extraction)
+  ├── helper.go        → Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
   ├── prompts.go       → MCP prompt definitions and handlers
   ├── resources.go     → MCP resource definitions and handlers
   ├── server.go        → Server execution and lifecycle
@@ -509,7 +509,7 @@ src/internal/x509/     → Certificate operations
   └── chain/           → Chain resolution
 src/internal/helper/   → Utilities
   ├── gc/              → Garbage collection optimization
-  └── jsonrpc/         → JSON-RPC canonicalization
+  └── jsonrpc/         → JSON-RPC canonicalization and unmarshaling
 ```
 
 ### Development Workflow
