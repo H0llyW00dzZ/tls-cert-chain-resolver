@@ -10,10 +10,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 
-	jsonrpcInternal "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/jsonrpc"
+	jsonrpchelper "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/jsonrpc"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -36,20 +35,19 @@ type jsonRPCResponse struct {
 }
 
 // InMemoryTransport implements ADK SDK mcp.Transport interface
-// It bridges between [Official MCP SDK] transport expectations and [mark3labs/mcp-go] client
+// It bridges between [Official MCP SDK] transport expectations and [mark3labs/mcp-go] server
 //
 // [mark3labs/mcp-go]: https://pkg.go.dev/github.com/mark3labs/mcp-go
 // [Official MCP SDK]: https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk
 type InMemoryTransport struct {
-	client          *client.Client // mark3labs in-process client
 	started         bool
 	mu              sync.Mutex
 	recvCh          chan []byte // channel for receiving messages (ReadMessage)
 	sendCh          chan []byte // channel for sending messages (WriteMessage)
+	internalRespCh  chan []byte // channel for internal responses (e.g. sampling)
 	ctx             context.Context
 	cancel          context.CancelFunc
 	samplingHandler client.SamplingHandler
-	sem             chan struct{}  // Semaphore to limit concurrency
 	shutdownWg      sync.WaitGroup // WaitGroup for graceful shutdown
 	processWg       sync.WaitGroup // WaitGroup for message processing loop
 }
@@ -77,11 +75,11 @@ func (t *InMemoryTransport) SendJSONRPCNotification(method string, params any) {
 func NewInMemoryTransport(ctx context.Context) *InMemoryTransport {
 	ctx, cancel := context.WithCancel(ctx)
 	return &InMemoryTransport{
-		recvCh: make(chan []byte, 1),
-		sendCh: make(chan []byte, 1),
-		ctx:    ctx,
-		cancel: cancel,
-		sem:    make(chan struct{}, 100), // Limit to 100 concurrent requests
+		recvCh:         make(chan []byte, 1),
+		sendCh:         make(chan []byte, 1),
+		internalRespCh: make(chan []byte, 1),
+		ctx:            ctx,
+		cancel:         cancel,
 	}
 }
 
@@ -142,11 +140,11 @@ func (t *InMemoryTransport) Connect(ctx context.Context) (mcptransport.Connectio
 	}, nil
 }
 
-// ConnectServer connects a mark3labs MCP server to this transport using an in-process client.
+// ConnectServer connects a mark3labs MCP server to this transport using StdioServer.
 //
-// This enables direct in-memory communication without process overhead, making it ideal
-// for embedding the server in custom integration scenarios (like Google ADK).
-// It also configures notification forwarding to support bidirectional features such as AI sampling.
+// This another method enables direct in-memory communication by piping the ADK transport channels
+// directly to the StdioServer's input/output streams. This avoids manual JSON-RPC
+// bridging and leverages the server's native handling.
 func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPServer) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -155,304 +153,94 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 		return fmt.Errorf("transport already connected")
 	}
 
-	// Create mark3labs in-process client
-	var err error
-	if t.samplingHandler != nil {
-		t.client, err = client.NewInProcessClientWithSamplingHandler(srv, t.samplingHandler)
-	} else {
-		t.client, err = client.NewInProcessClient(srv)
-	}
-	if err != nil {
-		return fmt.Errorf("failed to create in-process client: %w", err)
-	}
+	// Create StdioServer
+	stdioServer := server.NewStdioServer(srv)
 
-	// Register notification handler to forward server notifications to the bridge
-	// This enables streaming support by forwarding server-initiated notifications
-	t.client.OnNotification(func(n mcp.JSONRPCNotification) {
-		// Create a generic JSON-RPC notification structure
-		notification := map[string]any{
-			"jsonrpc": mcp.JSONRPC_VERSION,
-			"method":  n.Method,
-			"params":  n.Params,
-		}
-		// Send to the ADK receive channel using sendResponse which handles marshaling
-		t.sendResponse(notification)
-	})
+	// Create pipes
+	reader := &pipeReader{t: t}
+	writer := &pipeWriter{t: t}
 
-	// Start the client
-	if err := t.client.Start(t.ctx); err != nil {
-		return fmt.Errorf("failed to start client: %w", err)
-	}
-
-	// Start message processing goroutine
+	// Start server in goroutine
 	t.processWg.Add(1)
-	go t.processMessages()
+	go func() {
+		defer t.processWg.Done()
+		// Listen blocks until context is cancelled or error occurs
+		if err := stdioServer.Listen(t.ctx, reader, writer); err != nil {
+			// Context cancellation is expected
+			if t.ctx.Err() == nil {
+				// This would be an unexpected error
+				fmt.Printf("StdioServer.Listen error: %v\n", err)
+			}
+		}
+	}()
 
 	t.started = true
 	return nil
 }
 
-// processMessages handles JSON-RPC message processing between ADK and the MCP client
-func (t *InMemoryTransport) processMessages() {
-	defer t.processWg.Done()
-
-	for {
-
-		select {
-		case <-t.ctx.Done():
-			return
-		case data := <-t.sendCh:
-			// Acquire semaphore token (non-blocking check for context)
-			select {
-			case t.sem <- struct{}{}:
-				t.shutdownWg.Add(1)
-				// Handle message in a goroutine to avoid blocking the transport loop
-				// This ensures that long-running tool calls don't prevent other messages
-				// (like notifications or concurrent requests) from being processed.
-				go func(data []byte) {
-					defer func() {
-						<-t.sem // Release token
-						t.shutdownWg.Done()
-					}()
-
-					var req map[string]any
-					if err := json.Unmarshal(data, &req); err != nil {
-						// Send parse error response
-						resp := jsonRPCResponse{
-							JSONRPC: mcp.JSONRPC_VERSION,
-							Error: &jsonRPCError{
-								Code:    -32700,
-								Message: "Parse error",
-							},
-							ID: nil,
-						}
-						t.sendResponse(resp)
-					} else {
-						// Normalize request keys to handle both lowercase and capitalized
-						normalizedReq := jsonrpcInternal.Map(req)
-						id := normalizedReq["id"]
-						var idInt any
-						if id != nil {
-							// Handle different ID types - preserve as-is
-							idInt = id
-						} else {
-							// For requests without ID (notifications), use null
-							idInt = nil
-						}
-
-						method, ok := normalizedReq["method"].(string)
-						if !ok {
-							err := fmt.Errorf("invalid method: expected string, got %T", normalizedReq["method"])
-							// Only send error if it's a request (has ID)
-							if idInt != nil {
-								resp := jsonRPCResponse{
-									JSONRPC: mcp.JSONRPC_VERSION,
-									ID:      idInt,
-									Error: &jsonRPCError{
-										Code:    -32600,
-										Message: err.Error(),
-									},
-								}
-								t.sendResponse(resp)
-							}
-							return
-						}
-
-						// Handle notifications that don't require a response or action in this bridge
-						if method == "notifications/initialized" {
-							return
-						}
-
-						var result any
-						var err error
-						switch method {
-						case string(mcp.MethodInitialize):
-							if initParams, e := getParams(normalizedReq, method); e != nil {
-								err = e
-							} else {
-								var protocolVersion string
-								if protocolVersion, err = getStringParam(initParams, method, "protocolVersion"); err == nil {
-									// Preserve capabilities by marshaling/unmarshaling
-									var capabilities mcp.ClientCapabilities
-									if caps, ok := initParams["capabilities"]; ok {
-										// Use helper for safe conversion
-										_ = jsonrpcInternal.UnmarshalFromMap(caps, &capabilities)
-									}
-
-									initReq := mcp.InitializeRequest{
-										Params: mcp.InitializeParams{
-											ProtocolVersion: protocolVersion,
-											Capabilities:    capabilities,
-										},
-									}
-									resp, e := t.client.Initialize(t.ctx, initReq)
-									if e != nil {
-										// Check if this is an unsupported protocol version error
-										if mcp.IsUnsupportedProtocolVersion(e) {
-											err = fmt.Errorf("unsupported protocol version: %w", e)
-										} else {
-											err = e
-										}
-									} else {
-										result = resp
-									}
-								}
-							}
-						case string(mcp.MethodPing):
-							if t.client != nil {
-								err = t.client.Ping(t.ctx)
-								if err == nil {
-									result = map[string]any{}
-								}
-							}
-						case string(mcp.MethodToolsList):
-							if t.client != nil {
-								listReq := mcp.ListToolsRequest{}
-								resp, e := t.client.ListTools(t.ctx, listReq)
-								if e != nil {
-									err = e
-								} else {
-									result = resp
-								}
-							}
-						case string(mcp.MethodToolsCall):
-							if t.client != nil {
-								if callParams, e := getParams(normalizedReq, string(mcp.MethodToolsCall)); e != nil {
-									err = e
-								} else {
-									var name string
-									var args map[string]any
-									if name, err = getStringParam(callParams, method, "name"); err == nil {
-										if args, err = getMapParam(callParams, method, "arguments"); err == nil {
-											callReq := mcp.CallToolRequest{
-												Params: mcp.CallToolParams{
-													Name:      name,
-													Arguments: args,
-												},
-											}
-											resp, e := t.client.CallTool(t.ctx, callReq)
-											if e != nil {
-												err = e
-											} else {
-												result = resp
-											}
-										}
-									}
-								}
-							}
-						case string(mcp.MethodResourcesList):
-							if t.client != nil {
-								listReq := mcp.ListResourcesRequest{}
-								if params, ok := normalizedReq["params"].(map[string]any); ok {
-									if cursor, err := getOptionalStringParam(params, method, "cursor"); err == nil {
-										listReq.Params.Cursor = mcp.Cursor(cursor)
-									}
-								}
-								resp, e := t.client.ListResources(t.ctx, listReq)
-								if e != nil {
-									err = e
-								} else {
-									result = resp
-								}
-							}
-						case string(mcp.MethodResourcesRead):
-							if t.client != nil {
-								if readParams, e := getParams(normalizedReq, string(mcp.MethodResourcesRead)); e != nil {
-									err = e
-								} else {
-									var uri string
-									if uri, err = getStringParam(readParams, method, "uri"); err == nil {
-										readReq := mcp.ReadResourceRequest{
-											Params: mcp.ReadResourceParams{
-												URI: uri,
-											},
-										}
-										resp, e := t.client.ReadResource(t.ctx, readReq)
-										if e != nil {
-											err = e
-										} else {
-											result = resp
-										}
-									}
-								}
-							}
-						case string(mcp.MethodPromptsList):
-							if t.client != nil {
-								listReq := mcp.ListPromptsRequest{}
-								if params, ok := normalizedReq["params"].(map[string]any); ok {
-									if cursor, err := getOptionalStringParam(params, method, "cursor"); err == nil {
-										listReq.Params.Cursor = mcp.Cursor(cursor)
-									}
-								}
-								resp, e := t.client.ListPrompts(t.ctx, listReq)
-								if e != nil {
-									err = e
-								} else {
-									result = resp
-								}
-							}
-						case string(mcp.MethodPromptsGet):
-							if t.client != nil {
-								if params, e := getParams(normalizedReq, string(mcp.MethodPromptsGet)); e != nil {
-									err = e
-								} else {
-									var name string
-									if name, err = getStringParam(params, method, "name"); err == nil {
-										var arguments map[string]string
-										if args, ok := params["arguments"].(map[string]any); ok {
-											arguments = make(map[string]string)
-											for k, v := range args {
-												arguments[k] = fmt.Sprint(v)
-											}
-										}
-										getReq := mcp.GetPromptRequest{
-											Params: mcp.GetPromptParams{
-												Name:      name,
-												Arguments: arguments,
-											},
-										}
-										resp, e := t.client.GetPrompt(t.ctx, getReq)
-										if e != nil {
-											err = e
-										} else {
-											result = resp
-										}
-									}
-								}
-							}
-						default:
-							err = fmt.Errorf("method not supported: %s", method)
-						}
-
-						// JSON-RPC 2.0: Server MUST NOT reply to a Notification (request without ID)
-						if idInt == nil {
-							return
-						}
-
-						resp := jsonRPCResponse{
-							JSONRPC: mcp.JSONRPC_VERSION,
-							ID:      idInt,
-						}
-						if err != nil {
-							code := -32603
-							if strings.Contains(err.Error(), "invalid params") || strings.Contains(err.Error(), "missing params") {
-								code = -32602
-							}
-							resp.Error = &jsonRPCError{
-								Code:    code,
-								Message: err.Error(),
-							}
-						} else {
-							resp.Result = result
-						}
-						t.sendResponse(resp)
-					}
-				}(data)
-			case <-t.ctx.Done():
-				return
-			}
-		}
+// sendToRecv sends message to recvCh
+func (t *InMemoryTransport) sendToRecv(msg []byte) {
+	select {
+	case t.recvCh <- msg:
+	case <-t.ctx.Done():
 	}
+}
+
+// handleSampling handles the sampling/createMessage request locally
+func (t *InMemoryTransport) handleSampling(req map[string]any) {
+	id := req["id"]
+
+	if t.samplingHandler == nil {
+		// No handler, return error
+		t.sendErrorResponse(id, -32601, "Method not found (no sampling handler)")
+		return
+	}
+
+	// Extract params
+	params, err := getParams(req, string(mcp.MethodSamplingCreateMessage))
+	if err != nil {
+		t.sendErrorResponse(id, -32602, err.Error())
+		return
+	}
+
+	// Use helper to unmarshal params into struct
+	var samplingReq mcp.CreateMessageRequest
+	if err := jsonrpchelper.UnmarshalFromMap(params, &samplingReq); err != nil {
+		t.sendErrorResponse(id, -32602, "Invalid params structure")
+		return
+	}
+
+	// Call handler
+	result, err := t.samplingHandler.CreateMessage(t.ctx, samplingReq)
+
+	// Construct response
+	resp := jsonRPCResponse{
+		JSONRPC: mcp.JSONRPC_VERSION,
+		ID:      id,
+	}
+
+	if err != nil {
+		resp.Error = &jsonRPCError{
+			Code:    -32000,
+			Message: err.Error(),
+		}
+	} else {
+		resp.Result = result
+	}
+
+	t.sendResponse(resp)
+}
+
+func (t *InMemoryTransport) sendErrorResponse(id any, code int, msg string) {
+	resp := jsonRPCResponse{
+		JSONRPC: mcp.JSONRPC_VERSION,
+		ID:      id,
+		Error: &jsonRPCError{
+			Code:    code,
+			Message: msg,
+		},
+	}
+	t.sendResponse(resp)
 }
 
 // sendResponse sends a JSON-RPC response to the receive channel

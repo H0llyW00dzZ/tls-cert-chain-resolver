@@ -705,7 +705,7 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 				"id":      6,
 			},
 			expectError:    false, // Error in result
-			expectContains: "method not supported",
+			expectContains: "not found",
 			description:    "Test handling of unsupported methods",
 		},
 		{
@@ -717,7 +717,7 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 				"id":      7,
 			},
 			expectError:    false, // Error in result
-			expectContains: "invalid params type for method tools/call",
+			expectContains: "unparsable tools/call request",
 			description:    "Test handling of malformed parameters",
 		},
 	}
