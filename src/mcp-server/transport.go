@@ -266,8 +266,8 @@ func (t *InMemoryTransport) processMessages() {
 						var result any
 						var err error
 						switch method {
-						case "initialize":
-							if initParams, e := getParams(normalizedReq, "initialize"); e != nil {
+						case string(mcp.MethodInitialize):
+							if initParams, e := getParams(normalizedReq, string(mcp.MethodInitialize)); e != nil {
 								err = e
 							} else {
 								protocolVersion, ok := initParams["protocolVersion"].(string)
@@ -301,14 +301,14 @@ func (t *InMemoryTransport) processMessages() {
 									}
 								}
 							}
-						case "ping":
+						case string(mcp.MethodPing):
 							if t.client != nil {
 								err = t.client.Ping(t.ctx)
 								if err == nil {
 									result = map[string]any{}
 								}
 							}
-						case "tools/list":
+						case string(mcp.MethodToolsList):
 							if t.client != nil {
 								listReq := mcp.ListToolsRequest{}
 								resp, e := t.client.ListTools(t.ctx, listReq)
@@ -318,9 +318,9 @@ func (t *InMemoryTransport) processMessages() {
 									result = resp
 								}
 							}
-						case "tools/call":
+						case string(mcp.MethodToolsCall):
 							if t.client != nil {
-								if callParams, e := getParams(normalizedReq, "tools/call"); e != nil {
+								if callParams, e := getParams(normalizedReq, string(mcp.MethodToolsCall)); e != nil {
 									err = e
 								} else {
 									name, okName := callParams["name"].(string)
@@ -343,7 +343,7 @@ func (t *InMemoryTransport) processMessages() {
 									}
 								}
 							}
-						case "resources/list":
+						case string(mcp.MethodResourcesList):
 							if t.client != nil {
 								listReq := mcp.ListResourcesRequest{}
 								if params, ok := normalizedReq["params"].(map[string]any); ok {
@@ -358,9 +358,9 @@ func (t *InMemoryTransport) processMessages() {
 									result = resp
 								}
 							}
-						case "resources/read":
+						case string(mcp.MethodResourcesRead):
 							if t.client != nil {
-								if readParams, e := getParams(normalizedReq, "resources/read"); e != nil {
+								if readParams, e := getParams(normalizedReq, string(mcp.MethodResourcesRead)); e != nil {
 									err = e
 								} else {
 									uri, ok := readParams["uri"].(string)
@@ -381,7 +381,7 @@ func (t *InMemoryTransport) processMessages() {
 									}
 								}
 							}
-						case "prompts/list":
+						case string(mcp.MethodPromptsList):
 							if t.client != nil {
 								listReq := mcp.ListPromptsRequest{}
 								if params, ok := normalizedReq["params"].(map[string]any); ok {
@@ -396,9 +396,9 @@ func (t *InMemoryTransport) processMessages() {
 									result = resp
 								}
 							}
-						case "prompts/get":
+						case string(mcp.MethodPromptsGet):
 							if t.client != nil {
-								if params, e := getParams(normalizedReq, "prompts/get"); e != nil {
+								if params, e := getParams(normalizedReq, string(mcp.MethodPromptsGet)); e != nil {
 									err = e
 								} else {
 									name, ok := params["name"].(string)
