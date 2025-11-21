@@ -17,6 +17,7 @@ TLS Cert Chain Resolver is a Go toolkit for building, validating, and inspecting
   - [MCP Tooling](#mcp-tooling)
   - [Security considerations](#security-considerations)
   - [AI-Assisted Analysis](#ai-assisted-analysis)
+  - [Google ADK Integration](#google-adk-integration)
 - [Configuration](#configuration)
   - [Environment Variables](#environment-variables)
   - [Config File](#config-file)
@@ -125,6 +126,13 @@ Set `X509_AI_APIKEY` or configure the `ai` section of the MCP config to allow th
 - Compliance and risk summaries
 - Actionable remediation guidance
 
+### Google ADK Integration
+
+This project supports [`adk-go`](https://github.com/google/adk-go) integration, which leverages AI to perform tasks with human-like capabilities. For example, it is possible to let AI play games or execute complex autonomous workflows using the provided tools.
+
+> [!NOTE]
+> The [`adk-go`](https://github.com/google/adk-go) integration is a powerful AI framework with minimal vendor lock-in. It enables the creation of AI agents capable of performing human-like tasks (e.g., playing games), offering greater flexibility compared to other frameworks (e.g., Claude Code/Claude Desktop) that often enforce stricter vendor lock-in, limiting provider choices.
+
 ## Configuration
 
 ### Environment Variables
@@ -187,6 +195,7 @@ Additional targets are available in `Makefile`, including race detection and pla
 ```
 tls-cert-chain-resolver/
 ├── cmd/
+│   ├── adk-go/           # Google ADK integration example
 │   ├── run.go            # CLI entry point
 │   └── mcp-server/
 │       └── run.go        # MCP server entry point
