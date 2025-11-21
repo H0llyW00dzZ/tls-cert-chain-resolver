@@ -161,6 +161,93 @@ func TestADKTransportBuilder_ValidateConfig(t *testing.T) {
 	}
 }
 
+func TestADKTransportBuilder_BuildTransport(t *testing.T) {
+	tests := []struct {
+		name        string
+		setup       func(*ADKTransportBuilder) *ADKTransportBuilder
+		expectError bool
+		description string
+	}{
+		{
+			name: "build inmemory transport with defaults",
+			setup: func(b *ADKTransportBuilder) *ADKTransportBuilder {
+				return b.WithInMemoryTransport()
+			},
+			expectError: false,
+			description: "Should successfully build in-memory transport with default configuration",
+		},
+		{
+			name: "build inmemory transport with custom config",
+			setup: func(b *ADKTransportBuilder) *ADKTransportBuilder {
+				return b.WithInMemoryTransport().WithVersion("2.0.0").WithMCPConfig("")
+			},
+			expectError: false,
+			description: "Should successfully build in-memory transport with custom version and config",
+		},
+		{
+			name: "build with invalid transport type",
+			setup: func(b *ADKTransportBuilder) *ADKTransportBuilder {
+				b.config.TransportType = "invalid"
+				return b
+			},
+			expectError: true,
+			description: "Should fail to build transport with invalid transport type",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder := tt.setup(NewADKTransportBuilder())
+
+			transport, err := builder.BuildTransport(t.Context())
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error for %s, but got none", tt.description)
+				}
+				if transport != nil {
+					t.Errorf("Expected nil transport on error, but got %T", transport)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
+				return
+			}
+
+			if transport == nil {
+				t.Errorf("Expected valid transport for %s, but got nil", tt.description)
+				return
+			}
+
+			// Verify it's the expected transport type
+			if inmemoryTransport, ok := transport.(*InMemoryTransport); ok {
+				// Test basic transport functionality
+				if inmemoryTransport.ctx == nil {
+					t.Error("Transport context should not be nil")
+				}
+				if inmemoryTransport.recvCh == nil {
+					t.Error("Transport recvCh should not be nil")
+				}
+				if inmemoryTransport.sendCh == nil {
+					t.Error("Transport sendCh should not be nil")
+				}
+
+				// Test that sampling handler is set
+				if inmemoryTransport.samplingHandler == nil {
+					t.Error("Sampling handler should be set on transport")
+				}
+
+				// Clean up
+				inmemoryTransport.Close()
+			} else {
+				t.Errorf("Expected *InMemoryTransport, got %T", transport)
+			}
+		})
+	}
+}
+
 func TestInMemoryTransport_JSONRPC(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -705,7 +792,7 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 				"id":      6,
 			},
 			expectError:    false, // Error in result
-			expectContains: "method not supported",
+			expectContains: "not found",
 			description:    "Test handling of unsupported methods",
 		},
 		{
@@ -717,7 +804,7 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 				"id":      7,
 			},
 			expectError:    false, // Error in result
-			expectContains: "invalid params type for method tools/call",
+			expectContains: "unparsable tools/call request",
 			description:    "Test handling of malformed parameters",
 		},
 	}

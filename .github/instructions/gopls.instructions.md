@@ -22,6 +22,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
   - **`handlers.go`** — Core certificate processing utilities, AI analysis, and individual tool handlers
   - **`helper.go`** — Helper utilities (JSON-RPC parameter extraction)
+  - **`pipe.go`** — Pipe transport implementation for StdioServer input/output interception (sampling)
   - **`resource_usage.go`** — Resource usage monitoring and formatting functions
   - **`server.go`** — Server execution and lifecycle management
   - **`tools.go`** — Tool definitions and creation functions
@@ -170,6 +171,9 @@ gopls_go_search("getParams") → Find JSON-RPC parameter extraction helper (`src
 gopls_go_search("getStringParam") → Find required string parameter extraction
 gopls_go_search("getOptionalStringParam") → Find optional string parameter extraction
 gopls_go_search("getMapParam") → Find map parameter extraction
+gopls_go_search("UnmarshalFromMap") → Find JSON-RPC map-to-struct unmarshaling helper
+gopls_go_search("pipeReader") → Find pipe reader implementation for StdioServer interception
+gopls_go_search("pipeWriter") → Find pipe writer implementation for StdioServer interception
 gopls_go_search("processMessages") → Find transport message processing with concurrent goroutines
 gopls_go_search("SendJSONRPCNotification") → Find JSON-RPC notification sender for streaming
 ```

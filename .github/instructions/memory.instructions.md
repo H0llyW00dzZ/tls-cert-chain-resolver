@@ -854,6 +854,7 @@ func normalizeJSONRPCMessage(msg jsonrpc.Message) ([]byte, error) {
 // JSON-RPC unmarshaling pattern
 // Use UnmarshalFromMap for safe conversion from map[string]any to struct
 func convertParams(params map[string]any, target any) error {
+    // mcp.JSONRPC_VERSION is handled automatically by jsonrpc.Map/Marshal
     return jsonrpc.UnmarshalFromMap(params, target)
 }
 ```
