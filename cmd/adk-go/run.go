@@ -33,15 +33,9 @@ func localMCPTransport(ctx context.Context) mcptransport.Transport {
 		WithDefaultTools()
 
 	// Build in-memory transport that includes server
-	transportAny, err := builder.BuildInMemoryTransport(ctx)
+	transport, err := builder.BuildInMemoryTransport(ctx)
 	if err != nil {
 		log.Fatalf("Failed to build MCP transport: %v", err)
-	}
-
-	// The transport now implements mcptransport.Transport interface
-	transport, ok := transportAny.(mcptransport.Transport)
-	if !ok {
-		log.Fatalf("Built transport does not implement mcptransport.Transport")
 	}
 
 	return transport
