@@ -267,7 +267,7 @@ func (t *InMemoryTransport) processMessages() {
 						var err error
 						switch method {
 						case string(mcp.MethodInitialize):
-							if initParams, e := getParams(normalizedReq, string(mcp.MethodInitialize)); e != nil {
+							if initParams, e := getParams(normalizedReq, method); e != nil {
 								err = e
 							} else {
 								var protocolVersion string
@@ -275,9 +275,8 @@ func (t *InMemoryTransport) processMessages() {
 									// Preserve capabilities by marshaling/unmarshaling
 									var capabilities mcp.ClientCapabilities
 									if caps, ok := initParams["capabilities"]; ok {
-										if capsJSON, e := json.Marshal(caps); e == nil {
-											_ = json.Unmarshal(capsJSON, &capabilities)
-										}
+										// Use helper for safe conversion
+										_ = jsonrpcInternal.UnmarshalFromMap(caps, &capabilities)
 									}
 
 									initReq := mcp.InitializeRequest{
