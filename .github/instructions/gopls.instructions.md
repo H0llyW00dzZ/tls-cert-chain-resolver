@@ -16,13 +16,14 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`adk.go`** — Google ADK integration support with transport builder pattern
   - **`adk_test.go`** — Comprehensive ADK transport builder tests with JSON-RPC cycle testing
   - **`analysis_coverage_test.go`** — Analysis coverage tests
-  - **`transport.go`** — In-memory transport implementation bridging ADK SDK and mark3labs/mcp-go with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
+  - **`transport.go`** — In-memory transport implementation bridging ADK SDK and mark3labs/mcp-go with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
   - **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler with streaming support, AI API integration
   - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
   - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
   - **`handlers.go`** — Core certificate processing utilities, AI analysis, and individual tool handlers
-  - **`helper.go`** — Helper utilities (JSON-RPC parameter extraction)
-  - **`pipe.go`** — Pipe transport implementation for StdioServer input/output interception (sampling)
+  - **`helper.go`** — Helper utilities (JSON-RPC parameter extraction: `getStringParam`, `getMapParam`, `getOptionalStringParam`)
+  - **`pipe.go`** — Pipe transport implementation for StdioServer input/output interception (sampling) with buffer pooling
+  - **`pipe_test.go`** — Pipe transport tests covering I/O performance and interception logic
   - **`resource_usage.go`** — Resource usage monitoring and formatting functions
   - **`server.go`** — Server execution and lifecycle management
   - **`tools.go`** — Tool definitions and creation functions
@@ -174,6 +175,7 @@ gopls_go_search("getMapParam") → Find map parameter extraction
 gopls_go_search("UnmarshalFromMap") → Find JSON-RPC map-to-struct unmarshaling helper
 gopls_go_search("pipeReader") → Find pipe reader implementation for StdioServer interception
 gopls_go_search("pipeWriter") → Find pipe writer implementation for StdioServer interception
+gopls_go_search("internalRespCh") → Find internal response channel for sampling errors
 gopls_go_search("processMessages") → Find transport message processing with concurrent goroutines
 gopls_go_search("SendJSONRPCNotification") → Find JSON-RPC notification sender for streaming
 ```
@@ -394,7 +396,8 @@ read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis with analysis 
 read("src/mcp-server/config.go")     # AI and MCP configuration
 read("src/mcp-server/adk.go")        # Google ADK integration support
 read("src/mcp-server/transport.go")  # In-memory transport for ADK compatibility with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
-read("src/mcp-server/helper.go")     # JSON-RPC parameter extraction helper (getParams)
+read("src/mcp-server/helper.go")     # JSON-RPC parameter extraction helper (getParams, getStringParam, getOptionalStringParam, getMapParam)
+read("src/mcp-server/pipe.go")       # Pipe transport implementation with buffer pooling
 read("src/mcp-server/adk_test.go")   # Comprehensive ADK transport tests with JSON-RPC cycle testing
 read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
 ```

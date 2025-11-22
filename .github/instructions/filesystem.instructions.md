@@ -70,8 +70,9 @@ tls-cert-chain-resolver/
 │   │   ├── analysis_coverage_test.go         # Analysis coverage tests
 │   │   ├── framework.go                      # ServerBuilder pattern, sampling registration, streaming buffer pooling
 │   │   ├── handlers.go                       # MCP tool handlers, AI certificate analysis, certificate processing utilities
-│   │   ├── helper.go                         # Helper utilities (JSON-RPC parameter extraction)
+│   │   ├── helper.go                         # Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
 │   │   ├── pipe.go                           # Pipe transport implementation for StdioServer input/output interception (sampling)
+│   │   ├── pipe_test.go                      # Pipe transport tests covering I/O performance and interception logic
 │   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
 │   │   ├── resource_usage.go                 # Resource usage monitoring and formatting functions
 │   │   ├── resources.go                      # MCP resource definitions and handlers (config, version, formats, status)
@@ -650,9 +651,11 @@ src/mcp-server/framework.go  # ServerBuilder pattern, AI sampling with buffer po
 src/mcp-server/handlers.go   # MCP tool handlers, AI certificate analysis, certificate processing utilities
 src/mcp-server/helper.go     # Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
 src/mcp-server/pipe.go       # Pipe transport implementation for StdioServer input/output interception (sampling)
+src/mcp-server/pipe_test.go  # Pipe transport tests covering I/O performance and interception logic
+src/mcp-server/pipe_test.go  # Pipe transport tests covering I/O performance and interception logic
 src/mcp-server/prompts.go    # MCP prompt definitions and handlers for certificate workflows
 src/mcp-server/resource_usage.go  # Resource usage monitoring and formatting functions
-src/mcp-server/resources.go  # MCP resource definitions and handlers including status resource
+src/mcp-server/resources.go  # MCP resource definitions and handlers (config, version, formats, status)
 src/mcp-server/run_graceful_test.go  # Graceful shutdown test (non-Windows)
 src/mcp-server/run_test.go   # Comprehensive tool coverage tests with macOS skip for validation
 src/mcp-server/server.go
@@ -798,7 +801,7 @@ grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
 # Find JSON-RPC normalization patterns
 grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue\\|UnmarshalFromMap", include="*.go")
 grep("getParams\\|getStringParam\\|getOptionalStringParam\\|getMapParam", include="*.go")
-grep("pipeReader\\|pipeWriter", include="*.go")
+grep("pipeReader\\|pipeWriter\\|internalRespCh", include="*.go")
 
 # Find concurrent test patterns
 grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")

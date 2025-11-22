@@ -446,4 +446,5 @@ Solutions:
 - `mark3labs/mcp-go` - For MCP server features
 - `modelcontextprotocol/go-sdk` - For official MCP transport implementations
 - `google.golang.org/adk` - For Google ADK integration
+- `google.golang.org/genai` - For Google GenAI integration
 - `golang/go` - For standard library best practices

@@ -179,6 +179,33 @@ func processCertificates(certs []*x509.Certificate) []byte {
     copy(result, buf.Bytes())
     return result
 }
+
+// ✅ Good - pipe transport using buffer pooling for I/O (see src/mcp-server/pipe.go)
+type pipeReader struct {
+    t         *InMemoryTransport
+    activeBuf gc.Buffer // Current buffer being read
+    offset    int       // Read offset in activeBuf
+}
+
+func (r *pipeReader) Read(p []byte) (n int, err error) {
+    // 1. Serve from active buffer if available
+    if r.activeBuf != nil {
+        // Read from buffer...
+        // If buffer drained, reset and return to pool
+        if r.offset >= r.activeBuf.Len() {
+            r.activeBuf.Reset()
+            gc.Default.Put(r.activeBuf)
+            r.activeBuf = nil
+        }
+        return n, nil
+    }
+    
+    // 2. Wait for new message...
+    // 3. Get new buffer from pool
+    r.activeBuf = gc.Default.Get()
+    r.activeBuf.Write(msg)
+    // ...
+}
 ```
 
 **gc.Pool Interface**:
@@ -445,19 +472,25 @@ func goodFetch(ctx context.Context) error {
 ```go
 // ✅ GOOD - controlled concurrency with semaphore and WaitGroups:
 type InMemoryTransport struct {
-    sem         chan struct{}  // Semaphore to limit concurrency
-    shutdownWg  sync.WaitGroup // WaitGroup for graceful shutdown
-    processWg   sync.WaitGroup // WaitGroup for message processing loop
-    ctx         context.Context
-    cancel      context.CancelFunc
+    sem            chan struct{}  // Semaphore to limit concurrency
+    shutdownWg     sync.WaitGroup // WaitGroup for graceful shutdown
+    processWg      sync.WaitGroup // WaitGroup for message processing loop
+    recvCh         chan []byte    // channel for receiving messages (ReadMessage)
+    sendCh         chan []byte    // channel for sending messages (WriteMessage)
+    internalRespCh chan []byte    // channel for internal responses (e.g. sampling)
+    ctx            context.Context
+    cancel         context.CancelFunc
 }
 
 func NewInMemoryTransport(ctx context.Context) *InMemoryTransport {
     ctx, cancel := context.WithCancel(ctx)
     return &InMemoryTransport{
-        sem:    make(chan struct{}, 100), // Limit to 100 concurrent requests
-        ctx:    ctx,
-        cancel: cancel,
+        sem:            make(chan struct{}, 100), // Limit to 100 concurrent requests
+        recvCh:         make(chan []byte, 100),
+        sendCh:         make(chan []byte, 100),
+        internalRespCh: make(chan []byte, 100),
+        ctx:            ctx,
+        cancel:         cancel,
     }
 }
 
