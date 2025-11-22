@@ -119,12 +119,19 @@ func main() {
 	}
 
 	// 4. Create Agent
+	thinkingBudget := int32(2048) // Minimum usually 1024 for effective thinking
 	a, err := llmagent.New(llmagent.Config{
 		Name:        "cert_agent",
 		Model:       model,
 		Description: "Agent for resolving and validating certificates.",
 		Instruction: "You are a helpful assistant that helps users resolve and validate certificate chains. Use the available tools to answer questions. When asked about tools, list them.",
 		Toolsets:    []tool.Toolset{mcpToolSet},
+		GenerateContentConfig: &genai.GenerateContentConfig{
+			ThinkingConfig: &genai.ThinkingConfig{
+				IncludeThoughts: true,
+				ThinkingBudget:  &thinkingBudget,
+			},
+		},
 	})
 	if err != nil {
 		log.Fatalf("Failed to create agent: %v", err)
@@ -164,6 +171,7 @@ func main() {
 		StreamingMode: agent.StreamingModeSSE,
 	}
 
+	var isThinking bool
 	log.Println("--- Agent Response ---")
 	for event, err := range r.Run(ctx, "test-user", sessionID, userMsg, runConfig) {
 		if err != nil {
@@ -175,10 +183,25 @@ func main() {
 			// Handle partial (streaming) response
 			if event.LLMResponse.Content != nil {
 				for _, part := range event.LLMResponse.Content.Parts {
-					fmt.Print(part.Text)
+					if part.Thought {
+						if !isThinking {
+							fmt.Print("\n[Thinking] ")
+							isThinking = true
+						}
+						fmt.Print(part.Text)
+					} else {
+						if isThinking {
+							fmt.Print("\n\n----------------------\n\n")
+							isThinking = false
+						}
+						fmt.Print(part.Text)
+					}
 				}
 			}
 		}
+	}
+	if isThinking {
+		fmt.Println()
 	}
 	fmt.Println("\n----------------------")
 	log.Println("Agent execution completed")
