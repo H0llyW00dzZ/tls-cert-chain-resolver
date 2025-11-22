@@ -145,7 +145,7 @@ func (t *InMemoryTransport) Connect(ctx context.Context) (mcptransport.Connectio
 // This another method enables direct in-memory communication by piping the ADK transport channels
 // directly to the StdioServer's input/output streams. This avoids manual JSON-RPC
 // bridging and leverages the server's native handling.
-func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPServer) error {
+func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPServer, opts ...server.StdioOption) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -155,6 +155,10 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 
 	// Create StdioServer
 	stdioServer := server.NewStdioServer(srv)
+	// Apply options
+	for _, opt := range opts {
+		opt(stdioServer)
+	}
 
 	// Create pipes
 	reader := &pipeReader{t: t}

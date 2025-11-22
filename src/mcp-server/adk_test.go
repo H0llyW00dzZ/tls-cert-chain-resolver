@@ -940,13 +940,9 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 		server.WithToolCapabilities(true),
 	)
 
-	// Add a simple echo tool
-	echoTool := mcp.NewTool("echo_tool",
-		mcp.WithDescription("Echoes the input message"),
-		mcp.WithString("message", mcp.Required(), mcp.Description("Message to echo")),
-	)
+	count := 50 // Test with multiple concurrent sends
 
-	s.AddTool(echoTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.AddTool(mcp.NewTool("echo_tool", mcp.WithDescription("Echoes the input message")), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		params := request.Params
 		args := params.Arguments.(map[string]any)
 		msg := args["message"].(string)
@@ -959,10 +955,10 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 
 	ctx := t.Context()
 	transport := NewInMemoryTransport(ctx)
-
 	if err := transport.ConnectServer(ctx, s); err != nil {
 		t.Fatalf("Failed to connect server: %v", err)
 	}
+	defer transport.Close()
 
 	// Initialize client
 	initRequest := map[string]any{
@@ -983,13 +979,12 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 		t.Fatalf("Failed to write init message: %v", err)
 	}
 
-	// Wait for processing
-	time.Sleep(100 * time.Millisecond)
-
+	// Read init response
 	if _, err := transport.ReadMessage(); err != nil {
 		t.Fatalf("Failed to read init response: %v", err)
 	}
 
+	// Send initialized notification
 	notifyRequest := map[string]any{
 		"jsonrpc": "2.0",
 		"method":  "notifications/initialized",
@@ -999,51 +994,83 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 		t.Fatalf("Failed to write notify message: %v", err)
 	}
 
-	conn, err := transport.Connect(ctx)
-	if err != nil {
-		t.Fatalf("Failed to connect: %v", err)
+	// Test concurrent sends to transport
+	var sendWg sync.WaitGroup
+	sendWg.Add(count)
+
+	sendErrors := make(chan error, count)
+	for i := range count {
+		go func(id int) {
+			defer sendWg.Done()
+			req := map[string]any{
+				"jsonrpc": "2.0",
+				"method":  "tools/call",
+				"params": map[string]any{
+					"name": "echo_tool",
+					"arguments": map[string]any{
+						"message": fmt.Sprintf("msg-%d", id),
+					},
+				},
+				"id": id,
+			}
+			data, _ := json.Marshal(req)
+			if err := transport.WriteMessage(data); err != nil {
+				sendErrors <- err
+			}
+		}(i)
 	}
 
-	// Test basic functionality using ADK bridge
-	request := map[string]any{
-		"jsonrpc": "2.0",
-		"method":  "tools/call",
-		"params": map[string]any{
-			"name": "echo_tool",
-			"arguments": map[string]any{
-				"message": "test message",
-			},
-		},
-		"id": 1,
+	// Wait for all sends to complete
+	sendWg.Wait()
+	close(sendErrors)
+
+	// Check for send errors
+	if err := <-sendErrors; err != nil {
+		t.Fatalf("Failed to send message: %v", err)
 	}
 
-	data, _ := json.Marshal(request)
-	jsonrpcMsg, err := jsonrpc.DecodeMessage(data)
-	if err != nil {
-		t.Fatalf("Failed to decode message: %v", err)
+	// Verify transport can handle concurrent sends without blocking
+	t.Logf("Successfully sent %d messages concurrently to transport", count)
+
+	// Consumer loop to read all responses
+	responseIds := make(map[float64]bool)
+	var respMu sync.Mutex
+
+	consumeDone := make(chan struct{})
+	go func() {
+		for range count {
+			msg, err := transport.ReadMessage()
+			if err != nil {
+				break
+			}
+			var resp map[string]any
+			if err := json.Unmarshal(msg, &resp); err == nil {
+				if id, ok := resp["id"].(float64); ok {
+					respMu.Lock()
+					responseIds[id] = true
+					respMu.Unlock()
+				}
+			}
+		}
+		close(consumeDone)
+	}()
+
+	select {
+	case <-consumeDone:
+	case <-time.After(10 * time.Second): // Allow more time for serial processing
+		t.Fatal("Timeout waiting for responses")
 	}
 
-	// Note: ADK bridge requires time for processing
-	// This test verifies basic bridge connectivity
-	if err := conn.Write(ctx, jsonrpcMsg); err != nil {
-		t.Fatalf("ADK bridge write failed: %v", err)
-	}
+	// Verify all responses received
+	respMu.Lock()
+	receivedCount := len(responseIds)
+	respMu.Unlock()
 
-	// Wait for processing
-	time.Sleep(500 * time.Millisecond)
-
-	// Read response
-	respMsg, err := conn.Read(ctx)
-	if err != nil {
-		t.Fatalf("ADK bridge read failed: %v", err)
+	if receivedCount != count {
+		t.Errorf("Expected %d responses, got %d", count, receivedCount)
+	} else {
+		t.Logf("Successfully received %d responses from transport", receivedCount)
 	}
-
-	// If we got here, basic bridge functionality works
-	respBytes, err := jsonrpc.EncodeMessage(respMsg)
-	if err != nil {
-		t.Fatalf("Failed to encode response message: %v", err)
-	}
-	t.Logf("ADK bridge basic functionality works: %s", string(respBytes))
 }
 
 // TestADKTransportConnection_ErrorScenarios tests various error scenarios
@@ -1611,14 +1638,27 @@ func TestADKTransportBridge_WithSDKClient(t *testing.T) {
 }
 
 func TestInMemoryTransport_Concurrency(t *testing.T) {
-	s := server.NewMCPServer("Concurrency Server", "1.0.0", server.WithToolCapabilities(true))
+	s := server.NewMCPServer(
+		"Concurrent Test Server",
+		"1.0.0",
+		server.WithToolCapabilities(true),
+	)
 
-	// Counter to track concurrent executions
+	count := 50 // Increase count to verify higher concurrency
+
+	// Synchronization primitives
 	var mu sync.Mutex
 	active := 0
 	maxActive := 0
 
-	s.AddTool(mcp.NewTool("sleep_tool", mcp.WithDescription("sleeps")), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// readyWg waits for all handlers to start
+	var readyWg sync.WaitGroup
+	readyWg.Add(count)
+
+	// gate blocks handlers until we release them
+	gate := make(chan struct{})
+
+	s.AddTool(mcp.NewTool("barrier_tool", mcp.WithDescription("waits for barrier")), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		mu.Lock()
 		active++
 		if active > maxActive {
@@ -1626,7 +1666,16 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 		}
 		mu.Unlock()
 
-		time.Sleep(50 * time.Millisecond)
+		// Signal that this handler is active
+		readyWg.Done()
+
+		// Wait for the gate to open (or context cancel)
+		select {
+		case <-gate:
+			// Continue
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 
 		mu.Lock()
 		active--
@@ -1637,7 +1686,9 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 
 	ctx := t.Context()
 	transport := NewInMemoryTransport(ctx)
-	if err := transport.ConnectServer(ctx, s); err != nil {
+	// Increase worker pool size to handle concurrent requests
+	// Default is 5, which causes timeout when waiting for 50
+	if err := transport.ConnectServer(ctx, s, server.WithWorkerPoolSize(count)); err != nil {
 		t.Fatalf("Failed to connect server: %v", err)
 	}
 	defer transport.Close()
@@ -1677,18 +1728,18 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 	}
 
 	// Run multiple requests concurrently
-	count := 20
-	var wg sync.WaitGroup
-	wg.Add(count)
+	// Use a separate WaitGroup for the senders to ensure they are all sent
+	var sendWg sync.WaitGroup
+	sendWg.Add(count)
 
 	for i := range count {
 		go func(id int) {
-			defer wg.Done()
+			defer sendWg.Done()
 			req := map[string]any{
 				"jsonrpc": "2.0",
 				"method":  "tools/call",
 				"params": map[string]any{
-					"name":      "sleep_tool",
+					"name":      "barrier_tool",
 					"arguments": map[string]any{},
 				},
 				"id": id,
@@ -1698,59 +1749,74 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 		}(i)
 	}
 
-	// Consumer loop to read responses and prevent blocking
-	receivedCount := 0
+	// Wait for all requests to be sent
+	sendWg.Wait()
+
+	// Wait for all handlers to become active
+	// This proves that 'count' requests are processing simultaneously
+	// If the server serializes requests, this will deadlock/timeout
+	doneCh := make(chan struct{})
+	go func() {
+		readyWg.Wait()
+		close(doneCh)
+	}()
+
+	select {
+	case <-doneCh:
+		// Success: all handlers are active
+	case <-time.After(5 * time.Second):
+		t.Fatalf("Timeout waiting for concurrent handlers. Active: %d/%d", active, count)
+	}
+
+	// Verify peak concurrency
+	mu.Lock()
+	peak := maxActive
+	mu.Unlock()
+
+	if peak != count {
+		t.Errorf("Expected max concurrency %d, got %d", count, peak)
+	} else {
+		t.Logf("Successfully achieved %d concurrent executions", peak)
+	}
+
+	// Release all handlers
+	close(gate)
+
+	// Consumer loop to drain responses
 	responseIds := make(map[float64]bool)
 	var respMu sync.Mutex
 
-	done := make(chan struct{})
+	consumeDone := make(chan struct{})
 	go func() {
 		for range count {
 			msg, err := transport.ReadMessage()
 			if err != nil {
-				// Ignore errors during shutdown/close
 				break
 			}
-
 			var resp map[string]any
 			if err := json.Unmarshal(msg, &resp); err == nil {
 				if id, ok := resp["id"].(float64); ok {
 					respMu.Lock()
 					responseIds[id] = true
-					receivedCount++
 					respMu.Unlock()
 				}
 			}
 		}
-		close(done)
+		close(consumeDone)
 	}()
 
-	wg.Wait()
-
-	// Wait for consumer
 	select {
-	case <-done:
+	case <-consumeDone:
 	case <-time.After(2 * time.Second):
 		t.Fatal("Timeout waiting for responses")
 	}
 
-	// Verify responses
+	// Verify all responses received
 	respMu.Lock()
 	if len(responseIds) != count {
 		t.Errorf("Expected %d responses, got %d", count, len(responseIds))
 	}
-	for i := range count {
-		if !responseIds[float64(i)] {
-			t.Errorf("Missing response for request ID %d", i)
-		}
-	}
 	respMu.Unlock()
-
-	if maxActive <= 1 {
-		t.Logf("Warning: Max concurrent executions was %d, expected > 1. (This may vary based on environment)", maxActive)
-	} else {
-		t.Logf("Max concurrent executions: %d", maxActive)
-	}
 }
 
 func TestInMemoryTransport_GracefulShutdown(t *testing.T) {
