@@ -196,21 +196,21 @@ func (t *InMemoryTransport) handleSampling(req map[string]any) {
 
 	if t.samplingHandler == nil {
 		// No handler, return error
-		t.sendErrorResponse(id, -32601, "Method not found (no sampling handler)")
+		t.sendInternalErrorResponse(id, -32601, "Method not found (no sampling handler)")
 		return
 	}
 
 	// Extract params
 	params, err := getParams(req, string(mcp.MethodSamplingCreateMessage))
 	if err != nil {
-		t.sendErrorResponse(id, -32602, err.Error())
+		t.sendInternalErrorResponse(id, -32602, err.Error())
 		return
 	}
 
 	// Use helper to unmarshal params into struct
 	var samplingReq mcp.CreateMessageRequest
 	if err := jsonrpchelper.UnmarshalFromMap(params, &samplingReq); err != nil {
-		t.sendErrorResponse(id, -32602, "Invalid params structure")
+		t.sendInternalErrorResponse(id, -32602, "Invalid params structure")
 		return
 	}
 
@@ -232,7 +232,31 @@ func (t *InMemoryTransport) handleSampling(req map[string]any) {
 		resp.Result = result
 	}
 
-	t.sendResponse(resp)
+	t.sendInternalResponse(resp)
+}
+
+func (t *InMemoryTransport) sendInternalResponse(resp any) {
+	data, err := json.Marshal(resp)
+	if err != nil {
+		return
+	}
+	select {
+	case t.internalRespCh <- data:
+	case <-t.ctx.Done():
+		// Context cancelled, drop response
+	}
+}
+
+func (t *InMemoryTransport) sendInternalErrorResponse(id any, code int, msg string) {
+	resp := jsonRPCResponse{
+		JSONRPC: mcp.JSONRPC_VERSION,
+		ID:      id,
+		Error: &jsonRPCError{
+			Code:    code,
+			Message: msg,
+		},
+	}
+	t.sendInternalResponse(resp)
 }
 
 func (t *InMemoryTransport) sendErrorResponse(id any, code int, msg string) {

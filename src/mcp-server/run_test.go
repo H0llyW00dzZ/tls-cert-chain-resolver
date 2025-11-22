@@ -3845,7 +3845,7 @@ func TestInMemoryTransport_handleSampling(t *testing.T) {
 
 	// Check that error response was sent
 	select {
-	case data := <-transport.recvCh:
+	case data := <-transport.internalRespCh:
 		var resp map[string]any
 		if err := json.Unmarshal(data, &resp); err != nil {
 			t.Fatalf("Failed to unmarshal response: %v", err)
@@ -3870,7 +3870,7 @@ func TestInMemoryTransport_handleSampling(t *testing.T) {
 
 	// Check that error response was sent
 	select {
-	case data := <-transport.recvCh:
+	case data := <-transport.internalRespCh:
 		var resp map[string]any
 		if err := json.Unmarshal(data, &resp); err != nil {
 			t.Fatalf("Failed to unmarshal response: %v", err)
