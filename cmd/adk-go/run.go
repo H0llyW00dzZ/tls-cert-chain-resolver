@@ -110,6 +110,7 @@ func main() {
 	// 3. Create Gemini model
 	// Note: This requires GOOGLE_API_KEY to be valid for Gemini API.
 	// To use other providers, implement a custom model wrapper similar to the Gemini implementation. ADK supports integration with other providers.
+	// While implementing a custom provider is straightforward, this example focuses on the Gemini implementation for simplicity.
 	model, err := gemini.NewModel(ctx, "gemini-2.5-flash", &genai.ClientConfig{
 		APIKey: apiKey,
 	})
