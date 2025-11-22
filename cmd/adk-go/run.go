@@ -87,11 +87,7 @@ func main() {
 		log.Fatal("GOOGLE_API_KEY environment variable must be set")
 	}
 
-	// 1. Verify transport works by listing tools using official SDK client
-	log.Println("Verifying MCP transport and tools...")
-	verifyTransport(ctx)
-
-	// 2. Initialize ADK toolset with a fresh transport
+	// 1. Initialize ADK toolset with a fresh transport
 	log.Println("Initializing ADK toolset...")
 	transport := localMCPTransport(ctx)
 
@@ -106,7 +102,7 @@ func main() {
 	log.Printf("Certificate MCP transport created and connected successfully")
 	log.Printf("MCP tool set initialized with transport")
 
-	// 3. Create Gemini model
+	// 2. Create Gemini model
 	// Note: This requires GOOGLE_API_KEY to be valid for Gemini API.
 	// To use other providers, implement a custom model wrapper similar to the Gemini implementation. ADK supports integration with other providers.
 	// While implementing a custom provider is straightforward, this example focuses on the Gemini implementation for simplicity.
@@ -117,7 +113,7 @@ func main() {
 		log.Fatalf("Failed to create model: %v", err)
 	}
 
-	// 4. Create Agent
+	// 3. Create Agent
 	thinkingBudget := int32(2048) // Minimum usually 1024 for effective thinking
 	a, err := llmagent.New(llmagent.Config{
 		Name:        "cert_agent",
@@ -136,7 +132,7 @@ func main() {
 		log.Fatalf("Failed to create agent: %v", err)
 	}
 
-	// 5. Create Session Service and Runner
+	// 4. Create Session Service and Runner
 	sessionSvc := session.InMemoryService()
 	r, err := runner.New(runner.Config{
 		AppName:        "adk-go-example",
@@ -170,7 +166,7 @@ func main() {
 		userMsg := genai.NewContentFromText(promptText, "user")
 
 		var isThinking bool
-		log.Println("--- Agent Response ---")
+		fmt.Printf("--- Agent Response ---")
 		for event, err := range r.Run(ctx, "test-user", sessionID, userMsg, runConfig) {
 			if err != nil {
 				log.Printf("\nAgent error: %v", err)
@@ -204,40 +200,13 @@ func main() {
 		fmt.Println("\n----------------------")
 	}
 
-	// 6. Run first query
+	// 5. Run first query
 	runQuery("What tools are available to you for certificate operations?")
 
-	// 7. Run second query
+	// 6. Run second query
 	//
 	// Note: gemini-2.5-flash may fail to show formatted PEM output because this tool is not easy to use. Many models fail at this task as well.
 	runQuery("Fetch the certificate chain for www.example.com on port 443. Return ONLY the full, correctly formatted PEM output for all certificates in the chain.")
 
 	log.Println("Agent execution completed")
-}
-
-func verifyTransport(ctx context.Context) {
-	transport := localMCPTransport(ctx)
-
-	client := mcptransport.NewClient(&mcptransport.Implementation{
-		Name:    "verifier",
-		Version: "1.0.0",
-	}, nil)
-
-	session, err := client.Connect(ctx, transport, nil)
-	if err != nil {
-		log.Fatalf("Verification failed: connect: %v", err)
-	}
-	defer session.Close()
-
-	listParams := mcptransport.ListToolsParams{}
-	result, err := session.ListTools(ctx, &listParams)
-	if err != nil {
-		log.Fatalf("Verification failed: list tools: %v", err)
-	}
-
-	log.Printf("Available Tools (%d):", len(result.Tools))
-	for _, tool := range result.Tools {
-		log.Printf("- %s: %s", tool.Name, tool.Description)
-	}
-	log.Println("Transport verification successful.")
 }
