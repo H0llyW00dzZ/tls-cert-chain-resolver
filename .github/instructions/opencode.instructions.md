@@ -497,14 +497,14 @@ src/logger/            → Logger abstraction (CLI/MCP modes, thread-safe with s
 src/mcp-server/        → MCP server implementation with X509 certificate tools
   ├── adk.go           → Google ADK integration support
   ├── config.go        → Configuration handling
-  ├── framework.go     → Builder pattern for server construction
+  ├── framework.go     → Builder pattern for server construction, AI sampling with buffer pooling (DefaultSamplingHandler)
   ├── handlers.go      → Tool handlers for certificate operations
   ├── helper.go        → Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
   ├── pipe.go          → Pipe transport implementation for StdioServer input/output interception (sampling)
   ├── prompts.go       → MCP prompt definitions and handlers
   ├── resources.go     → MCP resource definitions and handlers
   ├── server.go        → Server execution and lifecycle
-  └── transport.go     → In-memory transport for ADK integration
+  └── transport.go     → In-memory transport for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
 src/internal/x509/     → Certificate operations
   ├── certs/           → Encoding/decoding
   └── chain/           → Chain resolution
