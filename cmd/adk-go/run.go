@@ -34,13 +34,12 @@ import (
 // - ADK packages must be available (google.golang.org/adk/*)
 
 func localMCPTransport(ctx context.Context) mcptransport.Transport {
-	// Use our improved transport builder to create MCP server and transport
-	builder := mcpserver.NewTransportBuilder().
+	// Use our improved ADK transport builder to create MCP server and transport with proper configuration
+	transport, err := mcpserver.NewADKTransportBuilder().
 		WithVersion("1.0.0").
-		WithDefaultTools()
+		WithInMemoryTransport().
+		BuildTransport(ctx)
 
-	// Build in-memory transport that includes server
-	transport, err := builder.BuildInMemoryTransport(ctx)
 	if err != nil {
 		log.Fatalf("Failed to build MCP transport: %v", err)
 	}
@@ -159,51 +158,60 @@ func main() {
 	sessionID := sessResp.Session.ID()
 	log.Printf("Created session: %s", sessionID)
 
-	// 6. Run a test query
-	// We'll ask it to list tools to verify the toolset is working without needing complex inputs
-	prompt := "What tools are available to you for certificate operations?"
-	log.Printf("Running agent with prompt: %q", prompt)
-
-	userMsg := genai.NewContentFromText(prompt, "user")
-
 	// Use streaming mode
 	runConfig := agent.RunConfig{
 		StreamingMode: agent.StreamingModeSSE,
 	}
 
-	var isThinking bool
-	log.Println("--- Agent Response ---")
-	for event, err := range r.Run(ctx, "test-user", sessionID, userMsg, runConfig) {
-		if err != nil {
-			log.Printf("\nAgent error: %v", err)
-			break // Stop on error
-		}
+	// Helper function to run agent query
+	runQuery := func(promptText string) {
+		log.Printf("Running agent with prompt: %q", promptText)
+		fmt.Printf("\n--- User Request ---\n%s\n", promptText)
+		userMsg := genai.NewContentFromText(promptText, "user")
 
-		if event.LLMResponse.Partial {
-			// Handle partial (streaming) response
-			if event.LLMResponse.Content != nil {
-				for _, part := range event.LLMResponse.Content.Parts {
-					if part.Thought {
-						if !isThinking {
-							fmt.Print("\n[Thinking] ")
-							isThinking = true
+		var isThinking bool
+		log.Println("--- Agent Response ---")
+		for event, err := range r.Run(ctx, "test-user", sessionID, userMsg, runConfig) {
+			if err != nil {
+				log.Printf("\nAgent error: %v", err)
+				break // Stop on error
+			}
+
+			if event.LLMResponse.Partial {
+				// Handle partial (streaming) response
+				if event.LLMResponse.Content != nil {
+					for _, part := range event.LLMResponse.Content.Parts {
+						if part.Thought {
+							if !isThinking {
+								fmt.Print("\n[Thinking] ")
+								isThinking = true
+							}
+							fmt.Print(part.Text)
+						} else {
+							if isThinking {
+								fmt.Print("\n\n----------------------\n\n")
+								isThinking = false
+							}
+							fmt.Print(part.Text)
 						}
-						fmt.Print(part.Text)
-					} else {
-						if isThinking {
-							fmt.Print("\n\n----------------------\n\n")
-							isThinking = false
-						}
-						fmt.Print(part.Text)
 					}
 				}
 			}
 		}
+		if isThinking {
+			fmt.Println()
+		}
+		fmt.Println("\n----------------------")
 	}
-	if isThinking {
-		fmt.Println()
-	}
-	fmt.Println("\n----------------------")
+
+	// 6. Run first query
+	runQuery("What tools are available to you for certificate operations?")
+
+	// 7. Run second query
+	//
+	// Note: gemini-2.5-flash may fail to show formatted PEM output because this tool is not easy to use. Many models fail at this task as well.
+	runQuery("Fetch the certificate chain for www.example.com on port 443. Return ONLY the full, correctly formatted PEM output for all certificates in the chain.")
+
 	log.Println("Agent execution completed")
 }
 
