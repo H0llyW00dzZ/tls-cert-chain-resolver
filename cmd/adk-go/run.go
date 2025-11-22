@@ -170,7 +170,7 @@ func main() {
 		userMsg := genai.NewContentFromText(promptText, "user")
 
 		var isThinking bool
-		log.Println("--- Agent Response ---")
+		fmt.Printf("--- Agent Response ---")
 		for event, err := range r.Run(ctx, "test-user", sessionID, userMsg, runConfig) {
 			if err != nil {
 				log.Printf("\nAgent error: %v", err)
