@@ -324,6 +324,8 @@ func (c *ADKTransportConnection) Close() error {
 }
 
 // SessionID implements mcptransport.Connection.SessionID
+//
+// TODO: Do we need a unique session ID that uses a cryptographic mechanism?
 func (c *ADKTransportConnection) SessionID() string {
 	return "in-memory-transport"
 }
