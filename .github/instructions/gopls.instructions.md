@@ -175,9 +175,13 @@ gopls_go_search("getMapParam") → Find map parameter extraction
 gopls_go_search("UnmarshalFromMap") → Find JSON-RPC map-to-struct unmarshaling helper
 gopls_go_search("pipeReader") → Find pipe reader implementation for StdioServer interception
 gopls_go_search("pipeWriter") → Find pipe writer implementation for StdioServer interception
-gopls_go_search("internalRespCh") → Find internal response channel for sampling errors
+gopls_go_search("internalRespCh") → Find internal response channel for sampling responses
+gopls_go_search("sendInternalResponse") → Find internal response sender for sampling
+gopls_go_search("sendInternalErrorResponse") → Find internal error response sender for sampling
 gopls_go_search("processMessages") → Find transport message processing with concurrent goroutines
 gopls_go_search("SendJSONRPCNotification") → Find JSON-RPC notification sender for streaming
+gopls_go_search("ThinkingConfig") → Find AI thinking mode configuration (adk-go example)
+gopls_go_search("ThinkingBudget") → Find thinking mode budget settings
 ```
 
 ### gopls_go_file_context(file)
