@@ -29,7 +29,7 @@ tls-cert-chain-resolver/
 │   └── README.md                             # Custom commands documentation
 ├── cmd/
 │   ├── adk-go/
-│   │   └── run.go                            # ADK integration example
+│   │   └── run.go                            # ADK integration example with thinking mode support
 │   ├── mcp-server/
 │   │   └── run.go                            # MCP server entry point
 │   └── run.go                                # Main CLI entry point
@@ -65,14 +65,14 @@ tls-cert-chain-resolver/
 │   ├── mcp-server/
 │   │   ├── config.example.json               # MCP server configuration example
 │   │   ├── config.go                         # MCP server configuration and AI settings
-│   │   ├── adk.go                            # Google ADK integration support
-│   │   ├── adk_test.go                       # Google ADK integration tests
+│   │   ├── adk.go                            # Google ADK integration support with transport builder pattern
+│   │   ├── adk_test.go                       # Google ADK integration tests with enhanced concurrency testing
 │   │   ├── analysis_coverage_test.go         # Analysis coverage tests
 │   │   ├── framework.go                      # ServerBuilder pattern, sampling registration, streaming buffer pooling
 │   │   ├── handlers.go                       # MCP tool handlers, AI certificate analysis, certificate processing utilities
 │   │   ├── helper.go                         # Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
 │   │   ├── pipe.go                           # Pipe transport implementation for StdioServer input/output interception (sampling)
-│   │   ├── pipe_test.go                      # Pipe transport tests covering I/O performance and interception logic
+│   │   ├── pipe_test.go                      # Pipe transport tests covering I/O performance, interception logic, and sampling response routing
 │   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
 │   │   ├── resource_usage.go                 # Resource usage monitoring and formatting functions
 │   │   ├── resources.go                      # MCP resource definitions and handlers (config, version, formats, status)
@@ -83,7 +83,7 @@ tls-cert-chain-resolver/
 │   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt used for sampling
 │   │   │   └── certificate-formats.md                    # Certificate format documentation
 │   │   ├── tools.go                          # Tool definitions and creation functions
-│   │   └── transport.go                      # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
+│   │   └── transport.go                      # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
 │   └── version/
 │       └── version.go                        # Version information and build metadata
 ├── .gitignore                                # Git ignore patterns
@@ -644,14 +644,14 @@ src/logger/benchmark_test.go
 # MCP server implementation
 src/mcp-server/config.example.json
 src/mcp-server/config.go
-src/mcp-server/adk.go        # Google ADK integration support
-src/mcp-server/adk_test.go   # Google ADK integration tests
+src/mcp-server/adk.go        # Google ADK integration support with transport builder pattern
+src/mcp-server/adk_test.go   # Google ADK integration tests with enhanced concurrency testing
 src/mcp-server/analysis_coverage_test.go # Analysis coverage tests
 src/mcp-server/framework.go  # ServerBuilder pattern, AI sampling with buffer pooling (DefaultSamplingHandler)
 src/mcp-server/handlers.go   # MCP tool handlers, AI certificate analysis, certificate processing utilities
 src/mcp-server/helper.go     # Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
 src/mcp-server/pipe.go       # Pipe transport implementation for StdioServer input/output interception (sampling)
-src/mcp-server/pipe_test.go  # Pipe transport tests covering I/O performance and interception logic
+src/mcp-server/pipe_test.go  # Pipe transport tests covering I/O performance, interception logic, and sampling response routing
 src/mcp-server/prompts.go    # MCP prompt definitions and handlers for certificate workflows
 src/mcp-server/resource_usage.go  # Resource usage monitoring and formatting functions
 src/mcp-server/resources.go  # MCP resource definitions and handlers (config, version, formats, status)
@@ -659,7 +659,7 @@ src/mcp-server/run_graceful_test.go  # Graceful shutdown test (non-Windows)
 src/mcp-server/run_test.go   # Comprehensive tool coverage tests with macOS skip for validation
 src/mcp-server/server.go
 src/mcp-server/tools.go
-src/mcp-server/transport.go  # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
+src/mcp-server/transport.go  # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
 src/mcp-server/templates/certificate-analysis-system-prompt.md  # Embedded AI system prompt
 src/mcp-server/templates/certificate-formats.md
 
