@@ -21,12 +21,25 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
 2. **Update Relevant Instruction Files**:
 
    - `gopls.instructions.md` - Go code patterns, package structure changes
-   - `filesystem.instructions.md` - New file paths, directory structure changes
+   - `filesystem.instructions.md` - New file paths, directory structure changes, **Repository Structure tree** (starts at line 7)
    - `memory.instructions.md` - Context/memory management pattern changes
    - `deepwiki.instructions.md` - New external dependencies
    - `opencode.instructions.md` - Configuration or workflow changes, including new/deleted commands in `.opencode/command/`
 
-3. **Check .opencode Directory Changes**:
+3. **Update Repository Structure Tree in filesystem.instructions.md**:
+
+   - Check for new/moved/deleted files and directories: `git diff HEAD~10..HEAD --name-only`
+   - List current directory structure: `list()` to verify current state
+   - Update the Repository Structure tree (starts at line 7) in `filesystem.instructions.md` to reflect:
+     - New files added (with descriptive comments)
+     - Files moved or renamed
+     - Directories added or reorganized
+     - Files deleted (remove from tree)
+   - Ensure file descriptions accurately reflect their purpose
+   - Maintain tree indentation and formatting consistency
+   - Update "Common File Paths" section (starts at line 607) if major structural changes occurred
+
+4. **Check .opencode Directory Changes**:
 
    - List current commands: Use the built-in `list` tool: `list('.opencode/command')`
    - Compare with recent git changes: Run `git diff HEAD~10..HEAD --name-only` and check the output for any files in `.opencode/` directory
@@ -35,7 +48,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
    - For modified commands: Update descriptions and examples in `opencode.instructions.md`
    - Ensure frontmatter (description, agent) is consistent and accurate
 
-4. **Verify Consistency**:
+5. **Verify Consistency**:
 
    - Ensure examples use actual file paths from repository
    - Update cross-references between instruction files
@@ -53,14 +66,15 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
          - `go test -race ./src/logger 2>&1 | cat`
          - `go test -race ./src/mcp-server 2>&1 | cat`
 
-5. **Update AGENTS.md**:
+6. **Update AGENTS.md**:
    - Add new commands if build process changed
    - Update code style guidelines for new patterns
    - Add common mistakes to "Bad Practices" section
 
 ## What to Look For
 
-- **New packages or files**: Update gopls.instructions.md with new package structure
+- **New packages or files**: Update gopls.instructions.md with new package structure AND update `filesystem.instructions.md` Repository Structure tree (starts at line 7)
+- **Directory structure changes**: Update `filesystem.instructions.md` Repository Structure tree to reflect new/moved/deleted directories and files
 - **New CLI flags/commands**: Update examples in gopls.instructions.md and filesystem.instructions.md
 - **New dependencies**: Update deepwiki.instructions.md with new libraries to research
 - **Refactored code**: Update code examples across all instruction files
