@@ -54,6 +54,7 @@
 **Test package**: `go test -v ./src/internal/x509/certs 2>&1 | cat`, `go test -v ./src/internal/x509/chain 2>&1 | cat`, `go test -v ./src/mcp-server 2>&1 | cat`, or `go test -v ./src/logger 2>&1 | cat`  
 **Test race + coverage**: `go test -race -cover ./... 2>&1 | cat` (recommended primary test approach)  
 **Benchmark**: `go test -bench=. ./src/logger ./src/internal/x509/chain 2>&1 | cat` (performance testing)  
+**Lint**: `gofmt -l .` (check formatting issues), `go vet ./...` (check suspicious constructs)  
 **Clean**: `make clean` (removes build artifacts from `./bin/`)
 **Run ADK Example**: `go run -tags adk ./cmd/adk-go` (runs the ADK integration example with thinking mode support)
 
