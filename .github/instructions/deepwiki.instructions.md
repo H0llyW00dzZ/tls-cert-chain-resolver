@@ -402,6 +402,11 @@ deepwiki_ask_question("modelcontextprotocol/go-sdk", "What's the difference betw
 deepwiki_ask_question("google/adk-go", "How do I create MCP transports for ADK integration?")
 deepwiki_ask_question("google/adk-go", "What are the transport types supported by ADK?")
 deepwiki_ask_question("google/adk-go", "How do I use mcptoolset with a custom transport?")
+
+# Google GenAI integration
+deepwiki_ask_question("google/generative-ai-go", "How do I implement streaming chat completions with GenAI SDK?")
+deepwiki_ask_question("google/generative-ai-go", "What are the best practices for error handling in GenAI API calls?")
+deepwiki_ask_question("google/generative-ai-go", "How do I configure model parameters for certificate analysis tasks?")
 ```
 
 ## Troubleshooting

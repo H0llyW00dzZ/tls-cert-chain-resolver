@@ -75,19 +75,20 @@
 - `google.golang.org/genai` v1.36.0 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.1 - Enhanced markdown table formatting with emoji headers
 - `golang.org/x/crypto` v0.45.0 (via Go 1.25.4) - Standard crypto updates leveraged in recent releases
-  **Imports**: Use `goimports` with standard formatting  
-  **Formatting**: Use `gofmt -s`  
-  **Line length**: Max 120 chars  
-  **Type aliases**: Use `any` instead of `interface{}` for type parameters (Go 1.18+ generics)  
-  **Comments**: Every exported function/interface must have a comment starting with its name in complete sentences  
-  **Error handling**: Return wrapped errors with context using `fmt.Errorf("context: %w", err)`. Each error is processed once (returned OR logged, never both). Prefer `err != nil` checks.  
-  **Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection and uses `gc.Pool` for efficient memory usage under high concurrency.  
-  **Context**: Always pass and use `context.Context` for lifecycle management, especially for certificate fetching operations  
-  **CLI Framework**: Use `github.com/spf13/cobra` for command-line interface  
-  **Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race -cover ./...` before merging.  
-  **Memory Management**: Use buffer pooling via `gc.Pool` interface (`src/internal/helper/gc/`) for efficient memory usage with certificates and logging. The `gc` package abstracts `bytebufferpool` to avoid direct dependencies. Always call `Reset()` on buffers before returning them to the pool. Use `gc.Default` for the default buffer pool. For AI API requests, buffer pooling is used in `DefaultSamplingHandler` to optimize HTTP streaming performance.  
+  **Imports**: Use `goimports` with standard formatting
+  **Formatting**: Use `gofmt -s`
+  **Line length**: Max 120 chars
+  **Type aliases**: Use `any` instead of `interface{}` for type parameters (Go 1.18+ generics)
+  **Comments**: Every exported function/interface must have a comment starting with its name in complete sentences
+  **Error handling**: Return wrapped errors with context using `fmt.Errorf("context: %w", err)`. Each error is processed once (returned OR logged, never both). Prefer `err != nil` checks.
+  **Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection and uses `gc.Pool` for efficient memory usage under high concurrency.
+  **Context**: Always pass and use `context.Context` for lifecycle management, especially for certificate fetching operations
+  **CLI Framework**: Use `github.com/spf13/cobra` for command-line interface
+  **Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race -cover ./...` before merging.
+  **Memory Management**: Use buffer pooling via `gc.Pool` interface (`src/internal/helper/gc/`) for efficient memory usage with certificates and logging. The `gc` package abstracts `bytebufferpool` to avoid direct dependencies. Always call `Reset()` on buffers before returning them to the pool. Use `gc.Default` for the default buffer pool. For AI API requests, buffer pooling is used in `DefaultSamplingHandler` to optimize HTTP streaming performance.
   **JSON-RPC Utilities**: Use `src/internal/helper/jsonrpc/` for JSON-RPC 2.0 canonicalization, normalization (lowercase keys, ID handling), and unmarshaling (`UnmarshalFromMap`) when implementing MCP transports. Use `src/mcp-server/helper.go` functions (`getParams`, `getStringParam`, `getOptionalStringParam`, `getMapParam`) for safe parameter extraction. Prefer using defined structs (e.g., `jsonRPCResponse`, `jsonRPCError`) over raw maps for type-safe message handling.
   **Certificate Operations**: Use internal packages `x509certs` and `x509chain` for certificate handling. Use `HTTPConfig` struct for centralized HTTP client configuration in certificate operations (timeout, User-Agent, version). Always check revocation status using `CheckRevocationStatus` after chain resolution. CRL cache includes O(1) LRU eviction with hashmap and doubly-linked list, automatic cleanup of expired CRLs with context cancellation support, configurable size limits (default 100), comprehensive metrics tracking (hits, misses, evictions, cleanups, memory usage), atomic operations to prevent race conditions, and resource usage monitoring via `get_resource_usage` tool.
+  
 
 ## Concurrency
 
