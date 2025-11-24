@@ -382,6 +382,8 @@ deepwiki_ask_question("valyala/bytebufferpool", "When should I use bytebufferpoo
 
 # Table formatting
 deepwiki_ask_question("olekukonko/tablewriter", "How do I create markdown tables with emoji headers and structured formatting?")
+deepwiki_ask_question("olekukonko/tablewriter", "How do I set table borders and alignment for resource usage reports?")
+deepwiki_ask_question("olekukonko/tablewriter", "How do I render tables to strings for MCP resource formatting?")
 
 # gRPC and protobuf
 deepwiki_ask_question("grpc/grpc-go", "How do I implement bidirectional streaming in gRPC?")
@@ -397,16 +399,21 @@ deepwiki_ask_question("mark3labs/mcp-go", "How do I add prompts to an MCP server
 # Official MCP SDK
 deepwiki_ask_question("modelcontextprotocol/go-sdk", "How do I implement MCP transports in Go?")
 deepwiki_ask_question("modelcontextprotocol/go-sdk", "What's the difference between MCP SDK and mark3labs/mcp-go?")
+deepwiki_ask_question("modelcontextprotocol/go-sdk", "How do I create custom transport implementations for MCP?")
 
 # Google ADK integration
 deepwiki_ask_question("google/adk-go", "How do I create MCP transports for ADK integration?")
 deepwiki_ask_question("google/adk-go", "What are the transport types supported by ADK?")
 deepwiki_ask_question("google/adk-go", "How do I use mcptoolset with a custom transport?")
+deepwiki_ask_question("google/adk-go", "How do I implement ADK transport builders for MCP servers?")
+deepwiki_ask_question("google/adk-go", "What are the best practices for ADK transport configuration?")
 
 # Google GenAI integration
 deepwiki_ask_question("google/generative-ai-go", "How do I implement streaming chat completions with GenAI SDK?")
 deepwiki_ask_question("google/generative-ai-go", "What are the best practices for error handling in GenAI API calls?")
 deepwiki_ask_question("google/generative-ai-go", "How do I configure model parameters for certificate analysis tasks?")
+deepwiki_ask_question("google/generative-ai-go", "How do I handle token callbacks and streaming responses in GenAI?")
+deepwiki_ask_question("google/generative-ai-go", "What are the rate limiting and quota management patterns for GenAI API?")
 ```
 
 ## Troubleshooting
