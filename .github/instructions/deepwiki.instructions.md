@@ -383,6 +383,13 @@ deepwiki_ask_question("valyala/bytebufferpool", "When should I use bytebufferpoo
 # Table formatting
 deepwiki_ask_question("olekukonko/tablewriter", "How do I create markdown tables with emoji headers and structured formatting?")
 
+# gRPC and protobuf
+deepwiki_ask_question("grpc/grpc-go", "How do I implement bidirectional streaming in gRPC?")
+deepwiki_ask_question("protocolbuffers/protobuf-go", "How do I work with protocol buffers in Go?")
+
+# YAML processing
+deepwiki_ask_question("go-yaml/yaml", "How do I parse YAML configurations with custom types?")
+
 # MCP server implementation
 deepwiki_ask_question("mark3labs/mcp-go", "How do I implement MCP resources in a Go server?")
 deepwiki_ask_question("mark3labs/mcp-go", "How do I add prompts to an MCP server?")
@@ -392,9 +399,9 @@ deepwiki_ask_question("modelcontextprotocol/go-sdk", "How do I implement MCP tra
 deepwiki_ask_question("modelcontextprotocol/go-sdk", "What's the difference between MCP SDK and mark3labs/mcp-go?")
 
 # Google ADK integration
-deepwiki_ask_question("google/adk", "How do I create MCP transports for ADK integration?")
-deepwiki_ask_question("google/adk", "What are the transport types supported by ADK?")
-deepwiki_ask_question("google/adk", "How do I use mcptoolset with a custom transport?")
+deepwiki_ask_question("google/adk-go", "How do I create MCP transports for ADK integration?")
+deepwiki_ask_question("google/adk-go", "What are the transport types supported by ADK?")
+deepwiki_ask_question("google/adk-go", "How do I use mcptoolset with a custom transport?")
 ```
 
 ## Troubleshooting
