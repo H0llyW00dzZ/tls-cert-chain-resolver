@@ -22,8 +22,8 @@ tls-cert-chain-resolver/
 │   └── dependabot.yml                        # Dependency updates config
 ├── .opencode/
 │   ├── command/
-│   │   ├── create-changelog.md               # Generate changelog by comparing tags against master
-│   │   ├── test-capabilities.md              # Test agent capabilities workflow
+│   │   ├── create-changelog.md               # Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
+│   │   ├── test-capabilities.md              # Test agent capabilities including MCP servers and built-in tools with structured todo workflow
 │   │   ├── test.md                           # Test command workflow
 │   │   └── update-knowledge.md               # Update instruction files workflow
 │   └── README.md                             # Custom commands documentation
@@ -832,11 +832,17 @@ grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|Max
 # Find MCP server builder pattern
 grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")
 
+# Find ADK integration patterns
+grep("ADKTransportBuilder\\|NewADKTransportBuilder\\|WithInMemoryTransport\\|BuildTransport\\|ADKTransportConfig\\|InMemoryTransport\\|NewInMemoryTransport\\|ConnectServer\\|TransportBuilder\\|NewTransportBuilder\\|BuildInMemoryTransport", include="*.go")
+
 # Find MCP server status resource
 grep("handleStatusResource\\|status://server-status", include="*.go")
 
 # Find embedded templates
 grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
+
+# Find resource usage monitoring patterns
+grep("ResourceUsageData\\|CollectResourceUsage\\|FormatResourceUsage", include="*.go")
 
 
 # Find graceful shutdown tests

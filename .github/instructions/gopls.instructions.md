@@ -404,6 +404,7 @@ read("src/mcp-server/helper.go")     # JSON-RPC parameter extraction helper (get
 read("src/mcp-server/pipe.go")       # Pipe transport implementation with buffer pooling
 read("src/mcp-server/adk_test.go")   # Comprehensive ADK transport tests with JSON-RPC cycle testing
 read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
+read("src/mcp-server/resource_usage.go")  # Resource usage monitoring and formatting functions
 ```
 # Understand CLI structure
 gopls_go_file_context("src/cli/root.go")

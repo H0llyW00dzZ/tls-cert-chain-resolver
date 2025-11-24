@@ -362,8 +362,8 @@ Current external dependencies to research:
 - `github.com/modelcontextprotocol/go-sdk` v1.1.0 - Official MCP SDK for transport implementations
 - `google.golang.org/adk` v0.2.0 - Google ADK integration for MCP transport creation
 - `google.golang.org/genai` v1.36.0 - Google GenAI integration for AI model interactions
-- `github.com/olekukonko/tablewriter` v1.1.1 - Enhanced markdown table formatting
-- `golang.org/x/crypto` v0.45.0 - Supplementary cryptography libraries
+- `github.com/olekukonko/tablewriter` v1.1.1 - Enhanced markdown table formatting with emoji headers
+- `golang.org/x/crypto` v0.45.0 - Supplementary cryptography libraries leveraged in recent releases
 - `golang/go` (standard library) - Review Go 1.25.4 crypto/tls and net/http updates
 
 ### Useful Queries for This Project
@@ -381,7 +381,7 @@ deepwiki_ask_question("cloudflare/cfssl", "What's the difference between PEM and
 deepwiki_ask_question("valyala/bytebufferpool", "When should I use bytebufferpool vs sync.Pool?")
 
 # Table formatting
-deepwiki_ask_question("olekukonko/tablewriter", "How do I create markdown tables with emoji headers?")
+deepwiki_ask_question("olekukonko/tablewriter", "How do I create markdown tables with emoji headers and structured formatting?")
 
 # MCP server implementation
 deepwiki_ask_question("mark3labs/mcp-go", "How do I implement MCP resources in a Go server?")
@@ -446,8 +446,10 @@ Solutions:
 - `spf13/cobra` - For CLI improvements
 - `cloudflare/cfssl` - For certificate handling
 - `valyala/bytebufferpool` - For memory optimization
-- `mark3labs/mcp-go` - For MCP server features
-- `modelcontextprotocol/go-sdk` - For official MCP transport implementations
-- `google.golang.org/adk` - For Google ADK integration
-- `google.golang.org/genai` - For Google GenAI integration
+- `mark3labs/mcp-go` v0.43.1 - For MCP server features with enhanced bidirectional AI sampling support
+- `modelcontextprotocol/go-sdk` v1.1.0 - For official MCP transport implementations
+- `google.golang.org/adk` v0.2.0 - For Google ADK integration for MCP transport creation
+- `google.golang.org/genai` v1.36.0 - For Google GenAI integration for AI model interactions
+- `github.com/olekukonko/tablewriter` v1.1.1 - For enhanced markdown table formatting with emoji headers
+- `golang.org/x/crypto` v0.45.0 - For supplementary cryptography libraries leveraged in recent releases
 - `golang/go` - For standard library best practices
