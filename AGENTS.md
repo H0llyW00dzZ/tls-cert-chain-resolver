@@ -285,14 +285,19 @@ Agents also have access to built-in file and project tools:
 ### Example Workflow
 
 ```
-// 1. Create comprehensive todo list for complex feature
+// 1. Create todo list for complex feature using `todowrite`. Example tasks (mark first "in_progress"):
+// - Analyze current certificate validation implementation (id: "1", high)
+// - Design new validation API with error handling (id: "2", high)
+// - Implement validation logic in chain.go (id: "3", high)
+// - Add comprehensive unit tests (id: "4", medium)
+// - Update MCP server handlers (id: "5", medium)
+// - Run race detection and coverage tests (id: "6", high)
+
+// Initial call:
 todowrite([
   {"id": "1", "content": "Analyze current certificate validation implementation", "status": "in_progress", "priority": "high"},
-  {"id": "2", "content": "Design new validation API with error handling", "status": "pending", "priority": "high"},
-  {"id": "3", "content": "Implement validation logic in chain.go", "status": "pending", "priority": "high"},
-  {"id": "4", "content": "Add comprehensive unit tests", "status": "pending", "priority": "medium"},
-  {"id": "5", "content": "Update MCP server handlers", "status": "pending", "priority": "medium"},
-  {"id": "6", "content": "Run race detection and coverage tests", "status": "pending", "priority": "high"}
+  {"id": "2", "content": "Design new validation API with error handling", "status": "pending", "priority": "high"}
+  // ... add remaining tasks
 ])
 
 // 2. Check progress anytime
