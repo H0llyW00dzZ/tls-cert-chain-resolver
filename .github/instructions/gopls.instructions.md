@@ -13,6 +13,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 - **`src/cli/`** — Cobra CLI implementation  
 - **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and gc.Pool)
  - **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
+  - **`docs.go`** — MCP server package documentation
   - **`adk.go`** — Google ADK integration support with transport builder pattern
   - **`adk_test.go`** — Comprehensive ADK transport builder tests with JSON-RPC cycle testing
   - **`analysis_coverage_test.go`** — Analysis coverage tests
@@ -392,6 +393,7 @@ gopls_go_search("pruneCRLCache") → Find LRU eviction implementation
 gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
 
 # Read MCP server implementations
+read("src/mcp-server/docs.go")       # MCP server package documentation
 read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI streaming integration with buffer pooling
 read("src/mcp-server/resources.go")  # Resource definitions including status resource
 read("src/mcp-server/prompts.go")    # Prompt definitions
