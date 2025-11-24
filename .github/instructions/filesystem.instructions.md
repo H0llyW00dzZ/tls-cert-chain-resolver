@@ -65,6 +65,7 @@ tls-cert-chain-resolver/
 │   ├── mcp-server/
 │   │   ├── config.example.json               # MCP server configuration example
 │   │   ├── config.go                         # MCP server configuration and AI settings
+│   │   ├── docs.go                           # MCP server documentation
 │   │   ├── adk.go                            # Google ADK integration support with transport builder pattern
 │   │   ├── adk_test.go                       # Google ADK integration tests with enhanced concurrency testing
 │   │   ├── analysis_coverage_test.go         # Analysis coverage tests
@@ -644,6 +645,7 @@ src/logger/benchmark_test.go
 # MCP server implementation
 src/mcp-server/config.example.json
 src/mcp-server/config.go
+src/mcp-server/docs.go
 src/mcp-server/adk.go        # Google ADK integration support with transport builder pattern
 src/mcp-server/adk_test.go   # Google ADK integration tests with enhanced concurrency testing
 src/mcp-server/analysis_coverage_test.go # Analysis coverage tests

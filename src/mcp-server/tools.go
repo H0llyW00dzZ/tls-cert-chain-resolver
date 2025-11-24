@@ -9,7 +9,25 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-// createTools creates and returns all MCP tool definitions with their handlers
+// createTools creates and returns all MCP tool definitions with their handlers.
+// It organizes tools into two categories: those that don't require configuration
+// and those that need access to the server configuration (e.g., for AI integration or timeouts).
+//
+// Returns:
+//   - A slice of ToolDefinition for tools without config dependencies
+//   - A slice of ToolDefinitionWithConfig for tools that require server configuration
+//
+// The function defines the following tools:
+//   - resolve_cert_chain: Resolves certificate chains from files or base64 data
+//   - validate_cert_chain: Validates certificate chains for correctness and trust
+//   - batch_resolve_cert_chain: Processes multiple certificate chains in batch
+//   - check_cert_expiry: Checks certificate expiry dates with configurable warnings
+//   - fetch_remote_cert: Fetches certificate chains from remote hostnames
+//   - analyze_certificate_with_ai: Performs AI-powered certificate analysis
+//   - get_resource_usage: Provides server resource usage statistics
+//
+// Each tool includes proper parameter definitions, descriptions, and default values
+// as required by the MCP specification.
 func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 	// Tools that don't need config
 	tools := []ToolDefinition{

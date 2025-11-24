@@ -1698,9 +1698,9 @@ func TestHandleFormatsResource(t *testing.T) {
 		},
 	}
 
-	result, err := handleFormatsResource(t.Context(), req)
+	result, err := handleCertificateFormatsResource(t.Context(), req)
 	if err != nil {
-		t.Fatalf("handleFormatsResource failed: %v", err)
+		t.Fatalf("handleCertificateFormatsResource failed: %v", err)
 	}
 
 	if len(result) != 1 {

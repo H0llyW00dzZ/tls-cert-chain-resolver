@@ -19,7 +19,25 @@ import (
 	"github.com/olekukonko/tablewriter/tw"
 )
 
-// ResourceUsageData represents the complete resource usage information
+// ResourceUsageData represents the complete resource usage information.
+//
+// ResourceUsageData contains comprehensive statistics about the MCP server's
+// current resource utilization, including memory usage, garbage collection
+// metrics, system information, and optionally detailed memory statistics
+// and CRL cache metrics.
+//
+// Fields:
+//   - Timestamp: [RFC3339]-formatted timestamp when data was collected
+//   - MemoryUsage: Basic memory statistics in MB (heap, stack, etc.)
+//   - GCStats: Garbage collection cycle counts and CPU usage
+//   - SystemInfo: Go runtime and system information
+//   - DetailedMemory: Optional detailed memory statistics (allocations, pauses, etc.)
+//   - CRLCache: Optional CRL cache metrics (hits, misses, evictions, etc.)
+//
+// This struct is used by the get_resource_usage MCP tool to provide
+// comprehensive monitoring data for performance analysis and debugging.
+//
+// [RFC3339]: https://www.rfc-editor.org/rfc/RFC3339.html
 type ResourceUsageData struct {
 	Timestamp      string         `json:"timestamp"`
 	MemoryUsage    map[string]any `json:"memory_usage"`
@@ -29,7 +47,28 @@ type ResourceUsageData struct {
 	CRLCache       map[string]any `json:"crl_cache,omitempty"`
 }
 
-// CollectResourceUsage gathers current resource usage statistics
+// CollectResourceUsage gathers current resource usage statistics.
+//
+// CollectResourceUsage collects comprehensive resource usage data from the
+// Go runtime and CRL cache. It provides both basic and detailed statistics
+// depending on the detailed parameter.
+//
+// Parameters:
+//   - detailed: If true, includes detailed memory stats and CRL cache metrics
+//
+// Returns:
+//   - *ResourceUsageData: Complete resource usage information
+//
+// The function collects:
+//   - Memory statistics from runtime.ReadMemStats()
+//   - System information from runtime package
+//   - GC statistics and CPU usage
+//   - CRL cache metrics when detailed=true (hits, misses, evictions, etc.)
+//
+// Memory values are converted to MB for readability, and timestamps
+// are formatted as [RFC3339]. CRL cache hit rate is calculated as a percentage.
+//
+// [RFC3339]: https://www.rfc-editor.org/rfc/RFC3339.html
 func CollectResourceUsage(detailed bool) *ResourceUsageData {
 	// Get memory statistics
 	var memStats runtime.MemStats
@@ -109,7 +148,30 @@ func CollectResourceUsage(detailed bool) *ResourceUsageData {
 	return data
 }
 
-// FormatResourceUsageAsJSON formats resource usage data as JSON
+// FormatResourceUsageAsJSON formats resource usage data as JSON.
+//
+// FormatResourceUsageAsJSON converts ResourceUsageData into a formatted
+// JSON string with proper indentation. It includes all available data
+// fields based on what was collected.
+//
+// Parameters:
+//   - data: The resource usage data to format
+//
+// Returns:
+//   - string: JSON-formatted resource usage data
+//   - error: Formatting error if marshaling fails
+//
+// The output includes:
+//   - timestamp: [RFC3339] timestamp
+//   - memory_usage: Basic memory statistics
+//   - gc_stats: Garbage collection information
+//   - system_info: Go runtime and system details
+//   - detailed_memory: Optional detailed memory stats
+//   - crl_cache: Optional CRL cache metrics
+//
+// JSON is formatted with 2-space indentation for readability.
+//
+// [RFC3339]: https://www.rfc-editor.org/rfc/RFC3339.html
 func FormatResourceUsageAsJSON(data *ResourceUsageData) (string, error) {
 	response := map[string]any{
 		"timestamp":    data.Timestamp,
@@ -134,7 +196,28 @@ func FormatResourceUsageAsJSON(data *ResourceUsageData) (string, error) {
 	return string(jsonData), nil
 }
 
-// FormatResourceUsageAsMarkdown formats resource usage data as a readable markdown table
+// FormatResourceUsageAsMarkdown formats resource usage data as a readable markdown table.
+//
+// FormatResourceUsageAsMarkdown creates a comprehensive markdown report with
+// sections for system information, memory usage, garbage collection stats,
+// and optionally detailed memory and CRL cache metrics.
+//
+// Parameters:
+//   - data: The resource usage data to format
+//
+// Returns:
+//   - string: Markdown-formatted resource usage report
+//
+// The report includes:
+//   - Header with timestamp and version information
+//   - System Information table (Go version, OS, CPU, goroutines)
+//   - Memory Usage table (heap, stack statistics in MB)
+//   - Garbage Collection table (cycles, CPU fraction, etc.)
+//   - Optional Detailed Memory Statistics
+//   - Optional CRL Cache Metrics with hit rate
+//
+// Tables use emoji headers (📊 METRIC, 📈 VALUE) and are formatted
+// using the tablewriter library with markdown renderer.
 func FormatResourceUsageAsMarkdown(data *ResourceUsageData) string {
 	var buf strings.Builder
 
@@ -158,11 +241,25 @@ func FormatResourceUsageAsMarkdown(data *ResourceUsageData) string {
 	return buf.String()
 }
 
-// formatMarkdownHeader adds the report header with timestamp
+// formatMarkdownHeader adds the report header with timestamp.
+//
+// formatMarkdownHeader creates the markdown report header including
+// the application name, version, and formatted timestamp.
+//
+// Parameters:
+//   - buf: String builder to append header to
+//   - timestamp: [RFC3339] timestamp string to format
+//
+// The header includes:
+//   - Title with application name and version
+//   - Human-readable timestamp (e.g., "January 2, 2006 at 3:04 PM MST")
+//   - Fallback to original timestamp if parsing fails
+//
+// [RFC3339]: https://www.rfc-editor.org/rfc/RFC3339.html
 func formatMarkdownHeader(buf *strings.Builder, timestamp string) {
 	fmt.Fprintf(buf, "# %s Resource Usage Report (v%s)\n\n", "X.509 Certificate Chain Resolver", version.Version)
 
-	// Parse RFC3339 timestamp and format as human-readable
+	// Parse [RFC3339] timestamp and format as human-readable
 	if parsedTime, err := time.Parse(time.RFC3339, timestamp); err == nil {
 		humanTime := parsedTime.Format("January 2, 2006 at 3:04 PM MST")
 		fmt.Fprintf(buf, "**Generated:** %s\n\n", humanTime)
@@ -172,7 +269,19 @@ func formatMarkdownHeader(buf *strings.Builder, timestamp string) {
 	}
 }
 
-// formatSystemInfoSection adds the system information section
+// formatSystemInfoSection adds the system information section.
+//
+// formatSystemInfoSection creates a markdown table section displaying
+// Go runtime and system information including version, OS, architecture,
+// CPU count, and current goroutine count.
+//
+// Parameters:
+//   - buf: String builder to append section to
+//   - systemInfo: Map containing system information data
+//
+// The section includes a "## System Information" header followed by
+// a formatted table with fields like Go version, operating system,
+// architecture, CPU count, and number of goroutines.
 func formatSystemInfoSection(buf *strings.Builder, systemInfo map[string]any) {
 	buf.WriteString("## System Information\n\n")
 	systemFields := []string{
@@ -185,7 +294,19 @@ func formatSystemInfoSection(buf *strings.Builder, systemInfo map[string]any) {
 	buf.WriteString(formatMarkdownTable(systemInfo, systemFields))
 }
 
-// formatMemoryUsageSection adds the memory usage section
+// formatMemoryUsageSection adds the memory usage section.
+//
+// formatMemoryUsageSection creates a markdown table section displaying
+// memory usage statistics including heap allocation, system memory,
+// stack usage, and heap object counts.
+//
+// Parameters:
+//   - buf: String builder to append section to
+//   - memoryUsage: Map containing memory usage data in MB
+//
+// The section includes a "## Memory Usage" header followed by
+// a formatted table with heap statistics (allocated, system, in use, idle),
+// heap objects count, and stack statistics (in use, system).
 func formatMemoryUsageSection(buf *strings.Builder, memoryUsage map[string]any) {
 	buf.WriteString("## Memory Usage\n\n")
 	memoryFields := []string{
@@ -201,7 +322,19 @@ func formatMemoryUsageSection(buf *strings.Builder, memoryUsage map[string]any) 
 	buf.WriteString(formatMarkdownTable(memoryUsage, memoryFields))
 }
 
-// formatGCStatsSection adds the garbage collection section
+// formatGCStatsSection adds the garbage collection section.
+//
+// formatGCStatsSection creates a markdown table section displaying
+// garbage collection statistics including cycle counts, CPU usage,
+// and GC settings.
+//
+// Parameters:
+//   - buf: String builder to append section to
+//   - gcStats: Map containing garbage collection statistics
+//
+// The section includes a "## Garbage Collection" header followed by
+// a formatted table with GC cycles, forced GC count, CPU fraction,
+// GC enabled status, and debug GC settings.
 func formatGCStatsSection(buf *strings.Builder, gcStats map[string]any) {
 	buf.WriteString("## Garbage Collection\n\n")
 	gcFields := []string{
@@ -214,7 +347,23 @@ func formatGCStatsSection(buf *strings.Builder, gcStats map[string]any) {
 	buf.WriteString(formatMarkdownTable(gcStats, gcFields))
 }
 
-// formatDetailedSections adds detailed memory and cache sections
+// formatDetailedSections adds detailed memory and cache sections.
+//
+// formatDetailedSections conditionally adds detailed memory statistics
+// and CRL cache metrics sections when detailed data is available.
+//
+// Parameters:
+//   - buf: String builder to append sections to
+//   - data: Resource usage data containing optional detailed fields
+//
+// The function adds:
+//   - "## Detailed Memory Statistics" section with allocation details,
+//     GC pause times, and next GC threshold
+//   - "## CRL Cache Metrics" section with cache size, hit rate,
+//     evictions, and memory usage
+//
+// Both sections are only included if the corresponding data fields
+// are populated in the ResourceUsageData.
 func formatDetailedSections(buf *strings.Builder, data *ResourceUsageData) {
 	// Detailed Memory Statistics
 	if data.DetailedMemory != nil {
@@ -251,7 +400,25 @@ func formatDetailedSections(buf *strings.Builder, data *ResourceUsageData) {
 	}
 }
 
-// formatMarkdownTable creates a markdown table using tablewriter library
+// formatMarkdownTable creates a markdown table using tablewriter library.
+//
+// formatMarkdownTable generates a markdown-formatted table from key-value data
+// using the tablewriter library with emoji headers and proper value formatting.
+//
+// Parameters:
+//   - data: Map containing the data to display
+//   - fieldPairs: Slice of label-key pairs (even indices are labels, odd are keys)
+//
+// Returns:
+//   - string: Markdown-formatted table with trailing newline
+//
+// The table uses:
+//   - 📊 METRIC and 📈 VALUE as headers with emojis
+//   - Markdown renderer for proper formatting
+//   - formatValueForMarkdown for appropriate value display
+//   - Bulk data insertion for efficient rendering
+//
+// Field pairs format: ["Label1", "key1", "Label2", "key2", ...]
 func formatMarkdownTable(data map[string]any, fieldPairs []string) string {
 	var buf strings.Builder
 
@@ -285,7 +452,27 @@ func formatMarkdownTable(data map[string]any, fieldPairs []string) string {
 	return buf.String()
 }
 
-// formatValueForMarkdown formats a value for markdown display
+// formatValueForMarkdown formats a value for markdown display with appropriate units and formatting.
+//
+// formatValueForMarkdown converts various data types to human-readable strings
+// with context-aware formatting based on the key name. It handles special cases
+// for memory values, percentages, timestamps, and cache metrics.
+//
+// Parameters:
+//   - value: The value to format (supports string, int, int64, uint32, uint64, float64, bool)
+//   - key: The key name providing context for formatting (e.g., "size", "gc_cpu_fraction")
+//
+// Returns:
+//   - string: Formatted value suitable for markdown table display
+//
+// Special formatting:
+//   - Memory values (keys containing "mb" or "memory"): Displayed as "X.XX MB"
+//   - Percentages ("gc_cpu_fraction", "hit_rate_percent"): Displayed as "X.XX%"
+//   - Cache sizes ("size", "max_size"): Displayed as "X entries"
+//   - GC pause times ("pause_total_ns"): Displayed as milliseconds
+//   - Last GC time ("last_gc_ns"): Displayed as formatted timestamp or "Never"
+//   - Boolean values: Displayed as "true"/"false"
+//   - Default: Uses fmt.Sprintf("%v", v) for unsupported types
 func formatValueForMarkdown(value any, key string) string {
 	switch v := value.(type) {
 	case string:
@@ -326,7 +513,21 @@ func formatValueForMarkdown(value any, key string) string {
 	}
 }
 
-// calculateHitRate calculates the cache hit rate as a percentage
+// calculateHitRate calculates the cache hit rate as a percentage.
+//
+// calculateHitRate computes the hit rate percentage for cache operations
+// based on the number of hits and misses. It handles edge cases like zero
+// total operations to avoid division by zero.
+//
+// Parameters:
+//   - hits: Number of successful cache hits
+//   - misses: Number of cache misses
+//
+// Returns:
+//   - float64: Hit rate as a percentage (0.0 to 100.0)
+//
+// Formula: (hits / (hits + misses)) * 100
+// Edge case: Returns 0.0 if total operations (hits + misses) is 0
 func calculateHitRate(hits, misses int64) float64 {
 	total := hits + misses
 	if total == 0 {

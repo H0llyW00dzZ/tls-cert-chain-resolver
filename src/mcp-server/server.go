@@ -24,13 +24,67 @@ import (
 
 var appVersion = version.Version // default version
 
-// GetVersion returns the current version of the MCP server
+// GetVersion returns the current version of the MCP server.
+//
+// GetVersion provides access to the server's version string, which is set
+// during server initialization via the Run function. This allows other
+// components to access the version information for logging, user-agent
+// strings, or API responses.
+//
+// Returns:
+//   - string: The current server version (e.g., "0.4.9")
+//
+// The version is initially set to the default from the version package,
+// but can be overridden when calling Run() with a specific version string.
 func GetVersion() string {
 	return appVersion
 }
 
 // Run starts the MCP server with X509 certificate chain resolution tools.
-// It loads configuration from the MCP_X509_CONFIG_FILE environment variable.
+//
+// Run initializes and starts the MCP server with all certificate chain resolution
+// capabilities, including AI-powered analysis, remote certificate fetching,
+// batch processing, and resource monitoring. The server supports graceful shutdown
+// and integrates with the CRL cache cleanup system.
+//
+// Parameters:
+//   - version: Version string to set for the server (e.g., "0.4.9")
+//
+// Returns:
+//   - error: Server startup or runtime error, or graceful shutdown signal
+//
+// Configuration:
+//   - Loads config from MCP_X509_CONFIG_FILE environment variable
+//   - Falls back to default config if environment variable not set
+//
+// Features:
+//   - Certificate chain resolution and validation
+//   - Expiry checking with configurable warning thresholds
+//   - Batch processing for multiple certificates
+//   - Remote certificate fetching from hostnames
+//   - AI-powered security analysis with revocation checking
+//   - Resource usage monitoring and reporting
+//   - Static resources (config template, version, formats, status)
+//   - Guided prompts for certificate workflows
+//
+// Server Lifecycle:
+//  1. Load configuration from environment
+//  2. Initialize CRL cache cleanup with context
+//  3. Set up signal handling for graceful shutdown
+//  4. Build MCP server using ServerBuilder pattern
+//  5. Start stdio server with context cancellation support
+//  6. Wait for either server error or shutdown signal
+//
+// Graceful Shutdown:
+//   - Responds to SIGINT (Ctrl+C) and SIGTERM signals
+//   - Cancels context to stop CRL cache cleanup
+//   - Waits for server to stop cleanly
+//   - Returns context.Canceled error on signal-based shutdown
+//
+// Error Handling:
+//   - Configuration errors: Wrapped with "config error" prefix
+//   - Server build errors: Wrapped with "failed to build server" prefix
+//   - Shutdown errors: Wrapped with "server shutdown" prefix
 func Run(version string) error {
 	// Set the version for GetVersion
 	appVersion = version
