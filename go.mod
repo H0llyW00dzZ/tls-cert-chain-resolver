@@ -11,7 +11,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/crypto v0.45.0
 	google.golang.org/adk v0.2.0
-	google.golang.org/genai v1.20.0
+	google.golang.org/genai v1.36.0
 )
 
 require (
