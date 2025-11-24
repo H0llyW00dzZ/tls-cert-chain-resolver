@@ -43,10 +43,10 @@ type pipeReader struct {
 // and ensures proper cleanup of buffers when fully consumed.
 //
 // The method follows this priority:
-// 1. Serve remaining data from active buffer
-// 2. Wait for new message from sendCh or internalRespCh
-// 3. Prepare new buffer with message data
-// 4. Copy data to provided slice
+//  1. Serve remaining data from active buffer
+//  2. Wait for new message from sendCh or internalRespCh
+//  3. Prepare new buffer with message data
+//  4. Copy data to provided slice
 //
 // Parameters:
 //   - p: Destination byte slice to copy data into
@@ -140,10 +140,10 @@ type pipeWriter struct {
 // maintaining state across multiple Write calls.
 //
 // The method:
-// 1. Accumulates data in activeBuf
-// 2. Extracts complete lines (terminated by \n)
-// 3. Processes each line via processLine()
-// 4. Updates buffer with remaining partial data
+//  1. Accumulates data in activeBuf
+//  2. Extracts complete lines (terminated by \n)
+//  3. Processes each line via processLine()
+//  4. Updates buffer with remaining partial data
 //
 // Parameters:
 //   - p: Source byte slice containing data to write
@@ -207,10 +207,10 @@ func (w *pipeWriter) Write(p []byte) (n int, err error) {
 // while sending all other messages through the transport's receive channel.
 //
 // The method:
-// 1. Performs quick check for "method" field (optimization)
-// 2. Parses JSON to check for sampling requests
-// 3. Intercepts sampling requests and handles them locally
-// 4. Forwards all other messages to recvCh
+//  1. Performs quick check for "method" field (optimization)
+//  2. Parses JSON to check for sampling requests
+//  3. Intercepts sampling requests and handles them locally
+//  4. Forwards all other messages to recvCh
 //
 // Parameters:
 //   - line: Complete line of data including newline terminator
