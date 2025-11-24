@@ -11,7 +11,11 @@ import (
 	"os"
 )
 
-// Config represents MCP server configuration
+// Config represents the MCP server configuration structure.
+// It contains default settings for certificate operations and AI integration parameters.
+//
+// The configuration can be loaded from a JSON file specified by the MCP_X509_CONFIG_FILE
+// environment variable, with defaults applied for any missing values.
 type Config struct {
 	Defaults struct {
 		Format            string `json:"format"`
@@ -30,6 +34,19 @@ type Config struct {
 	} `json:"ai"`
 }
 
+// loadConfig loads MCP server configuration from a JSON file or applies defaults.
+// It sets up default values for certificate operations and AI integration settings.
+//
+// Parameters:
+//   - configPath: Path to the JSON configuration file (optional, can be empty)
+//
+// Returns:
+//   - A pointer to the loaded Config struct with defaults applied
+//   - An error if the configuration file cannot be read or parsed
+//
+// The function first applies hardcoded defaults, then attempts to load and merge
+// configuration from the specified file. Environment variables can override
+// certain settings like the AI API key.
 func loadConfig(configPath string) (*Config, error) {
 	config := &Config{}
 

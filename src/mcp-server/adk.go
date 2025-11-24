@@ -14,19 +14,24 @@ import (
 	mcptransport "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// ADKTransportConfig holds configuration for creating MCP transports for ADK integration
+// ADKTransportConfig holds configuration for creating MCP transports for ADK integration.
+// This struct contains all necessary settings to build MCP transports that are
+// compatible with Google ADK's mcptoolset.
 //
-// NOTE: This provides transport creation utilities for [Google ADK] integration.
-// These transports can be used with ADK mcptoolset.
+// Fields:
+//   - MCPConfigFile: Path to the MCP server configuration file (defaults to MCP_X509_CONFIG_FILE env var)
+//   - Version: Server version string (defaults to version.Version)
+//   - TransportType: Type of transport to create ("inmemory" supported)
 //
 // Example usage with ADK:
 //
 //	transport, err := NewADKTransportBuilder().WithInMemoryTransport().BuildTransport(ctx)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
 //	mcpToolSet, err := mcptoolset.New(mcptoolset.Config{Transport: transport})
 //
 // [Google ADK]: https://pkg.go.dev/google.golang.org/adk
-//
-// [google.golang.org/adk/*]: https://pkg.go.dev/google.golang.org/adk
 type ADKTransportConfig struct {
 	// MCP server configuration
 	MCPConfigFile string
@@ -36,10 +41,19 @@ type ADKTransportConfig struct {
 	TransportType string
 }
 
-// ADKTransportBuilder helps construct MCP transports for ADK integration
+// ADKTransportBuilder helps construct MCP transports for ADK integration.
+// This builder provides a fluent API for configuring and creating MCP transports
+// that work with Google ADK's mcptoolset. It handles configuration loading,
+// validation, and transport creation with proper error handling.
 type ADKTransportBuilder struct{ config ADKTransportConfig }
 
-// NewADKTransportBuilder creates a new ADK transport builder with default configuration
+// NewADKTransportBuilder creates a new ADK transport builder with default configuration.
+// Initializes the builder with sensible defaults:
+//   - MCPConfigFile from MCP_X509_CONFIG_FILE environment variable
+//   - Version from version.Version
+//   - TransportType set to "inmemory"
+//
+// Returns a builder ready for fluent configuration.
 func NewADKTransportBuilder() *ADKTransportBuilder {
 	return &ADKTransportBuilder{
 		config: ADKTransportConfig{
@@ -50,25 +64,32 @@ func NewADKTransportBuilder() *ADKTransportBuilder {
 	}
 }
 
-// WithMCPConfig sets the MCP server configuration file path
+// WithMCPConfig sets the MCP server configuration file path.
+// Specifies the path to the JSON configuration file containing MCP server settings.
+// If not set, uses the MCP_X509_CONFIG_FILE environment variable.
 func (b *ADKTransportBuilder) WithMCPConfig(configFile string) *ADKTransportBuilder {
 	b.config.MCPConfigFile = configFile
 	return b
 }
 
-// WithVersion sets the MCP server version
+// WithVersion sets the MCP server version.
+// Overrides the default version string that will be reported by the MCP server.
 func (b *ADKTransportBuilder) WithVersion(version string) *ADKTransportBuilder {
 	b.config.Version = version
 	return b
 }
 
-// WithInMemoryTransport configures in-memory transport (connects directly to handlers)
+// WithInMemoryTransport configures in-memory transport (connects directly to handlers).
+// Sets the transport type to "inmemory" for direct handler communication.
+// This is the default and currently the only supported transport type.
 func (b *ADKTransportBuilder) WithInMemoryTransport() *ADKTransportBuilder {
 	b.config.TransportType = "inmemory"
 	return b
 }
 
-// ValidateConfig validates the transport builder configuration
+// ValidateConfig validates the transport builder configuration.
+// Checks that all required settings are present and supported.
+// Currently only validates transport type - returns error for unsupported types.
 func (b *ADKTransportBuilder) ValidateConfig() error {
 	if b.config.TransportType == "inmemory" {
 		// No additional validation needed for in-memory transport
@@ -78,20 +99,22 @@ func (b *ADKTransportBuilder) ValidateConfig() error {
 	return fmt.Errorf("unsupported transport type: %s", b.config.TransportType)
 }
 
-// BuildTransport creates an MCP server for ADK integration
-//
+// BuildTransport creates an MCP server for ADK integration.
 // This returns an [mcp.Transport] interface that can be used directly with
 // ADK's [mcptoolset]. The implementation bridges between [mark3labs/mcp-go]
 // server and [Official MCP SDK] transport expectations.
+//
+// The method validates configuration, loads MCP settings, builds the server
+// with certificate tools, and creates the transport with sampling support.
 //
 // Example usage:
 //
 //	transport, err := NewADKTransportBuilder().WithInMemoryTransport().BuildTransport(ctx)
 //	if err != nil {
-//		// handle error
+//		log.Fatal(err)
 //	}
 //	// Use transport with ADK mcptoolset
-//	// mcpToolSet, err := mcptoolset.New(mcptoolset.Config{Transport: transport})
+//	mcpToolSet, err := mcptoolset.New(mcptoolset.Config{Transport: transport})
 //
 // [mark3labs/mcp-go]: https://pkg.go.dev/github.com/mark3labs/mcp-go
 // [Official MCP SDK]: https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk
@@ -109,11 +132,13 @@ func (b *ADKTransportBuilder) BuildTransport(ctx context.Context) (mcptransport.
 	}
 }
 
-// buildInMemoryTransport creates an in-memory MCP server using TransportBuilder
-//
+// buildInMemoryTransport creates an in-memory MCP server using TransportBuilder.
 // This uses the TransportBuilder from framework.go to create an MCP server
 // with all certificate tools, providing a clean separation between server building
 // and transport creation while avoiding test dependencies.
+//
+// The method loads configuration, builds the server, sets up sampling with
+// streaming token callbacks, and connects the server to the transport.
 func (b *ADKTransportBuilder) buildInMemoryTransport(ctx context.Context) (mcptransport.Transport, error) {
 	// Load configuration
 	config, err := loadConfig(b.config.MCPConfigFile)

@@ -27,11 +27,24 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// MagicEmbed provides access to embedded template files
+// MagicEmbed provides access to embedded template files for certificate analysis and documentation.
 //
 //go:embed templates
 var MagicEmbed embed.FS
 
+// handleResolveCertChain resolves a certificate chain from a file path or base64-encoded certificate data.
+// It fetches the complete certificate chain, optionally adds system root CA, and formats the output.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP tool call request containing certificate input and format options
+//
+// Returns:
+//   - The tool execution result containing the resolved certificate chain
+//   - An error if certificate resolution or processing fails
+//
+// The function supports multiple input formats (file path or base64) and output formats (PEM, DER, JSON).
+// It uses the x509chain package to fetch additional certificates from AIA URLs.
 func handleResolveCertChain(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract arguments
 	certInput, err := request.RequireString("certificate")
@@ -108,6 +121,20 @@ func handleResolveCertChain(ctx context.Context, request mcp.CallToolRequest) (*
 	return mcp.NewToolResultText(chainInfo), nil
 }
 
+// handleValidateCertChain validates a certificate chain for correctness and trust.
+// It resolves the complete chain, verifies signatures, checks revocation status, and reports validation results.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP tool call request containing certificate input and validation options
+//
+// Returns:
+//   - The tool execution result containing validation status and certificate details
+//   - An error if certificate processing or validation fails
+//
+// The function performs comprehensive validation including chain integrity, trust verification,
+// and revocation status checking using OCSP/CRL. It provides detailed feedback on certificate roles
+// and validation outcomes.
 func handleValidateCertChain(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract arguments
 	certInput, err := request.RequireString("certificate")
@@ -185,6 +212,20 @@ func handleValidateCertChain(ctx context.Context, request mcp.CallToolRequest) (
 	return mcp.NewToolResultText(result), nil
 }
 
+// handleBatchResolveCertChain processes multiple certificate chains in batch from comma-separated inputs.
+// It resolves each certificate chain independently and formats the results for comparison.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP tool call request containing comma-separated certificate inputs and format options
+//
+// Returns:
+//   - The tool execution result containing batch processing results for all certificates
+//   - An error if any certificate processing fails critically
+//
+// The function handles multiple certificates efficiently, processing each one independently
+// and collecting results. Individual certificate failures are reported per-certificate rather
+// than failing the entire batch.
 func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract arguments
 	certInput, err := request.RequireString("certificates")
@@ -283,6 +324,21 @@ func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolReques
 	return mcp.NewToolResultText(finalResult), nil
 }
 
+// handleFetchRemoteCert fetches a certificate chain from a remote hostname and port.
+// It establishes a TLS connection to retrieve server certificates and formats the results.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP tool call request containing hostname, port, and format options
+//   - config: Server configuration containing timeout and format defaults
+//
+// Returns:
+//   - The tool execution result containing the fetched certificate chain
+//   - An error if connection or certificate retrieval fails
+//
+// The function uses the x509chain.FetchRemoteChain function to establish a TLS connection
+// and retrieve certificates presented by the remote server. It supports optional system root
+// CA addition and certificate filtering.
 func handleFetchRemoteCert(ctx context.Context, request mcp.CallToolRequest, config *Config) (*mcp.CallToolResult, error) {
 	// Extract arguments
 	hostname, err := request.RequireString("hostname")
@@ -348,6 +404,21 @@ func handleFetchRemoteCert(ctx context.Context, request mcp.CallToolRequest, con
 	return mcp.NewToolResultText(result), nil
 }
 
+// handleCheckCertExpiry checks certificate expiry dates and warns about upcoming expirations.
+// It analyzes certificate validity periods and provides renewal recommendations based on configurable warning thresholds.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP tool call request containing certificate input and warning threshold
+//   - config: Server configuration containing default warning days and other settings
+//
+// Returns:
+//   - The tool execution result containing expiry analysis and renewal recommendations
+//   - An error if certificate processing fails
+//
+// The function supports both single certificates and certificate bundles, calculating days until expiry
+// and categorizing certificates as expired, expiring soon, or valid. It provides a summary of the
+// certificate expiry status across all processed certificates.
 func handleCheckCertExpiry(ctx context.Context, request mcp.CallToolRequest, config *Config) (*mcp.CallToolResult, error) {
 	// Extract arguments
 	certInput, err := request.RequireString("certificate")
@@ -433,6 +504,18 @@ func handleCheckCertExpiry(ctx context.Context, request mcp.CallToolRequest, con
 	return mcp.NewToolResultText(result), nil
 }
 
+// formatJSON formats a slice of certificates into a structured JSON representation.
+// It creates a comprehensive JSON object containing certificate metadata and PEM-encoded data.
+//
+// Parameters:
+//   - certs: Slice of X.509 certificates to format
+//   - certManager: Certificate manager instance for PEM encoding operations
+//
+// Returns:
+//   - A JSON string containing structured certificate information with title, total count, and certificate list
+//
+// The JSON output includes subject, issuer, serial number, signature algorithm, and PEM-encoded certificate data
+// for each certificate in the chain. This format is suitable for programmatic processing and analysis.
 func formatJSON(certs []*x509.Certificate, certManager *x509certs.Certificate) string {
 	type CertInfo struct {
 		Subject            string `json:"subject"`
@@ -464,8 +547,16 @@ func formatJSON(certs []*x509.Certificate, certManager *x509certs.Certificate) s
 	return string(jsonData)
 }
 
-// createResources creates and returns all MCP resources without adding them to a server
-// This allows for easier testing of resource creation logic
+// createResources creates and returns all MCP resources without adding them to a server.
+// This allows for easier testing of resource creation logic and resource definition validation.
+//
+// Returns:
+//   - A slice of server.ServerResource containing all static and dynamic resources
+//
+// The function defines resources for configuration templates, version information,
+// certificate format documentation, and server status. These resources provide
+// static content and metadata to MCP clients. Each resource includes URI, name,
+// description, MIME type, and handler function.
 func createResources() []server.ServerResource {
 	return []server.ServerResource{
 		{
@@ -493,7 +584,7 @@ func createResources() []server.ServerResource {
 				mcp.WithResourceDescription("Documentation on supported certificate formats and usage"),
 				mcp.WithMIMEType("text/markdown"),
 			),
-			Handler: handleFormatsResource,
+			Handler: handleCertificateFormatsResource,
 		},
 		{
 			Resource: mcp.NewResource(
@@ -507,7 +598,18 @@ func createResources() []server.ServerResource {
 	}
 }
 
-// handleConfigResource handles requests for the configuration template resource
+// handleConfigResource handles requests for the configuration template resource.
+// It provides a JSON template showing the expected configuration structure for the MCP server.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP resource read request for the config template
+//
+// Returns:
+//   - A slice containing the configuration template as JSON content
+//   - An error if JSON marshaling fails
+//
+// The resource provides default values for format, includeSystemRoot, intermediateOnly, warnDays, and timeoutSeconds.
 func handleConfigResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	exampleConfig := map[string]any{
 		"defaults": map[string]any{
@@ -533,7 +635,18 @@ func handleConfigResource(ctx context.Context, request mcp.ReadResourceRequest) 
 	}, nil
 }
 
-// handleVersionResource handles requests for version information resource
+// handleVersionResource handles requests for version information resource.
+// It provides server metadata including version, capabilities, and supported features.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP resource read request for version information
+//
+// Returns:
+//   - A slice containing version and capability information as JSON content
+//   - An error if JSON marshaling fails
+//
+// The resource includes server name, version, supported tools, resources, prompts, and certificate formats.
 func handleVersionResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	versionInfo := map[string]any{
 		"name":    "X509 Certificate Chain Resolver",
@@ -561,8 +674,20 @@ func handleVersionResource(ctx context.Context, request mcp.ReadResourceRequest)
 	}, nil
 }
 
-// handleFormatsResource handles requests for certificate formats documentation resource
-func handleFormatsResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+// handleCertificateFormatsResource handles requests for certificate formats documentation resource.
+// It serves embedded documentation about supported certificate formats (PEM, DER, etc.).
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP resource read request for certificate format documentation
+//
+// Returns:
+//   - A slice containing the certificate formats documentation as markdown content
+//   - An error if the embedded file cannot be read
+//
+// The documentation is stored in templates/certificate-formats.md and provides
+// detailed information about certificate encoding formats and usage.
+func handleCertificateFormatsResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	content, err := MagicEmbed.ReadFile("templates/certificate-formats.md")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read certificate formats template: %w", err)
@@ -577,7 +702,19 @@ func handleFormatsResource(ctx context.Context, request mcp.ReadResourceRequest)
 	}, nil
 }
 
-// handleStatusResource handles requests for server status information resource
+// handleStatusResource handles requests for server status information resource.
+// It provides current server health, version, and operational status.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP resource read request for server status
+//
+// Returns:
+//   - A slice containing server status information as JSON content
+//   - An error if JSON marshaling fails
+//
+// The status includes server health, timestamp, version, and available capabilities
+// (tools, resources, prompts, supported formats).
 func handleStatusResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	statusInfo := map[string]any{
 		"status":    "healthy",
@@ -606,7 +743,23 @@ func handleStatusResource(ctx context.Context, request mcp.ReadResourceRequest) 
 	}, nil
 }
 
-// handleAnalyzeCertificateWithAI analyzes certificate data using AI collaboration through sampling
+// handleAnalyzeCertificateWithAI analyzes certificate data using AI collaboration through sampling.
+// It performs comprehensive security analysis including revocation status, cryptographic strength,
+// and compliance assessment using bidirectional AI communication.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP tool call request containing certificate input and analysis type
+//   - config: Server configuration containing AI API settings and defaults
+//
+// Returns:
+//   - The tool execution result containing AI-powered certificate analysis
+//   - An error if certificate processing or AI analysis fails
+//
+// The function supports general, security, and compliance analysis types. If no AI API key
+// is configured, it returns a helpful message with the prepared analysis context.
+// When AI is available, it uses embedded system prompts and streaming responses for
+// comprehensive certificate security assessment.
 func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolRequest, config *Config) (*mcp.CallToolResult, error) {
 	certInput, err := request.RequireString("certificate")
 	if err != nil {
@@ -744,10 +897,20 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 	return mcp.NewToolResultText(result), nil
 }
 
-// buildCertificateContext creates comprehensive context information about certificates for AI analysis
+// buildCertificateContext creates comprehensive context information about certificates for AI analysis.
 //
 // Deprecated: This function is deprecated and replaced by buildCertificateContextWithRevocation.
 // The replacement includes revocation status checks for comprehensive certificate analysis.
+//
+// Parameters:
+//   - certs: Slice of X.509 certificates to analyze
+//   - analysisType: Type of analysis (general, security, compliance)
+//
+// Returns:
+//   - A formatted string containing certificate context for AI analysis
+//
+// This function provides basic certificate information without revocation status.
+// Use buildCertificateContextWithRevocation for complete analysis including OCSP/CRL status.
 func buildCertificateContext(certs []*x509.Certificate, analysisType string) string {
 	var context strings.Builder
 
@@ -873,7 +1036,20 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
 	return context.String()
 }
 
-// buildCertificateContextWithRevocation creates comprehensive context information about certificates for AI analysis including revocation status
+// buildCertificateContextWithRevocation creates comprehensive context information about certificates for AI analysis including revocation status.
+// It builds detailed certificate context with OCSP/CRL revocation information for enhanced security analysis.
+//
+// Parameters:
+//   - certs: Slice of X.509 certificates to analyze
+//   - revocationStatus: String containing revocation check results (OCSP/CRL status)
+//   - analysisType: Type of analysis (general, security, compliance)
+//
+// Returns:
+//   - A formatted string containing comprehensive certificate context including revocation status
+//
+// This function provides complete certificate analysis context including cryptographic details,
+// validity periods, extensions, and revocation status for AI-powered security assessment.
+// It uses helper functions to organize information into logical sections.
 func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocationStatus string, analysisType string) string {
 	var context strings.Builder
 
@@ -912,7 +1088,15 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 	return context.String()
 }
 
-// appendSubjectInfo adds subject information to the context
+// appendSubjectInfo adds subject information to the context builder for AI analysis.
+// It formats and appends certificate subject details including common name, organization, and location.
+//
+// Parameters:
+//   - context: String builder to append subject information to
+//   - cert: X.509 certificate to extract subject information from
+//
+// The function appends subject fields in a structured format suitable for AI analysis,
+// including common name, organization hierarchy, and geographic information.
 func appendSubjectInfo(context *strings.Builder, cert *x509.Certificate) {
 	context.WriteString("SUBJECT:\n")
 	fmt.Fprintf(context, "  Common Name: %s\n", cert.Subject.CommonName)
@@ -923,14 +1107,30 @@ func appendSubjectInfo(context *strings.Builder, cert *x509.Certificate) {
 	fmt.Fprintf(context, "  Locality: %s\n", strings.Join(cert.Subject.Locality, ", "))
 }
 
-// appendIssuerInfo adds issuer information to the context
+// appendIssuerInfo adds issuer information to the context builder for AI analysis.
+// It formats and appends certificate issuer details including common name and organization.
+//
+// Parameters:
+//   - context: String builder to append issuer information to
+//   - cert: X.509 certificate to extract issuer information from
+//
+// The function appends issuer fields in a structured format suitable for AI analysis,
+// focusing on the certificate authority that issued the certificate.
 func appendIssuerInfo(context *strings.Builder, cert *x509.Certificate) {
 	context.WriteString("ISSUER:\n")
 	fmt.Fprintf(context, "  Common Name: %s\n", cert.Issuer.CommonName)
 	fmt.Fprintf(context, "  Organization: %s\n", strings.Join(cert.Issuer.Organization, ", "))
 }
 
-// appendValidityInfo adds validity period and status to the context
+// appendValidityInfo adds validity period and status to the context builder for AI analysis.
+// It formats and appends certificate validity information including dates and expiry status.
+//
+// Parameters:
+//   - context: String builder to append validity information to
+//   - cert: X.509 certificate to extract validity information from
+//
+// The function calculates days until expiry and categorizes the certificate as
+// expired, expiring soon, or valid based on the current time and certificate dates.
 func appendValidityInfo(context *strings.Builder, cert *x509.Certificate) {
 	context.WriteString("VALIDITY:\n")
 	fmt.Fprintf(context, "  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST"))
@@ -949,7 +1149,15 @@ func appendValidityInfo(context *strings.Builder, cert *x509.Certificate) {
 	}
 }
 
-// appendCryptoInfo adds cryptographic information to the context
+// appendCryptoInfo adds cryptographic information to the context builder for AI analysis.
+// It formats and appends certificate cryptographic details including algorithms and key sizes.
+//
+// Parameters:
+//   - context: String builder to append cryptographic information to
+//   - cert: X.509 certificate to extract cryptographic information from
+//
+// The function extracts signature algorithm, public key algorithm, and key size
+// information for security analysis and compliance assessment.
 func appendCryptoInfo(context *strings.Builder, cert *x509.Certificate) {
 	context.WriteString("CRYPTOGRAPHY:\n")
 	fmt.Fprintf(context, "  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String())
@@ -957,7 +1165,15 @@ func appendCryptoInfo(context *strings.Builder, cert *x509.Certificate) {
 	fmt.Fprintf(context, "  Key Size: %d bits\n", getKeySize(cert))
 }
 
-// appendCertProperties adds basic certificate properties to the context
+// appendCertProperties adds basic certificate properties to the context builder for AI analysis.
+// It formats and appends fundamental certificate attributes like version, serial number, and CA status.
+//
+// Parameters:
+//   - context: String builder to append certificate properties to
+//   - cert: X.509 certificate to extract properties from
+//
+// The function includes version information, serial number, and whether the certificate
+// is a Certificate Authority, providing essential certificate metadata for analysis.
 func appendCertProperties(context *strings.Builder, cert *x509.Certificate) {
 	context.WriteString("PROPERTIES:\n")
 	fmt.Fprintf(context, "  Version: %d\n", cert.Version)
@@ -965,7 +1181,15 @@ func appendCertProperties(context *strings.Builder, cert *x509.Certificate) {
 	fmt.Fprintf(context, "  Is CA: %t\n", cert.IsCA)
 }
 
-// appendCertExtensions adds certificate extensions to the context
+// appendCertExtensions adds certificate extensions to the context builder for AI analysis.
+// It formats and appends key usage, extended key usage, and subject alternative names.
+//
+// Parameters:
+//   - context: String builder to append certificate extensions to
+//   - cert: X.509 certificate to extract extension information from
+//
+// The function includes key usage flags, extended key usage purposes, DNS names,
+// email addresses, and IP addresses for comprehensive certificate capability analysis.
 func appendCertExtensions(context *strings.Builder, cert *x509.Certificate) {
 	// Key usage and extended key usage
 	if cert.KeyUsage != 0 {
@@ -991,7 +1215,15 @@ func appendCertExtensions(context *strings.Builder, cert *x509.Certificate) {
 	}
 }
 
-// appendCAInfo adds Certificate Authority information to the context
+// appendCAInfo adds Certificate Authority information to the context builder for AI analysis.
+// It formats and appends CA-specific details including issuer URLs, CRL distribution points, and OCSP servers.
+//
+// Parameters:
+//   - context: String builder to append CA information to
+//   - cert: X.509 certificate to extract CA-related information from
+//
+// The function includes authority information access URLs and revocation endpoints
+// essential for certificate validation and revocation status checking.
 func appendCAInfo(context *strings.Builder, cert *x509.Certificate) {
 	// Certificate Authority Information
 	if cert.IssuingCertificateURL != nil {
@@ -1008,7 +1240,15 @@ func appendCAInfo(context *strings.Builder, cert *x509.Certificate) {
 	fmt.Fprintf(context, "  Serial Number: %s\n", cert.SerialNumber.String())
 }
 
-// appendChainValidationContext adds chain validation information
+// appendChainValidationContext adds chain validation information to the context builder.
+// It analyzes certificate chain relationships and identifies validation issues.
+//
+// Parameters:
+//   - context: String builder to append chain validation information to
+//   - certs: Slice of X.509 certificates representing the certificate chain
+//
+// The function checks issuer-subject relationships between certificates in the chain
+// and reports any validation issues or proper signing relationships for AI analysis.
 func appendChainValidationContext(context *strings.Builder, certs []*x509.Certificate) {
 	context.WriteString("=== CHAIN VALIDATION CONTEXT ===\n")
 	if len(certs) > 1 {
@@ -1028,7 +1268,14 @@ func appendChainValidationContext(context *strings.Builder, certs []*x509.Certif
 	}
 }
 
-// appendSecurityContext adds security best practices information
+// appendSecurityContext adds current TLS/SSL security best practices and recommendations to the context builder.
+// It includes information about cryptographic algorithms, certificate validity periods, and deprecated protocols.
+//
+// Parameters:
+//   - context: String builder to append security context information to
+//
+// The function provides guidance on quantum-resistant algorithms, certificate lifetime limits,
+// required extensions, and deprecated cryptographic primitives for comprehensive security assessment.
 func appendSecurityContext(context *strings.Builder) {
 	context.WriteString("\n=== SECURITY CONTEXT ===\n")
 	context.WriteString("Current TLS/SSL Best Practices:\n")
@@ -1042,7 +1289,18 @@ func appendSecurityContext(context *strings.Builder) {
 	context.WriteString("- Deprecated: SSLv3, TLS 1.0, TLS 1.1\n")
 }
 
-// getCertificateRole determines the role of a certificate in the chain
+// getCertificateRole determines the role of a certificate in the chain based on its position.
+// It categorizes certificates as end-entity, intermediate CA, root CA, or self-signed.
+//
+// Parameters:
+//   - index: Zero-based position of the certificate in the chain (0 = leaf/end-entity)
+//   - total: Total number of certificates in the chain
+//
+// Returns:
+//   - A descriptive string indicating the certificate's role in the chain
+//
+// The function uses positional logic: first certificate is end-entity, last is root CA,
+// middle certificates are intermediates, and single certificates are self-signed.
 func getCertificateRole(index int, total int) string {
 	if total == 1 {
 		return "Self-Signed Certificate"
@@ -1056,7 +1314,18 @@ func getCertificateRole(index int, total int) string {
 	return "Intermediate CA Certificate"
 }
 
-// getKeySize extracts the key size from a certificate
+// getKeySize extracts the key size in bits from a certificate's public key.
+// It handles both RSA and ECDSA keys, returning the appropriate bit length.
+//
+// Parameters:
+//   - cert: X.509 certificate containing the public key to analyze
+//
+// Returns:
+//   - The key size in bits (e.g., 2048 for RSA, 256 for P-256 ECDSA)
+//   - 0 if the key type is unsupported or unrecognized
+//
+// The function supports both pointer and value types for RSA and ECDSA public keys
+// to handle different certificate parsing scenarios.
 func getKeySize(cert *x509.Certificate) int {
 	switch pub := cert.PublicKey.(type) {
 	case *rsa.PublicKey:
@@ -1072,7 +1341,18 @@ func getKeySize(cert *x509.Certificate) int {
 	}
 }
 
-// formatKeyUsage converts KeyUsage flags to readable string
+// formatKeyUsage converts x509.KeyUsage bit flags to a human-readable comma-separated string.
+// It maintains consistent ordering of usage descriptions for predictable output.
+//
+// Parameters:
+//   - usage: Bit field containing one or more x509.KeyUsage flags
+//
+// Returns:
+//   - A comma-separated string of key usage descriptions (e.g., "Digital Signature, Key Encipherment")
+//   - Empty string if no usage flags are set
+//
+// The function uses an ordered slice of key usage flags to ensure consistent output
+// regardless of the order in which flags are set in the bit field.
 func formatKeyUsage(usage x509.KeyUsage) string {
 	// Ordered slice of KeyUsage flags to maintain consistent output order
 	keyUsageFlags := []struct {
@@ -1099,7 +1379,18 @@ func formatKeyUsage(usage x509.KeyUsage) string {
 	return strings.Join(usages, ", ")
 }
 
-// formatExtKeyUsage converts ExtKeyUsage to readable string
+// formatExtKeyUsage converts a slice of x509.ExtKeyUsage values to a human-readable comma-separated string.
+// It maps each extended key usage value to its descriptive name.
+//
+// Parameters:
+//   - usage: Slice of extended key usage values from the certificate
+//
+// Returns:
+//   - A comma-separated string of extended key usage descriptions
+//   - "Unknown (value)" for unrecognized usage values
+//
+// The function uses a comprehensive map of all standard extended key usage values
+// including server/client auth, code signing, email protection, and various Microsoft/Netscape extensions.
 func formatExtKeyUsage(usage []x509.ExtKeyUsage) string {
 	// Map of ExtKeyUsage values to human-readable strings
 	extKeyUsageMap := map[x509.ExtKeyUsage]string{
@@ -1130,7 +1421,18 @@ func formatExtKeyUsage(usage []x509.ExtKeyUsage) string {
 	return strings.Join(usages, ", ")
 }
 
-// getAnalysisInstruction returns specific analysis instructions based on the type
+// getAnalysisInstruction returns tailored analysis instructions for AI certificate assessment based on the requested analysis type.
+// It provides specific prompts for general, security, and compliance analysis types.
+//
+// Parameters:
+//   - analysisType: The type of analysis requested ("general", "security", or "compliance")
+//
+// Returns:
+//   - A formatted string containing detailed analysis instructions for the AI
+//
+// The function uses structured prompts that guide the AI to focus on relevant aspects
+// of certificate analysis, including cryptographic strength, compliance requirements,
+// and security assessments with specific risk levels and recommendations.
 func getAnalysisInstruction(analysisType string) string {
 	switch analysisType {
 	case "security":
@@ -1174,7 +1476,19 @@ Provide actionable insights for certificate management and security.`
 	}
 }
 
-// handleGetResourceUsage handles requests for current resource usage statistics
+// handleGetResourceUsage handles requests for current resource usage statistics including memory, GC, and CRL cache metrics.
+// It collects comprehensive system and application resource data and formats it according to the requested output format.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP tool call request containing format and detail level parameters
+//
+// Returns:
+//   - The tool execution result containing formatted resource usage data
+//   - An error if resource collection or formatting fails
+//
+// The function supports both JSON and Markdown output formats, with optional detailed metrics
+// including CRL cache statistics, memory breakdown, and system information.
 func handleGetResourceUsage(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	detailed := request.GetBool("detailed", false)
 	format := request.GetString("format", "json")

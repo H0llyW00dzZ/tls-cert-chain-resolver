@@ -13,7 +13,23 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// createPrompts creates and returns all MCP prompt definitions with their handlers
+// createPrompts creates and returns all MCP prompt definitions with their handlers.
+//
+// This function defines the available MCP prompts for certificate analysis workflows.
+// Each prompt provides a structured approach to common certificate-related tasks,
+// including analysis, monitoring, auditing, and troubleshooting.
+//
+// Returns:
+//   - []server.ServerPrompt: Slice of server prompt definitions with their handlers
+//
+// The defined prompts are:
+//   - certificate-analysis: Comprehensive certificate chain analysis workflow
+//   - expiry-monitoring: Monitor certificate expiration dates and generate renewal alerts
+//   - security-audit: Perform comprehensive SSL/TLS security audit on a server
+//   - troubleshooting: Troubleshoot common certificate and TLS issues
+//
+// These prompts guide users through systematic approaches to certificate management
+// and provide context-specific instructions for using MCP tools effectively.
 func createPrompts() []server.ServerPrompt {
 	return []server.ServerPrompt{
 		{
@@ -67,7 +83,29 @@ func createPrompts() []server.ServerPrompt {
 	}
 }
 
-// handleCertificateAnalysisPrompt handles the certificate analysis workflow prompt
+// handleCertificateAnalysisPrompt handles the certificate analysis workflow prompt.
+//
+// This function implements the certificate-analysis prompt, which provides
+// a comprehensive workflow for analyzing certificate chains. It guides users
+// through systematic steps including chain resolution, validation, expiry checking,
+// and result analysis.
+//
+// Parameters:
+//   - ctx: Context for the request, used for cancellation and timeouts
+//   - request: The MCP get prompt request containing arguments
+//
+// Returns:
+//   - *mcp.GetPromptResult: The prompt result with workflow messages
+//   - error: Any error that occurred during prompt handling
+//
+// The workflow includes:
+//  1. Certificate chain resolution using resolve_cert_chain tool
+//  2. Chain validation using validate_cert_chain tool
+//  3. Expiry checking using check_cert_expiry tool
+//  4. Result analysis and recommendations
+//
+// Expected arguments in request.Params.Arguments:
+//   - certificate_path: Path to certificate file or base64-encoded certificate data
 func handleCertificateAnalysisPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	certPath := request.Params.Arguments["certificate_path"]
 
@@ -114,7 +152,28 @@ Let's start with the basic chain resolution:`, certPath)),
 	), nil
 }
 
-// handleExpiryMonitoringPrompt handles the expiry monitoring prompt
+// handleExpiryMonitoringPrompt handles the expiry monitoring prompt.
+//
+// This function implements the expiry-monitoring prompt, which provides
+// guidance for monitoring certificate expiration dates and generating
+// renewal alerts based on configurable thresholds.
+//
+// Parameters:
+//   - ctx: Context for the request, used for cancellation and timeouts
+//   - request: The MCP get prompt request containing arguments
+//
+// Returns:
+//   - *mcp.GetPromptResult: The prompt result with monitoring guidance
+//   - error: Any error that occurred during prompt handling
+//
+// The prompt helps users:
+//   - Identify certificates that have expired
+//   - Find certificates expiring within the alert window
+//   - Understand renewal timelines and recommendations
+//
+// Expected arguments in request.Params.Arguments:
+//   - certificate_path: Path to certificate file or base64-encoded certificate data
+//   - alert_days: Number of days before expiry to alert (default: 30)
 func handleExpiryMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	certPath := request.Params.Arguments["certificate_path"]
 	alertDays := request.Params.Arguments["alert_days"]
@@ -151,7 +210,32 @@ func handleExpiryMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequ
 	), nil
 }
 
-// handleSecurityAuditPrompt handles the security audit prompt
+// handleSecurityAuditPrompt handles the security audit prompt.
+//
+// This function implements the security-audit prompt, which provides
+// a comprehensive SSL/TLS security audit workflow for remote servers.
+// It guides users through systematic security assessment including
+// certificate chain validation, expiry checking, and security analysis.
+//
+// Parameters:
+//   - ctx: Context for the request, used for cancellation and timeouts
+//   - request: The MCP get prompt request containing arguments
+//
+// Returns:
+//   - *mcp.GetPromptResult: The prompt result with audit workflow
+//   - error: Any error that occurred during prompt handling
+//
+// The audit covers:
+//   - Certificate chain validity and trust
+//   - Certificate expiration status
+//   - Certificate authority reputation
+//   - Protocol and cipher suite support
+//   - Certificate transparency compliance
+//   - Proper hostname validation
+//
+// Expected arguments in request.Params.Arguments:
+//   - hostname: Target hostname to audit
+//   - port: Port number (default: 443)
 func handleSecurityAuditPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	hostname := request.Params.Arguments["hostname"]
 	port := request.Params.Arguments["port"]
@@ -210,7 +294,31 @@ func handleSecurityAuditPrompt(ctx context.Context, request mcp.GetPromptRequest
 	), nil
 }
 
-// handleTroubleshootingPrompt handles the troubleshooting prompt
+// handleTroubleshootingPrompt handles the troubleshooting prompt.
+//
+// This function implements the troubleshooting prompt, which provides
+// targeted guidance for common certificate and TLS issues based on
+// the specified issue type. It offers context-specific troubleshooting
+// steps and common solutions for different problem categories.
+//
+// Parameters:
+//   - ctx: Context for the request, used for cancellation and timeouts
+//   - request: The MCP get prompt request containing arguments
+//
+// Returns:
+//   - *mcp.GetPromptResult: The prompt result with troubleshooting guidance
+//   - error: Any error that occurred during prompt handling
+//
+// Supported issue types:
+//   - chain: Missing intermediates, incorrect order, self-signed certificates
+//   - validation: Expired certificates, untrusted CAs, hostname mismatches
+//   - expiry: Certificates nearing expiration, renewal issues
+//   - connection: Handshake failures, incomplete chains, network issues
+//
+// Expected arguments in request.Params.Arguments:
+//   - issue_type: Type of issue ('chain', 'validation', 'expiry', 'connection')
+//   - certificate_path: Path to certificate file (for chain/validation/expiry issues)
+//   - hostname: Target hostname (for connection issues)
 func handleTroubleshootingPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	issueType := request.Params.Arguments["issue_type"]
 	certPath := request.Params.Arguments["certificate_path"]
