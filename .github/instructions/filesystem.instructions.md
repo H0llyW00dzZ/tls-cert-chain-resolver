@@ -96,7 +96,7 @@ tls-cert-chain-resolver/
 ├── go.sum                                    # Go dependency checksums
 ├── opencode.json                             # OpenCode configuration
 ├── .gitignore                                # Git ignore patterns
-├── .ignore                                   # Tool ignore patterns (glob/grep)
+└── .ignore                                   # Tool ignore patterns (glob/grep)
 ```
 
 ## Available Tools
