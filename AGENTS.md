@@ -55,7 +55,7 @@
 **Test race + coverage**: `go test -race -cover ./... 2>&1 | cat` (recommended primary test approach)  
 **Benchmark**: `go test -bench=. ./src/logger ./src/internal/x509/chain 2>&1 | cat` (performance testing)  
 **Clean**: `make clean` (removes build artifacts from `./bin/`)
-**Run ADK Example**: `go run ./cmd/adk-go` (runs the ADK integration example with thinking mode support)
+**Run ADK Example**: `go run -tags adk ./cmd/adk-go` (runs the ADK integration example with thinking mode support)
 
 **Note**: Piping test commands to `cat` (e.g., `2>&1 | cat`) ensures bash tool captures and displays all test output.
 
