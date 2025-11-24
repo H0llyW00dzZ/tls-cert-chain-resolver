@@ -20,6 +20,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
 
 2. **Update Relevant Instruction Files**:
 
+   - **Note**: Ensure there are no duplicate entries when updating the knowledge (e.g., check if a dependency is already listed in `deepwiki.instructions.md` before adding).
    - `gopls.instructions.md` - Go code patterns, package structure changes
    - `filesystem.instructions.md` - New file paths, directory structure changes, **Repository Structure tree** (starts at line 7)
    - `memory.instructions.md` - Context/memory management pattern changes
