@@ -362,6 +362,8 @@ Current external dependencies to research:
 - `github.com/modelcontextprotocol/go-sdk` v1.1.0 - Official MCP SDK for transport implementations
 - `google.golang.org/adk` v0.2.0 - Google ADK integration for MCP transport creation
 - `google.golang.org/genai` v1.36.0 - Google GenAI integration for AI model interactions
+- `github.com/olekukonko/tablewriter` v1.1.1 - Enhanced markdown table formatting
+- `golang.org/x/crypto` v0.45.0 - Supplementary cryptography libraries
 - `golang/go` (standard library) - Review Go 1.25.4 crypto/tls and net/http updates
 
 ### Useful Queries for This Project
