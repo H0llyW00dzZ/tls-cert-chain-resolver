@@ -473,66 +473,16 @@ New to repository?
 3. Deep dive into specific instructions as needed (tasks)
 ```
 
-## Repository-Specific Guidelines
-
-### Module Information
-
-**Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
-**Go Version**: 1.25.4+  
-**Key Dependencies**:
-- `github.com/spf13/cobra` - CLI framework
-- `github.com/cloudflare/cfssl` - Certificate utilities
-- `github.com/valyala/bytebufferpool` - Memory pooling
-- `github.com/mark3labs/mcp-go` v0.43.0 - MCP server implementation with bidirectional AI sampling support
-- `github.com/modelcontextprotocol/go-sdk` v1.1.0 - Official MCP SDK for transport implementations
-- `google.golang.org/adk` v0.1.0 - Google ADK integration for MCP transport creation
-- `golang.org/x/crypto` v0.45.0 (via Go 1.25.4) - Standard crypto updates leveraged in recent releases
-
-### Package Structure
-
-```
-cmd/                   → Main entry point (CLI, MCP, ADK example)
-src/cli/               → CLI implementation (cobra)
-src/logger/            → Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex)
-src/mcp-server/        → MCP server implementation with X509 certificate tools
-  ├── adk.go           → Google ADK integration support
-  ├── config.go        → Configuration handling
-  ├── framework.go     → Builder pattern for server construction, AI sampling with buffer pooling (DefaultSamplingHandler)
-  ├── handlers.go      → Tool handlers for certificate operations
-  ├── helper.go        → Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
-  ├── pipe.go          → Pipe transport implementation for StdioServer input/output interception (sampling)
-  ├── prompts.go       → MCP prompt definitions and handlers
-  ├── resources.go     → MCP resource definitions and handlers
-  ├── server.go        → Server execution and lifecycle
-  └── transport.go     → In-memory transport for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
-src/internal/x509/     → Certificate operations
-  ├── certs/           → Encoding/decoding
-  └── chain/           → Chain resolution
-src/internal/helper/   → Utilities
-  ├── gc/              → Garbage collection optimization
-  └── jsonrpc/         → JSON-RPC canonicalization and unmarshaling
-```
-
-### Development Workflow
-
-```
-1. Understand task → Reference AGENTS.md
-2. Find code → Use gopls.instructions.md
-3. Research external libs → Use deepwiki.instructions.md
-4. Modify code → Use filesystem.instructions.md
-5. Optimize resources → Use memory.instructions.md
-6. Use MCP tools → Reference x509_resolver.md
-7. Test → Use AGENTS.md test commands (race detection with coverage as primary)
-8. Build → Use AGENTS.md build commands (includes MCP server builds)
-```
-
 ## Integration with Git
 
 Instructions are versioned with the code:
 
 ```
 git add opencode.json AGENTS.md .github/instructions/
-git commit -m "Update agent instructions"
+git commit -m "Update Knowledge Base for Unix AI Agent to Reflect Recent Code Changes
+
+- [+] docs(opencode): remove duplicated repository context section
+- [+] docs(gopls): standardize Go version references to 1.25.4+"
 ```
 
 **Benefits**:
