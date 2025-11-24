@@ -4,7 +4,7 @@ go 1.25.4
 
 require (
 	github.com/cloudflare/cfssl v1.6.5
-	github.com/mark3labs/mcp-go v0.43.0
+	github.com/mark3labs/mcp-go v0.43.1
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/olekukonko/tablewriter v1.1.1
 	github.com/spf13/cobra v1.10.1
