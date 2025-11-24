@@ -94,9 +94,7 @@ tls-cert-chain-resolver/
 ├── README.md                                 # Project documentation
 ├── go.mod                                    # Go module definition (Go 1.25.4)
 ├── go.sum                                    # Go dependency checksums
-├── opencode.json                             # OpenCode configuration
-├── .gitignore                                # Git ignore patterns
-└── .ignore                                   # Tool ignore patterns (glob/grep)
+└── opencode.json                             # OpenCode configuration
 ```
 
 ## Available Tools
