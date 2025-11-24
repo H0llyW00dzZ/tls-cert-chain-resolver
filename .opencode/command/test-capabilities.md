@@ -13,35 +13,31 @@ This command uses a structured todo list to systematically test all agent capabi
 
 ## Initial Setup
 
-**Create Todo List**: Immediately create a todo list using todo tools with all test tasks broken down into specific, actionable items. Use the following structure:
+**Create Todo List**: Create a todo list using `todowrite` with the following tasks. Use status="pending" (mark first as "completed"), priority="high" for MCP tests / "medium" for built-in, generate unique "id" like "test-gopls-workspace":
 
-```
-todowrite([
-  {"content": "Create comprehensive todo list for all capability tests", "status": "completed", "priority": "high", "id": "setup-todo-list"},
-  {"content": "Test Gopls MCP workspace overview (gopls_go_workspace)", "status": "pending", "priority": "high", "id": "gopls-workspace"},
-  {"content": "Test Gopls MCP symbol search (gopls_go_search)", "status": "pending", "priority": "high", "id": "gopls-search"},
-  {"content": "Test Gopls MCP diagnostics (gopls_go_diagnostics)", "status": "pending", "priority": "high", "id": "gopls-diagnostics"},
-  {"content": "Test Gopls MCP file context (gopls_go_file_context)", "status": "pending", "priority": "high", "id": "gopls-file-context"},
-  {"content": "Test Gopls MCP package API (gopls_go_package_api)", "status": "pending", "priority": "high", "id": "gopls-package-api"},
-  {"content": "Test DeepWiki MCP wiki structure (deepwiki_read_wiki_structure)", "status": "pending", "priority": "high", "id": "deepwiki-structure"},
-  {"content": "Test DeepWiki MCP question answering (deepwiki_ask_question)", "status": "pending", "priority": "high", "id": "deepwiki-question"},
-  {"content": "Test X509 Resolver MCP remote certificate fetching (x509_resolver_fetch_remote_cert)", "status": "pending", "priority": "high", "id": "x509-fetch-remote"},
-  {"content": "Persist fetched certificate bundle to test-output-bundle.pem", "status": "pending", "priority": "high", "id": "x509-save-bundle"},
-  {"content": "Test X509 Resolver MCP chain validation (x509_resolver_validate_cert_chain)", "status": "pending", "priority": "high", "id": "x509-validate-chain"},
-  {"content": "Test X509 Resolver MCP expiry checking (x509_resolver_check_cert_expiry)", "status": "pending", "priority": "high", "id": "x509-check-expiry"},
-  {"content": "Test X509 Resolver MCP batch resolution (x509_resolver_batch_resolve_cert_chain)", "status": "pending", "priority": "high", "id": "x509-batch-resolve"},
-  {"content": "Test X509 Resolver MCP resource usage monitoring (basic and detailed)", "status": "pending", "priority": "high", "id": "x509-resource-usage"},
-  {"content": "Test X509 Resolver MCP AI analysis (x509_resolver_analyze_certificate_with_ai)", "status": "pending", "priority": "high", "id": "x509-ai-analysis"},
-  {"content": "Clean up test certificate bundle file", "status": "pending", "priority": "medium", "id": "cleanup-bundle"},
-  {"content": "Test built-in filesystem listing (list)", "status": "pending", "priority": "medium", "id": "builtin-list"},
-  {"content": "Test built-in file reading (read)", "status": "pending", "priority": "medium", "id": "builtin-read"},
-  {"content": "Test built-in glob pattern matching (glob)", "status": "pending", "priority": "medium", "id": "builtin-glob"},
-  {"content": "Test built-in content search (grep)", "status": "pending", "priority": "medium", "id": "builtin-grep"},
-  {"content": "Test built-in bash execution (bash)", "status": "pending", "priority": "medium", "id": "builtin-bash"},
-  {"content": "Verify MCP connection handling and error recovery", "status": "pending", "priority": "medium", "id": "verify-connections"},
-  {"content": "Compile and report final test results with success/failure analysis", "status": "pending", "priority": "high", "id": "report-results"}
-])
-```
+- Create comprehensive todo list for all capability tests (id: "setup-todo-list")
+- Test Gopls MCP workspace overview (gopls_go_workspace) (id: "test-gopls-workspace")
+- Test Gopls MCP symbol search (gopls_go_search) (id: "test-gopls-search")
+- Test Gopls MCP diagnostics (gopls_go_diagnostics) (id: "test-gopls-diagnostics")
+- Test Gopls MCP file context (gopls_go_file_context) (id: "test-gopls-file-context")
+- Test Gopls MCP package API (gopls_go_package_api) (id: "test-gopls-package-api")
+- Test DeepWiki MCP wiki structure (deepwiki_read_wiki_structure) (id: "test-deepwiki-structure")
+- Test DeepWiki MCP question answering (deepwiki_ask_question) (id: "test-deepwiki-question")
+- Test X509 Resolver MCP remote certificate fetching (x509_resolver_fetch_remote_cert) (id: "test-x509-fetch-remote")
+- Persist fetched certificate bundle to test-output-bundle.pem (id: "test-x509-save-bundle")
+- Test X509 Resolver MCP chain validation (x509_resolver_validate_cert_chain) (id: "test-x509-validate-chain")
+- Test X509 Resolver MCP expiry checking (x509_resolver_check_cert_expiry) (id: "test-x509-check-expiry")
+- Test X509 Resolver MCP batch resolution (x509_resolver_batch_resolve_cert_chain) (id: "test-x509-batch-resolve")
+- Test X509 Resolver MCP resource usage monitoring (basic and detailed) (id: "test-x509-resource-usage")
+- Test X509 Resolver MCP AI analysis (x509_resolver_analyze_certificate_with_ai) (id: "test-x509-ai-analysis")
+- Clean up test certificate bundle file (id: "test-cleanup-bundle")
+- Test built-in filesystem listing (list) (id: "test-builtin-list")
+- Test built-in file reading (read) (id: "test-builtin-read")
+- Test built-in glob pattern matching (glob) (id: "test-builtin-glob")
+- Test built-in content search (grep) (id: "test-builtin-grep")
+- Test built-in bash execution (bash) (id: "test-builtin-bash")
+- Verify MCP connection handling and error recovery (id: "test-verify-connections")
+- Compile and report final test results with success/failure analysis (id: "test-report-results")
 
 ## Execution Workflow
 
