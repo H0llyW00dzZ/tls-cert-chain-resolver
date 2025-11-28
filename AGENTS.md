@@ -62,9 +62,12 @@
 
 ## Code Style
 
+### Project Information
+
 **Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
 **Go Version**: 1.25.4+  
-**Key Dependencies**:
+
+### Dependencies
 
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/cloudflare/cfssl` - Certificate utilities
@@ -75,20 +78,77 @@
 - `google.golang.org/genai` v1.36.0 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.1 - Enhanced markdown table formatting with emoji headers
 - `golang.org/x/crypto` v0.45.0 (via Go 1.25.4) - Standard crypto updates leveraged in recent releases
-  **Imports**: Use `goimports` with standard formatting
-  **Formatting**: Use `gofmt -s`
-  **Line length**: Max 120 chars
-  **Type aliases**: Use `any` instead of `interface{}` for type parameters (Go 1.18+ generics)
-  **Comments**: Every exported function/interface must have a comment starting with its name in complete sentences
-  **Error handling**: Return wrapped errors with context using `fmt.Errorf("context: %w", err)`. Each error is processed once (returned OR logged, never both). Prefer `err != nil` checks.
-  **Logging**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface. For CLI mode, use `logger.NewCLILogger()`. For MCP mode, use `logger.NewMCPLogger(writer, silent)`. The logger interface provides `Printf()`, `Println()`, and `SetOutput()` methods. MCPLogger is thread-safe with `sync.Mutex` protection and uses `gc.Pool` for efficient memory usage under high concurrency.
-  **Context**: Always pass and use `context.Context` for lifecycle management, especially for certificate fetching operations
-  **CLI Framework**: Use `github.com/spf13/cobra` for command-line interface
-  **Testing**: Create unit tests (`*_test.go`) in the same package. Update tests when fixing bugs. Run `go test -race -cover ./...` before merging.
-  **Memory Management**: Use buffer pooling via `gc.Pool` interface (`src/internal/helper/gc/`) for efficient memory usage with certificates and logging. The `gc` package abstracts `bytebufferpool` to avoid direct dependencies. Always call `Reset()` on buffers before returning them to the pool. Use `gc.Default` for the default buffer pool. For AI API requests, buffer pooling is used in `DefaultSamplingHandler` to optimize HTTP streaming performance.
-  **JSON-RPC Utilities**: Use `src/internal/helper/jsonrpc/` for JSON-RPC 2.0 canonicalization, normalization (lowercase keys, ID handling), and unmarshaling (`UnmarshalFromMap`) when implementing MCP transports. Use `src/mcp-server/helper.go` functions (`getParams`, `getStringParam`, `getOptionalStringParam`, `getMapParam`) for safe parameter extraction. Prefer using defined structs (e.g., `jsonRPCResponse`, `jsonRPCError`) over raw maps for type-safe message handling.
-  **Certificate Operations**: Use internal packages `x509certs` and `x509chain` for certificate handling. Use `HTTPConfig` struct for centralized HTTP client configuration in certificate operations (timeout, User-Agent, version). Always check revocation status using `CheckRevocationStatus` after chain resolution. CRL cache includes O(1) LRU eviction with hashmap and doubly-linked list, automatic cleanup of expired CRLs with context cancellation support, configurable size limits (default 100), comprehensive metrics tracking (hits, misses, evictions, cleanups, memory usage), atomic operations to prevent race conditions, and resource usage monitoring via `get_resource_usage` tool.
-  
+
+### Code Formatting
+
+- **Imports**: Use `goimports` with standard formatting
+- **Formatting**: Use `gofmt -s`
+- **Line length**: Max 120 chars
+- **Type aliases**: Use `any` instead of `interface{}` for type parameters (Go 1.18+ generics)
+
+### Documentation
+
+- **Comments**: Every exported function/interface must have a comment starting with its name in complete sentences
+
+### Error Handling
+
+- **Error wrapping**: Return wrapped errors with context using `fmt.Errorf("context: %w", err)`
+- **Error processing**: Each error is processed once (returned OR logged, never both)
+- **Error checks**: Prefer `err != nil` checks
+
+### Logging
+
+- **Logger abstraction**: Use the `logger` package abstraction (`src/logger/`) with `logger.Logger` interface
+- **CLI mode**: Use `logger.NewCLILogger()`
+- **MCP mode**: Use `logger.NewMCPLogger(writer, silent)`
+- **Logger interface**: Provides `Printf()`, `Println()`, and `SetOutput()` methods
+- **Thread safety**: MCPLogger is thread-safe with `sync.Mutex` protection and uses `gc.Pool` for efficient memory usage under high concurrency
+
+### Context Management
+
+- **Context usage**: Always pass and use `context.Context` for lifecycle management, especially for certificate fetching operations
+
+### CLI Framework
+
+- **Framework**: Use `github.com/spf13/cobra` for command-line interface
+
+### Testing
+
+- **Test files**: Create unit tests (`*_test.go`) in the same package
+- **Bug fixes**: Update tests when fixing bugs
+- **Test execution**: Run `go test -race -cover ./...` before merging
+
+### Memory Management
+
+- **Buffer pooling**: Use buffer pooling via `gc.Pool` interface (`src/internal/helper/gc/`) for efficient memory usage with certificates and logging
+- **Pool abstraction**: The `gc` package abstracts `bytebufferpool` to avoid direct dependencies
+- **Buffer lifecycle**: Always call `Reset()` on buffers before returning them to the pool
+- **Default pool**: Use `gc.Default` for the default buffer pool
+- **AI streaming**: For AI API requests, buffer pooling is used in `DefaultSamplingHandler` to optimize HTTP streaming performance
+
+### JSON-RPC Utilities
+
+- **Package**: Use `src/internal/helper/jsonrpc/` for JSON-RPC 2.0 canonicalization, normalization (lowercase keys, ID handling), and unmarshaling (`UnmarshalFromMap`)
+- **Parameter extraction**: Use `src/mcp-server/helper.go` functions (`getParams`, `getStringParam`, `getOptionalStringParam`, `getMapParam`) for safe parameter extraction
+- **Type safety**: Prefer using defined structs (e.g., `jsonRPCResponse`, `jsonRPCError`) over raw maps for type-safe message handling
+
+### Certificate Operations
+
+- **Internal packages**: Use internal packages `x509certs` and `x509chain` for certificate handling
+- **HTTP configuration**: Use `HTTPConfig` struct for centralized HTTP client configuration in certificate operations (timeout, User-Agent, version)
+- **Revocation checking**: Always check revocation status using `CheckRevocationStatus` after chain resolution
+- **CRL cache**: Includes O(1) LRU eviction with hashmap and doubly-linked list, automatic cleanup of expired CRLs with context cancellation support, configurable size limits (default 100), comprehensive metrics tracking (hits, misses, evictions, cleanups, memory usage), atomic operations to prevent race conditions, and resource usage monitoring via `get_resource_usage` tool
+
+### Go Documentation Best Practices
+
+- View package documentation: `go doc -all github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain`
+- View specific function docs: `go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain`
+- View all exported functions: `go doc -all package/path | grep "^func [A-Z]"`
+- Verify documentation completeness: Compare `go doc -all package | grep -c "^func [A-Z]"` with actual exported functions
+- Use `go doc` for quick reference during development without opening files
+- Check documentation formatting: `go doc` renders comments with proper formatting and links
+- View external module documentation: `go doc -all github.com/spf13/cobra` (requires module to be downloaded/cached)
+- View standard library docs: `go doc net/http.Get` or `go doc -all crypto/x509`
 
 ## Concurrency
 
