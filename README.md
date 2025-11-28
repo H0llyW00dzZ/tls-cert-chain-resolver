@@ -202,13 +202,14 @@ tls-cert-chain-resolver/
 └── src/
     ├── cli/              # Cobra-based CLI implementation
     ├── internal/
+    │   ├── helper/
+    │   │   ├── gc/       # Buffer pooling utilities
+    │   │   └── jsonrpc/  # JSON-RPC 2.0 normalization utilities
     │   └── x509/
     │       ├── certs/    # Certificate encoding/decoding helpers
-    │       └── chain/    # Chain resolution logic
+    │       └── chain/    # Chain resolution and revocation logic
     ├── logger/           # Thread-safe logging abstraction
     ├── mcp-server/       # MCP server framework, tools, prompts, resources
-    ├── helper/
-    │   └── gc/           # Buffer pooling utilities
     └── version/          # Build metadata
 ```
 
@@ -234,6 +235,7 @@ tls-cert-chain-resolver/
 - [x] **Add resource usage monitoring tool** with JSON and markdown output formats
 - [x] Integrate with [`google.golang.org/adk`](https://github.com/google/adk-go) (adk-go) for MCP transport creation
 - [x] Create abstraction layer for both MCP libraries (mark3labs server + ADK transport bridge)
+- [x] Improve internal package documentation and API consistency in `src/internal/`
 
 ##### Remaining (Low Priority)
 

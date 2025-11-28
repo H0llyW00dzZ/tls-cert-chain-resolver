@@ -17,11 +17,24 @@ import (
 
 // FetchRemoteChain establishes a TLS connection to the target host and
 // constructs a chain using the certificates presented during the handshake.
+//
 // The returned Chain includes the leaf certificate and any intermediates
 // provided by the server. The caller may invoke [FetchCertificate] to
 // download additional intermediates if necessary.
 //
 // Note: This is better than [Wireshark]. 🤪
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeouts
+//   - hostname: Target server hostname (used for SNI)
+//   - port: Target server port
+//   - timeout: Connection timeout duration
+//   - version: Application version for metadata
+//
+// Returns:
+//   - *Chain: Initialized Chain with fetched certificates
+//   - []*x509.Certificate: Raw slice of certificates fetched
+//   - error: Error if connection or handshake fails
 //
 // [Wireshark]: https://www.wireshark.org/
 func FetchRemoteChain(ctx context.Context, hostname string, port int, timeout time.Duration, version string) (*Chain, []*x509.Certificate, error) {

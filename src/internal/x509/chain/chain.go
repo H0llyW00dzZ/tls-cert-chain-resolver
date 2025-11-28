@@ -27,7 +27,16 @@ type HTTPConfig struct {
 	client *http.Client
 }
 
-// NewHTTPConfig creates a new HTTP configuration with default values
+// NewHTTPConfig creates a new HTTP configuration with default values.
+//
+// It initializes the configuration with a default timeout of 10 seconds
+// and the provided application version.
+//
+// Parameters:
+//   - version: Application version string
+//
+// Returns:
+//   - *HTTPConfig: New HTTP configuration
 func NewHTTPConfig(version string) *HTTPConfig {
 	return &HTTPConfig{
 		Timeout:   10 * time.Second,
@@ -36,7 +45,13 @@ func NewHTTPConfig(version string) *HTTPConfig {
 	}
 }
 
-// GetUserAgent returns the User-Agent string, constructing it if not set
+// GetUserAgent returns the User-Agent string, constructing it if not set.
+//
+// If a custom User-Agent is configured, it returns that. Otherwise, it
+// constructs a default one including the application version and GitHub URL.
+//
+// Returns:
+//   - string: User-Agent string
 func (c *HTTPConfig) GetUserAgent() string {
 	if c.UserAgent != "" {
 		return c.UserAgent
@@ -45,6 +60,13 @@ func (c *HTTPConfig) GetUserAgent() string {
 }
 
 // Client returns an HTTP client configured with the current timeout.
+//
+// It creates or reuses an http.Client, ensuring it uses the configured timeout.
+//
+// Returns:
+//   - *http.Client: Configured HTTP client
+//
+// Thread Safety: Safe for concurrent use.
 func (c *HTTPConfig) Client() *http.Client {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -74,6 +96,16 @@ type Chain struct {
 }
 
 // New creates a new Chain.
+//
+// It initializes a new certificate chain manager with the starting certificate
+// and default configuration.
+//
+// Parameters:
+//   - cert: Starting certificate (leaf)
+//   - version: Application version for HTTP configuration
+//
+// Returns:
+//   - *Chain: New Chain instance
 func New(cert *x509.Certificate, version string) *Chain {
 	roots := x509.NewCertPool()
 	intermediates := x509.NewCertPool()
@@ -88,9 +120,21 @@ func New(cert *x509.Certificate, version string) *Chain {
 
 // FetchCertificate retrieves the certificate chain starting from the given certificate.
 //
+// It iteratively fetches the issuing certificate using the AIA (Authority Information Access)
+// extension URL until a root certificate is reached or no further issuer can be found.
+// It uses buffer pooling for efficient download handling.
+//
 // Note: This is most effective for chaining written in Go due to the power of the standard library.
 // Previously, I attempted to implement this in [Rust], but the results were different and buggy.
 // This might be because I am new to [Rust], or due to the challenges posed by [Rust]'s borrow checker.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeouts
+//
+// Returns:
+//   - error: Error if fetching fails or chain verification fails
+//
+// Thread Safety: Safe for concurrent use.
 //
 // [Rust]: https://www.rust-lang.org/
 func (ch *Chain) FetchCertificate(ctx context.Context) error {
@@ -156,6 +200,14 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 }
 
 // AddRootCA adds a root CA to the certificate chain if necessary.
+//
+// It attempts to verify the last certificate in the chain against system roots.
+// If successful, it appends the root certificate found to the chain.
+//
+// Returns:
+//   - error: Error if verification fails (excluding UnknownAuthorityError)
+//
+// Thread Safety: Safe for concurrent use.
 func (ch *Chain) AddRootCA() error {
 	ch.mu.Lock()
 	defer ch.mu.Unlock()
@@ -181,16 +233,38 @@ func (ch *Chain) AddRootCA() error {
 }
 
 // IsSelfSigned checks if a certificate is self-signed.
+//
+// It verifies the certificate's signature against itself.
+//
+// Parameters:
+//   - cert: Certificate to check
+//
+// Returns:
+//   - bool: true if self-signed, false otherwise
 func (ch *Chain) IsSelfSigned(cert *x509.Certificate) bool {
 	return cert.CheckSignatureFrom(cert) == nil
 }
 
 // IsRootNode determines if a certificate is a root node in the chain.
+//
+// Parameters:
+//   - cert: Certificate to check
+//
+// Returns:
+//   - bool: true if it's a root certificate (currently checks if self-signed)
 func (ch *Chain) IsRootNode(cert *x509.Certificate) bool {
 	return ch.IsSelfSigned(cert)
 }
 
 // FilterIntermediates filters out the root and leaf certificates, returning only intermediates.
+//
+// It returns a slice containing all certificates in the chain except the first
+// (leaf) and last (root).
+//
+// Returns:
+//   - []*x509.Certificate: Slice of intermediate certificates, or nil if none
+//
+// Thread Safety: Safe for concurrent use.
 func (ch *Chain) FilterIntermediates() []*x509.Certificate {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
@@ -202,6 +276,12 @@ func (ch *Chain) FilterIntermediates() []*x509.Certificate {
 }
 
 // VerifyChain checks that each certificate in the chain is validly signed by its predecessor.
+//
+// It builds separate pools for roots and intermediates from the chain itself
+// and attempts to verify the leaf certificate.
+//
+// Returns:
+//   - error: Error if verification fails
 func (ch *Chain) VerifyChain() error {
 	for i, cert := range ch.Certs {
 		if i == len(ch.Certs)-1 {
@@ -226,7 +306,18 @@ func (ch *Chain) VerifyChain() error {
 	return nil
 }
 
-// findIssuerForCertificate finds the certificate that issued the given cert in the chain
+// findIssuerForCertificate finds the certificate that issued the given cert in the chain.
+//
+// It iterates backwards through the chain to find a certificate that has signed
+// the provided certificate.
+//
+// Parameters:
+//   - cert: Certificate to find issuer for
+//
+// Returns:
+//   - *x509.Certificate: Issuer certificate, or nil if not found
+//
+// Thread Safety: Safe for concurrent use.
 func (ch *Chain) findIssuerForCertificate(cert *x509.Certificate) *x509.Certificate {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
