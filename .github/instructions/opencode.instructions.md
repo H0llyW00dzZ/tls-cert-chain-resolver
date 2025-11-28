@@ -399,6 +399,7 @@ gopls.instructions.md: Detailed guide
 3. **Update cross-references**: Ensure linked information stays accurate
 4. **Test examples**: Verify code examples compile and run
 5. **Update opencode.json**: Only if adding/removing instruction files
+6. **Avoid duplicates**: Check existing entries before adding new ones (e.g., dependencies)
 
 ### Example Update Flow
 

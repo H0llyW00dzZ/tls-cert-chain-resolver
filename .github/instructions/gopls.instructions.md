@@ -30,12 +30,16 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`tools.go`** — Tool definitions and creation functions
   - **`config.go`** — Configuration management for AI and MCP settings
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
+  - **`docs.go`** — Package documentation
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
+  - **`docs.go`** — Package documentation
   - **`cache.go`** — CRL cache implementation with LRU eviction and metrics
   - **`remote.go`** — Context-aware remote TLS chain retrieval (`FetchRemoteChain`)
   - **`revocation.go`** — OCSP/CRL revocation status checking (`CheckRevocationStatus`, `ParseCRLResponse`)
 - **`src/internal/helper/gc/`** — Memory management utilities
+  - **`docs.go`** — Package documentation
 - **`src/internal/helper/jsonrpc/`** — JSON-RPC canonicalization helper for MCP transport normalization
+  - **`docs.go`** — Package documentation
 - **`src/version/`** — Version information
 
 ## Core Workflows
@@ -282,7 +286,8 @@ REQUIRED workflow:
 1. Edit code
 2. gopls_go_diagnostics(files)
 3. If errors → fix → repeat step 2
-4. If clean → run tests: bash("go test -v ./... 2>&1 | cat")
+4. Run linting: bash("gofmt -l . && go vet ./...") (optional but recommended)
+5. If clean → run tests: bash("go test -race ./... 2>&1 | cat")
 ```
 
 ### Test After Successful Diagnostics

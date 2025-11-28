@@ -40,21 +40,25 @@ tls-cert-chain-resolver/
 │   ├── internal/
 │   │   ├── helper/
 │   │   │   └── gc/
+│   │   │       ├── docs.go                   # Package documentation
 │   │   │       ├── mock_buffer_test.go       # Mock buffer for testing
 │   │   │       ├── reduce_overhead.go        # Buffer pool abstraction (gc.Pool interface)
 │   │   │       └── reduce_overhead_test.go   # Buffer pool tests
 │   │   │   └── jsonrpc/
+│   │   │       ├── docs.go                   # Package documentation
 │   │   │       ├── json_rpc.go               # JSON-RPC canonicalization helper
 │   │   │       └── json_rpc_test.go          # JSON-RPC helper tests
 │   │   └── x509/
 │   │       ├── certs/
 │   │       │   ├── cert_test.go              # Certificate tests
-│   │       │   └── certs.go                  # Certificate encoding/decoding
+│   │       │   ├── certs.go                  # Certificate encoding/decoding
+│   │       │   └── docs.go                   # Package documentation
 │   │       └── chain/
 │   │           ├── benchmark_test.go         # Chain resolution and revocation benchmarks
 │   │           ├── cache.go                  # CRL cache implementation with LRU eviction and metrics
 │   │           ├── chain.go                  # Chain resolution logic
 │   │           ├── chain_test.go             # Chain tests
+│   │           ├── docs.go                   # Package documentation
 │   │           ├── lru_test.go               # LRU cache tests for access, eviction, and concurrency
 │   │           ├── remote.go                 # Context-aware remote TLS chain fetcher
 │   │           └── revocation.go             # OCSP/CRL revocation status checking
