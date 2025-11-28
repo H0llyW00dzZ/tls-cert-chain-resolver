@@ -19,14 +19,27 @@ import (
 	"golang.org/x/crypto/ocsp"
 )
 
-// RevocationStatus represents revocation status of a certificate
+// RevocationStatus represents revocation status of a certificate.
 type RevocationStatus struct {
 	OCSPStatus   string
 	CRLStatus    string
 	SerialNumber string
 }
 
-// ParseCRLResponse parses a CRL response to extract status for a specific certificate
+// ParseCRLResponse parses a CRL response to extract status for a specific certificate.
+//
+// It iterates through the PEM blocks in the provided data, finding the first valid
+// CRL block that is correctly signed by the issuer. It then checks if the target
+// certificate's serial number is listed in the revoked entries.
+//
+// Parameters:
+//   - crlData: Raw CRL data (PEM or DER)
+//   - certSerial: Serial number of certificate to check
+//   - issuer: Issuer certificate for signature verification
+//
+// Returns:
+//   - string: Status ("Good", "Revoked", or "Unknown")
+//   - error: Error if parsing or verification fails
 func ParseCRLResponse(crlData []byte, certSerial *big.Int, issuer *x509.Certificate) (string, error) {
 	if len(crlData) == 0 {
 		return "Unknown", fmt.Errorf("empty CRL data")
@@ -76,6 +89,16 @@ func ParseCRLResponse(crlData []byte, certSerial *big.Int, issuer *x509.Certific
 	return "Unknown", err
 }
 
+// parseCRLBlock parses a single DER-encoded CRL block and checks revocation status.
+//
+// Parameters:
+//   - der: DER encoded CRL
+//   - certSerial: Target certificate serial number
+//   - issuer: Issuer certificate
+//
+// Returns:
+//   - string: Status ("Good" or "Revoked")
+//   - error: Error if parsing or signature verification fails
 func parseCRLBlock(der []byte, certSerial *big.Int, issuer *x509.Certificate) (string, error) {
 	crl, err := x509.ParseRevocationList(der)
 	if err != nil {
@@ -95,7 +118,17 @@ func parseCRLBlock(der []byte, certSerial *big.Int, issuer *x509.Certificate) (s
 	return "Good", nil
 }
 
-// checkOCSPStatus performs OCSP check for revocation status, trying all available OCSP servers
+// checkOCSPStatus performs OCSP check for revocation status, trying all available OCSP servers.
+//
+// It iterates through the OCSP servers listed in the certificate's AIA extension.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeouts
+//   - cert: Certificate to check
+//
+// Returns:
+//   - *RevocationStatus: Result of the check
+//   - error: Error if all servers fail or issuer not found
 func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*RevocationStatus, error) {
 	if len(cert.OCSPServer) == 0 {
 		return &RevocationStatus{OCSPStatus: fmt.Sprintf("Not Available (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, nil
@@ -123,7 +156,19 @@ func (ch *Chain) checkOCSPStatus(ctx context.Context, cert *x509.Certificate) (*
 	return &RevocationStatus{OCSPStatus: fmt.Sprintf("Unknown (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, fmt.Errorf("all OCSP servers failed for certificate serial %s (failed servers: %s): %w", cert.SerialNumber.String(), strings.Join(failedServers, ", "), lastErr)
 }
 
-// tryOCSPServer attempts OCSP check against a specific OCSP server
+// tryOCSPServer attempts OCSP check against a specific OCSP server.
+//
+// It sends an OCSP request and parses the response.
+//
+// Parameters:
+//   - ctx: Context for request
+//   - cert: Certificate to check
+//   - issuer: Issuer certificate
+//   - ocspURL: URL of OCSP responder
+//
+// Returns:
+//   - *RevocationStatus: Result of the check
+//   - error: Error if request fails or response is invalid
 func (ch *Chain) tryOCSPServer(ctx context.Context, cert, issuer *x509.Certificate, ocspURL string) (*RevocationStatus, error) {
 	// Create OCSP request
 	ocspReq, err := ocsp.CreateRequest(cert, issuer, nil)
@@ -189,7 +234,17 @@ func (ch *Chain) tryOCSPServer(ctx context.Context, cert, issuer *x509.Certifica
 	}, nil
 }
 
-// checkCRLStatus performs a CRL check for revocation status, trying all available distribution points
+// checkCRLStatus performs a CRL check for revocation status, trying all available distribution points.
+//
+// It iterates through the CRL Distribution Points extension URLs.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeouts
+//   - cert: Certificate to check
+//
+// Returns:
+//   - *RevocationStatus: Result of the check
+//   - error: Error if all points fail
 func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*RevocationStatus, error) {
 
 	if len(cert.CRLDistributionPoints) == 0 {
@@ -212,7 +267,19 @@ func (ch *Chain) checkCRLStatus(ctx context.Context, cert *x509.Certificate) (*R
 	return &RevocationStatus{CRLStatus: fmt.Sprintf("Unknown (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, fmt.Errorf("all CRL distribution points failed for certificate serial %s (failed points: %s): %w", cert.SerialNumber.String(), strings.Join(failedPoints, ", "), lastErr)
 }
 
-// tryCRLDistributionPoint attempts CRL check against a specific distribution point with caching
+// tryCRLDistributionPoint attempts CRL check against a specific distribution point with caching.
+//
+// It first checks the internal CRL cache. If missing or expired, it fetches the
+// CRL from the network and caches it if valid.
+//
+// Parameters:
+//   - ctx: Context for request
+//   - cert: Certificate to check
+//   - crlURL: URL of CRL distribution point
+//
+// Returns:
+//   - *RevocationStatus: Result of the check
+//   - error: Error if fetch fails or CRL cannot be verified
 func (ch *Chain) tryCRLDistributionPoint(ctx context.Context, cert *x509.Certificate, crlURL string) (*RevocationStatus, error) {
 	// Check cache first
 	if cachedData, found := GetCachedCRL(crlURL); found {
@@ -265,7 +332,18 @@ func (ch *Chain) tryCRLDistributionPoint(ctx context.Context, cert *x509.Certifi
 	return ch.processCRLData(crlData, cert)
 }
 
-// processCRLData processes CRL data and checks revocation status
+// processCRLData processes CRL data and checks revocation status.
+//
+// It attempts to verify the CRL signature using the likely issuer (found in chain)
+// or by trying all certificates in the chain as potential signers.
+//
+// Parameters:
+//   - crlData: Raw CRL data
+//   - cert: Certificate to check
+//
+// Returns:
+//   - *RevocationStatus: Result of the check
+//   - error: Error if signature verification fails
 func (ch *Chain) processCRLData(crlData []byte, cert *x509.Certificate) (*RevocationStatus, error) {
 	// Try to find issuer certificate for CRL signature verification
 	issuer := ch.findIssuerForCertificate(cert)
@@ -299,7 +377,18 @@ func (ch *Chain) processCRLData(crlData []byte, cert *x509.Certificate) (*Revoca
 	return &RevocationStatus{CRLStatus: fmt.Sprintf("Unknown (Serial: %s)", cert.SerialNumber.String()), SerialNumber: cert.SerialNumber.String()}, fmt.Errorf("CRL signature verification failed for certificate serial %s (tried all certificates in chain as potential issuers)", cert.SerialNumber.String())
 }
 
-// CheckRevocationStatus performs OCSP/CRL checks for the certificate chain with priority logic
+// CheckRevocationStatus performs OCSP/CRL checks for the certificate chain with priority logic.
+//
+// It iterates through the certificate chain (excluding root) and checks revocation
+// status for each certificate.
+//
+// Priority Logic:
+//  1. Check OCSP first (real-time status)
+//  2. If OCSP unavailable/unknown, check CRL (with caching)
+//
+// Returns:
+//   - string: Formatted report of revocation status
+//   - error: Always nil (errors are included in the report)
 func (ch *Chain) CheckRevocationStatus(ctx context.Context) (string, error) {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()

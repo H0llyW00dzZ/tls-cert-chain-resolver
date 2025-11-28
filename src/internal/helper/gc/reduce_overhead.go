@@ -12,48 +12,137 @@ import (
 )
 
 // Buffer defines the interface for a reusable byte buffer.
-// It abstracts the [bytebufferpool.ByteBuffer] type to avoid direct dependencies.
+// It abstracts the [bytebufferpool.ByteBuffer] type to avoid direct dependencies
+// and provides a consistent API for buffer manipulation throughout the application.
+//
+// The interface supports standard I/O operations (ReadFrom, WriteTo) as well as
+// efficient string and byte manipulation methods. Implementations must ensure
+// that the underlying storage can be reused after Reset() is called.
 type Buffer interface {
 	// Write appends the contents of p to the buffer.
+	//
+	// It implements the io.Writer interface, allowing the buffer to be used
+	// as a destination for standard library I/O operations.
+	//
+	// Parameters:
+	//   - p: Byte slice containing data to append
+	//
+	// Returns:
+	//   - n: Number of bytes written (always len(p))
+	//   - err: Always nil
 	Write(p []byte) (int, error)
 
 	// WriteString appends the string s to the buffer.
+	//
+	// This method is optimized for string appending without unnecessary allocations.
+	//
+	// Parameters:
+	//   - s: String to append
+	//
+	// Returns:
+	//   - n: Number of bytes written (len(s))
+	//   - err: Always nil
 	WriteString(s string) (int, error)
 
 	// WriteByte appends the byte c to the buffer.
+	//
+	// Parameters:
+	//   - c: Byte to append
+	//
+	// Returns:
+	//   - err: Always nil
 	WriteByte(c byte) error
 
 	// WriteTo writes data to w until the buffer is drained or an error occurs.
+	//
+	// It implements the io.WriterTo interface, allowing efficient data transfer
+	// from the buffer to another writer.
+	//
+	// Parameters:
+	//   - w: Destination writer
+	//
+	// Returns:
+	//   - n: Number of bytes written
+	//   - err: Any error returned by w.Write
 	WriteTo(w io.Writer) (int64, error)
 
 	// ReadFrom reads data from r until EOF and appends it to the buffer.
+	//
+	// It implements the io.ReaderFrom interface, allowing the buffer to efficiently
+	// consume data from a reader.
+	//
+	// Parameters:
+	//   - r: Source reader
+	//
+	// Returns:
+	//   - n: Number of bytes read
+	//   - err: Any error returned by r.Read
 	ReadFrom(r io.Reader) (int64, error)
 
 	// Bytes returns the accumulated bytes in the buffer.
+	//
+	// The returned slice is valid only until the next buffer modification.
+	//
+	// Returns:
+	//   - []byte: Slice containing the buffer contents
 	Bytes() []byte
 
 	// String returns the accumulated string in the buffer.
+	//
+	// Returns:
+	//   - string: String representation of buffer contents
 	String() string
 
 	// Len returns the number of bytes in the buffer.
+	//
+	// Returns:
+	//   - int: Current length of buffer data
 	Len() int
 
 	// Set replaces the buffer contents with p.
+	//
+	// This is equivalent to Reset() followed by Write(p), but more efficient.
+	//
+	// Parameters:
+	//   - p: Byte slice to set as buffer content
 	Set(p []byte)
 
 	// SetString replaces the buffer contents with s.
+	//
+	// This is equivalent to Reset() followed by WriteString(s), but more efficient.
+	//
+	// Parameters:
+	//   - s: String to set as buffer content
 	SetString(s string)
 
 	// Reset clears the buffer, retaining the underlying storage for reuse.
+	//
+	// This must be called before returning the buffer to the pool to ensure
+	// no data leaks between uses.
 	Reset()
 }
 
 // Pool defines the interface for buffer pooling.
-// It abstracts the [bytebufferpool.Pool] type to avoid direct dependencies.
+// It abstracts the [bytebufferpool.Pool] type to avoid direct dependencies
+// and enable efficient memory reuse.
 //
-// Pool implementations must be safe for concurrent use by multiple goroutines.
+// Implementations must be safe for concurrent use by multiple goroutines.
 type Pool interface {
+	// Get returns a buffer from the pool.
+	//
+	// The returned buffer may contain garbage data and should be Reset()
+	// before use if not using Set/SetString.
+	//
+	// Returns:
+	//   - Buffer: A reusable buffer instance
 	Get() Buffer
+
+	// Put returns a buffer to the pool.
+	//
+	// The buffer should be Reset() before calling Put() to prevent data leaks.
+	//
+	// Parameters:
+	//   - b: Buffer to return to the pool
 	Put(b Buffer)
 }
 
