@@ -141,14 +141,36 @@
 
 ### Go Documentation Best Practices
 
+**Core Commands:**
 - View package documentation: `go doc -all github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain`
 - View specific function docs: `go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain`
 - View all exported functions: `go doc -all package/path | grep "^func [A-Z]"`
 - Verify documentation completeness: Compare `go doc -all package | grep -c "^func [A-Z]"` with actual exported functions
+
+**Advanced Flags:**
+- `-u`: Show unexported symbols as well as exported (reveals internal implementation)
+- `-c`: Symbol matching honors case (paths not affected)
+
+**Usage Patterns:**
 - Use `go doc` for quick reference during development without opening files
+- Use `go doc -u` to see internal implementation details and private functions
+
+**Documentation Quality:**
 - Check documentation formatting: `go doc` renders comments with proper formatting and links
 - View external module documentation: `go doc -all github.com/spf13/cobra` (requires module to be downloaded/cached)
 - View standard library docs: `go doc net/http.Get` or `go doc -all crypto/x509`
+
+**Examples:**
+```bash
+# Basic package documentation
+go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain
+
+# Comprehensive package docs with all symbols
+go doc -all github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain
+
+# Include unexported/private symbols
+go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain
+```
 
 ## Concurrency
 
