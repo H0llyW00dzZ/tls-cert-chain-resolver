@@ -1407,7 +1407,7 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 				t.Fatalf("Failed to encode message: %v", err)
 			}
 
-			t.Logf("Sending JSON-RPC request: %s", string(encodedData))
+			t.Logf("Sending JSON-RPC request: --> %s", string(encodedData))
 
 			// Write through bridge
 			err = bridge.Write(ctx, jsonrpcMsg)
@@ -1430,7 +1430,7 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 				t.Fatalf("Failed to encode message: %v", err)
 			}
 
-			t.Logf("Received JSON response: %s", string(wireData))
+			t.Logf("Received JSON-RPC response: <-- %s", string(wireData))
 
 			// Parse the response using proper wire format
 			var resp map[string]any
