@@ -144,8 +144,9 @@
 **Core Commands:**
 - View package documentation: `go doc -all github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain`
 - View specific function docs: `go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain`
-- View all exported functions: `go doc -all package/path | grep "^func [A-Z]"`
-- Verify documentation completeness: Compare `go doc -all package | grep -c "^func [A-Z]"` with actual exported functions
+- View all exported functions: `go doc -all github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [A-Z]"`
+- View all unexported functions: `go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [a-z]"`
+- Verify documentation completeness: Compare `go doc -u -all github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep -A 3 "^func "` with actual exported and unexported functions
 
 **Advanced Flags:**
 - `-u`: Show unexported symbols as well as exported (reveals internal implementation)
