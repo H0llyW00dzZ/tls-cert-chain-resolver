@@ -689,7 +689,7 @@ func handleVersionResource(ctx context.Context, request mcp.ReadResourceRequest)
 // The documentation is stored in templates/certificate-formats.md and provides
 // detailed information about certificate encoding formats and usage.
 func handleCertificateFormatsResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	content, err := MagicEmbed.ReadFile("certificate-formats.md")
+	content, err := MagicEmbed.ReadFile("templates/certificate-formats.md")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read certificate formats template: %w", err)
 	}
@@ -831,7 +831,7 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 	// Try to get AI analysis if API key is configured
 	if config.AI.APIKey != "" {
 		// Read system prompt from embedded template
-		systemPromptBytes, err := MagicEmbed.ReadFile("certificate-analysis-system-prompt.md")
+		systemPromptBytes, err := MagicEmbed.ReadFile("templates/certificate-analysis-system-prompt.md")
 		systemPrompt := ""
 		if err == nil {
 			systemPrompt = string(systemPromptBytes)
@@ -1554,7 +1554,7 @@ type toolInfo struct {
 // all available certificate analysis tools and workflows.
 func loadInstructions(tools []ToolDefinition, toolsWithConfig []ToolDefinitionWithConfig) (string, error) {
 	// Read the template file
-	templateBytes, err := MagicEmbed.ReadFile("X509_instructions.md")
+	templateBytes, err := MagicEmbed.ReadFile("templates/X509_instructions.md")
 	if err != nil {
 		return "", fmt.Errorf("failed to load MCP server instructions template: %w", err)
 	}
