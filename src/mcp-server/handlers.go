@@ -30,7 +30,7 @@ import (
 
 // MagicEmbed provides access to embedded template files for certificate analysis and documentation.
 //
-//go:embed templates/*
+//go:embed templates/*.md
 var MagicEmbed embed.FS
 
 // handleResolveCertChain resolves a certificate chain from a file path or base64-encoded certificate data.
