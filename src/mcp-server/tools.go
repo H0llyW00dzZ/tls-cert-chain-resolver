@@ -9,6 +9,18 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
+// Tool names as constants for consistency.
+// These constants represent the default tools provided by the server.
+const (
+	ToolResolveCertChain         = "resolve_cert_chain"
+	ToolValidateCertChain        = "validate_cert_chain"
+	ToolBatchResolveCertChain    = "batch_resolve_cert_chain"
+	ToolCheckCertExpiry          = "check_cert_expiry"
+	ToolFetchRemoteCert          = "fetch_remote_cert"
+	ToolAnalyzeCertificateWithAI = "analyze_certificate_with_ai"
+	ToolGetResourceUsage         = "get_resource_usage"
+)
+
 // createTools creates and returns all MCP tool definitions with their handlers.
 // It organizes tools into two categories: those that don't require configuration
 // and those that need access to the server configuration (e.g., for AI integration or timeouts).
@@ -32,7 +44,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 	// Tools that don't need config
 	tools := []ToolDefinition{
 		{
-			Tool: mcp.NewTool("resolve_cert_chain",
+			Tool: mcp.NewTool(ToolResolveCertChain,
 				mcp.WithDescription("Resolve X509 certificate chain from a certificate file or base64-encoded certificate data"),
 				mcp.WithString("certificate",
 					mcp.Required(),
@@ -55,7 +67,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    "chainResolver",
 		},
 		{
-			Tool: mcp.NewTool("validate_cert_chain",
+			Tool: mcp.NewTool(ToolValidateCertChain,
 				mcp.WithDescription("Validate a X509 certificate chain for correctness and trust"),
 				mcp.WithString("certificate",
 					mcp.Required(),
@@ -70,7 +82,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    "chainValidator",
 		},
 		{
-			Tool: mcp.NewTool("batch_resolve_cert_chain",
+			Tool: mcp.NewTool(ToolBatchResolveCertChain,
 				mcp.WithDescription("Resolve X509 certificate chains for multiple certificates in batch"),
 				mcp.WithString("certificates",
 					mcp.Required(),
@@ -93,7 +105,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    "batchResolver",
 		},
 		{
-			Tool: mcp.NewTool("get_resource_usage",
+			Tool: mcp.NewTool(ToolGetResourceUsage,
 				mcp.WithDescription("Get current resource usage statistics including memory, GC, and CPU information"),
 				mcp.WithBoolean("detailed",
 					mcp.Description("Include detailed memory breakdown (default: false)"),
@@ -112,7 +124,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 	// Tools that need config
 	toolsWithConfig := []ToolDefinitionWithConfig{
 		{
-			Tool: mcp.NewTool("check_cert_expiry",
+			Tool: mcp.NewTool(ToolCheckCertExpiry,
 				mcp.WithDescription("Check certificate expiry dates and warn about upcoming expirations"),
 				mcp.WithString("certificate",
 					mcp.Required(),
@@ -127,7 +139,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    "expiryChecker",
 		},
 		{
-			Tool: mcp.NewTool("fetch_remote_cert",
+			Tool: mcp.NewTool(ToolFetchRemoteCert,
 				mcp.WithDescription("Fetch X509 certificate chain from a remote hostname/port"),
 				mcp.WithString("hostname",
 					mcp.Required(),
@@ -154,7 +166,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    "remoteFetcher",
 		},
 		{
-			Tool: mcp.NewTool("analyze_certificate_with_ai",
+			Tool: mcp.NewTool(ToolAnalyzeCertificateWithAI,
 				mcp.WithDescription("Analyze certificate data using AI collaboration (requires bidirectional communication)"),
 				mcp.WithString("certificate",
 					mcp.Required(),
