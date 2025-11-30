@@ -1530,7 +1530,8 @@ func handleGetResourceUsage(ctx context.Context, request mcp.CallToolRequest) (*
 
 // instructionData holds the data used to populate the MCP server instructions template.
 type instructionData struct {
-	Tools []toolInfo
+	Tools     []toolInfo
+	ToolRoles map[string]string // Maps tool roles to tool names for template use
 }
 
 // toolInfo represents information about an MCP tool for template rendering.
@@ -1539,7 +1540,6 @@ type toolInfo struct {
 	Description string
 }
 
-// loadInstructions loads the server instructions from the embedded MCP server instructions template.
 // It parses the template with dynamic data from the provided tools and returns the rendered instructions as a string for MCP client initialization.
 //
 // Parameters:
@@ -1559,24 +1559,40 @@ func loadInstructions(tools []ToolDefinition, toolsWithConfig []ToolDefinitionWi
 		return "", fmt.Errorf("failed to load MCP server instructions template: %w", err)
 	}
 
-	// Extract tool info for template
+	// Extract tool info and build role mappings for template
 	var toolInfos []toolInfo
+	toolRoles := make(map[string]string)
+
 	for _, tool := range tools {
+		toolName := string(tool.Tool.Name)
 		toolInfos = append(toolInfos, toolInfo{
-			Name:        string(tool.Tool.Name),
+			Name:        toolName,
 			Description: tool.Tool.Description,
 		})
+
+		// Use the Role defined in the tool definition
+		if tool.Role != "" {
+			toolRoles[tool.Role] = toolName
+		}
 	}
+
 	for _, tool := range toolsWithConfig {
+		toolName := string(tool.Tool.Name)
 		toolInfos = append(toolInfos, toolInfo{
-			Name:        string(tool.Tool.Name),
+			Name:        toolName,
 			Description: tool.Tool.Description,
 		})
+
+		// Use the Role defined in the tool definition
+		if tool.Role != "" {
+			toolRoles[tool.Role] = toolName
+		}
 	}
 
 	// Prepare data for template
 	data := instructionData{
-		Tools: toolInfos,
+		Tools:     toolInfos,
+		ToolRoles: toolRoles,
 	}
 
 	// Parse the template

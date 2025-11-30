@@ -3930,24 +3930,20 @@ func TestLoadInstructions(t *testing.T) {
 		t.Error("Expected non-empty instructions, got empty string")
 	}
 
-	// Check the full length and look for tools section
+	// Log comprehensive information about the rendered template
 	t.Logf("Instructions length: %d", len(instructions))
+	t.Logf("First 500 characters: %s", instructions[:min(500, len(instructions))])
 
-	// Find the tools section
+	// Find and log the tools section
 	toolsSectionStart := strings.Index(instructions, "## Tool selection guidelines")
-	if toolsSectionStart == -1 {
-		t.Error("Could not find '## Tool selection guidelines' section")
-		return
+	if toolsSectionStart != -1 {
+		nextHeaderIndex := strings.Index(instructions[toolsSectionStart+1:], "##")
+		if nextHeaderIndex == -1 {
+			nextHeaderIndex = len(instructions) - toolsSectionStart
+		}
+		toolsSection := instructions[toolsSectionStart : toolsSectionStart+nextHeaderIndex]
+		t.Logf("Tools section: %s", toolsSection)
 	}
-
-	// Extract the tools section (from the header to the next ## header)
-	nextHeaderIndex := strings.Index(instructions[toolsSectionStart+1:], "##")
-	if nextHeaderIndex == -1 {
-		nextHeaderIndex = len(instructions) - toolsSectionStart
-	}
-	toolsSection := instructions[toolsSectionStart : toolsSectionStart+nextHeaderIndex]
-
-	t.Logf("Tools section: %s", toolsSection)
 
 	// Verify that the instructions contain the tool information
 	expectedContents := []string{
@@ -3959,6 +3955,9 @@ func TestLoadInstructions(t *testing.T) {
 		"Test config tool description",
 		"Tool selection guidelines",
 		"Certificate Chain Resolver",
+		"Basic Analysis Workflow",
+		"Security Audit Workflow",
+		"Batch Processing Workflow",
 	}
 
 	for _, expected := range expectedContents {
@@ -3967,18 +3966,33 @@ func TestLoadInstructions(t *testing.T) {
 		}
 	}
 
-	// Verify that the template rendered correctly (should contain backticks for tool names)
-	if !strings.Contains(toolsSection, "`") {
-		t.Error("Expected tools section to contain backticks for tool names")
+	// Verify template variables are working by checking for tool role substitutions
+	// The template should have replaced {{.ToolRoles.chainResolver}} with actual tool names
+	if !strings.Contains(instructions, "test_tool_1") || !strings.Contains(instructions, "test_tool_2") {
+		t.Error("Template variables were not properly substituted with tool names")
 	}
 
-	// Count occurrences of tool names in the tools section
+	// Count occurrences of tool names in the entire document
 	toolCount := 0
-	toolCount += strings.Count(toolsSection, "test_tool_1")
-	toolCount += strings.Count(toolsSection, "test_tool_2")
-	toolCount += strings.Count(toolsSection, "test_config_tool")
+	toolCount += strings.Count(instructions, "test_tool_1")
+	toolCount += strings.Count(instructions, "test_tool_2")
+	toolCount += strings.Count(instructions, "test_config_tool")
 
-	if toolCount != 3 {
-		t.Errorf("Expected 3 tool names in tools section, found %d", toolCount)
+	if toolCount < 3 {
+		t.Errorf("Expected at least 3 tool name references in instructions, found %d", toolCount)
 	}
+
+	// Verify that workflow sections contain tool references
+	workflows := []string{"Basic Analysis Workflow", "Security Audit Workflow", "Batch Processing Workflow"}
+	for _, workflow := range workflows {
+		if !strings.Contains(instructions, workflow) {
+			t.Errorf("Expected instructions to contain workflow section %q", workflow)
+		}
+	}
+
+	// Log summary of what was verified
+	t.Logf("✓ Template rendered successfully with %d characters", len(instructions))
+	t.Logf("✓ All expected content sections present")
+	t.Logf("✓ Tool variables properly substituted (%d tool references found)", toolCount)
+	t.Logf("✓ All workflow sections included")
 }

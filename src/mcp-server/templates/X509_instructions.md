@@ -4,7 +4,7 @@ These instructions describe how to efficiently work with [X.509](https://grokipe
 
 ## Detecting certificate operations
 
-At the start of every session involving certificates, you MUST use the `get_resource_usage` tool to verify the server is operational and check CRL cache status. The rest of these instructions apply whenever working with certificate analysis tasks.
+At the start of every session involving certificates, you MUST use the `{{.ToolRoles.resourceMonitor}}` tool to verify the server is operational and check CRL cache status. The rest of these instructions apply whenever working with certificate analysis tasks.
 
 ## Certificate analysis workflows
 
@@ -16,30 +16,30 @@ You may re-do parts of each workflow as necessary to recover from errors. Howeve
 
 The goal of the basic analysis workflow is to perform standard certificate validation and health checks.
 
-1. **Resolve certificate chain**: Start by using `resolve_cert_chain` to build a complete certificate chain from the provided certificate data. This ensures you have all necessary certificates for validation.
-   EXAMPLE: `resolve_cert_chain({"certificate":"path/to/cert.pem"})`
+1. **Resolve certificate chain**: Start by using `{{.ToolRoles.chainResolver}}` to build a complete certificate chain from the provided certificate data. This ensures you have all necessary certificates for validation.
+    EXAMPLE: `{{.ToolRoles.chainResolver}}({"certificate":"path/to/cert.pem"})`
 
-2. **Validate chain trust**: Immediately after resolution, use `validate_cert_chain` to verify the certificate chain's authenticity and trust relationships against system trust stores.
-   EXAMPLE: `validate_cert_chain({"certificate":"path/to/cert.pem"})`
+2. **Validate chain trust**: Immediately after resolution, use `{{.ToolRoles.chainValidator}}` to verify the certificate chain's authenticity and trust relationships against system trust stores.
+    EXAMPLE: `{{.ToolRoles.chainValidator}}({"certificate":"path/to/cert.pem"})`
 
-3. **Check expiry status**: Use `check_cert_expiry` to analyze certificate validity periods and identify upcoming expirations. Always specify appropriate warning thresholds based on organizational policies.
-   EXAMPLE: `check_cert_expiry({"certificate":"path/to/cert.pem","warn_days":30})`
+3. **Check expiry status**: Use `{{.ToolRoles.expiryChecker}}` to analyze certificate validity periods and identify upcoming expirations. Always specify appropriate warning thresholds based on organizational policies.
+    EXAMPLE: `{{.ToolRoles.expiryChecker}}({"certificate":"path/to/cert.pem","warn_days":30})`
 
-4. **Verify server health**: If the analysis involves server certificates, use `get_resource_usage` to ensure the certificate resolver service is operating correctly.
-   EXAMPLE: `get_resource_usage({"detailed":false,"format":"json"})`
+4. **Verify server health**: If the analysis involves server certificates, use `{{.ToolRoles.resourceMonitor}}` to ensure the certificate resolver service is operating correctly.
+    EXAMPLE: `{{.ToolRoles.resourceMonitor}}({"detailed":false,"format":"json"})`
 
 ### Security Audit Workflow
 
 The security audit workflow provides comprehensive security assessment and compliance checking.
 
-1. **Gather certificate data**: Begin by collecting all relevant certificates. For server certificates, use `fetch_remote_cert`. For local certificates, use `resolve_cert_chain`.
-   EXAMPLE: `fetch_remote_cert({"hostname":"example.com","port":443})`
+1. **Gather certificate data**: Begin by collecting all relevant certificates. For server certificates, use `{{.ToolRoles.remoteFetcher}}`. For local certificates, use `{{.ToolRoles.chainResolver}}`.
+    EXAMPLE: `{{.ToolRoles.remoteFetcher}}({"hostname":"example.com","port":443})`
 
-2. **Perform AI-powered analysis**: Use `analyze_certificate_with_ai` with the 'security' analysis type to get expert security assessment including cryptographic strength evaluation and vulnerability analysis.
-   EXAMPLE: `analyze_certificate_with_ai({"certificate":"cert.pem","analysis_type":"security"})`
+2. **Perform AI-powered analysis**: Use `{{.ToolRoles.aiAnalyzer}}` with the 'security' analysis type to get expert security assessment including cryptographic strength evaluation and vulnerability analysis.
+    EXAMPLE: `{{.ToolRoles.aiAnalyzer}}({"certificate":"cert.pem","analysis_type":"security"})`
 
-3. **Check compliance**: Re-run `analyze_certificate_with_ai` with the 'compliance' analysis type to verify adherence to CA/Browser Forum and NIST standards.
-   EXAMPLE: `analyze_certificate_with_ai({"certificate":"cert.pem","analysis_type":"compliance"})`
+3. **Check compliance**: Re-run `{{.ToolRoles.aiAnalyzer}}` with the 'compliance' analysis type to verify adherence to CA/Browser Forum and NIST standards.
+    EXAMPLE: `{{.ToolRoles.aiAnalyzer}}({"certificate":"cert.pem","analysis_type":"compliance"})`
 
 4. **Validate revocation mechanisms**: Ensure OCSP and CRL configurations are properly implemented by examining the certificate analysis results for revocation status information.
 
@@ -52,8 +52,8 @@ The batch processing workflow handles large-scale certificate analysis efficient
 1. **Prepare certificate list**: Collect all certificates to be analyzed and format them as a comma-separated list for batch processing.
    EXAMPLE: `"cert1.pem,cert2.pem,cert3.pem"`
 
-2. **Execute batch resolution**: Use `batch_resolve_cert_chain` to process multiple certificates simultaneously. This is more efficient than individual processing for large datasets.
-   EXAMPLE: `batch_resolve_cert_chain({"certificates":"cert1.pem,cert2.pem,cert3.pem"})`
+2. **Execute batch resolution**: Use `{{.ToolRoles.batchResolver}}` to process multiple certificates simultaneously. This is more efficient than individual processing for large datasets.
+    EXAMPLE: `{{.ToolRoles.batchResolver}}({"certificates":"cert1.pem,cert2.pem,cert3.pem"})`
 
 3. **Analyze results systematically**: For each certificate in the batch results, follow the Basic Analysis Workflow steps (validation, expiry checking).
 
@@ -77,8 +77,8 @@ These error handling procedures MUST be followed when tools return errors:
 
 ### Certificate Resolution Errors
 - **"Invalid certificate format"**: Verify the certificate data is properly formatted. Try different encodings (PEM ↔ DER ↔ Base64).
-- **"Certificate chain incomplete"**: Use `resolve_cert_chain` to fetch missing intermediate certificates.
-- **"Network connection failed"**: For `fetch_remote_cert`, verify hostname/port accessibility and network connectivity.
+- **"Certificate chain incomplete"**: Use `{{.ToolRoles.chainResolver}}` to fetch missing intermediate certificates.
+- **"Network connection failed"**: For `{{.ToolRoles.remoteFetcher}}`, verify hostname/port accessibility and network connectivity.
 
 ### Validation Errors
 - **"Certificate not trusted"**: Check if root CA certificates are properly installed or if the chain is incomplete.
@@ -89,14 +89,14 @@ These error handling procedures MUST be followed when tools return errors:
 - **"Analysis timeout"**: Retry with simpler analysis types or break complex requests into smaller parts.
 
 ### Resource Errors
-- **"Server unavailable"**: Use `get_resource_usage` to check server status and CRL cache health.
+- **"Server unavailable"**: Use `{{.ToolRoles.resourceMonitor}}` to check server status and CRL cache health.
 - **"Memory limit exceeded"**: Reduce batch sizes or use individual processing instead of batch operations.
 
 ## Security considerations
 
 You MUST prioritize security in all certificate operations:
 
-1. **Never trust certificates without validation**: Always run `validate_cert_chain` before accepting certificates as legitimate.
+1. **Never trust certificates without validation**: Always run `{{.ToolRoles.chainValidator}}` before accepting certificates as legitimate.
 
 2. **Check revocation status**: Ensure OCSP/CRL mechanisms are properly configured and current.
 
@@ -112,7 +112,8 @@ You MUST prioritize security in all certificate operations:
 
 Choose the appropriate tool based on the task requirements:
 {{range .Tools}}
-- **`{{.Name}}`**: {{.Description}}{{end}}
+- **`{{.Name}}`**: {{.Description}}
+{{- end}}
 
 ## Configuration requirements
 

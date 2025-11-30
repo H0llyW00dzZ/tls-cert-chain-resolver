@@ -52,6 +52,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleResolveCertChain,
+			Role:    "chainResolver",
 		},
 		{
 			Tool: mcp.NewTool("validate_cert_chain",
@@ -66,6 +67,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleValidateCertChain,
+			Role:    "chainValidator",
 		},
 		{
 			Tool: mcp.NewTool("batch_resolve_cert_chain",
@@ -88,6 +90,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleBatchResolveCertChain,
+			Role:    "batchResolver",
 		},
 		{
 			Tool: mcp.NewTool("get_resource_usage",
@@ -102,6 +105,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleGetResourceUsage,
+			Role:    "resourceMonitor",
 		},
 	}
 
@@ -120,6 +124,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleCheckCertExpiry,
+			Role:    "expiryChecker",
 		},
 		{
 			Tool: mcp.NewTool("fetch_remote_cert",
@@ -146,6 +151,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleFetchRemoteCert,
+			Role:    "remoteFetcher",
 		},
 		{
 			Tool: mcp.NewTool("analyze_certificate_with_ai",
@@ -160,6 +166,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleAnalyzeCertificateWithAI,
+			Role:    "aiAnalyzer",
 		},
 	}
 
