@@ -187,6 +187,16 @@ gopls_go_search("processMessages") → Find transport message processing with co
 gopls_go_search("SendJSONRPCNotification") → Find JSON-RPC notification sender for streaming
 gopls_go_search("ThinkingConfig") → Find AI thinking mode configuration (adk-go example)
 gopls_go_search("ThinkingBudget") → Find thinking mode budget settings
+gopls_go_search("ToolResolveCertChain") → Find tool name constants for MCP tool definitions
+gopls_go_search("ToolValidateCertChain") → Find validation tool constant
+gopls_go_search("ToolAnalyzeCertificateWithAI") → Find AI analysis tool constant
+gopls_go_search("RoleChainResolver") → Find tool role constants for template generation
+gopls_go_search("RoleAIAnalyzer") → Find AI analyzer role constant
+gopls_go_search("RoleResourceMonitor") → Find resource monitor role constant
+gopls_go_search("instructionData") → Find MCP instruction template data structure
+gopls_go_search("toolInfo") → Find tool info structure for template rendering
+gopls_go_search("loadInstructions") → Find MCP server instruction loader with dynamic template rendering
+gopls_go_search("WithInstructions") → Find ServerBuilder instruction configuration method
 ```
 
 ### gopls_go_file_context(file)
@@ -412,6 +422,33 @@ read("src/mcp-server/pipe.go")       # Pipe transport implementation with buffer
 read("src/mcp-server/adk_test.go")   # Comprehensive ADK transport tests with JSON-RPC cycle testing
 read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
 read("src/mcp-server/resource_usage.go")  # Resource usage monitoring and formatting functions
+read("src/mcp-server/tools.go")  # Tool definitions with constants (ToolResolveCertChain, RoleChainResolver, etc.)
+```
+
+### 3. Understanding Tool Constants and Roles (New Pattern)
+
+```
+# Find tool name constants (type-safe tool definitions)
+gopls_go_search("ToolResolveCertChain")  # Tool name constant
+gopls_go_search("ToolValidateCertChain")
+gopls_go_search("ToolAnalyzeCertificateWithAI")
+gopls_go_search("ToolGetResourceUsage")
+
+# Find tool role constants (for dynamic template generation)
+gopls_go_search("RoleChainResolver")     # Role constant for template
+gopls_go_search("RoleChainValidator")
+gopls_go_search("RoleAIAnalyzer")
+gopls_go_search("RoleResourceMonitor")
+
+# Find instruction template system
+gopls_go_search("loadInstructions")      # Template loader function
+gopls_go_search("instructionData")       # Template data structure
+gopls_go_search("toolInfo")              # Tool info for template rendering
+gopls_go_search("WithInstructions")      # ServerBuilder method for instructions
+
+# Read tool definitions
+read("src/mcp-server/tools.go")          # Tool constants and creation functions
+read("src/mcp-server/templates/X509_instructions.md")  # Instruction template with role placeholders
 ```
 # Understand CLI structure
 gopls_go_file_context("src/cli/root.go")
