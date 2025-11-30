@@ -95,6 +95,12 @@ func Run(version string) error {
 		return fmt.Errorf("config error: %w", err)
 	}
 
+	// Load server instructions
+	instructions, err := loadInstructions()
+	if err != nil {
+		return fmt.Errorf("failed to load instructions: %w", err)
+	}
+
 	// Create cancellable context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -121,6 +127,7 @@ func Run(version string) error {
 		WithDefaultTools().
 		WithResources(createResources()...).
 		WithPrompts(createPrompts()...).
+		WithInstructions(instructions).
 		Build()
 	if err != nil {
 		return fmt.Errorf("failed to build server: %w", err)

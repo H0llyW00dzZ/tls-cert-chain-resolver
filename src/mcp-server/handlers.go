@@ -1526,3 +1526,20 @@ func handleGetResourceUsage(ctx context.Context, request mcp.CallToolRequest) (*
 		}, nil
 	}
 }
+
+// loadInstructions loads the server instructions from the embedded MCP server instructions template.
+// It reads the template file and returns it as a string for MCP client initialization.
+//
+// Returns:
+//   - string: The instruction text describing server capabilities and tool usage
+//   - error: If the embedded file cannot be read
+//
+// The instructions provide MCP clients with comprehensive guidance on using
+// all available certificate analysis tools and workflows.
+func loadInstructions() (string, error) {
+	instructionsBytes, err := MagicEmbed.ReadFile("templates/X509_instructions.md")
+	if err != nil {
+		return "", fmt.Errorf("failed to load MCP server instructions template: %w", err)
+	}
+	return string(instructionsBytes), nil
+}

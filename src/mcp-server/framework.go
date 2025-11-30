@@ -198,6 +198,7 @@ type ToolDefinitionWithConfig struct {
 //   - Resources: List of static and dynamic resources provided by the server
 //   - Prompts: List of predefined prompts for guided workflows
 //   - SamplingHandler: Handler for bidirectional AI communication and streaming responses
+//   - Instructions: Server instructions for MCP clients describing capabilities and behavior
 //
 // This struct is used internally by ServerBuilder and should not be instantiated directly.
 type ServerDependencies struct {
@@ -211,6 +212,7 @@ type ServerDependencies struct {
 	Resources       []server.ServerResource
 	Prompts         []server.ServerPrompt
 	SamplingHandler client.SamplingHandler // Added for bidirectional AI communication
+	Instructions    string                 // Server instructions for MCP clients
 }
 
 // ServerBuilder helps construct the [MCP] server with proper dependencies using a fluent interface.
@@ -403,6 +405,22 @@ func (b *ServerBuilder) WithSampling(handler client.SamplingHandler) *ServerBuil
 	return b
 }
 
+// WithInstructions sets the server instructions for MCP clients.
+// It configures the server with instructions that describe its capabilities and behavior.
+//
+// Parameters:
+//   - instructions: The instruction text that will be provided to MCP clients
+//
+// Returns:
+//   - The ServerBuilder instance for method chaining
+//
+// Instructions help MCP clients understand how to interact with the server and what
+// capabilities are available. They are sent during the MCP initialization handshake.
+func (b *ServerBuilder) WithInstructions(instructions string) *ServerBuilder {
+	b.deps.Instructions = instructions
+	return b
+}
+
 // WithDefaultTools adds the default X509 certificate tools to the server.
 // It automatically registers all standard certificate-related tools using createTools.
 //
@@ -438,6 +456,7 @@ func (b *ServerBuilder) Build() (*server.MCPServer, error) {
 		server.WithToolCapabilities(true),
 		server.WithResourceCapabilities(true, true),
 		server.WithPromptCapabilities(true),
+		server.WithInstructions(b.deps.Instructions),
 	)
 
 	// Enable sampling for bidirectional AI communication if handler provided
