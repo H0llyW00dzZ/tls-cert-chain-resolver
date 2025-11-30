@@ -111,10 +111,8 @@ You MUST prioritize security in all certificate operations:
 ## Tool selection guidelines
 
 Choose the appropriate tool based on the task requirements:
-
 {{range .Tools}}
-- **`{{.Name}}`**: {{.Description}}
-{{end}}
+- **`{{.Name}}`**: {{.Description}}{{end}}
 
 ## Configuration requirements
 
