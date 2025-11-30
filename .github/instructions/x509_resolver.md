@@ -40,6 +40,7 @@ The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP ser
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic with OCSP/CRL revocation checking
 - **`src/mcp-server/`** — MCP server implementation with certificate tools
+- **`src/mcp-server/templates/X509_instructions.md`** — Server instructions for MCP client initialization
 
 ## Available Tools
 

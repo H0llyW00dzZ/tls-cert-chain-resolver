@@ -628,7 +628,7 @@ grep("ADKTransportBuilder\\|NewADKTransportBuilder\\|WithInMemoryTransport\\|Bui
 grep("handleStatusResource\\|status://server-status", include="*.go")
 
 # Find embedded templates
-grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
+grep("MagicEmbed\\|templates/certificate.*\\.md\\|templates/X509.*\\.md", include="*.go")
 
 # Find revocation checking patterns
 grep("CheckRevocationStatus\\|ParseCRLResponse\\|RevocationStatus\\|OCSPStatus\\|CRLStatus\\|getCachedCRL\\|setCachedCRL\\|tryOCSPServer\\|tryCRLDistributionPoint", include="*.go")

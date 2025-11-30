@@ -86,7 +86,8 @@ tls-cert-chain-resolver/
 │   │   ├── server.go                         # Server execution and lifecycle management
 │   │   ├── templates/
 │   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt used for sampling
-│   │   │   └── certificate-formats.md                    # Certificate format documentation
+│   │   │   ├── certificate-formats.md                    # Certificate format documentation
+│   │   │   └── X509_instructions.md                      # Server instructions for MCP client initialization
 │   │   ├── tools.go                          # Tool definitions and creation functions
 │   │   └── transport.go                      # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
 │   └── version/
@@ -668,6 +669,7 @@ src/mcp-server/tools.go
 src/mcp-server/transport.go  # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
 src/mcp-server/templates/certificate-analysis-system-prompt.md  # Embedded AI system prompt
 src/mcp-server/templates/certificate-formats.md
+src/mcp-server/templates/X509_instructions.md  # Server instructions for MCP client initialization
 
 
 # Certificate operations
