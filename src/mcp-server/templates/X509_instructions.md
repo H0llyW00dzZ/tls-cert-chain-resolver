@@ -112,13 +112,9 @@ You MUST prioritize security in all certificate operations:
 
 Choose the appropriate tool based on the task requirements:
 
-- **`resolve_cert_chain`**: FIRST tool to use for any certificate analysis
-- **`validate_cert_chain`**: SECOND tool, essential for trust verification
-- **`check_cert_expiry`**: THIRD tool, critical for operational security
-- **`fetch_remote_cert`**: When analyzing live server configurations
-- **`analyze_certificate_with_ai`**: For expert security assessment and compliance checking
-- **`batch_resolve_cert_chain`**: When processing 3+ certificates simultaneously
-- **`get_resource_usage`**: For monitoring server health and debugging issues
+{{range .Tools}}
+- **`{{.Name}}`**: {{.Description}}
+{{end}}
 
 ## Configuration requirements
 

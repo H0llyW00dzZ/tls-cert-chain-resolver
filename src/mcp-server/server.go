@@ -92,11 +92,17 @@ func Run(version string) error {
 	// Load configuration
 	config, err := loadConfig(os.Getenv("MCP_X509_CONFIG_FILE"))
 	if err != nil {
-		return fmt.Errorf("config error: %w", err)
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Load server instructions
-	instructions, err := loadInstructions()
+	// Create tools (called once and reused)
+	tools, toolsWithConfig := createTools()
+
+	// Load server instructions with tool information
+	//
+	// This approach is better as it uses dynamic content generation based on tools,
+	// instead of hardcoded values
+	instructions, err := loadInstructions(tools, toolsWithConfig)
 	if err != nil {
 		return fmt.Errorf("failed to load instructions: %w", err)
 	}
@@ -124,7 +130,8 @@ func Run(version string) error {
 		WithCertManager(x509certs.New()).
 		WithChainResolver(DefaultChainResolver{}).
 		WithSampling(NewDefaultSamplingHandler(config, version)).
-		WithDefaultTools().
+		WithTools(tools...).
+		WithToolsWithConfig(toolsWithConfig...).
 		WithResources(createResources()...).
 		WithPrompts(createPrompts()...).
 		WithInstructions(instructions).

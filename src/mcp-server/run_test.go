@@ -573,9 +573,9 @@ func TestRun_InvalidConfig(t *testing.T) {
 		t.Error("expected Run() to return an error with invalid config file")
 	}
 
-	// Error should mention config error
-	if !strings.Contains(err.Error(), "config error") {
-		t.Errorf("expected error to contain 'config error', got: %v", err)
+	// Error should mention config loading failure
+	if !strings.Contains(err.Error(), "failed to load config") {
+		t.Errorf("expected error to contain 'failed to load config', got: %v", err)
 	}
 }
 
@@ -3895,4 +3895,90 @@ func (m *mockSamplingHandler) CreateMessage(ctx context.Context, req mcp.CreateM
 		Model:      "mock-model",
 		StopReason: "stop",
 	}, nil
+}
+
+func TestLoadInstructions(t *testing.T) {
+	// Create mock tool definitions
+	mockTools := []ToolDefinition{
+		{
+			Tool: mcp.NewTool("test_tool_1",
+				mcp.WithDescription("Test tool 1 description"),
+			),
+		},
+		{
+			Tool: mcp.NewTool("test_tool_2",
+				mcp.WithDescription("Test tool 2 description"),
+			),
+		},
+	}
+
+	mockToolsWithConfig := []ToolDefinitionWithConfig{
+		{
+			Tool: mcp.NewTool("test_config_tool",
+				mcp.WithDescription("Test config tool description"),
+			),
+		},
+	}
+
+	// Call loadInstructions with mock data
+	instructions, err := loadInstructions(mockTools, mockToolsWithConfig)
+	if err != nil {
+		t.Fatalf("loadInstructions failed: %v", err)
+	}
+
+	if instructions == "" {
+		t.Error("Expected non-empty instructions, got empty string")
+	}
+
+	// Check the full length and look for tools section
+	t.Logf("Instructions length: %d", len(instructions))
+
+	// Find the tools section
+	toolsSectionStart := strings.Index(instructions, "## Tool selection guidelines")
+	if toolsSectionStart == -1 {
+		t.Error("Could not find '## Tool selection guidelines' section")
+		return
+	}
+
+	// Extract the tools section (from the header to the next ## header)
+	nextHeaderIndex := strings.Index(instructions[toolsSectionStart+1:], "##")
+	if nextHeaderIndex == -1 {
+		nextHeaderIndex = len(instructions) - toolsSectionStart
+	}
+	toolsSection := instructions[toolsSectionStart : toolsSectionStart+nextHeaderIndex]
+
+	t.Logf("Tools section: %s", toolsSection)
+
+	// Verify that the instructions contain the tool information
+	expectedContents := []string{
+		"test_tool_1",
+		"Test tool 1 description",
+		"test_tool_2",
+		"Test tool 2 description",
+		"test_config_tool",
+		"Test config tool description",
+		"Tool selection guidelines",
+		"Certificate Chain Resolver",
+	}
+
+	for _, expected := range expectedContents {
+		if !strings.Contains(instructions, expected) {
+			t.Errorf("Expected instructions to contain %q, but it didn't", expected)
+		}
+	}
+
+	// Verify that the template rendered correctly (should contain backticks for tool names)
+	if !strings.Contains(toolsSection, "`") {
+		t.Error("Expected tools section to contain backticks for tool names")
+	}
+
+	// Count occurrences of tool names in the tools section
+	toolCount := 0
+	toolCount += strings.Count(toolsSection, "test_tool_1")
+	toolCount += strings.Count(toolsSection, "test_tool_2")
+	toolCount += strings.Count(toolsSection, "test_config_tool")
+
+	if toolCount != 3 {
+		t.Errorf("Expected 3 tool names in tools section, found %d", toolCount)
+	}
 }
