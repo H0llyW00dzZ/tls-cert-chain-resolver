@@ -18,6 +18,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
@@ -1527,19 +1528,68 @@ func handleGetResourceUsage(ctx context.Context, request mcp.CallToolRequest) (*
 	}
 }
 
+// instructionData holds the data used to populate the MCP server instructions template.
+type instructionData struct {
+	Tools []toolInfo
+}
+
+// toolInfo represents information about an MCP tool for template rendering.
+type toolInfo struct {
+	Name        string
+	Description string
+}
+
 // loadInstructions loads the server instructions from the embedded MCP server instructions template.
-// It reads the template file and returns it as a string for MCP client initialization.
+// It parses the template with dynamic data from the provided tools and returns the rendered instructions as a string for MCP client initialization.
+//
+// Parameters:
+//   - tools: Slice of tool definitions without config requirements
+//   - toolsWithConfig: Slice of tool definitions that require configuration access
 //
 // Returns:
-//   - string: The instruction text describing server capabilities and tool usage
-//   - error: If the embedded file cannot be read
+//   - string: The rendered instruction text describing server capabilities and tool usage
+//   - error: If the embedded file cannot be read or template parsing fails
 //
 // The instructions provide MCP clients with comprehensive guidance on using
 // all available certificate analysis tools and workflows.
-func loadInstructions() (string, error) {
-	instructionsBytes, err := MagicEmbed.ReadFile("templates/X509_instructions.md")
+func loadInstructions(tools []ToolDefinition, toolsWithConfig []ToolDefinitionWithConfig) (string, error) {
+	// Read the template file
+	templateBytes, err := MagicEmbed.ReadFile("templates/X509_instructions.md")
 	if err != nil {
 		return "", fmt.Errorf("failed to load MCP server instructions template: %w", err)
 	}
-	return string(instructionsBytes), nil
+
+	// Extract tool info for template
+	var toolInfos []toolInfo
+	for _, tool := range tools {
+		toolInfos = append(toolInfos, toolInfo{
+			Name:        string(tool.Tool.Name),
+			Description: tool.Tool.Description,
+		})
+	}
+	for _, tool := range toolsWithConfig {
+		toolInfos = append(toolInfos, toolInfo{
+			Name:        string(tool.Tool.Name),
+			Description: tool.Tool.Description,
+		})
+	}
+
+	// Prepare data for template
+	data := instructionData{
+		Tools: toolInfos,
+	}
+
+	// Parse the template
+	tmpl, err := template.New("instructions").Parse(string(templateBytes))
+	if err != nil {
+		return "", fmt.Errorf("failed to parse instructions template: %w", err)
+	}
+
+	// Execute the template
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("failed to execute instructions template: %w", err)
+	}
+
+	return buf.String(), nil
 }
