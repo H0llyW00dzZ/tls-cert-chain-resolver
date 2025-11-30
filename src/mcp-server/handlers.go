@@ -30,7 +30,7 @@ import (
 
 // MagicEmbed provides access to embedded template files for certificate analysis and documentation.
 //
-//go:embed templates
+//go:embed templates/*.md
 var MagicEmbed embed.FS
 
 // handleResolveCertChain resolves a certificate chain from a file path or base64-encoded certificate data.
@@ -1596,6 +1596,8 @@ func loadInstructions(tools []ToolDefinition, toolsWithConfig []ToolDefinitionWi
 	}
 
 	// Parse the template
+	//
+	// TODO: Separate template and make it package level to generate dynamic content in the templates/ directory for reusability
 	tmpl, err := template.New("instructions").Parse(string(templateBytes))
 	if err != nil {
 		return "", fmt.Errorf("failed to parse instructions template: %w", err)
