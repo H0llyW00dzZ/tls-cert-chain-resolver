@@ -88,7 +88,7 @@ tls-cert-chain-resolver/
 │   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt used for sampling
 │   │   │   ├── certificate-formats.md                    # Certificate format documentation
 │   │   │   └── X509_instructions.md                      # Server instructions for MCP client initialization
-│   │   ├── tools.go                          # Tool definitions and creation functions
+│   │   ├── tools.go                          # Tool definitions with constants (ToolResolveCertChain, RoleChainResolver, etc.) and creation functions
 │   │   └── transport.go                      # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
 │   └── version/
 │       └── version.go                        # Version information and build metadata
@@ -665,7 +665,7 @@ src/mcp-server/resources.go  # MCP resource definitions and handlers (config, ve
 src/mcp-server/run_graceful_test.go  # Graceful shutdown test (non-Windows)
 src/mcp-server/run_test.go   # Comprehensive tool coverage tests with macOS skip for validation
 src/mcp-server/server.go
-src/mcp-server/tools.go
+src/mcp-server/tools.go  # Tool definitions with constants (ToolResolveCertChain, RoleChainResolver, etc.) and creation functions
 src/mcp-server/transport.go  # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
 src/mcp-server/templates/certificate-analysis-system-prompt.md  # Embedded AI system prompt
 src/mcp-server/templates/certificate-formats.md
@@ -847,10 +847,19 @@ grep("ADKTransportBuilder\\|NewADKTransportBuilder\\|WithInMemoryTransport\\|Bui
 grep("handleStatusResource\\|status://server-status", include="*.go")
 
 # Find embedded templates
-grep("MagicEmbed\\|templates/certificate.*\\.md", include="*.go")
+grep("MagicEmbed\\|templates/certificate.*\\.md\\|templates/X509.*\\.md", include="*.go")
 
 # Find resource usage monitoring patterns
 grep("ResourceUsageData\\|CollectResourceUsage\\|FormatResourceUsage", include="*.go")
+
+# Find tool name constants
+grep("ToolResolveCertChain\\|ToolValidateCertChain\\|ToolBatchResolveCertChain\\|ToolCheckCertExpiry\\|ToolFetchRemoteCert\\|ToolAnalyzeCertificateWithAI\\|ToolGetResourceUsage", include="*.go")
+
+# Find tool role constants
+grep("RoleChainResolver\\|RoleChainValidator\\|RoleBatchResolver\\|RoleExpiryChecker\\|RoleRemoteFetcher\\|RoleAIAnalyzer\\|RoleResourceMonitor", include="*.go")
+
+# Find instruction template patterns
+grep("loadInstructions\\|instructionData\\|toolInfo\\|WithInstructions", include="*.go")
 
 
 # Find graceful shutdown tests
