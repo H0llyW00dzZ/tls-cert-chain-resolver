@@ -3898,17 +3898,31 @@ func (m *mockSamplingHandler) CreateMessage(ctx context.Context, req mcp.CreateM
 }
 
 func TestLoadInstructions(t *testing.T) {
-	// Create mock tool definitions
+	// Create mock tool definitions with Roles to ensure template substitution works
 	mockTools := []ToolDefinition{
 		{
 			Tool: mcp.NewTool("test_tool_1",
 				mcp.WithDescription("Test tool 1 description"),
 			),
+			Role: "chainResolver", // Used in template
 		},
 		{
 			Tool: mcp.NewTool("test_tool_2",
 				mcp.WithDescription("Test tool 2 description"),
 			),
+			Role: "chainValidator", // Used in template
+		},
+		{
+			Tool: mcp.NewTool("test_tool_3",
+				mcp.WithDescription("Test tool 3 description"),
+			),
+			Role: "batchResolver", // Used in template
+		},
+		{
+			Tool: mcp.NewTool("test_tool_4",
+				mcp.WithDescription("Test tool 4 description"),
+			),
+			Role: "resourceMonitor", // Used in template
 		},
 	}
 
@@ -3917,6 +3931,19 @@ func TestLoadInstructions(t *testing.T) {
 			Tool: mcp.NewTool("test_config_tool",
 				mcp.WithDescription("Test config tool description"),
 			),
+			Role: "expiryChecker", // Used in template
+		},
+		{
+			Tool: mcp.NewTool("test_config_tool_2",
+				mcp.WithDescription("Test config tool 2 description"),
+			),
+			Role: "remoteFetcher", // Used in template
+		},
+		{
+			Tool: mcp.NewTool("test_config_tool_3",
+				mcp.WithDescription("Test config tool 3 description"),
+			),
+			Role: "aiAnalyzer", // Used in template
 		},
 	}
 
@@ -3943,6 +3970,19 @@ func TestLoadInstructions(t *testing.T) {
 		}
 		toolsSection := instructions[toolsSectionStart : toolsSectionStart+nextHeaderIndex]
 		t.Logf("Tools section: %s", toolsSection)
+	}
+
+	// Find and log the Basic Analysis Workflow section
+	workflowStart := strings.Index(instructions, "### Basic Analysis Workflow")
+	if workflowStart != -1 {
+		nextHeaderIndex := strings.Index(instructions[workflowStart+1:], "###")
+		if nextHeaderIndex == -1 {
+			nextHeaderIndex = len(instructions) - workflowStart
+		}
+		// Be careful not to go past the end of string
+		endIndex := min(len(instructions), workflowStart+nextHeaderIndex)
+		workflowSection := instructions[workflowStart:endIndex]
+		t.Logf("Basic Analysis Workflow section: %s", workflowSection)
 	}
 
 	// Verify that the instructions contain the tool information
