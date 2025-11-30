@@ -52,6 +52,48 @@ const (
 	ToolGetResourceUsage = "get_resource_usage"
 )
 
+// Tool roles as constants for consistency and type safety.
+// These constants define the functional roles of MCP tools within the certificate processing pipeline.
+// Each role represents a specific responsibility in the certificate lifecycle management.
+//
+// Role categories:
+//   - Chain operations: RoleChainResolver, RoleChainValidator, RoleBatchResolver
+//   - Monitoring: RoleExpiryChecker, RoleResourceMonitor
+//   - Remote operations: RoleRemoteFetcher
+//   - AI operations: RoleAIAnalyzer
+//
+// These constants ensure consistent role assignment across tool definitions
+// and provide clear functional categorization for tool capabilities.
+const (
+	// RoleChainResolver handles single certificate chain resolution operations.
+	// Responsible for building complete certificate chains from leaf certificates.
+	RoleChainResolver = "chainResolver"
+
+	// RoleChainValidator performs certificate chain validation and trust verification.
+	// Ensures certificate chains meet security and correctness requirements.
+	RoleChainValidator = "chainValidator"
+
+	// RoleBatchResolver manages bulk certificate chain processing operations.
+	// Optimizes performance for high-volume certificate processing scenarios.
+	RoleBatchResolver = "batchResolver"
+
+	// RoleExpiryChecker monitors certificate expiration dates and renewal requirements.
+	// Critical for certificate lifecycle management and preventing outages.
+	RoleExpiryChecker = "expiryChecker"
+
+	// RoleRemoteFetcher retrieves certificate chains from remote TLS endpoints.
+	// Enables analysis of server certificates without requiring local file access.
+	RoleRemoteFetcher = "remoteFetcher"
+
+	// RoleAIAnalyzer performs advanced certificate analysis using AI collaboration.
+	// Provides intelligent security assessments and actionable recommendations.
+	RoleAIAnalyzer = "aiAnalyzer"
+
+	// RoleResourceMonitor tracks server resource usage and performance metrics.
+	// Provides insights into memory usage, GC statistics, and CRL cache efficiency.
+	RoleResourceMonitor = "resourceMonitor"
+)
+
 // createTools creates and returns all MCP tool definitions with their handlers.
 // It organizes tools into two categories: those that don't require configuration
 // and those that need access to the server configuration (e.g., for AI integration or timeouts).
@@ -95,7 +137,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleResolveCertChain,
-			Role:    "chainResolver",
+			Role:    RoleChainResolver,
 		},
 		{
 			Tool: mcp.NewTool(ToolValidateCertChain,
@@ -110,7 +152,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleValidateCertChain,
-			Role:    "chainValidator",
+			Role:    RoleChainValidator,
 		},
 		{
 			Tool: mcp.NewTool(ToolBatchResolveCertChain,
@@ -133,7 +175,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleBatchResolveCertChain,
-			Role:    "batchResolver",
+			Role:    RoleBatchResolver,
 		},
 		{
 			Tool: mcp.NewTool(ToolGetResourceUsage,
@@ -148,7 +190,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleGetResourceUsage,
-			Role:    "resourceMonitor",
+			Role:    RoleResourceMonitor,
 		},
 	}
 
@@ -167,7 +209,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleCheckCertExpiry,
-			Role:    "expiryChecker",
+			Role:    RoleExpiryChecker,
 		},
 		{
 			Tool: mcp.NewTool(ToolFetchRemoteCert,
@@ -194,7 +236,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleFetchRemoteCert,
-			Role:    "remoteFetcher",
+			Role:    RoleRemoteFetcher,
 		},
 		{
 			Tool: mcp.NewTool(ToolAnalyzeCertificateWithAI,
@@ -209,7 +251,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleAnalyzeCertificateWithAI,
-			Role:    "aiAnalyzer",
+			Role:    RoleAIAnalyzer,
 		},
 	}
 
