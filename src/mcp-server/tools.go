@@ -9,16 +9,89 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-// Tool names as constants for consistency.
-// These constants represent the default tools provided by the server.
+// Tool names as constants for consistency and type safety.
+// These constants define the available MCP tools provided by the X509 certificate chain resolver server.
+// Each constant represents a specific certificate operation that can be invoked through the MCP protocol.
+//
+// Tool categories:
+//   - Chain resolution: resolve_cert_chain, batch_resolve_cert_chain
+//   - Validation: validate_cert_chain
+//   - Monitoring: check_cert_expiry, get_resource_usage
+//   - Remote operations: fetch_remote_cert
+//   - AI analysis: analyze_certificate_with_ai
+//
+// These constants ensure consistent tool naming across the MCP server implementation
+// and prevent typos in tool registration and invocation.
 const (
-	ToolResolveCertChain         = "resolve_cert_chain"
-	ToolValidateCertChain        = "validate_cert_chain"
-	ToolBatchResolveCertChain    = "batch_resolve_cert_chain"
-	ToolCheckCertExpiry          = "check_cert_expiry"
-	ToolFetchRemoteCert          = "fetch_remote_cert"
+	// ToolResolveCertChain resolves a single X509 certificate chain from file or base64 data.
+	// Used for building complete certificate chains from leaf certificates.
+	ToolResolveCertChain = "resolve_cert_chain"
+
+	// ToolValidateCertChain validates a certificate chain for correctness and trust.
+	// Performs comprehensive chain validation including signature verification and trust path validation.
+	ToolValidateCertChain = "validate_cert_chain"
+
+	// ToolBatchResolveCertChain processes multiple certificate chains in a single operation.
+	// Optimizes performance for bulk certificate processing scenarios.
+	ToolBatchResolveCertChain = "batch_resolve_cert_chain"
+
+	// ToolCheckCertExpiry monitors certificate expiration dates with configurable warning thresholds.
+	// Essential for certificate lifecycle management and renewal planning.
+	ToolCheckCertExpiry = "check_cert_expiry"
+
+	// ToolFetchRemoteCert retrieves certificate chains from remote TLS endpoints.
+	// Enables analysis of server certificates without local file access.
+	ToolFetchRemoteCert = "fetch_remote_cert"
+
+	// ToolAnalyzeCertificateWithAI performs advanced certificate analysis using AI collaboration.
+	// Provides security assessments, compliance checks, and actionable recommendations.
 	ToolAnalyzeCertificateWithAI = "analyze_certificate_with_ai"
-	ToolGetResourceUsage         = "get_resource_usage"
+
+	// ToolGetResourceUsage provides server resource usage statistics and CRL cache metrics.
+	// Includes memory usage, GC statistics, and performance monitoring data.
+	ToolGetResourceUsage = "get_resource_usage"
+)
+
+// Tool roles as constants for consistency and type safety.
+// These constants define the functional roles of MCP tools within the certificate processing pipeline.
+// Each role represents a specific responsibility in the certificate lifecycle management.
+//
+// Role categories:
+//   - Chain operations: RoleChainResolver, RoleChainValidator, RoleBatchResolver
+//   - Monitoring: RoleExpiryChecker, RoleResourceMonitor
+//   - Remote operations: RoleRemoteFetcher
+//   - AI operations: RoleAIAnalyzer
+//
+// These constants ensure consistent role assignment across tool definitions
+// and provide clear functional categorization for tool capabilities.
+const (
+	// RoleChainResolver handles single certificate chain resolution operations.
+	// Responsible for building complete certificate chains from leaf certificates.
+	RoleChainResolver = "chainResolver"
+
+	// RoleChainValidator performs certificate chain validation and trust verification.
+	// Ensures certificate chains meet security and correctness requirements.
+	RoleChainValidator = "chainValidator"
+
+	// RoleBatchResolver manages bulk certificate chain processing operations.
+	// Optimizes performance for high-volume certificate processing scenarios.
+	RoleBatchResolver = "batchResolver"
+
+	// RoleExpiryChecker monitors certificate expiration dates and renewal requirements.
+	// Critical for certificate lifecycle management and preventing outages.
+	RoleExpiryChecker = "expiryChecker"
+
+	// RoleRemoteFetcher retrieves certificate chains from remote TLS endpoints.
+	// Enables analysis of server certificates without requiring local file access.
+	RoleRemoteFetcher = "remoteFetcher"
+
+	// RoleAIAnalyzer performs advanced certificate analysis using AI collaboration.
+	// Provides intelligent security assessments and actionable recommendations.
+	RoleAIAnalyzer = "aiAnalyzer"
+
+	// RoleResourceMonitor tracks server resource usage and performance metrics.
+	// Provides insights into memory usage, GC statistics, and CRL cache efficiency.
+	RoleResourceMonitor = "resourceMonitor"
 )
 
 // createTools creates and returns all MCP tool definitions with their handlers.
@@ -64,7 +137,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleResolveCertChain,
-			Role:    "chainResolver",
+			Role:    RoleChainResolver,
 		},
 		{
 			Tool: mcp.NewTool(ToolValidateCertChain,
@@ -79,7 +152,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleValidateCertChain,
-			Role:    "chainValidator",
+			Role:    RoleChainValidator,
 		},
 		{
 			Tool: mcp.NewTool(ToolBatchResolveCertChain,
@@ -102,7 +175,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleBatchResolveCertChain,
-			Role:    "batchResolver",
+			Role:    RoleBatchResolver,
 		},
 		{
 			Tool: mcp.NewTool(ToolGetResourceUsage,
@@ -117,7 +190,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleGetResourceUsage,
-			Role:    "resourceMonitor",
+			Role:    RoleResourceMonitor,
 		},
 	}
 
@@ -136,7 +209,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleCheckCertExpiry,
-			Role:    "expiryChecker",
+			Role:    RoleExpiryChecker,
 		},
 		{
 			Tool: mcp.NewTool(ToolFetchRemoteCert,
@@ -163,7 +236,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleFetchRemoteCert,
-			Role:    "remoteFetcher",
+			Role:    RoleRemoteFetcher,
 		},
 		{
 			Tool: mcp.NewTool(ToolAnalyzeCertificateWithAI,
@@ -178,7 +251,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 			),
 			Handler: handleAnalyzeCertificateWithAI,
-			Role:    "aiAnalyzer",
+			Role:    RoleAIAnalyzer,
 		},
 	}
 
