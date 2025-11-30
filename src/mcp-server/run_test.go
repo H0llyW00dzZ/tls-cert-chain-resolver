@@ -1093,13 +1093,6 @@ func TestResourceHandlers(t *testing.T) {
 	}
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func TestAddResources(t *testing.T) {
 	// Create MCP server
 	s := server.NewMCPServer(
