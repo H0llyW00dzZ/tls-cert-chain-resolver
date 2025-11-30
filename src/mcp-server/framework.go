@@ -157,17 +157,19 @@ type ResourceHandler = func(ctx context.Context, request mcp.ReadResourceRequest
 // Prompt handlers are used for guided workflows like certificate analysis or security audits.
 type PromptHandler = func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error)
 
-// ToolDefinition holds a tool definition and its handler.
+// ToolDefinition holds a tool definition that doesn't require configuration access.
 // It pairs an MCP tool specification with its implementation function.
 //
 // Fields:
 //   - Tool: The MCP tool definition containing name, description, and input schema
 //   - Handler: The function that implements the tool's logic
+//   - Role: Semantic role identifier for template generation (e.g., "chainResolver")
 //
 // This struct is used when registering tools that don't require configuration access.
 type ToolDefinition struct {
 	Tool    mcp.Tool
 	Handler ToolHandler
+	Role    string
 }
 
 // ToolDefinitionWithConfig holds a tool definition that requires configuration access.
@@ -176,12 +178,14 @@ type ToolDefinition struct {
 // Fields:
 //   - Tool: The MCP tool definition containing name, description, and input schema
 //   - Handler: The function that implements the tool's logic with config access
+//   - Role: Semantic role identifier for template generation (e.g., "expiryChecker")
 //
 // This struct is used for tools that need configuration like AI API keys or timeouts.
 // The handler receives a Config parameter in addition to the standard context and request.
 type ToolDefinitionWithConfig struct {
 	Tool    mcp.Tool
 	Handler ToolHandlerWithConfig
+	Role    string
 }
 
 // ServerDependencies holds all dependencies needed to create the MCP server.
