@@ -631,9 +631,7 @@ func (c *CRLCache) getStats() string {
 }
 
 // init initializes the CRL cache with default configuration.
-func init() {
-	crlCache.setConfig(&defaultCRLCacheConfig)
-}
+func init() { crlCache.setConfig(&defaultCRLCacheConfig) }
 
 // SetCRLCacheConfig sets CRL cache configuration.
 //
@@ -645,9 +643,7 @@ func init() {
 //   - config: New configuration options (nil uses defaults)
 //
 // Thread Safety: Safe for concurrent use.
-func SetCRLCacheConfig(config *CRLCacheConfig) {
-	crlCache.setConfig(config)
-}
+func SetCRLCacheConfig(config *CRLCacheConfig) { crlCache.setConfig(config) }
 
 // GetCRLCacheConfig returns current CRL cache configuration.
 //
@@ -658,9 +654,7 @@ func SetCRLCacheConfig(config *CRLCacheConfig) {
 //   - *CRLCacheConfig: Copy of current configuration
 //
 // Thread Safety: Safe for concurrent use.
-func GetCRLCacheConfig() *CRLCacheConfig {
-	return crlCache.getConfig()
-}
+func GetCRLCacheConfig() *CRLCacheConfig { return crlCache.getConfig() }
 
 // GetCRLCacheMetrics returns current cache metrics.
 //
@@ -671,9 +665,7 @@ func GetCRLCacheConfig() *CRLCacheConfig {
 //   - CRLCacheMetrics: Snapshot of current metrics including size, hits, misses, and memory usage
 //
 // Thread Safety: Safe for concurrent use.
-func GetCRLCacheMetrics() CRLCacheMetrics {
-	return crlCache.getMetrics()
-}
+func GetCRLCacheMetrics() CRLCacheMetrics { return crlCache.getMetrics() }
 
 // StartCRLCacheCleanup starts background cleanup goroutine with context for cancellation.
 //
@@ -688,9 +680,7 @@ func GetCRLCacheMetrics() CRLCacheMetrics {
 //   - ctx: Context for lifecycle management and cancellation
 //
 // Thread Safety: Safe for concurrent use.
-func StartCRLCacheCleanup(ctx context.Context) {
-	crlCache.startCleanup(ctx)
-}
+func StartCRLCacheCleanup(ctx context.Context) { crlCache.startCleanup(ctx) }
 
 // StopCRLCacheCleanup stops the running cleanup goroutine if any.
 //
@@ -698,9 +688,7 @@ func StartCRLCacheCleanup(ctx context.Context) {
 // for proper cleanup. If no cleanup goroutine is running, this is a no-op.
 //
 // Thread Safety: Safe for concurrent use.
-func StopCRLCacheCleanup() {
-	crlCache.stopCleanup()
-}
+func StopCRLCacheCleanup() { crlCache.stopCleanup() }
 
 // GetCachedCRL retrieves a fresh CRL from cache and updates access order.
 //
@@ -716,9 +704,7 @@ func StopCRLCacheCleanup() {
 //   - bool: true if found and fresh, false otherwise
 //
 // Thread Safety: Safe for concurrent use.
-func GetCachedCRL(url string) ([]byte, bool) {
-	return crlCache.get(url)
-}
+func GetCachedCRL(url string) ([]byte, bool) { return crlCache.get(url) }
 
 // validateCRLData validates CRL data and metadata before caching.
 //
@@ -790,9 +776,7 @@ func SetCachedCRL(url string, data []byte, nextUpdate time.Time) error {
 // cache state needs to be completely reset.
 //
 // Thread Safety: Safe for concurrent use.
-func ClearCRLCache() {
-	crlCache.clear()
-}
+func ClearCRLCache() { crlCache.clear() }
 
 // CleanupExpiredCRLs removes CRLs that have expired beyond their NextUpdate time.
 //
@@ -804,9 +788,7 @@ func ClearCRLCache() {
 // The operation updates cleanup metrics atomically.
 //
 // Thread Safety: Safe for concurrent use.
-func CleanupExpiredCRLs() {
-	crlCache.cleanupExpiredCRLs()
-}
+func CleanupExpiredCRLs() { crlCache.cleanupExpiredCRLs() }
 
 // GetCRLCacheStats returns a formatted string with cache statistics.
 //
@@ -818,6 +800,4 @@ func CleanupExpiredCRLs() {
 //   - string: Formatted statistics string with cache performance metrics
 //
 // Thread Safety: Safe for concurrent use.
-func GetCRLCacheStats() string {
-	return crlCache.getStats()
-}
+func GetCRLCacheStats() string { return crlCache.getStats() }
