@@ -16,14 +16,15 @@ import (
 // CRLCacheEntry represents a cached CRL with metadata.
 //
 // It stores the raw CRL data, fetch timestamp, next update time, and a reference
-// to the LRU node for efficient O(1) access and updates.
+// to the LRU node for efficient O(1) access and updates. The entry includes
+// freshness validation logic and memory usage calculations.
 //
 // Fields:
-//   - Data: Raw CRL data
-//   - FetchedAt: When this CRL was fetched
-//   - NextUpdate: When this CRL expires (from CRL.NextUpdate)
-//   - URL: Source URL for debugging
-//   - node: Pointer to LRU node for O(1) access
+//   - Data: Raw CRL data bytes
+//   - FetchedAt: Timestamp when this CRL was fetched from the source
+//   - NextUpdate: Expiration time from CRL.NextUpdate field
+//   - URL: Source URL for debugging and logging purposes
+//   - node: Pointer to LRU node for O(1) access order management
 type CRLCacheEntry struct {
 	Data       []byte    // Raw CRL data
 	FetchedAt  time.Time // When this CRL was fetched
@@ -32,10 +33,17 @@ type CRLCacheEntry struct {
 	node       *LRUNode  // Pointer to LRU node for O(1) access
 }
 
-// LRUNode represents a node in LRU doubly-linked list.
+// LRUNode represents a node in the LRU doubly-linked list.
 //
 // It maintains pointers to the previous and next nodes in the list,
-// enabling O(1) insertion, deletion, and movement.
+// enabling O(1) insertion, deletion, and movement operations for LRU eviction.
+// This doubly-linked list structure allows efficient reordering of nodes
+// when cache entries are accessed.
+//
+// Fields:
+//   - url: The CRL URL this node represents (used as cache key)
+//   - prev: Pointer to the previous node in the LRU list
+//   - next: Pointer to the next node in the LRU list
 type LRUNode struct {
 	url  string
 	prev *LRUNode
@@ -44,7 +52,15 @@ type LRUNode struct {
 
 // memoryUsage calculates approximate memory usage of this entry.
 //
-// It sums the size of raw data, URL string, and structural overhead.
+// It sums the size of raw CRL data, URL string, and structural overhead
+// including the doubly-linked list node. The calculation provides a
+// reasonable approximation for memory monitoring and cache size management.
+//
+// The calculation includes:
+//   - Raw CRL data size
+//   - URL string size
+//   - Fixed overhead for struct fields (pointers, time.Time structs)
+//   - LRU node overhead
 //
 // Returns:
 //   - int64: Approximate memory usage in bytes
@@ -61,8 +77,12 @@ func (entry *CRLCacheEntry) memoryUsage() int64 {
 
 // isFresh checks if cached CRL is still fresh.
 //
-// A CRL is considered fresh if its NextUpdate time is in the future (with 1 hour grace period)
-// and it was fetched within the last 24 hours.
+// A CRL is considered fresh if both conditions are met:
+//  1. NextUpdate time is in the future (with 1 hour grace period for clock skew)
+//  2. CRL was fetched within the last 24 hours (to ensure freshness)
+//
+// This dual check prevents using stale CRLs while allowing for reasonable
+// cache reuse within the validity period.
 //
 // Returns:
 //   - bool: true if fresh, false otherwise
@@ -75,7 +95,9 @@ func (entry *CRLCacheEntry) isFresh() bool {
 
 // isExpired checks if CRL has expired and should be cleaned up.
 //
-// A CRL is expired if its NextUpdate time has passed (with 1 hour grace period).
+// A CRL is expired if its NextUpdate time has passed (with 1 hour grace period
+// for clock skew and network delays). Expired CRLs are removed during cleanup
+// operations to prevent cache bloat and ensure revocation checking accuracy.
 //
 // Returns:
 //   - bool: true if expired, false otherwise
@@ -86,12 +108,32 @@ func (entry *CRLCacheEntry) isExpired() bool {
 }
 
 // CRLCacheConfig holds configuration for CRL cache.
+//
+// It defines the operational parameters for the cache including size limits
+// and cleanup intervals. These settings control memory usage and maintenance
+// behavior of the CRL cache.
+//
+// Fields:
+//   - MaxSize: Maximum number of CRLs to cache (0 = unlimited, but not recommended)
+//   - CleanupInterval: How often to run cleanup of expired CRLs
 type CRLCacheConfig struct {
 	MaxSize         int           // Maximum number of CRLs to cache (0 = unlimited, but not recommended)
 	CleanupInterval time.Duration // How often to run cleanup (default: 1 hour)
 }
 
-// CRLCacheMetrics tracks cache performance and usage.
+// CRLCacheMetrics tracks cache performance and usage statistics.
+//
+// It provides comprehensive metrics for monitoring cache efficiency,
+// memory usage, and operational health. All counters are atomic for
+// thread-safe access.
+//
+// Fields:
+//   - Size: Current number of cached CRL entries
+//   - Hits: Number of successful cache retrievals
+//   - Misses: Number of cache misses requiring network fetches
+//   - Evictions: Number of LRU evictions due to size limits
+//   - Cleanups: Number of expired CRL cleanups performed
+//   - TotalMemory: Approximate memory usage in bytes for all cached CRLs
 type CRLCacheMetrics struct {
 	Size        int64 // Current number of cached CRLs
 	Hits        int64 // Number of cache hits
@@ -118,10 +160,35 @@ var defaultCRLCacheConfig = CRLCacheConfig{
 	CleanupInterval: 1 * time.Hour,
 }
 
-// CRLCache implements an O(1) LRU cache for CRLs using hashmap + doubly-linked list.
+// CRLCache implements an O(1) LRU cache for Certificate Revocation Lists.
 //
 // It provides thread-safe operations for storing, retrieving, and managing
-// Certificate Revocation Lists with automatic expiration and size limits.
+// CRLs with automatic expiration and size limits. The implementation uses
+// a hashmap for O(1) lookups combined with a doubly-linked list for O(1)
+// LRU eviction and access order maintenance.
+//
+// The cache automatically cleans up expired CRLs based on their NextUpdate
+// field and enforces size limits through LRU eviction. All operations are
+// thread-safe using RWMutex for optimal concurrent access patterns.
+//
+// Key Features:
+//   - O(1) get, set, and eviction operations
+//   - Automatic expiration based on CRL NextUpdate field
+//   - Configurable size limits with LRU eviction
+//   - Background cleanup of expired entries
+//   - Comprehensive metrics and statistics
+//   - Thread-safe concurrent access
+//
+// Fields:
+//   - sync.RWMutex: Protects concurrent access with read/write locking
+//   - entries: Hashmap for O(1) CRL lookups by URL
+//   - head: LRU list head (least recently used)
+//   - tail: LRU list tail (most recently used)
+//   - config: Atomic configuration storage
+//   - stats: Atomic performance counters
+//   - cleanupRunning: Atomic flag for cleanup goroutine management
+//   - cleanupCancelMu: Mutex protecting cleanup cancellation
+//   - cleanupCancel: Context cancellation function for cleanup goroutine
 type CRLCache struct {
 	sync.RWMutex
 	entries         map[string]*CRLCacheEntry
@@ -572,74 +639,106 @@ func init() {
 //
 // It validates and applies the new configuration, potentially triggering
 // immediate pruning if the new max size is smaller than current cache size.
+// The configuration is stored atomically to ensure thread-safe access.
 //
 // Parameters:
-//   - config: New configuration options
+//   - config: New configuration options (nil uses defaults)
+//
+// Thread Safety: Safe for concurrent use.
 func SetCRLCacheConfig(config *CRLCacheConfig) {
 	crlCache.setConfig(config)
 }
 
 // GetCRLCacheConfig returns current CRL cache configuration.
 //
+// It returns a copy of the current configuration to prevent external
+// modification of the cached settings.
+//
 // Returns:
 //   - *CRLCacheConfig: Copy of current configuration
+//
+// Thread Safety: Safe for concurrent use.
 func GetCRLCacheConfig() *CRLCacheConfig {
 	return crlCache.getConfig()
 }
 
 // GetCRLCacheMetrics returns current cache metrics.
 //
-// It calculates total memory usage on demand and reads atomic counters.
+// It calculates total memory usage on demand and reads all atomic counters
+// to provide a consistent snapshot of cache performance and usage.
 //
 // Returns:
-//   - CRLCacheMetrics: Snapshot of current metrics
+//   - CRLCacheMetrics: Snapshot of current metrics including size, hits, misses, and memory usage
+//
+// Thread Safety: Safe for concurrent use.
 func GetCRLCacheMetrics() CRLCacheMetrics {
 	return crlCache.getMetrics()
 }
 
 // StartCRLCacheCleanup starts background cleanup goroutine with context for cancellation.
 //
-// It ensures only one cleanup goroutine is running at a time. The goroutine
-// periodically removes expired CRLs based on the configured cleanup interval.
+// It ensures only one cleanup goroutine is running at a time using atomic operations.
+// The goroutine periodically removes expired CRLs based on the configured cleanup interval
+// and adapts to configuration changes dynamically.
+//
+// The cleanup process runs in the background and can be cancelled via context.
+// If the context is already cancelled when called, no goroutine is started.
 //
 // Parameters:
-//   - ctx: Context for lifecycle management
+//   - ctx: Context for lifecycle management and cancellation
+//
+// Thread Safety: Safe for concurrent use.
 func StartCRLCacheCleanup(ctx context.Context) {
 	crlCache.startCleanup(ctx)
 }
 
 // StopCRLCacheCleanup stops the running cleanup goroutine if any.
 //
-// It cancels the context associated with the cleanup goroutine.
+// It cancels the context associated with the cleanup goroutine and waits
+// for proper cleanup. If no cleanup goroutine is running, this is a no-op.
+//
+// Thread Safety: Safe for concurrent use.
 func StopCRLCacheCleanup() {
 	crlCache.stopCleanup()
 }
 
 // GetCachedCRL retrieves a fresh CRL from cache and updates access order.
 //
-// It checks if the CRL exists and is fresh. If found, it moves the entry
-// to the tail of the LRU list (mark as recently used) and returns a copy
-// of the data.
+// It checks if the CRL exists and is fresh (not expired and recently fetched).
+// If found, it moves the entry to the tail of the LRU list (marking as recently used)
+// and returns a copy of the data to prevent external modification.
 //
 // Parameters:
-//   - url: URL of the CRL
+//   - url: URL of the CRL to retrieve
 //
 // Returns:
 //   - []byte: Raw CRL data if found and fresh, nil otherwise
 //   - bool: true if found and fresh, false otherwise
+//
+// Thread Safety: Safe for concurrent use.
 func GetCachedCRL(url string) ([]byte, bool) {
 	return crlCache.get(url)
 }
 
 // validateCRLData validates CRL data and metadata before caching.
 //
+// It performs comprehensive validation to ensure only valid, reasonable CRLs
+// are cached. The validation includes:
+//
+//   - Data integrity: Non-empty CRL data
+//   - URL validation: Non-empty source URL
+//   - Timestamp sanity: NextUpdate time within reasonable bounds (not too far past/future)
+//
+// This prevents caching obviously corrupted or malicious CRL data while
+// allowing legitimate CRLs with reasonable validity periods.
+//
 // Parameters:
-//   - url: Source URL
-//   - data: Raw CRL data
-//   - nextUpdate: Expiration time from CRL
+//   - url: Source URL of the CRL
+//   - data: Raw CRL data bytes
+//   - nextUpdate: Expiration time from CRL.NextUpdate field
 //
 // Returns:
-//   - error: Error if validation fails
+//   - error: Validation error if any check fails, nil if valid
 func validateCRLData(url string, data []byte, nextUpdate time.Time) error {
 	if len(data) == 0 {
 		return fmt.Errorf("cannot cache empty CRL data")
@@ -663,24 +762,32 @@ func validateCRLData(url string, data []byte, nextUpdate time.Time) error {
 
 // SetCachedCRL stores a CRL in cache with metadata and implements LRU eviction.
 //
-// It validates the data, handles LRU eviction if cache is full, and updates
-// the cache. If an entry already exists, it updates it and moves it to the
-// tail of the list.
+// It validates the CRL data and metadata before caching, handles LRU eviction
+// if the cache is full, and updates the cache. If an entry already exists for
+// the URL, it updates the existing entry and moves it to the tail of the LRU list.
+//
+// The function performs comprehensive validation including data integrity checks,
+// URL validation, and reasonable timestamp validation to prevent caching
+// obviously invalid CRLs.
 //
 // Parameters:
-//   - url: Source URL
-//   - data: Raw CRL data
-//   - nextUpdate: Expiration time from CRL
+//   - url: Source URL of the CRL (used as cache key)
+//   - data: Raw CRL data bytes
+//   - nextUpdate: Expiration time from CRL.NextUpdate field
 //
 // Returns:
-//   - error: Error if validation fails
+//   - error: Error if validation fails or caching operation fails
+//
+// Thread Safety: Safe for concurrent use.
 func SetCachedCRL(url string, data []byte, nextUpdate time.Time) error {
 	return crlCache.set(url, data, nextUpdate)
 }
 
 // ClearCRLCache clears all cached CRLs (useful for testing).
 //
-// It resets the cache map, list, and metrics.
+// It resets the cache map, LRU linked list, and all performance metrics.
+// This operation is primarily intended for testing scenarios where
+// cache state needs to be completely reset.
 //
 // Thread Safety: Safe for concurrent use.
 func ClearCRLCache() {
@@ -689,7 +796,12 @@ func ClearCRLCache() {
 
 // CleanupExpiredCRLs removes CRLs that have expired beyond their NextUpdate time.
 //
-// It removes any entries whose NextUpdate time has passed.
+// It performs a two-phase cleanup: first collecting expired URLs without holding
+// locks, then removing them with minimal lock contention. This approach minimizes
+// the time locks are held while ensuring consistency.
+//
+// Only CRLs that have passed their NextUpdate time (with grace period) are removed.
+// The operation updates cleanup metrics atomically.
 //
 // Thread Safety: Safe for concurrent use.
 func CleanupExpiredCRLs() {
@@ -698,10 +810,14 @@ func CleanupExpiredCRLs() {
 
 // GetCRLCacheStats returns a formatted string with cache statistics.
 //
-// It formats current metrics and configuration into a human-readable string.
+// It formats current metrics, configuration, and performance data into a
+// human-readable string suitable for logging or monitoring. The output includes
+// cache size, memory usage, hit rate, eviction counts, and cleanup statistics.
 //
 // Returns:
-//   - string: Formatted statistics
+//   - string: Formatted statistics string with cache performance metrics
+//
+// Thread Safety: Safe for concurrent use.
 func GetCRLCacheStats() string {
 	return crlCache.getStats()
 }
