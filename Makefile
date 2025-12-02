@@ -10,6 +10,11 @@ LAST_COMMIT := $(shell git rev-parse --short HEAD)
 # Determine version
 VERSION := $(shell if [ "$(VERSION_TAG)" = "0.0.0" ]; then echo "$(VERSION_TAG)-$(LAST_COMMIT)"; else echo "$(VERSION_TAG)"; fi)
 
+# Variables
+BINARY_NAME = tls-cert-chain-resolver
+MCP_BINARY_NAME = x509-cert-chain-resolver
+BUILD_DIR = ./bin
+
 # Detect architecture for native builds using Go
 GOARCH_DETECTED := $(shell go env GOARCH)
 
