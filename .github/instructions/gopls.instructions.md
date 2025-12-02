@@ -403,6 +403,11 @@ gopls_go_search("StopCRLCacheCleanup") → Find CRL cache cleanup termination
 gopls_go_search("updateCacheOrder") → Find LRU access order management
 gopls_go_search("removeFromCacheOrder") → Find LRU order removal functions
 gopls_go_search("pruneCRLCache") → Find LRU eviction implementation
+gopls_go_search("cleanupExpiredCRLs") → Find expired CRL cleanup implementation
+gopls_go_search("GetCRLCacheStats") → Find CRL cache statistics formatting
+gopls_go_search("ClearCRLCache") → Find CRL cache clearing functions
+gopls_go_search("crlCacheCounters") → Find atomic counters for cache metrics
+gopls_go_search("LRUNode") → Find LRU linked list node structure
 
 # Understand MCP server package API
 gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])

@@ -1007,7 +1007,7 @@ func TestCRLCacheEviction(t *testing.T) {
 
 func TestCRLCacheCleanup_ContextCancellation(t *testing.T) {
 	// Reset the cleanup running flag to allow test instance
-	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
+	atomic.StoreInt32(&crlCache.cleanupRunning, 0)
 
 	// Create a cancelled context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -1020,21 +1020,21 @@ func TestCRLCacheCleanup_ContextCancellation(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Verify the flag is still 0 (goroutine didn't start or exited immediately)
-	if atomic.LoadInt32(&crlCacheCleanupRunning) != 0 {
+	if atomic.LoadInt32(&crlCache.cleanupRunning) != 0 {
 		t.Error("Cleanup goroutine should not be running after context cancellation")
 	}
 
 	// Clean up test state
 	ClearCRLCache()
 	StopCRLCacheCleanup()
-	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
+	atomic.StoreInt32(&crlCache.cleanupRunning, 0)
 }
 
 // TestCRLCacheCleanupMemoryLeak verifies that the cleanup goroutine doesn't leak tickers
 func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
 	// Stop any existing cleanup goroutine
 	StopCRLCacheCleanup()
-	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
+	atomic.StoreInt32(&crlCache.cleanupRunning, 0)
 
 	// Clear any existing cache state
 	ClearCRLCache()
@@ -1068,8 +1068,8 @@ func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
 	}
 
 	// Verify only one cleanup goroutine is running
-	if atomic.LoadInt32(&crlCacheCleanupRunning) != 1 {
-		t.Errorf("Expected 1 cleanup goroutine, got %d", atomic.LoadInt32(&crlCacheCleanupRunning))
+	if atomic.LoadInt32(&crlCache.cleanupRunning) != 1 {
+		t.Errorf("Expected 1 cleanup goroutine, got %d", atomic.LoadInt32(&crlCache.cleanupRunning))
 	}
 
 	// Check that we haven't created excessive goroutines
@@ -1088,7 +1088,7 @@ func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Should not leak goroutines - cleanup flag should be reset
-	if atomic.LoadInt32(&crlCacheCleanupRunning) != 0 {
+	if atomic.LoadInt32(&crlCache.cleanupRunning) != 0 {
 		t.Errorf("Cleanup goroutine did not shut down properly")
 	}
 
@@ -1104,7 +1104,7 @@ func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
 	// Clean up test state
 	ClearCRLCache()
 	StopCRLCacheCleanup()
-	atomic.StoreInt32(&crlCacheCleanupRunning, 0)
+	atomic.StoreInt32(&crlCache.cleanupRunning, 0)
 }
 
 func TestGetUserAgent(t *testing.T) {
