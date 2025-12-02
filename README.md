@@ -43,7 +43,7 @@ TLS Cert Chain Resolver is a Go toolkit for building, validating, and inspecting
 
 ## Quick Start
 
-Install the CLI with Go 1.25.4 or later:
+Install the CLI with Go 1.25.5 or later:
 
 ```bash
 go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest
