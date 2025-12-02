@@ -10,29 +10,35 @@ LAST_COMMIT := $(shell git rev-parse --short HEAD)
 # Determine version
 VERSION := $(shell if [ "$(VERSION_TAG)" = "0.0.0" ]; then echo "$(VERSION_TAG)-$(LAST_COMMIT)"; else echo "$(VERSION_TAG)"; fi)
 
-# Variables
-BINARY_NAME = tls-cert-chain-resolver
-MCP_BINARY_NAME = x509-cert-chain-resolver
-BUILD_DIR = ./bin
+# Detect architecture for native builds using Go
+GOARCH_DETECTED := $(shell go env GOARCH)
 
 # Default target
 all: build-linux build-macos build-windows build-mcp-linux build-mcp-macos build-mcp-windows
 
-# Checkout the latest tag or commit
+# Checkout the latest tag or commit (skip if uncommitted changes exist)
 checkout:
-	@git checkout $$( [ "$(GIT_TAG)" != "v0.0.0" ] && echo "$(GIT_TAG)" || echo "$(LAST_COMMIT)" )
+	@if git diff --quiet && git diff --staged --quiet; then \
+		git checkout $$( [ "$(GIT_TAG)" != "v0.0.0" ] && echo "$(GIT_TAG)" || echo "$(LAST_COMMIT)" ); \
+	else \
+		echo "Skipping checkout due to uncommitted changes."; \
+	fi
 
-# Return to the previous branch or commit
+# Return to the previous branch or commit (only if checkout was performed)
 return:
-	@git switch -
-	@echo "Returned to the previous branch or commit."
+	@if git diff --quiet && git diff --staged --quiet; then \
+		git switch -; \
+		echo "Returned to the previous branch or commit."; \
+	else \
+		echo "Skipped return due to uncommitted changes."; \
+	fi
 
 # Build the binary for Linux
 build-linux: checkout
-	@echo "Building $(BINARY_NAME) for Linux version $(VERSION)..."
-	@mkdir -p $(BUILD_DIR)/linux
-	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(BINARY_NAME) ./cmd
-	@echo "Build complete: $(BUILD_DIR)/linux/$(BINARY_NAME)"
+	@echo "Building $(BINARY_NAME) for Linux ($(GOARCH_DETECTED)) version $(VERSION)..."
+	@mkdir -p $(BUILD_DIR)/linux/$(GOARCH_DETECTED)
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH_DETECTED) go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(BINARY_NAME) ./cmd
+	@echo "Build complete: $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(BINARY_NAME)"
 	@$(MAKE) return
 
 # Build the binary for macOS (amd64)
@@ -64,10 +70,10 @@ build-windows: checkout
 
 # Build the MCP server binary for Linux
 build-mcp-linux: checkout
-	@echo "Building $(MCP_BINARY_NAME) for Linux version $(VERSION)..."
-	@mkdir -p $(BUILD_DIR)/linux
-	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(MCP_BINARY_NAME) ./cmd/mcp-server
-	@echo "Build complete: $(BUILD_DIR)/linux/$(MCP_BINARY_NAME)"
+	@echo "Building $(MCP_BINARY_NAME) for Linux ($(GOARCH_DETECTED)) version $(VERSION)..."
+	@mkdir -p $(BUILD_DIR)/linux/$(GOARCH_DETECTED)
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH_DETECTED) go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(MCP_BINARY_NAME) ./cmd/mcp-server
+	@echo "Build complete: $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(MCP_BINARY_NAME)"
 	@$(MAKE) return
 
 # Build the MCP server binary for macOS (amd64)
