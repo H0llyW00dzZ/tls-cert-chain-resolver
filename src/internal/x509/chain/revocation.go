@@ -419,7 +419,7 @@ func (ch *Chain) CheckRevocationStatus(ctx context.Context) (string, error) {
 
 			// If OCSP says good, certificate is good - CRL check not needed
 			if strings.Contains(ocspStatus.OCSPStatus, "Good") {
-				result.WriteString("  Final Status: GOOD (via OCSP)\n\n")
+				result.WriteString("  Final Status: Good (via OCSP)\n\n")
 				continue
 			}
 		}
@@ -434,7 +434,7 @@ func (ch *Chain) CheckRevocationStatus(ctx context.Context) (string, error) {
 			if strings.Contains(crlStatus.CRLStatus, "Revoked") {
 				result.WriteString("  Final Status: REVOKED (via CRL)\n")
 			} else if strings.Contains(crlStatus.CRLStatus, "Good") {
-				result.WriteString("  Final Status: GOOD (via CRL)\n")
+				result.WriteString("  Final Status: Good (via CRL)\n")
 			} else {
 				result.WriteString("  Final Status: UNKNOWN\n")
 			}
