@@ -495,7 +495,7 @@ func formatValueForMarkdown(value any, key string) string {
 				return "Never"
 			}
 			gcTime := time.Unix(0, int64(v))
-			return gcTime.Format("2006-01-02 15:04:05")
+			return gcTime.UTC().Format("January 2, 2006 at 3:04 PM MST")
 		}
 		return fmt.Sprintf("%d", v)
 	case float64:
