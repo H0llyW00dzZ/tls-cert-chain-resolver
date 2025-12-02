@@ -65,7 +65,7 @@
 ### Project Information
 
 **Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
-**Go Version**: 1.25.4+  
+**Go Version**: 1.25.5+  
 
 ### Dependencies
 
@@ -77,7 +77,7 @@
 - `google.golang.org/adk` v0.2.0 - Google ADK integration for MCP transport creation
 - `google.golang.org/genai` v1.36.0 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
-- `golang.org/x/crypto` v0.45.0 (via Go 1.25.4) - Standard crypto updates leveraged in recent releases
+- `golang.org/x/crypto` v0.45.0 (via Go 1.25.5) - Standard crypto updates leveraged in recent releases
 
 ### Code Formatting
 
