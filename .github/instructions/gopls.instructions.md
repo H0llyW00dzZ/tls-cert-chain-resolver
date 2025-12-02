@@ -394,10 +394,15 @@ gopls_go_search("security-audit") → Find security audit prompts
 gopls_go_search("CRLCacheEntry") → Find CRL cache entry structures
 gopls_go_search("CRLCacheConfig") → Find CRL cache configuration
 gopls_go_search("CRLCacheMetrics") → Find CRL cache metrics tracking
+gopls_go_search("CRLCache") → Find CRL cache encapsulated struct
+gopls_go_search("newCRLCache") → Find CRL cache constructor
 gopls_go_search("isFresh") → Find CRL freshness checking methods
 gopls_go_search("isExpired") → Find CRL expiration checking methods
-gopls_go_search("GetCachedCRL") → Find CRL cache retrieval functions
-gopls_go_search("SetCachedCRL") → Find CRL cache storage functions
+gopls_go_search("get") → Find internal CRL cache retrieval methods
+gopls_go_search("set") → Find internal CRL cache storage methods
+gopls_go_search("prune") → Find internal LRU eviction methods
+gopls_go_search("GetCachedCRL") → Find public CRL cache retrieval functions
+gopls_go_search("SetCachedCRL") → Find public CRL cache storage functions
 gopls_go_search("StartCRLCacheCleanup") → Find CRL cache cleanup lifecycle management
 gopls_go_search("StopCRLCacheCleanup") → Find CRL cache cleanup termination
 gopls_go_search("updateCacheOrder") → Find LRU access order management
