@@ -579,41 +579,6 @@ func SetCRLCacheConfig(config *CRLCacheConfig) {
 	crlCache.setConfig(config)
 }
 
-// addToTail adds a node to the tail (most recently used position).
-//
-// Parameters:
-//   - node: Node to add
-func addToTail(node *LRUNode) {
-	crlCache.addToTail(node)
-}
-
-// moveToTail moves a node to the tail (most recently used position).
-//
-// Parameters:
-//   - node: Node to move
-func moveToTail(node *LRUNode) {
-	crlCache.moveToTail(node)
-}
-
-// removeFromList removes a node from the linked list.
-//
-// Parameters:
-//   - node: Node to remove
-func removeFromList(node *LRUNode) {
-	crlCache.removeFromList(node)
-}
-
-// pruneCRLCache enforces cache size limits by evicting LRU entries.
-//
-// It removes entries from the head of the list (least recently used) until
-// the cache size is within the specified maximum.
-//
-// Parameters:
-//   - maxSize: Maximum number of entries allowed
-func pruneCRLCache(maxSize int) {
-	crlCache.prune(maxSize)
-}
-
 // GetCRLCacheConfig returns current CRL cache configuration.
 //
 // Returns:
@@ -703,29 +668,6 @@ func validateCRLData(url string, data []byte, nextUpdate time.Time) error {
 	}
 
 	return nil
-}
-
-// evictLRUEntries evicts entries to make room for new one if needed.
-//
-// It removes entries until cache size is within the limit.
-//
-// Parameters:
-//   - maxSize: Maximum number of entries allowed
-func evictLRUEntries(maxSize int) {
-	crlCache.evictLRUEntries(maxSize)
-}
-
-// createNewCacheEntry creates a new cache entry and adds it to the cache.
-//
-// It initializes a new LRU node and cache entry, then adds it to the
-// tail of the list.
-//
-// Parameters:
-//   - url: Source URL
-//   - data: Raw CRL data
-//   - nextUpdate: Expiration time
-func createNewCacheEntry(url string, data []byte, nextUpdate time.Time) {
-	crlCache.createNewCacheEntry(url, data, nextUpdate)
 }
 
 // SetCachedCRL stores a CRL in cache with metadata and implements LRU eviction.
