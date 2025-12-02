@@ -428,15 +428,15 @@ func (ch *Chain) CheckRevocationStatus(ctx context.Context) (string, error) {
 		crlStatus, crlErr := ch.checkCRLStatus(ctx, cert)
 		if crlErr != nil {
 			result.WriteString(fmt.Sprintf("  CRL Error: %v\n", crlErr))
-			result.WriteString("  Final Status: UNKNOWN (both OCSP and CRL unavailable)\n")
+			result.WriteString("  Final Status: Unknown (both OCSP and CRL unavailable)\n")
 		} else {
 			result.WriteString(fmt.Sprintf("  CRL Status: %s\n", crlStatus.CRLStatus))
 			if strings.Contains(crlStatus.CRLStatus, "Revoked") {
-				result.WriteString("  Final Status: REVOKED (via CRL)\n")
+				result.WriteString("  Final Status: Revoked (via CRL)\n")
 			} else if strings.Contains(crlStatus.CRLStatus, "Good") {
 				result.WriteString("  Final Status: Good (via CRL)\n")
 			} else {
-				result.WriteString("  Final Status: UNKNOWN\n")
+				result.WriteString("  Final Status: Unknown\n")
 			}
 		}
 
