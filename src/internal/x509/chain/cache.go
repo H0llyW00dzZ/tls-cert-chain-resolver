@@ -101,6 +101,14 @@ type CRLCacheMetrics struct {
 	TotalMemory int64 // Approximate memory usage in bytes
 }
 
+// crlCacheCounters holds atomic counters for internal use.
+type crlCacheCounters struct {
+	Hits      atomic.Int64
+	Misses    atomic.Int64
+	Evictions atomic.Int64
+	Cleanups  atomic.Int64
+}
+
 // crlCache is the global CRL cache instance.
 var crlCache = newCRLCache()
 
@@ -120,7 +128,7 @@ type CRLCache struct {
 	head            *LRUNode     // LRU (least recently used)
 	tail            *LRUNode     // MRU (most recently used)
 	config          atomic.Value // Stores *CRLCacheConfig
-	metrics         CRLCacheMetrics
+	stats           crlCacheCounters
 	cleanupRunning  int32 // Atomic flag to ensure only one cleanup goroutine
 	cleanupCancelMu sync.Mutex
 	cleanupCancel   context.CancelFunc
@@ -188,10 +196,10 @@ func (c *CRLCache) getMetrics() CRLCacheMetrics {
 	return CRLCacheMetrics{
 		Size:        int64(len(c.entries)),
 		TotalMemory: totalMemory,
-		Hits:        atomic.LoadInt64(&c.metrics.Hits),
-		Misses:      atomic.LoadInt64(&c.metrics.Misses),
-		Evictions:   atomic.LoadInt64(&c.metrics.Evictions),
-		Cleanups:    atomic.LoadInt64(&c.metrics.Cleanups),
+		Hits:        c.stats.Hits.Load(),
+		Misses:      c.stats.Misses.Load(),
+		Evictions:   c.stats.Evictions.Load(),
+		Cleanups:    c.stats.Cleanups.Load(),
 	}
 }
 
@@ -260,68 +268,60 @@ func (c *CRLCache) removeFromList(node *LRUNode) {
 	}
 }
 
+// removeOldest removes the least recently used entry (head).
+//
+// Caller must hold the lock.
+func (c *CRLCache) removeOldest() {
+	if c.head == nil {
+		return
+	}
+
+	// Remove least recently used (head of list)
+	lruURL := c.head.url
+	lruNode := c.head
+
+	// Update list pointers
+	c.head = lruNode.next
+	if c.head != nil {
+		c.head.prev = nil
+	} else {
+		// Cache is now empty
+		c.tail = nil
+	}
+
+	// Remove from cache map
+	delete(c.entries, lruURL)
+
+	// Update metrics
+	c.stats.Evictions.Add(1)
+}
+
 // prune enforces cache size limits by evicting LRU entries.
 func (c *CRLCache) prune(maxSize int) {
 	if maxSize <= 0 {
 		return
 	}
 
-	if len(c.entries) <= maxSize {
-		return
-	}
+	c.Lock()
+	defer c.Unlock()
 
-	removed := int64(0)
 	for len(c.entries) > maxSize {
 		if c.head == nil {
 			break
 		}
-
-		// Remove least recently used (head of list)
-		lruURL := c.head.url
-		lruNode := c.head
-
-		// Update head pointer
-		c.head = lruNode.next
-		if c.head != nil {
-			c.head.prev = nil
-		} else {
-			// Cache is now empty
-			c.tail = nil
-		}
-
-		// Remove from cache map
-		delete(c.entries, lruURL)
-		removed++
-	}
-
-	if removed > 0 {
-		atomic.AddInt64(&c.metrics.Evictions, removed)
+		c.removeOldest()
 	}
 }
 
 // evictLRUEntries evicts entries to make room for new one if needed.
+//
+// Caller must hold the lock.
 func (c *CRLCache) evictLRUEntries(maxSize int) {
 	for len(c.entries) >= maxSize && maxSize > 0 {
 		if c.head == nil {
 			break // No more entries to evict
 		}
-
-		// Remove least recently used (head of list)
-		lruURL := c.head.url
-		lruNode := c.head
-
-		// Update head pointer
-		c.head = lruNode.next
-		if c.head != nil {
-			c.head.prev = nil
-		} else {
-			// Cache is now empty
-			c.tail = nil
-		}
-
-		// Remove from cache map
-		delete(c.entries, lruURL)
-		atomic.AddInt64(&c.metrics.Evictions, 1)
+		c.removeOldest()
 	}
 }
 
@@ -366,7 +366,7 @@ func (c *CRLCache) cleanupExpiredCRLs() {
 
 	// Second pass: remove expired entries with write lock (brief)
 	if len(expiredURLs) > 0 {
-		var actuallyRemoved int
+		var actuallyRemoved int64
 		c.Lock()
 		for _, url := range expiredURLs {
 			if entry, exists := c.entries[url]; exists && entry.isExpired() {
@@ -381,7 +381,7 @@ func (c *CRLCache) cleanupExpiredCRLs() {
 		}
 		c.Unlock()
 
-		atomic.AddInt64(&c.metrics.Cleanups, int64(actuallyRemoved))
+		c.stats.Cleanups.Add(actuallyRemoved)
 	}
 }
 
@@ -392,7 +392,7 @@ func (c *CRLCache) get(url string) ([]byte, bool) {
 	entry, exists := c.entries[url]
 	if !exists || !entry.isFresh() {
 		c.RUnlock()
-		atomic.AddInt64(&c.metrics.Misses, 1)
+		c.stats.Misses.Add(1)
 		return nil, false
 	}
 
@@ -400,7 +400,7 @@ func (c *CRLCache) get(url string) ([]byte, bool) {
 	dataToCopy := entry.Data
 	c.RUnlock()
 
-	atomic.AddInt64(&c.metrics.Hits, 1)
+	c.stats.Hits.Add(1)
 
 	// Need write lock to update access order
 	c.Lock()
@@ -468,10 +468,10 @@ func (c *CRLCache) clear() {
 	c.tail = nil
 
 	// Reset metrics
-	atomic.StoreInt64(&c.metrics.Hits, 0)
-	atomic.StoreInt64(&c.metrics.Misses, 0)
-	atomic.StoreInt64(&c.metrics.Evictions, 0)
-	atomic.StoreInt64(&c.metrics.Cleanups, 0)
+	c.stats.Hits.Store(0)
+	c.stats.Misses.Store(0)
+	c.stats.Evictions.Store(0)
+	c.stats.Cleanups.Store(0)
 }
 
 // startCleanup starts background cleanup goroutine with context for cancellation.
