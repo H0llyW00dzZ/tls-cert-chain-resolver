@@ -615,15 +615,6 @@ func StopCRLCacheCleanup() {
 	crlCache.stopCleanup()
 }
 
-// cleanupExpiredCRLs removes CRLs that have expired beyond their NextUpdate time.
-//
-// It uses a two-pass approach to minimize lock contention:
-//  1. Identify expired URLs under read lock
-//  2. Remove expired entries under write lock
-func cleanupExpiredCRLs() {
-	crlCache.cleanupExpiredCRLs()
-}
-
 // GetCachedCRL retrieves a fresh CRL from cache and updates access order.
 //
 // It checks if the CRL exists and is fresh. If found, it moves the entry
@@ -698,12 +689,11 @@ func ClearCRLCache() {
 
 // CleanupExpiredCRLs removes CRLs that have expired beyond their NextUpdate time.
 //
-// This is a convenience wrapper around the internal cleanupExpiredCRLs function.
 // It removes any entries whose NextUpdate time has passed.
 //
 // Thread Safety: Safe for concurrent use.
 func CleanupExpiredCRLs() {
-	cleanupExpiredCRLs()
+	crlCache.cleanupExpiredCRLs()
 }
 
 // GetCRLCacheStats returns a formatted string with cache statistics.
