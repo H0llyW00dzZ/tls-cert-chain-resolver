@@ -98,7 +98,7 @@ tls-cert-chain-resolver/
 ├── LICENSE                                   # BSD 3-Clause License
 ├── Makefile                                  # Build commands
 ├── README.md                                 # Project documentation
-├── go.mod                                    # Go module definition (Go 1.25.4)
+├── go.mod                                    # Go module definition (Go 1.25.5)
 ├── go.sum                                    # Go dependency checksums
 └── opencode.json                             # OpenCode configuration
 ```
