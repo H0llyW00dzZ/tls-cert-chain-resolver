@@ -713,8 +713,8 @@ func TestConcurrentCleanupManagement(t *testing.T) {
 	}
 
 	// Verify cleanup state is correct
-	if atomic.LoadInt32(&crlCacheCleanupRunning) != 1 {
-		t.Errorf("Expected exactly 1 cleanup goroutine running, got %d", atomic.LoadInt32(&crlCacheCleanupRunning))
+	if atomic.LoadInt32(&crlCache.cleanupRunning) != 1 {
+		t.Errorf("Expected exactly 1 cleanup goroutine running, got %d", atomic.LoadInt32(&crlCache.cleanupRunning))
 	}
 
 	// Stop cleanup and verify proper shutdown
@@ -722,7 +722,7 @@ func TestConcurrentCleanupManagement(t *testing.T) {
 	time.Sleep(200 * time.Millisecond) // Wait for cleanup to exit
 
 	// Verify cleanup has stopped
-	if atomic.LoadInt32(&crlCacheCleanupRunning) != 0 {
+	if atomic.LoadInt32(&crlCache.cleanupRunning) != 0 {
 		t.Errorf("Expected cleanup goroutine to be stopped, but still running")
 	}
 }

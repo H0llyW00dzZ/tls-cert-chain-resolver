@@ -325,28 +325,16 @@ func BenchmarkLRUCacheScalability(b *testing.B) {
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size_%d", size), func(b *testing.B) {
 			// Temporarily modify cache size for this benchmark
-			originalConfig := crlCacheConfig.Load().(*CRLCacheConfig)
-			newConfig := &CRLCacheConfig{
+			originalConfig := GetCRLCacheConfig()
+			SetCRLCacheConfig(&CRLCacheConfig{
 				MaxSize:         size,
 				CleanupInterval: time.Hour,
-			}
-			crlCacheConfig.Store(newConfig)
+			})
 			defer func() {
-				crlCacheConfig.Store(originalConfig)
+				SetCRLCacheConfig(originalConfig)
 				// Clear cache to reset state
-				crlCacheMutex.Lock()
-				crlCache = make(map[string]*CRLCacheEntry)
-				crlCacheHead = nil
-				crlCacheTail = nil
-				crlCacheMutex.Unlock()
+				ClearCRLCache()
 			}()
-
-			// Reset cache with new size
-			crlCacheMutex.Lock()
-			crlCache = make(map[string]*CRLCacheEntry)
-			crlCacheHead = nil
-			crlCacheTail = nil
-			crlCacheMutex.Unlock()
 
 			b.ResetTimer()
 			for i := 0; b.Loop(); i++ {
