@@ -178,6 +178,11 @@ gopls_go_search("FormatResourceUsageAsMarkdown") → Find Markdown formatting fo
 gopls_go_search("ResourceUsageData") → Find resource usage data structures
 gopls_go_search("jsonrpc.Marshal") → Find JSON-RPC marshaling functions
 gopls_go_search("jsonrpc.Map") → Find JSON-RPC field normalization functions
+gopls_go_search("toGoMap") → Find Go map literal generation functions
+gopls_go_search("formatGoValue") → Find Go value formatting functions
+gopls_go_search("validateResources") → Find resource validation functions
+gopls_go_search("TestValidateResources") → Find resource validation tests
+gopls_go_search("TestToGoMap") → Find Go map generation tests
 gopls_go_search("jsonrpc.UnmarshalFromMap") → Find JSON-RPC unmarshaling helper
 gopls_go_search("normalizeIDValue") → Find ID value normalization functions
 gopls_go_search("getParams") → Find JSON-RPC parameter extraction helper (`src/mcp-server/helper.go`)

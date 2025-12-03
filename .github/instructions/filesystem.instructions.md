@@ -721,6 +721,7 @@ go.sum
 # Code Generation
 tools/codegen/run.go
 tools/codegen/internal/codegen.go
+tools/codegen/internal/codegen_test.go  # Comprehensive tests for parameter validation, tool generation, and resource annotations
 tools/codegen/config/prompts.json
 tools/codegen/config/resources.json
 tools/codegen/config/tools.json
