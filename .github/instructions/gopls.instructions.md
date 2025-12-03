@@ -41,6 +41,10 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 - **`src/internal/helper/jsonrpc/`** — JSON-RPC canonicalization helper for MCP transport normalization
   - **`docs.go`** — Package documentation
 - **`src/version/`** — Version information
+- **`tools/codegen/`** — Code generation for MCP server resources and tools
+  - **`config/`** — JSON configuration files for resources and tools
+  - **`internal/`** — Core code generation logic
+  - **`templates/`** — Go templates for generation
 
 ## Core Workflows
 
@@ -695,6 +699,10 @@ grep("buildCertificateContextWithRevocation\\|buildCertificateContext", include=
 # Find JSON-RPC normalization patterns
 grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue\\|UnmarshalFromMap", include="*.go")
 grep("getParams\\|getStringParam\\|getOptionalStringParam\\|getMapParam", include="*.go")
+
+# Find codegen logic
+grep("GenerateResources\\|GenerateTools", include="*.go")
+grep("ToolDefinition\\|ResourceDefinition", include="*.go")
 ```
 
 ## Summary

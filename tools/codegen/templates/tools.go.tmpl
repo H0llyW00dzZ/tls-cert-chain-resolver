@@ -1,0 +1,86 @@
+// Tool names as constants for consistency and type safety.
+const (
+{{- range .Tools}}
+	// {{.ConstName}} {{.Comment}}
+	{{.ConstName}} = "{{.Name}}"
+{{end}}
+)
+
+// Tool roles as constants for consistency and type safety.
+const (
+{{- range .Tools}}
+	// {{.RoleConst}} {{.RoleComment}}
+	{{.RoleConst}} = "{{.RoleName}}"
+{{end}}
+)
+
+// createTools creates and returns all MCP tool definitions with their handlers.
+// It organizes tools into two categories: those that don't require configuration
+// and those that need access to the server configuration (e.g., for AI integration or timeouts).
+//
+// Returns:
+//   - A slice of ToolDefinition for tools without config dependencies
+//   - A slice of ToolDefinitionWithConfig for tools that require server configuration
+//
+// The function defines the following tools:
+{{- range .Tools}}
+//   - {{.Name}}: {{.Description}}
+{{- end}}
+//
+// Each tool includes proper parameter definitions, descriptions, and default values
+// as required by the MCP specification.
+func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
+	// Tools that don't need config
+	tools := []ToolDefinition{
+{{- range .Tools}}
+{{- if not .WithConfig}}
+		{
+			Tool: mcp.NewTool({{.ConstName}},
+				mcp.WithDescription("{{.Description}}"),
+{{- range .Params}}
+				mcp.{{if eq .Type "string"}}WithString{{else if eq .Type "number"}}WithNumber{{else}}WithBoolean{{end}}("{{.Name}}",
+{{- if .Required}}
+					mcp.Required(),
+{{- end}}
+					mcp.Description("{{.Description}}"),
+{{- if and (not .Required) .Default}}
+					mcp.{{if eq .Type "string"}}DefaultString{{else if eq .Type "number"}}DefaultNumber{{else}}DefaultBool{{end}}({{.Default}}),
+{{- end}}
+				),
+{{- end}}
+			),
+			Handler: {{.Handler}},
+			Role:    {{.RoleConst}},
+		},
+{{- end}}
+{{- end}}
+	}
+
+	// Tools that need config
+	toolsWithConfig := []ToolDefinitionWithConfig{
+{{- range .Tools}}
+{{- if .WithConfig}}
+		{
+			Tool: mcp.NewTool({{.ConstName}},
+				mcp.WithDescription("{{.Description}}"),
+{{- range .Params}}
+				mcp.{{if eq .Type "string"}}WithString{{else if eq .Type "number"}}WithNumber{{else}}WithBoolean{{end}}("{{.Name}}",
+{{- if .Required}}
+					mcp.Required(),
+{{- end}}
+					mcp.Description("{{.Description}}"),
+{{- if and (not .Required) .Default}}
+					mcp.{{if eq .Type "string"}}DefaultString{{else if eq .Type "number"}}DefaultNumber{{else}}DefaultBool{{end}}({{.Default}}),
+{{- end}}
+				),
+{{- end}}
+			),
+			Handler: {{.Handler}},
+			Role:    {{.RoleConst}},
+		},
+{{- end}}
+{{- end}}
+	}
+
+	return tools, toolsWithConfig
+}

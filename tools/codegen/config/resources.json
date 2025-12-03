@@ -1,0 +1,32 @@
+{
+  "resources": [
+    {
+      "uri": "config://template",
+      "name": "Server Configuration Template",
+      "description": "Example configuration file for the MCP server",
+      "mimeType": "application/json",
+      "handler": "handleConfigResource"
+    },
+    {
+      "uri": "info://version",
+      "name": "Server Version Information",
+      "description": "Version and build information for the MCP server",
+      "mimeType": "application/json",
+      "handler": "handleVersionResource"
+    },
+    {
+      "uri": "docs://certificate-formats",
+      "name": "Certificate Format Documentation",
+      "description": "Documentation on supported certificate formats and usage",
+      "mimeType": "text/markdown",
+      "handler": "handleCertificateFormatsResource"
+    },
+    {
+      "uri": "status://server-status",
+      "name": "Server Status Information",
+      "description": "Current status and health information for the MCP server",
+      "mimeType": "application/json",
+      "handler": "handleStatusResource"
+    }
+  ]
+}

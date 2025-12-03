@@ -92,6 +92,18 @@ tls-cert-chain-resolver/
 │   │   └── transport.go                      # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
 │   └── version/
 │       └── version.go                        # Version information and build metadata
+├── tools/
+│   └── codegen/                              # Code generation for MCP server resources and tools
+│       ├── config/                           # Configuration files
+│       │   ├── resources.json                # Resource definitions
+│       │   └── tools.json                    # Tool definitions
+│       ├── internal/
+│       │   └── codegen.go                    # Core generation logic
+│       ├── templates/                        # Go templates
+│       │   ├── resources.go.tmpl
+│       │   └── tools.go.tmpl
+│       ├── README.md                         # Codegen documentation
+│       └── run.go                            # Entry point
 ├── .gitignore                                # Git ignore patterns
 ├── .ignore                                   # Tool ignore patterns (glob/grep)
 ├── AGENTS.md                                 # Primary agent guidelines
@@ -701,6 +713,11 @@ src/version/version.go
 Makefile
 go.mod
 go.sum
+
+# Code Generation
+tools/codegen/run.go
+tools/codegen/config/resources.json
+tools/codegen/config/tools.json
 
 # Documentation
 README.md
