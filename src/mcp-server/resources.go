@@ -19,6 +19,12 @@ import (
 // Returns:
 //   - A slice of server.ServerResource containing all static and dynamic resources
 //
+// The function defines the following resources:
+//   - config://template: Example configuration file for the MCP server
+//   - info://version: Version and build information for the MCP server
+//   - docs://certificate-formats: Documentation on supported certificate formats and usage
+//   - status://server-status: Current status and health information for the MCP server
+//
 // The function defines resources for configuration templates, version information,
 // certificate format documentation, and server status. These resources provide
 // static content and metadata to MCP clients. Each resource includes URI, name,
