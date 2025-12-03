@@ -364,7 +364,7 @@ Current external dependencies to research:
 - `google.golang.org/genai` v1.36.0 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
 - `golang.org/x/crypto` v0.45.0 - Supplementary cryptography libraries leveraged in recent releases
-- `golang/go` (standard library) - Review Go 1.25.4 crypto/tls and net/http updates
+- `golang/go` (standard library) - Review Go 1.25.5 crypto/tls and net/http updates
 
 ### Useful Queries for This Project
 

@@ -483,7 +483,7 @@ git add opencode.json AGENTS.md .github/instructions/
 git commit -m "Update Knowledge Base for Unix AI Agent to Reflect Recent Code Changes
 
 - [+] docs(opencode): remove duplicated repository context section
-- [+] docs(gopls): standardize Go version references to 1.25.4+"
+- [+] docs(gopls): standardize Go version references to 1.25.5+"
 ```
 
 **Benefits**:
