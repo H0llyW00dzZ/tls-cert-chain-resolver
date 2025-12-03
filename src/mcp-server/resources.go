@@ -30,39 +30,71 @@ import (
 func createResources() []server.ServerResource {
 	return []server.ServerResource{
 		{
-			Resource: mcp.NewResource(
-				"config://template",
-				"Server Configuration Template",
-				mcp.WithResourceDescription("Example configuration file for the MCP server"),
-				mcp.WithMIMEType("application/json"),
-			),
+			Resource: func() mcp.Resource {
+				res := mcp.NewResource(
+					"config://template",
+					"Server Configuration Template",
+					mcp.WithResourceDescription("Example configuration file for the MCP server"),
+					mcp.WithMIMEType("application/json"),
+					mcp.WithAnnotations([]mcp.Role{
+						mcp.RoleUser,
+						mcp.RoleAssistant,
+					}, 1),
+				)
+				res.Meta = mcp.NewMetaFromMap(map[string]any{"category": "configuration", "readOnly": true})
+				return res
+			}(),
 			Handler: handleConfigResource,
 		},
 		{
-			Resource: mcp.NewResource(
-				"info://version",
-				"Server Version Information",
-				mcp.WithResourceDescription("Version and build information for the MCP server"),
-				mcp.WithMIMEType("application/json"),
-			),
+			Resource: func() mcp.Resource {
+				res := mcp.NewResource(
+					"info://version",
+					"Server Version Information",
+					mcp.WithResourceDescription("Version and build information for the MCP server"),
+					mcp.WithMIMEType("application/json"),
+					mcp.WithAnnotations([]mcp.Role{
+						mcp.RoleUser,
+						mcp.RoleAssistant,
+					}, 0.8),
+				)
+				res.Meta = mcp.NewMetaFromMap(map[string]any{"category": "metadata", "readOnly": true})
+				return res
+			}(),
 			Handler: handleVersionResource,
 		},
 		{
-			Resource: mcp.NewResource(
-				"docs://certificate-formats",
-				"Certificate Format Documentation",
-				mcp.WithResourceDescription("Documentation on supported certificate formats and usage"),
-				mcp.WithMIMEType("text/markdown"),
-			),
+			Resource: func() mcp.Resource {
+				res := mcp.NewResource(
+					"docs://certificate-formats",
+					"Certificate Format Documentation",
+					mcp.WithResourceDescription("Documentation on supported certificate formats and usage"),
+					mcp.WithMIMEType("text/markdown"),
+					mcp.WithAnnotations([]mcp.Role{
+						mcp.RoleUser,
+						mcp.RoleAssistant,
+					}, 0.9),
+				)
+				res.Meta = mcp.NewMetaFromMap(map[string]any{"category": "documentation", "readOnly": true})
+				return res
+			}(),
 			Handler: handleCertificateFormatsResource,
 		},
 		{
-			Resource: mcp.NewResource(
-				"status://server-status",
-				"Server Status Information",
-				mcp.WithResourceDescription("Current status and health information for the MCP server"),
-				mcp.WithMIMEType("application/json"),
-			),
+			Resource: func() mcp.Resource {
+				res := mcp.NewResource(
+					"status://server-status",
+					"Server Status Information",
+					mcp.WithResourceDescription("Current status and health information for the MCP server"),
+					mcp.WithMIMEType("application/json"),
+					mcp.WithAnnotations([]mcp.Role{
+						mcp.RoleUser,
+						mcp.RoleAssistant,
+					}, 0.7),
+				)
+				res.Meta = mcp.NewMetaFromMap(map[string]any{"category": "monitoring", "readOnly": true})
+				return res
+			}(),
 			Handler: handleStatusResource,
 		},
 	}

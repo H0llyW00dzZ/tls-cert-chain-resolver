@@ -5,28 +5,52 @@
       "name": "Server Configuration Template",
       "description": "Example configuration file for the MCP server",
       "mimeType": "application/json",
-      "handler": "handleConfigResource"
+      "handler": "handleConfigResource",
+      "audience": ["user", "assistant"],
+      "priority": 1.0,
+      "meta": {
+        "category": "configuration",
+        "readOnly": true
+      }
     },
     {
       "uri": "info://version",
       "name": "Server Version Information",
       "description": "Version and build information for the MCP server",
       "mimeType": "application/json",
-      "handler": "handleVersionResource"
+      "handler": "handleVersionResource",
+      "audience": ["user", "assistant"],
+      "priority": 0.8,
+      "meta": {
+        "category": "metadata",
+        "readOnly": true
+      }
     },
     {
       "uri": "docs://certificate-formats",
       "name": "Certificate Format Documentation",
       "description": "Documentation on supported certificate formats and usage",
       "mimeType": "text/markdown",
-      "handler": "handleCertificateFormatsResource"
+      "handler": "handleCertificateFormatsResource",
+      "audience": ["user", "assistant"],
+      "priority": 0.9,
+      "meta": {
+        "category": "documentation",
+        "readOnly": true
+      }
     },
     {
       "uri": "status://server-status",
       "name": "Server Status Information",
       "description": "Current status and health information for the MCP server",
       "mimeType": "application/json",
-      "handler": "handleStatusResource"
+      "handler": "handleStatusResource",
+      "audience": ["user", "assistant"],
+      "priority": 0.7,
+      "meta": {
+        "category": "monitoring",
+        "readOnly": true
+      }
     }
   ]
 }

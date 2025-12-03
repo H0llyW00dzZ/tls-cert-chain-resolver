@@ -15,12 +15,25 @@ func createResources() []server.ServerResource {
 	return []server.ServerResource{
 {{- range .Resources}}
 		{
-			Resource: mcp.NewResource(
-				"{{.URI}}",
-				"{{.Name}}",
-				mcp.WithResourceDescription("{{.Description}}"),
-				mcp.WithMIMEType("{{.MIMEType}}"),
-			),
+			Resource: func() mcp.Resource {
+				res := mcp.NewResource(
+					"{{.URI}}",
+					"{{.Name}}",
+					mcp.WithResourceDescription("{{.Description}}"),
+					mcp.WithMIMEType("{{.MIMEType}}"),
+{{- if .Audience}}
+					mcp.WithAnnotations([]mcp.Role{
+{{- range .Audience}}
+						mcp.Role{{. | title}},
+{{- end}}
+					}, {{if .Priority}}{{.Priority}}{{else}}0.0{{end}}),
+{{- end}}
+				)
+{{- if .Meta}}
+				res.Meta = mcp.NewMetaFromMap({{.Meta | toGoMap}})
+{{- end}}
+				return res
+			}(),
 			Handler: {{.Handler}},
 		},
 {{- end}}

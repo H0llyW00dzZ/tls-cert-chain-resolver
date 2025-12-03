@@ -77,10 +77,10 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 					mcp.Pattern("{{.Pattern}}"),
 {{- end}}
 {{- if and (eq .Type "array") .Items}}
-					mcp.Items({{.Items | toJSON}}),
+					mcp.Items({{.Items | toGoMap}}),
 {{- end}}
 {{- if and (eq .Type "object") .Properties}}
-					mcp.Properties({{.Properties | toJSON}}),
+					mcp.Properties({{.Properties | toGoMap}}),
 {{- end}}
 {{- if and (not .Required) .Default}}
 					mcp.{{if eq .Type "string"}}DefaultString{{else if eq .Type "number"}}DefaultNumber{{else}}DefaultBool{{end}}({{.Default}}),
@@ -142,10 +142,10 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 					mcp.Pattern("{{.Pattern}}"),
 {{- end}}
 {{- if and (eq .Type "array") .Items}}
-					mcp.Items({{.Items | toJSON}}),
+					mcp.Items({{.Items | toGoMap}}),
 {{- end}}
 {{- if and (eq .Type "object") .Properties}}
-					mcp.Properties({{.Properties | toJSON}}),
+					mcp.Properties({{.Properties | toGoMap}}),
 {{- end}}
 {{- if and (not .Required) .Default}}
 					mcp.{{if eq .Type "string"}}DefaultString{{else if eq .Type "number"}}DefaultNumber{{else}}DefaultBool{{end}}({{.Default}}),
