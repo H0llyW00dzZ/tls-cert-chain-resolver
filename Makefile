@@ -24,7 +24,7 @@ all: build-linux build-macos build-windows build-mcp-linux build-mcp-macos build
 # Checkout the latest tag or commit (skip if uncommitted changes exist)
 checkout:
 	@if git diff --quiet && git diff --staged --quiet; then \
-		git checkout $$( [ "$(GIT_TAG)" != "v0.0.0" ] && echo "$(GIT_TAG)" || echo "$(LAST_COMMIT)" ); \
+		git checkout -q $$( [ "$(GIT_TAG)" != "v0.0.0" ] && echo "$(GIT_TAG)" || echo "$(LAST_COMMIT)" ) 2>/dev/null; \
 	else \
 		echo "Skipping checkout due to uncommitted changes."; \
 	fi
@@ -32,7 +32,7 @@ checkout:
 # Return to the previous branch or commit (only if checkout was performed)
 return:
 	@if git diff --quiet && git diff --staged --quiet; then \
-		git switch -; \
+		git switch -q - 2>/dev/null; \
 		echo "Returned to the previous branch or commit."; \
 	else \
 		echo "Skipped return due to uncommitted changes."; \
@@ -44,7 +44,7 @@ build-linux: checkout
 	@mkdir -p $(BUILD_DIR)/linux/$(GOARCH_DETECTED)
 	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH_DETECTED) go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(BINARY_NAME) ./cmd
 	@echo "Build complete: $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(BINARY_NAME)"
-	@$(MAKE) return
+	@$(MAKE) --no-print-directory return
 
 # Build the binary for macOS (amd64)
 build-macos-amd64: checkout
@@ -52,7 +52,7 @@ build-macos-amd64: checkout
 	@mkdir -p $(BUILD_DIR)/macos/amd64
 	@GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/amd64/$(BINARY_NAME) ./cmd
 	@echo "Build complete: $(BUILD_DIR)/macos/amd64/$(BINARY_NAME)"
-	@$(MAKE) return
+	@$(MAKE) --no-print-directory return
 
 # Build the binary for macOS (arm64)
 build-macos-arm64: checkout
@@ -60,7 +60,7 @@ build-macos-arm64: checkout
 	@mkdir -p $(BUILD_DIR)/macos/arm64
 	@GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/arm64/$(BINARY_NAME) ./cmd
 	@echo "Build complete: $(BUILD_DIR)/macos/arm64/$(BINARY_NAME)"
-	@$(MAKE) return
+	@$(MAKE) --no-print-directory return
 
 # Build the binary for macOS (both architectures)
 build-macos: build-macos-amd64 build-macos-arm64
@@ -71,7 +71,7 @@ build-windows: checkout
 	@mkdir -p $(BUILD_DIR)/windows
 	@GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/windows/$(BINARY_NAME).exe ./cmd
 	@echo "Build complete: $(BUILD_DIR)/windows/$(BINARY_NAME).exe"
-	@$(MAKE) return
+	@$(MAKE) --no-print-directory return
 
 # Build the MCP server binary for Linux
 build-mcp-linux: checkout
@@ -79,7 +79,7 @@ build-mcp-linux: checkout
 	@mkdir -p $(BUILD_DIR)/linux/$(GOARCH_DETECTED)
 	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH_DETECTED) go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(MCP_BINARY_NAME) ./cmd/mcp-server
 	@echo "Build complete: $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(MCP_BINARY_NAME)"
-	@$(MAKE) return
+	@$(MAKE) --no-print-directory return
 
 # Build the MCP server binary for macOS (amd64)
 build-mcp-macos-amd64: checkout
@@ -87,7 +87,7 @@ build-mcp-macos-amd64: checkout
 	@mkdir -p $(BUILD_DIR)/macos/amd64
 	@GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/amd64/$(MCP_BINARY_NAME) ./cmd/mcp-server
 	@echo "Build complete: $(BUILD_DIR)/macos/amd64/$(MCP_BINARY_NAME)"
-	@$(MAKE) return
+	@$(MAKE) --no-print-directory return
 
 # Build the MCP server binary for macOS (arm64)
 build-mcp-macos-arm64: checkout
@@ -95,7 +95,7 @@ build-mcp-macos-arm64: checkout
 	@mkdir -p $(BUILD_DIR)/macos/arm64
 	@GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/arm64/$(MCP_BINARY_NAME) ./cmd/mcp-server
 	@echo "Build complete: $(BUILD_DIR)/macos/arm64/$(MCP_BINARY_NAME)"
-	@$(MAKE) return
+	@$(MAKE) --no-print-directory return
 
 # Build the MCP server binary for macOS (both architectures)
 build-mcp-macos: build-mcp-macos-amd64 build-mcp-macos-arm64
@@ -106,7 +106,7 @@ build-mcp-windows: checkout
 	@mkdir -p $(BUILD_DIR)/windows
 	@GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/windows/$(MCP_BINARY_NAME).exe ./cmd/mcp-server
 	@echo "Build complete: $(BUILD_DIR)/windows/$(MCP_BINARY_NAME).exe"
-	@$(MAKE) return
+	@$(MAKE) --no-print-directory return
 
 # Build all MCP server binaries
 build-mcp: build-mcp-linux build-mcp-macos build-mcp-windows
