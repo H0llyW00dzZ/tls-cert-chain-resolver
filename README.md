@@ -212,16 +212,18 @@ tls-cert-chain-resolver/
 │   ├── mcp-server/       # MCP server framework, tools, prompts, resources
 │   └── version/          # Build metadata
 └── tools/
-    └── codegen/          # Code generation tool for MCP server resources and tools
+    └── codegen/          # Code generation tool for MCP server resources, tools, and prompts
         ├── run.go        # Main entry point
         ├── internal/
         │   └── codegen.go # Core generation logic
         ├── config/
         │   ├── resources.json  # Resource definitions
-        │   └── tools.json      # Tool definitions
+        │   ├── tools.json      # Tool definitions
+        │   └── prompts.json    # Prompt definitions
         ├── templates/
         │   ├── resources.go.tmpl  # Resources template
-        │   └── tools.go.tmpl      # Tools template
+        │   ├── tools.go.tmpl      # Tools template
+        │   └── prompts.go.tmpl    # Prompts template
         └── README.md      # Codegen documentation
 ```
 
