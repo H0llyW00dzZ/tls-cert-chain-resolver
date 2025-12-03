@@ -215,7 +215,8 @@ tls-cert-chain-resolver/
     └── codegen/          # Code generation tool for MCP server resources, tools, and prompts
         ├── run.go        # Main entry point
         ├── internal/
-        │   └── codegen.go # Core generation logic
+        │   ├── codegen.go      # Core generation logic
+        │   └── codegen_test.go # Codegen tests for parameter validation
         ├── config/
         │   ├── resources.json  # Resource definitions
         │   ├── tools.json      # Tool definitions
