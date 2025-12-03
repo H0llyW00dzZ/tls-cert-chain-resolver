@@ -21,6 +21,7 @@ import (
 type Config struct {
 	Resources []ResourceDefinition `json:"resources"`
 	Tools     []ToolDefinition     `json:"tools"`
+	Prompts   []PromptDefinition   `json:"prompts"`
 }
 
 // ResourceDefinition represents a resource to be generated
@@ -55,6 +56,20 @@ type ToolParam struct {
 	Default     string `json:"default,omitempty"` // For documentation or default value
 }
 
+// PromptDefinition represents a prompt to be generated
+type PromptDefinition struct {
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	Handler     string           `json:"handler"`
+	Arguments   []PromptArgument `json:"arguments"`
+}
+
+// PromptArgument represents an argument for a prompt
+type PromptArgument struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 // getCodegenDir returns the absolute path to the codegen directory
 func getCodegenDir() string {
 	_, currentFile, _, _ := runtime.Caller(0)
@@ -75,37 +90,32 @@ func getOutputPath(outputName string) string {
 func loadConfig() (*Config, error) {
 	config := &Config{}
 
-	codegenDir := getCodegenDir()
-
 	// Load resources
-	resourcesPath := filepath.Join(codegenDir, "config", "resources.json")
-	resourcesData, err := os.ReadFile(resourcesPath)
-	if err != nil {
-		return nil, fmt.Errorf("reading resources config from %s: %w", resourcesPath, err)
-	}
-
 	var resourcesWrapper struct {
 		Resources []ResourceDefinition `json:"resources"`
 	}
-	if err := json.Unmarshal(resourcesData, &resourcesWrapper); err != nil {
-		return nil, fmt.Errorf("parsing resources config: %w", err)
+	if err := loadJSON("resources.json", &resourcesWrapper); err != nil {
+		return nil, err
 	}
 	config.Resources = resourcesWrapper.Resources
 
 	// Load tools
-	toolsPath := filepath.Join(codegenDir, "config", "tools.json")
-	toolsData, err := os.ReadFile(toolsPath)
-	if err != nil {
-		return nil, fmt.Errorf("reading tools config from %s: %w", toolsPath, err)
-	}
-
 	var toolsWrapper struct {
 		Tools []ToolDefinition `json:"tools"`
 	}
-	if err := json.Unmarshal(toolsData, &toolsWrapper); err != nil {
-		return nil, fmt.Errorf("parsing tools config: %w", err)
+	if err := loadJSON("tools.json", &toolsWrapper); err != nil {
+		return nil, err
 	}
 	config.Tools = toolsWrapper.Tools
+
+	// Load prompts
+	var promptsWrapper struct {
+		Prompts []PromptDefinition `json:"prompts"`
+	}
+	if err := loadJSON("prompts.json", &promptsWrapper); err != nil {
+		return nil, err
+	}
+	config.Prompts = promptsWrapper.Prompts
 
 	// Validate configuration
 	if err := validateConfig(config); err != nil {
@@ -115,12 +125,28 @@ func loadConfig() (*Config, error) {
 	return config, nil
 }
 
+// loadJSON helper to reduce duplication in loading config files
+func loadJSON(filename string, target any) error {
+	path := filepath.Join(getCodegenDir(), "config", filename)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("reading config from %s: %w", path, err)
+	}
+	if err := json.Unmarshal(data, target); err != nil {
+		return fmt.Errorf("parsing config from %s: %w", path, err)
+	}
+	return nil
+}
+
 // validateConfig validates the loaded configuration
 func validateConfig(config *Config) error {
 	if err := validateResources(config.Resources); err != nil {
 		return err
 	}
 	if err := validateTools(config.Tools); err != nil {
+		return err
+	}
+	if err := validatePrompts(config.Prompts); err != nil {
 		return err
 	}
 	return nil
@@ -206,6 +232,43 @@ func validateToolParams(params []ToolParam, toolIndex int) error {
 	return nil
 }
 
+// validatePrompts validates prompt definitions
+func validatePrompts(prompts []PromptDefinition) error {
+	promptNames := make(map[string]bool)
+	for i, prompt := range prompts {
+		if prompt.Name == "" {
+			return fmt.Errorf("prompt %d: Name is required", i)
+		}
+		if prompt.Handler == "" {
+			return fmt.Errorf("prompt %d: Handler is required", i)
+		}
+		if promptNames[prompt.Name] {
+			return fmt.Errorf("prompt %d: duplicate name '%s'", i, prompt.Name)
+		}
+		promptNames[prompt.Name] = true
+
+		if err := validatePromptArguments(prompt.Arguments, i); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validatePromptArguments validates prompt arguments
+func validatePromptArguments(args []PromptArgument, promptIndex int) error {
+	argNames := make(map[string]bool)
+	for j, arg := range args {
+		if arg.Name == "" {
+			return fmt.Errorf("prompt %d arg %d: Name is required", promptIndex, j)
+		}
+		if argNames[arg.Name] {
+			return fmt.Errorf("prompt %d arg %d: duplicate argument name '%s'", promptIndex, j, arg.Name)
+		}
+		argNames[arg.Name] = true
+	}
+	return nil
+}
+
 // GenerateResources generates the resources.go file for the MCP server
 func GenerateResources() error {
 	config, err := loadConfig()
@@ -234,7 +297,7 @@ func generateFile(templatePath, outputPath string, config *Config, fileType stri
 	// Package and imports
 	code.WriteString("package mcpserver\n\n")
 	code.WriteString("import (\n")
-	if fileType == "resources" {
+	if fileType == "resources" || fileType == "prompts" {
 		code.WriteString("\t\"github.com/mark3labs/mcp-go/mcp\"\n")
 		code.WriteString("\t\"github.com/mark3labs/mcp-go/server\"\n")
 	} else {
@@ -261,6 +324,19 @@ func GenerateTools() error {
 	outputPath := getOutputPath("tools.go")
 
 	return generateFile(templatePath, outputPath, config, "tools")
+}
+
+// GeneratePrompts generates the prompts.go file for the MCP server
+func GeneratePrompts() error {
+	config, err := loadConfig()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	templatePath := getTemplatePath("prompts.go.tmpl")
+	outputPath := getOutputPath("prompts.go")
+
+	return generateFile(templatePath, outputPath, config, "prompts")
 }
 
 func writeHeader(code *bytes.Buffer) {

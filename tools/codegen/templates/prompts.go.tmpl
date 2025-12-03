@@ -1,0 +1,33 @@
+// createPrompts creates and returns all MCP prompt definitions with their handlers.
+//
+// This function defines the available MCP prompts for certificate analysis workflows.
+// Each prompt provides a structured approach to common certificate-related tasks,
+// including analysis, monitoring, auditing, and troubleshooting.
+//
+// Returns:
+//   - []server.ServerPrompt: Slice of server prompt definitions with their handlers
+//
+// The defined prompts are:
+{{- range .Prompts}}
+//   - {{.Name}}: {{.Description}}
+{{- end}}
+//
+// These prompts guide users through systematic approaches to certificate management
+// and provide context-specific instructions for using MCP tools effectively.
+func createPrompts() []server.ServerPrompt {
+	return []server.ServerPrompt{
+{{- range .Prompts}}
+		{
+			Prompt: mcp.NewPrompt("{{.Name}}",
+				mcp.WithPromptDescription("{{.Description}}"),
+{{- range .Arguments}}
+				mcp.WithArgument("{{.Name}}",
+					mcp.ArgumentDescription("{{.Description}}"),
+				),
+{{- end}}
+			),
+			Handler: {{.Handler}},
+		},
+{{- end}}
+	}
+}

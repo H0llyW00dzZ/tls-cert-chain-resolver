@@ -78,6 +78,7 @@ tls-cert-chain-resolver/
 │   │   ├── helper.go                         # Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
 │   │   ├── pipe.go                           # Pipe transport implementation for StdioServer input/output interception (sampling)
 │   │   ├── pipe_test.go                      # Pipe transport tests covering I/O performance, interception logic, and sampling response routing
+│   │   ├── prompt_handlers.go                # MCP prompt handlers (generated/custom mix)
 │   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
 │   │   ├── resource_usage.go                 # Resource usage monitoring and formatting functions
 │   │   ├── resources.go                      # MCP resource definitions and handlers (config, version, formats, status)
@@ -95,11 +96,13 @@ tls-cert-chain-resolver/
 ├── tools/
 │   └── codegen/                              # Code generation for MCP server resources and tools
 │       ├── config/                           # Configuration files
+│       │   ├── prompts.json                  # Prompt definitions
 │       │   ├── resources.json                # Resource definitions
 │       │   └── tools.json                    # Tool definitions
 │       ├── internal/
 │       │   └── codegen.go                    # Core generation logic
 │       ├── templates/                        # Go templates
+│       │   ├── prompts.go.tmpl
 │       │   ├── resources.go.tmpl
 │       │   └── tools.go.tmpl
 │       ├── README.md                         # Codegen documentation
@@ -716,8 +719,14 @@ go.sum
 
 # Code Generation
 tools/codegen/run.go
+tools/codegen/internal/codegen.go
+tools/codegen/config/prompts.json
 tools/codegen/config/resources.json
 tools/codegen/config/tools.json
+tools/codegen/templates/prompts.go.tmpl
+tools/codegen/templates/resources.go.tmpl
+tools/codegen/templates/tools.go.tmpl
+tools/codegen/README.md
 
 # Documentation
 README.md
