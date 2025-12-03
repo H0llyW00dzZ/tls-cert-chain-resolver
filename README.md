@@ -199,18 +199,30 @@ tls-cert-chain-resolver/
 │   ├── run.go            # CLI entry point
 │   └── mcp-server/
 │       └── run.go        # MCP server entry point
-└── src/
-    ├── cli/              # Cobra-based CLI implementation
-    ├── internal/
-    │   ├── helper/
-    │   │   ├── gc/       # Buffer pooling utilities
-    │   │   └── jsonrpc/  # JSON-RPC 2.0 normalization utilities
-    │   └── x509/
-    │       ├── certs/    # Certificate encoding/decoding helpers
-    │       └── chain/    # Chain resolution and revocation logic
-    ├── logger/           # Thread-safe logging abstraction
-    ├── mcp-server/       # MCP server framework, tools, prompts, resources
-    └── version/          # Build metadata
+├── src/
+│   ├── cli/              # Cobra-based CLI implementation
+│   ├── internal/
+│   │   ├── helper/
+│   │   │   ├── gc/       # Buffer pooling utilities
+│   │   │   └── jsonrpc/  # JSON-RPC 2.0 normalization utilities
+│   │   └── x509/
+│   │       ├── certs/    # Certificate encoding/decoding helpers
+│   │       └── chain/    # Chain resolution and revocation logic
+│   ├── logger/           # Thread-safe logging abstraction
+│   ├── mcp-server/       # MCP server framework, tools, prompts, resources
+│   └── version/          # Build metadata
+└── tools/
+    └── codegen/          # Code generation tool for MCP server resources and tools
+        ├── run.go        # Main entry point
+        ├── internal/
+        │   └── codegen.go # Core generation logic
+        ├── config/
+        │   ├── resources.json  # Resource definitions
+        │   └── tools.json      # Tool definitions
+        ├── templates/
+        │   ├── resources.go.tmpl  # Resources template
+        │   └── tools.go.tmpl      # Tools template
+        └── README.md      # Codegen documentation
 ```
 
 ### TODO List
