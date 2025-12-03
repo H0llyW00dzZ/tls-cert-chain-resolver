@@ -1,0 +1,64 @@
+{
+  "prompts": [
+    {
+      "name": "certificate-analysis",
+      "description": "Comprehensive certificate chain analysis workflow",
+      "handler": "handleCertificateAnalysisPrompt",
+      "arguments": [
+        {
+          "name": "certificate_path",
+          "description": "Path to certificate file or base64-encoded certificate data"
+        }
+      ]
+    },
+    {
+      "name": "expiry-monitoring",
+      "description": "Monitor certificate expiration dates and generate renewal alerts",
+      "handler": "handleExpiryMonitoringPrompt",
+      "arguments": [
+        {
+          "name": "certificate_path",
+          "description": "Path to certificate file or base64-encoded certificate data"
+        },
+        {
+          "name": "alert_days",
+          "description": "Number of days before expiry to alert (default: 30)"
+        }
+      ]
+    },
+    {
+      "name": "security-audit",
+      "description": "Perform comprehensive SSL/TLS security audit on a server",
+      "handler": "handleSecurityAuditPrompt",
+      "arguments": [
+        {
+          "name": "hostname",
+          "description": "Target hostname to audit"
+        },
+        {
+          "name": "port",
+          "description": "Port number (default: 443)"
+        }
+      ]
+    },
+    {
+      "name": "troubleshooting",
+      "description": "Troubleshoot common certificate and TLS issues",
+      "handler": "handleTroubleshootingPrompt",
+      "arguments": [
+        {
+          "name": "issue_type",
+          "description": "Type of issue: 'chain', 'validation', 'expiry', 'connection'"
+        },
+        {
+          "name": "certificate_path",
+          "description": "Path to certificate file or base64-encoded certificate data (for chain/validation/expiry issues)"
+        },
+        {
+          "name": "hostname",
+          "description": "Target hostname (for connection issues)"
+        }
+      ]
+    }
+  ]
+}

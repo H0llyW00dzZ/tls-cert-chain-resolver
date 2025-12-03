@@ -22,4 +22,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error generating tools: %v\n", err)
 		os.Exit(1)
 	}
+
+	if err := codegen.GeneratePrompts(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error generating prompts: %v\n", err)
+		os.Exit(1)
+	}
 }

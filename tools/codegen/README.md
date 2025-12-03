@@ -1,6 +1,6 @@
 # Codegen
 
-Generates MCP server resources and tools from configuration files. Refactored from a monolithic file into a maintainable, configuration-driven system using Go templates and JSON configuration.
+Generates MCP server resources, tools, and prompts from configuration files. Refactored from a monolithic file into a maintainable, configuration-driven system using Go templates and JSON configuration.
 
 ## Structure
 
@@ -11,10 +11,12 @@ tools/codegen/
 │   └── codegen.go         # Core generation logic
 ├── config/
 │   ├── resources.json     # Resource definitions
-│   └── tools.json         # Tool definitions
+│   ├── tools.json         # Tool definitions
+│   └── prompts.json       # Prompt definitions
 ├── templates/
 │   ├── resources.go.tmpl  # Resources template
-│   └── tools.go.tmpl      # Tools template
+│   ├── tools.go.tmpl      # Tools template
+│   └── prompts.go.tmpl    # Prompts template
 └── README.md              # This documentation
 ```
 
@@ -22,7 +24,7 @@ tools/codegen/
 
 ### 1. Configuration-Driven
 - Moved hard-coded data to JSON configuration files
-- Easy to add new resources/tools without touching code
+- Easy to add new resources/tools/prompts without touching code
 - Configuration validation ensures data integrity
 
 ### 2. Template-Based Generation
@@ -61,10 +63,11 @@ go generate ./src/mcp-server
 This will generate:
 - `src/mcp-server/resources.go`
 - `src/mcp-server/tools.go`
+- `src/mcp-server/prompts.go`
 
 The tool automatically finds its configuration and template files regardless of the current working directory.
 
-## Adding New Resources/Tools
+## Adding New Components
 
 ### Adding a Resource
 
@@ -116,6 +119,29 @@ The tool automatically finds its configuration and template files regardless of 
 
 2. Run the codegen tool
 
+### Adding a Prompt
+
+1. Edit `config/prompts.json`:
+```json
+{
+  "prompts": [
+    {
+      "name": "new-prompt",
+      "description": "Description of the new prompt",
+      "handler": "handleNewPrompt",
+      "arguments": [
+        {
+          "name": "arg1",
+          "description": "Description of argument"
+        }
+      ]
+    }
+  ]
+}
+```
+
+2. Run the codegen tool
+
 ## Configuration Format
 
 ### Resources
@@ -153,27 +179,43 @@ The tool automatically finds its configuration and template files regardless of 
 }
 ```
 
+### Prompts
+```jsonc
+{
+  "name": "string",          // Required: Prompt name
+  "description": "string",   // Required: Prompt description
+  "handler": "string",       // Required: Handler function name
+  "arguments": [             // Optional: Prompt arguments
+    {
+      "name": "string",        // Required: Argument name
+      "description": "string"  // Required: Argument description
+    }
+  ]
+}
+```
+
 ## Validation Rules
 
 The tool validates configuration on load:
 
 - **Resources**: URI, name, and handler must be non-empty; URIs must be unique
 - **Tools**: Name, constName, handler, and roleConst must be non-empty; names and role names must be unique
-- **Parameters**: Name and type must be non-empty; type must be "string", "number", or "boolean"; parameter names must be unique within a tool
+- **Prompts**: Name and handler must be non-empty; names must be unique
+- **Parameters/Arguments**: Names must be non-empty and unique within their parent
 
 ## Future Enhancements
 
-Due to the framework implementation in `src/mcp-server/`, it has better Go code style. Other components such as prompts will be added here into codegen later.
+Due to the framework implementation in `src/mcp-server/`, it has better Go code style. Other components will be added here into codegen later as needed.
 
 ### Todo List
 
-- [ ] Implement prompts codegen
-- [ ] Add other MCP components to codegen system
+- [x] Implement prompts codegen
+- [ ] Add other MCP components to codegen system if needed
 - [ ] Enhance template system for improved code style consistency
 
 ## Benefits
 
-1. **Maintainability**: Easy to add/modify resources and tools
+1. **Maintainability**: Easy to add/modify resources, tools, and prompts
 2. **Reliability**: Configuration validation prevents runtime errors
 3. **Readability**: Template-based generation is cleaner than string concatenation
 4. **Testability**: Modular design allows testing individual components
