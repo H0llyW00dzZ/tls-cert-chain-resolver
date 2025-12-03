@@ -106,6 +106,19 @@ The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes
 | `analyze_certificate_with_ai` | Delegate structured certificate analysis to a configured LLM |
 | `get_resource_usage` | Monitor server resource usage (memory, GC, system info) in JSON or markdown format |
 
+#### MCP Resources
+
+The MCP server provides static resources with annotations and metadata for enhanced client integration:
+
+| Resource | Purpose | Annotations |
+|----------|---------|-------------|
+| `config://template` | Server configuration template | User/Assistant access, priority 1.0 |
+| `info://version` | Version and capabilities info | User/Assistant access, priority 0.8 |
+| `docs://certificate-formats` | Certificate format documentation | User/Assistant access, priority 0.9 |
+| `status://server-status` | Current server health status | User/Assistant access, priority 0.7 |
+
+All resources include metadata for categorization and read-only status.
+
 #### Security considerations
 
 The remote fetcher sets `InsecureSkipVerify` on its TLS dialer so it can capture every handshake certificate without relying on the sandbox trust store. No verification is performed during that session; always validate the returned chain (for example with `VerifyChain`) before treating the endpoint as trusted, since a [man-in-the-middle](https://grokipedia.com/page/Man-in-the-middle_attack) could present an arbitrary certificate set.
