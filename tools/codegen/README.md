@@ -119,7 +119,7 @@ The tool automatically finds its configuration and template files regardless of 
 ## Configuration Format
 
 ### Resources
-```json
+```jsonc
 {
   "uri": "string",           // Required: Resource URI
   "name": "string",          // Required: Display name
@@ -130,7 +130,7 @@ The tool automatically finds its configuration and template files regardless of 
 ```
 
 ### Tools
-```json
+```jsonc
 {
   "constName": "string",     // Required: Constant name (e.g., "ToolName")
   "name": "string",          // Required: Tool name
