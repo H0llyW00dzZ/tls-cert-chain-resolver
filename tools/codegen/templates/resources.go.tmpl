@@ -4,6 +4,11 @@
 // Returns:
 //   - A slice of server.ServerResource containing all static and dynamic resources
 //
+// The function defines the following resources:
+{{- range .Resources}}
+//   - {{.URI}}: {{.Description}}
+{{- end}}
+//
 // The function defines resources for configuration templates, version information,
 // certificate format documentation, and server status. These resources provide
 // static content and metadata to MCP clients. Each resource includes URI, name,
