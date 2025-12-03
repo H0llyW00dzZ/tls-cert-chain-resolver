@@ -91,20 +91,24 @@ const (
 //   - analyze_certificate_with_ai: Analyze certificate data using AI collaboration (requires bidirectional communication)
 //   - get_resource_usage: Get current resource usage statistics including memory, GC, and CPU information
 //
-// Each tool includes proper parameter definitions, descriptions, and default values
-// as required by the MCP specification.
+// Each tool includes proper parameter definitions, descriptions, default values,
+// and MCP annotations as required by the MCP specification.
 func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 	// Tools that don't need config
 	tools := []ToolDefinition{
 		{
 			Tool: mcp.NewTool(ToolResolveCertChain,
 				mcp.WithDescription("Resolve X509 certificate chain from a certificate file or base64-encoded certificate data"),
+				mcp.WithReadOnlyHintAnnotation(true),
+				mcp.WithIdempotentHintAnnotation(true),
 				mcp.WithString("certificate",
 					mcp.Required(),
 					mcp.Description("Certificate file path or base64-encoded certificate data"),
+					mcp.MinLength(1),
 				),
 				mcp.WithString("format",
 					mcp.Description("Output format: 'pem', 'der', or 'json' (default: pem)"),
+					mcp.Enum("pem", "der", "json"),
 					mcp.DefaultString("pem"),
 				),
 				mcp.WithBoolean("include_system_root",
@@ -166,6 +170,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 				mcp.WithString("format",
 					mcp.Description("Output format: 'json' or 'markdown' (default: 'json')"),
+					mcp.Enum("json", "markdown"),
 					mcp.DefaultString("json"),
 				),
 			),
@@ -179,12 +184,17 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 		{
 			Tool: mcp.NewTool(ToolCheckCertExpiry,
 				mcp.WithDescription("Check certificate expiry dates and warn about upcoming expirations"),
+				mcp.WithReadOnlyHintAnnotation(true),
+				mcp.WithIdempotentHintAnnotation(true),
 				mcp.WithString("certificate",
 					mcp.Required(),
 					mcp.Description("Certificate file path or base64-encoded certificate data"),
+					mcp.MinLength(1),
 				),
 				mcp.WithNumber("warn_days",
 					mcp.Description("Number of days before expiry to show warning (default: 30)"),
+					mcp.Min(1),
+					mcp.Max(365),
 					mcp.DefaultNumber(30),
 				),
 			),
@@ -200,6 +210,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				),
 				mcp.WithNumber("port",
 					mcp.Description("Port number (default: 443)"),
+					mcp.Min(1),
 					mcp.DefaultNumber(443),
 				),
 				mcp.WithString("format",
@@ -228,6 +239,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 				mcp.WithString("analysis_type",
 					mcp.Required(),
 					mcp.Description("Type of analysis (required): 'security', 'compliance', 'general'"),
+					mcp.Enum("general", "security", "compliance"),
 				),
 			),
 			Handler: handleAnalyzeCertificateWithAI,

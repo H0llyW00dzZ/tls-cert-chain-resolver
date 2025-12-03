@@ -10,19 +10,23 @@
       "roleName": "chainResolver",
       "roleComment": "handles single certificate chain resolution operations.\n// Responsible for building complete certificate chains from leaf certificates.",
       "withConfig": false,
+      "readOnlyHintAnnotation": true,
+      "idempotentHintAnnotation": true,
       "params": [
         {
           "name": "certificate",
           "description": "Certificate file path or base64-encoded certificate data",
           "type": "string",
-          "required": true
+          "required": true,
+          "minLength": 1
         },
         {
           "name": "format",
           "description": "Output format: 'pem', 'der', or 'json' (default: pem)",
           "type": "string",
           "required": false,
-          "default": "\"pem\""
+          "default": "\"pem\"",
+          "enum": ["pem", "der", "json"]
         },
         {
           "name": "include_system_root",
@@ -116,19 +120,24 @@
       "roleName": "expiryChecker",
       "roleComment": "monitors certificate expiration dates and renewal requirements.\n// Critical for certificate lifecycle management and preventing outages.",
       "withConfig": true,
+      "readOnlyHintAnnotation": true,
+      "idempotentHintAnnotation": true,
       "params": [
         {
           "name": "certificate",
           "description": "Certificate file path or base64-encoded certificate data",
           "type": "string",
-          "required": true
+          "required": true,
+          "minLength": 1
         },
         {
           "name": "warn_days",
           "description": "Number of days before expiry to show warning (default: 30)",
           "type": "number",
           "required": false,
-          "default": "30"
+          "default": "30",
+          "minimum": 1,
+          "maximum": 365
         }
       ]
     },
@@ -154,7 +163,8 @@
           "description": "Port number (default: 443)",
           "type": "number",
           "required": false,
-          "default": "443"
+          "default": "443",
+          "minimum": 1
         },
         {
           "name": "format",
@@ -200,7 +210,8 @@
           "name": "analysis_type",
           "description": "Type of analysis (required): 'security', 'compliance', 'general'",
           "type": "string",
-          "required": true
+          "required": true,
+          "enum": ["general", "security", "compliance"]
         }
       ]
     },
@@ -227,7 +238,8 @@
           "description": "Output format: 'json' or 'markdown' (default: 'json')",
           "type": "string",
           "required": false,
-          "default": "\"json\""
+          "default": "\"json\"",
+          "enum": ["json", "markdown"]
         }
       ]
     }

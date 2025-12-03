@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"text/template"
 )
 
@@ -45,15 +46,32 @@ type ToolDefinition struct {
 	RoleComment string      `json:"roleComment"`
 	WithConfig  bool        `json:"withConfig"`
 	Params      []ToolParam `json:"params"`
+	// MCP annotations for LLM hints
+	TitleAnnotation           string `json:"titleAnnotation,omitempty"`
+	ReadOnlyHintAnnotation    bool   `json:"readOnlyHintAnnotation,omitempty"`
+	DestructiveHintAnnotation bool   `json:"destructiveHintAnnotation,omitempty"`
+	IdempotentHintAnnotation  bool   `json:"idempotentHintAnnotation,omitempty"`
+	OpenWorldHintAnnotation   bool   `json:"openWorldHintAnnotation,omitempty"`
+	// Additional metadata
+	Meta map[string]any `json:"meta,omitempty"`
 }
 
 // ToolParam represents a parameter for a tool
 type ToolParam struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	Type        string `json:"type"` // string, number, boolean
+	Type        string `json:"type"` // string, number, boolean, array, object
 	Required    bool   `json:"required"`
 	Default     string `json:"default,omitempty"` // For documentation or default value
+	// Parameter constraints
+	Enum       []string       `json:"enum,omitempty"`       // Allowed values
+	MinLength  *int           `json:"minLength,omitempty"`  // Minimum string length
+	MaxLength  *int           `json:"maxLength,omitempty"`  // Maximum string length
+	Minimum    *float64       `json:"minimum,omitempty"`    // Minimum number value
+	Maximum    *float64       `json:"maximum,omitempty"`    // Maximum number value
+	Pattern    string         `json:"pattern,omitempty"`    // Regex pattern for strings
+	Items      map[string]any `json:"items,omitempty"`      // Schema for array items
+	Properties map[string]any `json:"properties,omitempty"` // Schema for object properties
 }
 
 // PromptDefinition represents a prompt to be generated
@@ -221,14 +239,81 @@ func validateToolParams(params []ToolParam, toolIndex int) error {
 		if param.Type == "" {
 			return fmt.Errorf("tool %d param %d: Type is required", toolIndex, j)
 		}
-		if param.Type != "string" && param.Type != "number" && param.Type != "boolean" {
-			return fmt.Errorf("tool %d param %d: invalid type '%s', must be string, number, or boolean", toolIndex, j, param.Type)
+		if param.Type != "string" && param.Type != "number" && param.Type != "boolean" && param.Type != "array" && param.Type != "object" {
+			return fmt.Errorf("tool %d param %d: invalid type '%s', must be string, number, boolean, array, or object", toolIndex, j, param.Type)
 		}
 		if paramNames[param.Name] {
 			return fmt.Errorf("tool %d param %d: duplicate parameter name '%s'", toolIndex, j, param.Name)
 		}
 		paramNames[param.Name] = true
+
+		// Validate parameter constraints
+		if err := validateParamConstraints(&param, toolIndex, j); err != nil {
+			return err
+		}
 	}
+	return nil
+}
+
+// validateParamConstraints validates parameter-specific constraints
+func validateParamConstraints(param *ToolParam, toolIndex, paramIndex int) error {
+	// Validate enum values are appropriate for the type
+	if len(param.Enum) > 0 {
+		switch param.Type {
+		case "string":
+			// String enums are fine
+		case "number":
+			// Number enums should be numeric strings that can be parsed
+			for _, val := range param.Enum {
+				if _, err := strconv.ParseFloat(val, 64); err != nil {
+					return fmt.Errorf("tool %d param %d: enum value '%s' is not a valid number", toolIndex, paramIndex, val)
+				}
+			}
+		case "boolean":
+			// Boolean enums should be "true" or "false"
+			for _, val := range param.Enum {
+				if val != "true" && val != "false" {
+					return fmt.Errorf("tool %d param %d: enum value '%s' is not a valid boolean", toolIndex, paramIndex, val)
+				}
+			}
+		default:
+			return fmt.Errorf("tool %d param %d: enum is not supported for type '%s'", toolIndex, paramIndex, param.Type)
+		}
+	}
+
+	// Validate length constraints for strings
+	if param.Type == "string" {
+		if param.MinLength != nil && param.MaxLength != nil && *param.MinLength > *param.MaxLength {
+			return fmt.Errorf("tool %d param %d: minLength (%d) cannot be greater than maxLength (%d)", toolIndex, paramIndex, *param.MinLength, *param.MaxLength)
+		}
+	} else if param.Type != "string" && (param.MinLength != nil || param.MaxLength != nil) {
+		return fmt.Errorf("tool %d param %d: minLength/maxLength constraints are only valid for string type", toolIndex, paramIndex)
+	}
+
+	// Validate numeric constraints
+	if param.Type == "number" {
+		if param.Minimum != nil && param.Maximum != nil && *param.Minimum > *param.Maximum {
+			return fmt.Errorf("tool %d param %d: minimum (%f) cannot be greater than maximum (%f)", toolIndex, paramIndex, *param.Minimum, *param.Maximum)
+		}
+	} else if param.Type != "number" && (param.Minimum != nil || param.Maximum != nil) {
+		return fmt.Errorf("tool %d param %d: minimum/maximum constraints are only valid for number type", toolIndex, paramIndex)
+	}
+
+	// Validate pattern for strings
+	if param.Type != "string" && param.Pattern != "" {
+		return fmt.Errorf("tool %d param %d: pattern constraint is only valid for string type", toolIndex, paramIndex)
+	}
+
+	// Validate items for arrays
+	if param.Type != "array" && len(param.Items) > 0 {
+		return fmt.Errorf("tool %d param %d: items constraint is only valid for array type", toolIndex, paramIndex)
+	}
+
+	// Validate properties for objects
+	if param.Type != "object" && len(param.Properties) > 0 {
+		return fmt.Errorf("tool %d param %d: properties constraint is only valid for object type", toolIndex, paramIndex)
+	}
+
 	return nil
 }
 
@@ -284,7 +369,12 @@ func GenerateResources() error {
 
 // generateFile generates a file using a template
 func generateFile(templatePath, outputPath string, config *Config, fileType string) error {
-	tmpl, err := template.ParseFiles(templatePath)
+	tmpl, err := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
+		"toJSON": func(v any) string {
+			data, _ := json.Marshal(v)
+			return string(data)
+		},
+	}).ParseFiles(templatePath)
 	if err != nil {
 		return fmt.Errorf("parsing template from %s: %w", templatePath, err)
 	}

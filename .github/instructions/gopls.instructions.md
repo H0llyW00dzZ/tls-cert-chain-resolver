@@ -706,6 +706,8 @@ grep("getParams\\|getStringParam\\|getOptionalStringParam\\|getMapParam", includ
 # Find codegen logic
 grep("GenerateResources\\|GenerateTools\\|GeneratePrompts", include="*.go")
 grep("ToolDefinition\\|ResourceDefinition\\|PromptDefinition", include="*.go")
+grep("validateParamConstraints\\|validateToolParams", include="*.go")
+grep("ToolParam\\|ToolAnnotation", include="*.go")
 ```
 
 ## Summary
