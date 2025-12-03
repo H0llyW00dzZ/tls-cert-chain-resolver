@@ -100,7 +100,8 @@ tls-cert-chain-resolver/
 │       │   ├── resources.json                # Resource definitions
 │       │   └── tools.json                    # Tool definitions
 │       ├── internal/
-│       │   └── codegen.go                    # Core generation logic
+│       │   ├── codegen.go                    # Core generation logic
+│       │   └── codegen_test.go               # Codegen tests for parameter validation
 │       ├── templates/                        # Go templates
 │       │   ├── prompts.go.tmpl
 │       │   ├── resources.go.tmpl
