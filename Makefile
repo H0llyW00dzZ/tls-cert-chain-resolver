@@ -113,8 +113,8 @@ build-mcp: build-mcp-linux build-mcp-macos build-mcp-windows
 
 # Run tests
 test:
-	@echo "Running tests (with race detector)..."
-	@go test -race ./...
+	@echo "Running tests (with race detector and coverage)..."
+	@go test -race -cover ./...
 	@echo "Tests completed."
 
 # Clean up build artifacts
