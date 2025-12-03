@@ -41,15 +41,15 @@
 
 ## Commands
 
-**Build Linux**: `make build-linux` (builds to `./bin/linux/`)  
+**Build Linux**: `make build-linux` (builds to `./bin/linux/<arch>/` where `<arch>` is auto-detected, e.g., `amd64` or `arm64`)  
 **Build macOS**: `make build-macos` or `make build-macos-amd64` / `make build-macos-arm64` (builds to `./bin/macos/`)  
 **Build Windows**: `make build-windows` (builds to `./bin/windows/`)  
 **Build all**: `make all` (builds for all platforms)  
-**Build MCP Linux**: `make build-mcp-linux` (builds MCP server to `./bin/linux/`)  
+**Build MCP Linux**: `make build-mcp-linux` (builds MCP server to `./bin/linux/<arch>/` where `<arch>` is auto-detected)  
 **Build MCP macOS**: `make build-mcp-macos` or `make build-mcp-macos-amd64` / `make build-mcp-macos-arm64` (builds MCP server to `./bin/macos/`)  
 **Build MCP Windows**: `make build-mcp-windows` (builds MCP server to `./bin/windows/`)  
 **Build all MCP**: `make build-mcp` (builds MCP server for all platforms)  
-**Test all**: `go test -v ./... 2>&1 | cat` or `make test`  
+**Test all**: `go test -v ./... 2>&1 | cat` or `make test` (note: `make test` includes race detector by default)  
 **Test single**: `go test -run TestName ./package -v 2>&1 | cat`  
 **Test package**: `go test -v ./src/internal/x509/certs 2>&1 | cat`, `go test -v ./src/internal/x509/chain 2>&1 | cat`, `go test -v ./src/mcp-server 2>&1 | cat`, or `go test -v ./src/logger 2>&1 | cat`  
 **Test race + coverage**: `go test -race -cover ./... 2>&1 | cat` (recommended primary test approach)  
