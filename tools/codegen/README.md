@@ -161,6 +161,16 @@ The tool validates configuration on load:
 - **Tools**: Name, constName, handler, and roleConst must be non-empty; names and role names must be unique
 - **Parameters**: Name and type must be non-empty; type must be "string", "number", or "boolean"; parameter names must be unique within a tool
 
+## Future Enhancements
+
+Due to the framework implementation in `src/mcp-server/`, it has better Go code style. Other components such as prompts will be added here into codegen later.
+
+### Todo List
+
+- [ ] Implement prompts codegen
+- [ ] Add other MCP components to codegen system
+- [ ] Enhance template system for improved code style consistency
+
 ## Benefits
 
 1. **Maintainability**: Easy to add/modify resources and tools
