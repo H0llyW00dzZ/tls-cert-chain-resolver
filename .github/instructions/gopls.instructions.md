@@ -20,6 +20,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`transport.go`** — In-memory transport implementation bridging ADK SDK and mark3labs/mcp-go with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
   - **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler with streaming support, AI API integration
   - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
+  - **`prompt_handlers.go`** — MCP prompt handlers (generated/custom mix)
   - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
   - **`handlers.go`** — Core certificate processing utilities, AI analysis, and individual tool handlers
   - **`helper.go`** — Helper utilities (JSON-RPC parameter extraction: `getStringParam`, `getMapParam`, `getOptionalStringParam`)
