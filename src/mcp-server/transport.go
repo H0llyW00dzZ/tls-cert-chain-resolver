@@ -47,7 +47,6 @@ type jsonRPCResponse struct {
 //   - Channel-based message passing for thread-safe communication
 //   - Sampling handler support for AI model interactions
 //   - Context-aware cancellation and graceful shutdown
-//   - Semaphore-based concurrency control to limit active requests
 //
 // [mark3labs/mcp-go]: https://pkg.go.dev/github.com/mark3labs/mcp-go
 // [Official MCP SDK]: https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk
