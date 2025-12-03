@@ -95,7 +95,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 **Example Output**:
 ```
 Module: github.com/H0llyW00dzZ/tls-cert-chain-resolver
-Go Version: 1.25.4
+Go Version: 1.25.5
 Packages:
 - cmd (main)
 - src/cli
