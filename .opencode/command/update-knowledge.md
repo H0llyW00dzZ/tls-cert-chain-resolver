@@ -5,62 +5,62 @@ agent: general
 
 # Update Knowledge Base
 
-Update agent instruction files in `.github/instructions/` to reflect recent code changes, new patterns, or architectural updates.
+Update agent instruction files in `.github/instructions/` to reflect recent code changes, new patterns, or architectural updates. Ensure all updates are accurate, consistent, and repository-specific. Use git commands to analyze changes and verify updates through testing where applicable.
 
 ## Tasks
 
 1. **Analyze Recent Changes**:
 
-   - Check git log for recent commits: `git log -10 --oneline`
-   - View detailed commit messages: `git log -10 --pretty=format:"[SHA - %h]: %s%n%n%b%n"`
-   - Check files changed in recent commits: `git diff HEAD~10..HEAD --name-only`
-   - Review commit messages for context on why changes were made
-   - Identify modified files and new patterns
-   - Review AGENTS.md for affected guidelines
+   - Retrieve recent commits: `git log -10 --oneline`
+   - View detailed commit messages and bodies: `git log -10 --pretty=format:"[SHA - %h]: %s%n%n%b%n"`
+   - Identify files changed: `git diff HEAD~10..HEAD --name-only`
+   - Review commit messages for context, focusing on reasons for changes, new features, or refactors
+   - Identify modified, added, or deleted files, directories, and emerging patterns
+   - Cross-reference with AGENTS.md for affected agent guidelines or workflows
 
 2. **Update Relevant Instruction Files**:
 
-   - **Note**: Ensure there are no duplicate entries when updating the knowledge (e.g., check if a dependency is already listed in `deepwiki.instructions.md` before adding).
-   - `gopls.instructions.md` - Go code patterns, package structure changes
-   - `filesystem.instructions.md` - New file paths, directory structure changes, **Repository Structure tree** (starts at line 7)
-   - `memory.instructions.md` - Context/memory management pattern changes
-   - `deepwiki.instructions.md` - New external dependencies
-   - `opencode.instructions.md` - Configuration or workflow changes, including new/deleted commands in `.opencode/command/`
+   - **Note**: Before adding any entries, check for duplicates (e.g., verify if a dependency is already documented in `deepwiki.instructions.md`). Avoid redundancy while ensuring completeness.
+   - `gopls.instructions.md`: Update for Go code patterns, package structures, new imports, or API changes
+   - `filesystem.instructions.md`: Update for new/moved/deleted file paths, directory structures, and the **Repository Structure tree** (starting at line 7)
+   - `memory.instructions.md`: Update for changes in context/memory management, caching strategies, or state handling
+   - `deepwiki.instructions.md`: Add new external dependencies, libraries, or research targets
+   - `opencode.instructions.md`: Update for configuration or workflow changes, including additions, deletions, or modifications to commands in `.opencode/command/`
 
 3. **Update Repository Structure Tree in filesystem.instructions.md**:
 
-   - Check for new/moved/deleted files and directories: `git diff HEAD~10..HEAD --name-only`
-   - List current directory structure: `list()` to verify current state
-   - Update the Repository Structure tree (starts at line 7) in `filesystem.instructions.md` to reflect:
-     - New files added (with descriptive comments)
-     - Files moved or renamed
-     - Directories added or reorganized
-     - Files deleted (remove from tree)
-   - Ensure file descriptions accurately reflect their purpose
-   - Maintain tree indentation and formatting consistency
-   - Update "Common File Paths" section (starts at line 607) if major structural changes occurred
+   - Identify structural changes: `git diff HEAD~10..HEAD --name-only`
+   - Verify current structure: Use `list()` to confirm paths
+   - Update the Repository Structure tree (starting at line 7) in `filesystem.instructions.md` to include:
+     - Newly added files (with concise, purpose-driven descriptions)
+     - Moved or renamed files/directories
+     - Newly created or reorganized directories
+     - Removed files/directories (delete from tree)
+   - Ensure descriptions are precise and reflect current functionality
+   - Preserve indentation, formatting, and hierarchical structure
+   - If major changes occur, update the "Common File Paths" section (starting at line 607) with new shortcuts or references
 
 4. **Check .opencode Directory Changes**:
 
-   - List current commands: Use the built-in `list` tool: `list('.opencode/command')`
-   - Compare with recent git changes: Run `git diff HEAD~10..HEAD --name-only` and check the output for any files in `.opencode/` directory
-   - For new commands added: Add to `opencode.instructions.md` in the "Custom Commands" section and update the command table in `.opencode/README.md`
-   - For deleted commands: Remove references from `opencode.instructions.md` and update cross-references, and remove from the command table in `.opencode/README.md`
-   - For modified commands: Update descriptions and examples in `opencode.instructions.md`
-   - Ensure frontmatter (description, agent) is consistent and accurate
+   - List current commands: `list('.opencode/command')`
+   - Compare against git diffs: `git diff HEAD~10..HEAD --name-only` filtered for `.opencode/` paths
+   - For new commands: Document in `opencode.instructions.md` under "Custom Commands" and append to the command table in `.opencode/README.md`
+   - For deleted commands: Remove from `opencode.instructions.md` and `.opencode/README.md` table; update any cross-references
+   - For modified commands: Revise descriptions, examples, and usage in `opencode.instructions.md`
+   - Validate frontmatter (description, agent) for accuracy and consistency across files
 
 5. **Verify Consistency**:
 
-   - Ensure examples use actual file paths from repository
-   - Update cross-references between instruction files
-   - Verify commands in examples work correctly
-   - Check that code examples compile
-   - Run race detection tests: `go test -v -race ./... 2>&1 | cat` (recommended for verifying changes)
-     - If output is truncated due to length limits, use alternative methods to check for failures:
+   - Confirm examples reference real repository paths (e.g., via `list()`)
+   - Update and validate cross-references between instruction files
+   - Test commands in examples for functionality (e.g., run sample CLI commands)
+   - Ensure code examples compile: `go build ./... 2>&1 | cat`
+   - Perform race detection tests: `go test -v -race ./... 2>&1 | cat`
+     - If output is truncated, use alternatives:
        - Check exit code: `go test -race ./...; echo "Exit code: $?"`
-       - Filter for results: `go test -race ./... 2>&1 | grep -E "(FAIL|panic|ok|WARNING: DATA RACE)" | tail -10`
-       - View last lines for summary: `go test -race ./... 2>&1 | tail -20`
-       - Or run tests on individual packages:
+       - Filter results: `go test -race ./... 2>&1 | grep -E "(FAIL|panic|ok|WARNING: DATA RACE)" | tail -10`
+       - Summarize: `go test -race ./... 2>&1 | tail -20`
+       - Test specific packages:
          - `go test -race ./src/cli 2>&1 | cat`
          - `go test -race ./src/internal/x509/certs 2>&1 | cat`
          - `go test -race ./src/internal/x509/chain 2>&1 | cat`
@@ -68,47 +68,53 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
          - `go test -race ./src/mcp-server 2>&1 | cat`
 
 6. **Update AGENTS.md**:
-   - Add new commands if build process changed
-   - Update code style guidelines for new patterns
-   - Add common mistakes to "Bad Practices" section
+   - Incorporate new build commands if the process has evolved
+   - Refine code style guidelines for newly identified patterns
+   - Expand "Bad Practices" with common pitfalls from recent changes
 
 ## What to Look For
 
-- **New packages or files**: Update gopls.instructions.md with new package structure AND update `filesystem.instructions.md` Repository Structure tree (starts at line 7)
-- **Directory structure changes**: Update `filesystem.instructions.md` Repository Structure tree to reflect new/moved/deleted directories and files
-- **New CLI flags/commands**: Update examples in gopls.instructions.md and filesystem.instructions.md
-- **New dependencies**: Update deepwiki.instructions.md with new libraries to research
-- **Refactored code**: Update code examples across all instruction files
-- **New patterns**: Add to AGENTS.md and relevant specific instruction files
-- **Build changes**: Update commands in AGENTS.md
-- **.opencode command changes**: Check for new/deleted/modified commands and update opencode.instructions.md accordingly, and update the command table in .opencode/README.md
+- **New packages/files**: Document in `gopls.instructions.md` and update the Repository Structure tree in `filesystem.instructions.md`
+- **Directory reorgs**: Reflect in `filesystem.instructions.md` tree and paths
+- **New CLI features**: Update examples in `gopls.instructions.md` and `filesystem.instructions.md`
+- **New dependencies**: List in `deepwiki.instructions.md` for research
+- **Refactors**: Revise code snippets in all relevant files
+- **Emerging patterns**: Add to AGENTS.md and specific instruction files
+- **Build updates**: Modify commands in AGENTS.md
+- **.opencode changes**: Track new/deleted/modified commands, updating `opencode.instructions.md` and `.opencode/README.md`
 
 ## Error Handling
 
 ### Tool Abort Errors
 
-When tools are aborted during execution (e.g., due to timeout, resource constraints, or interruption):
+If tools abort (e.g., due to timeouts or interruptions):
 
-1. **Manual Retry Required**: Agent must manually retry the tool call with the same parameters
-2. **No Automatic Recovery**: The system does NOT automatically retry aborted tools
-3. **Context Preservation**: Use identical input parameters when retrying
-4. **Failure Strategy**: If retry also fails, use alternative approaches (e.g., windowed reading, batch operations)
+1. **Manual Retry**: Immediately retry the exact same tool call with identical parameters
+2. **No Auto-Retry**: System does not handle retries; agent must initiate
+3. **Preserve Context**: Use the same inputs to maintain consistency
+4. **Fallbacks**: On repeated failures, switch to manual alternatives like incremental file reading or batched operations
 
 **Examples**:
 
 ```
-# Bash command aborted
-bash("go test -v -race ./...")  # ❌ Aborted (timeout)
-bash("go test -v -race ./...")  # ✅ Retry with same command
+# Aborted bash execution
+bash("go test -v -race ./...")  # ❌ Aborted
+bash("go test -v -race ./...")  # ✅ Manual retry
 ```
+
+### Additional Error Scenarios
+
+- If git commands fail, verify repository state: `git status`
+- For compilation errors, run targeted builds: `go build ./path/to/package`
+- If tests fail persistently, isolate issues by package: `go test ./specific/package`
 
 ## Output Format
 
-For each updated instruction file, provide:
+For each updated file, report in this structured format:
 
-1. What changed in the code
-2. Which sections of the instruction file need updates
-3. Updated content with specific examples
-4. Verification that examples work
+1. **Code Changes Summary**: Briefly describe what changed (e.g., "Added new CLI flag for verbose output in commit abc123")
+2. **Affected Sections**: Specify which parts of the instruction file require updates (e.g., "Repository Structure tree in filesystem.instructions.md")
+3. **Updated Content**: Provide the revised text with examples (e.g., paste the updated tree or code snippet)
+4. **Verification**: Confirm examples work (e.g., "Tested CLI flag; output matches expected format. Race tests pass for affected package.")
 
-Focus on keeping instructions accurate and repository-specific.
+Prioritize precision, avoid overgeneralization, and ensure all updates align with actual repository state. Use tools proactively to validate before finalizing changes.
