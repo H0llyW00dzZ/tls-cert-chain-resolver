@@ -14,7 +14,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
+	"strings"
 	"text/template"
 )
 
@@ -27,11 +29,14 @@ type Config struct {
 
 // ResourceDefinition represents a resource to be generated
 type ResourceDefinition struct {
-	URI         string `json:"uri"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	MIMEType    string `json:"mimeType"`
-	Handler     string `json:"handler"`
+	URI         string         `json:"uri"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	MIMEType    string         `json:"mimeType"`
+	Handler     string         `json:"handler"`
+	Audience    []string       `json:"audience,omitempty"` // MCP annotation audience roles
+	Priority    *float64       `json:"priority,omitempty"` // MCP annotation priority
+	Meta        map[string]any `json:"meta,omitempty"`     // Additional metadata fields
 }
 
 // ToolDefinition represents a tool to be generated
@@ -173,6 +178,10 @@ func validateConfig(config *Config) error {
 // validateResources validates resource definitions
 func validateResources(resources []ResourceDefinition) error {
 	resourceURIs := make(map[string]bool)
+	validRoles := map[string]bool{
+		"user":      true,
+		"assistant": true,
+	}
 	for i, res := range resources {
 		if res.URI == "" {
 			return fmt.Errorf("resource %d: URI is required", i)
@@ -187,6 +196,18 @@ func validateResources(resources []ResourceDefinition) error {
 			return fmt.Errorf("resource %d: duplicate URI '%s'", i, res.URI)
 		}
 		resourceURIs[res.URI] = true
+
+		// Validate audience roles
+		for _, role := range res.Audience {
+			if !validRoles[role] {
+				return fmt.Errorf("resource %d: invalid audience role '%s', must be one of: user, assistant", i, role)
+			}
+		}
+
+		// Validate priority
+		if res.Priority != nil && (*res.Priority < 0.0 || *res.Priority > 10.0) {
+			return fmt.Errorf("resource %d: priority must be between 0.0 and 10.0, got %f", i, *res.Priority)
+		}
 	}
 	return nil
 }
@@ -367,6 +388,56 @@ func GenerateResources() error {
 	return generateFile(templatePath, outputPath, config, "resources")
 }
 
+// toGoMap converts a map[string]any to Go map literal syntax
+func toGoMap(m map[string]any) string {
+	if len(m) == 0 {
+		return "nil"
+	}
+
+	// Sort keys for deterministic output
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var parts []string
+	for _, k := range keys {
+		parts = append(parts, fmt.Sprintf("%q: %s", k, formatGoValue(m[k])))
+	}
+
+	return fmt.Sprintf("map[string]any{%s}", strings.Join(parts, ", "))
+}
+
+// formatGoValue formats a value as Go literal syntax
+func formatGoValue(v any) string {
+	switch val := v.(type) {
+	case string:
+		return fmt.Sprintf("%q", val)
+	case int, int8, int16, int32, int64:
+		return fmt.Sprintf("%d", val)
+	case uint, uint8, uint16, uint32, uint64:
+		return fmt.Sprintf("%d", val)
+	case float32, float64:
+		return fmt.Sprintf("%g", val)
+	case bool:
+		return fmt.Sprintf("%t", val)
+	case map[string]any:
+		return toGoMap(val)
+	case []any:
+		var elements []string
+		for _, elem := range val {
+			elements = append(elements, formatGoValue(elem))
+		}
+		return fmt.Sprintf("[]any{%s}", strings.Join(elements, ", "))
+	case nil:
+		return "nil"
+	default:
+		// For complex types, fall back to string representation
+		return fmt.Sprintf("%q", fmt.Sprintf("%v", val))
+	}
+}
+
 // generateFile generates a file using a template
 func generateFile(templatePath, outputPath string, config *Config, fileType string) error {
 	tmpl, err := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
@@ -374,6 +445,8 @@ func generateFile(templatePath, outputPath string, config *Config, fileType stri
 			data, _ := json.Marshal(v)
 			return string(data)
 		},
+		"title":   strings.Title,
+		"toGoMap": toGoMap,
 	}).ParseFiles(templatePath)
 	if err != nil {
 		return fmt.Errorf("parsing template from %s: %w", templatePath, err)

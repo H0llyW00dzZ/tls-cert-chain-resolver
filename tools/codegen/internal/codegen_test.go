@@ -228,6 +228,180 @@ func TestValidateToolParams(t *testing.T) {
 	}
 }
 
+func TestValidateResources(t *testing.T) {
+	tests := []struct {
+		name      string
+		resources []ResourceDefinition
+		wantErr   bool
+		errMsg    string
+	}{
+		{
+			name: "valid resources with annotations",
+			resources: []ResourceDefinition{
+				{
+					URI:         "config://template",
+					Name:        "Template",
+					Description: "Config template",
+					MIMEType:    "application/json",
+					Handler:     "handleConfig",
+					Audience:    []string{"user", "assistant"},
+					Priority:    &[]float64{1.0}[0],
+					Meta:        map[string]any{"category": "config"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing required fields",
+			resources: []ResourceDefinition{
+				{
+					URI:  "",
+					Name: "Test",
+				},
+			},
+			wantErr: true,
+			errMsg:  "URI is required",
+		},
+		{
+			name: "duplicate URI",
+			resources: []ResourceDefinition{
+				{
+					URI:     "test://uri",
+					Name:    "Test1",
+					Handler: "handler1",
+				},
+				{
+					URI:     "test://uri",
+					Name:    "Test2",
+					Handler: "handler2",
+				},
+			},
+			wantErr: true,
+			errMsg:  "duplicate URI",
+		},
+		{
+			name: "invalid audience role",
+			resources: []ResourceDefinition{
+				{
+					URI:      "test://uri",
+					Name:     "Test",
+					Handler:  "handler",
+					Audience: []string{"invalid_role"},
+				},
+			},
+			wantErr: true,
+			errMsg:  "invalid audience role",
+		},
+		{
+			name: "invalid priority range",
+			resources: []ResourceDefinition{
+				{
+					URI:      "test://uri",
+					Name:     "Test",
+					Handler:  "handler",
+					Priority: &[]float64{-1.0}[0],
+				},
+			},
+			wantErr: true,
+			errMsg:  "priority must be between 0.0 and 10.0",
+		},
+		{
+			name: "valid priority range",
+			resources: []ResourceDefinition{
+				{
+					URI:      "test://uri",
+					Name:     "Test",
+					Handler:  "handler",
+					Priority: &[]float64{10.0}[0],
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateResources(tt.resources)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateResources() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr && tt.errMsg != "" && !contains(err.Error(), tt.errMsg) {
+				t.Errorf("validateResources() error = %v, expected to contain %v", err, tt.errMsg)
+			}
+		})
+	}
+}
+
+func TestToGoMap(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    map[string]any
+		expected string
+	}{
+		{
+			name:     "nil map",
+			input:    nil,
+			expected: "nil",
+		},
+		{
+			name:     "empty map",
+			input:    map[string]any{},
+			expected: "nil",
+		},
+		{
+			name: "simple string values",
+			input: map[string]any{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			expected: `map[string]any{"key1": "value1", "key2": "value2"}`,
+		},
+		{
+			name: "mixed types",
+			input: map[string]any{
+				"string":  "hello",
+				"number":  42,
+				"boolean": true,
+				"float":   3.14,
+			},
+			expected: `map[string]any{"boolean": true, "float": 3.14, "number": 42, "string": "hello"}`,
+		},
+		{
+			name: "nested map",
+			input: map[string]any{
+				"config": map[string]any{
+					"enabled": true,
+					"port":    8080,
+				},
+			},
+			expected: `map[string]any{"config": map[string]any{"enabled": true, "port": 8080}}`,
+		},
+		{
+			name: "array values",
+			input: map[string]any{
+				"tags": []any{"web", "api", "ssl"},
+			},
+			expected: `map[string]any{"tags": []any{"web", "api", "ssl"}}`,
+		},
+		{
+			name: "nil value",
+			input: map[string]any{
+				"optional": nil,
+			},
+			expected: `map[string]any{"optional": nil}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := toGoMap(tt.input)
+			if result != tt.expected {
+				t.Errorf("toGoMap() = %q, expected %q", result, tt.expected)
+			}
+		})
+	}
+}
+
 // Helper function to check if a string contains a substring
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || containsAt(s, substr)))
