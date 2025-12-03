@@ -1,0 +1,25 @@
+// createResources creates and returns all MCP resources without adding them to a server.
+// This allows for easier testing of resource creation logic and resource definition validation.
+//
+// Returns:
+//   - A slice of server.ServerResource containing all static and dynamic resources
+//
+// The function defines resources for configuration templates, version information,
+// certificate format documentation, and server status. These resources provide
+// static content and metadata to MCP clients. Each resource includes URI, name,
+// description, MIME type, and handler function.
+func createResources() []server.ServerResource {
+	return []server.ServerResource{
+{{- range .Resources}}
+		{
+			Resource: mcp.NewResource(
+				"{{.URI}}",
+				"{{.Name}}",
+				mcp.WithResourceDescription("{{.Description}}"),
+				mcp.WithMIMEType("{{.MIMEType}}"),
+			),
+			Handler: {{.Handler}},
+		},
+{{- end}}
+	}
+}

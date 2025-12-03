@@ -10,4 +10,6 @@
 //
 // [X509]: https://grokipedia.com/page/X.509
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
+//
+//go:generate go run ../../tools/codegen
 package mcpserver

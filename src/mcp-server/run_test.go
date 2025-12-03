@@ -1093,25 +1093,6 @@ func TestResourceHandlers(t *testing.T) {
 	}
 }
 
-func TestAddResources(t *testing.T) {
-	// Create MCP server
-	s := server.NewMCPServer(
-		"Test Server",
-		"1.0.0",
-		server.WithResourceCapabilities(true, true),
-	)
-
-	// Call addResources to test it
-	addResources(s)
-
-	// Verify resources were added
-	// Note: This is a basic test that addResources doesn't panic
-	// Full integration testing is done in TestResourceHandlers
-	if s == nil {
-		t.Error("Server should not be nil after addResources")
-	}
-}
-
 func TestGetParams(t *testing.T) {
 	tests := []struct {
 		name        string

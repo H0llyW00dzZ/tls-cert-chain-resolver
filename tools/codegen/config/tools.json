@@ -1,0 +1,235 @@
+{
+  "tools": [
+    {
+      "constName": "ToolResolveCertChain",
+      "name": "resolve_cert_chain",
+      "comment": "resolves a single X509 certificate chain from file or base64 data.\n// Used for building complete certificate chains from leaf certificates.",
+      "description": "Resolve X509 certificate chain from a certificate file or base64-encoded certificate data",
+      "handler": "handleResolveCertChain",
+      "roleConst": "RoleChainResolver",
+      "roleName": "chainResolver",
+      "roleComment": "handles single certificate chain resolution operations.\n// Responsible for building complete certificate chains from leaf certificates.",
+      "withConfig": false,
+      "params": [
+        {
+          "name": "certificate",
+          "description": "Certificate file path or base64-encoded certificate data",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "format",
+          "description": "Output format: 'pem', 'der', or 'json' (default: pem)",
+          "type": "string",
+          "required": false,
+          "default": "\"pem\""
+        },
+        {
+          "name": "include_system_root",
+          "description": "Include system root CA in output (default: false)",
+          "type": "boolean",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "intermediate_only",
+          "description": "Output only intermediate certificates (default: false)",
+          "type": "boolean",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "constName": "ToolValidateCertChain",
+      "name": "validate_cert_chain",
+      "comment": "validates a certificate chain for correctness and trust.\n// Performs comprehensive chain validation including signature verification and trust path validation.",
+      "description": "Validate a X509 certificate chain for correctness and trust",
+      "handler": "handleValidateCertChain",
+      "roleConst": "RoleChainValidator",
+      "roleName": "chainValidator",
+      "roleComment": "performs certificate chain validation and trust verification.\n// Ensures certificate chains meet security and correctness requirements.",
+      "withConfig": false,
+      "params": [
+        {
+          "name": "certificate",
+          "description": "Certificate file path or base64-encoded certificate data",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "include_system_root",
+          "description": "Include system root CA for validation (default: true)",
+          "type": "boolean",
+          "required": false,
+          "default": "true"
+        }
+      ]
+    },
+    {
+      "constName": "ToolBatchResolveCertChain",
+      "name": "batch_resolve_cert_chain",
+      "comment": "processes multiple certificate chains in a single operation.\n// Optimizes performance for bulk certificate processing scenarios.",
+      "description": "Resolve X509 certificate chains for multiple certificates in batch",
+      "handler": "handleBatchResolveCertChain",
+      "roleConst": "RoleBatchResolver",
+      "roleName": "batchResolver",
+      "roleComment": "manages bulk certificate chain processing operations.\n// Optimizes performance for high-volume certificate processing scenarios.",
+      "withConfig": false,
+      "params": [
+        {
+          "name": "certificates",
+          "description": "Comma-separated list of certificate file paths or base64-encoded certificate data",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "format",
+          "description": "Output format: 'pem', 'der', or 'json' (default: pem)",
+          "type": "string",
+          "required": false,
+          "default": "\"pem\""
+        },
+        {
+          "name": "include_system_root",
+          "description": "Include system root CA in output (default: false)",
+          "type": "boolean",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "intermediate_only",
+          "description": "Output only intermediate certificates (default: false)",
+          "type": "boolean",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "constName": "ToolCheckCertExpiry",
+      "name": "check_cert_expiry",
+      "comment": "monitors certificate expiration dates with configurable warning thresholds.\n// Essential for certificate lifecycle management and renewal planning.",
+      "description": "Check certificate expiry dates and warn about upcoming expirations",
+      "handler": "handleCheckCertExpiry",
+      "roleConst": "RoleExpiryChecker",
+      "roleName": "expiryChecker",
+      "roleComment": "monitors certificate expiration dates and renewal requirements.\n// Critical for certificate lifecycle management and preventing outages.",
+      "withConfig": true,
+      "params": [
+        {
+          "name": "certificate",
+          "description": "Certificate file path or base64-encoded certificate data",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "warn_days",
+          "description": "Number of days before expiry to show warning (default: 30)",
+          "type": "number",
+          "required": false,
+          "default": "30"
+        }
+      ]
+    },
+    {
+      "constName": "ToolFetchRemoteCert",
+      "name": "fetch_remote_cert",
+      "comment": "retrieves certificate chains from remote TLS endpoints.\n// Enables analysis of server certificates without local file access.",
+      "description": "Fetch X509 certificate chain from a remote hostname/port",
+      "handler": "handleFetchRemoteCert",
+      "roleConst": "RoleRemoteFetcher",
+      "roleName": "remoteFetcher",
+      "roleComment": "retrieves certificate chains from remote TLS endpoints.\n// Enables analysis of server certificates without requiring local file access.",
+      "withConfig": true,
+      "params": [
+        {
+          "name": "hostname",
+          "description": "Remote hostname to connect to",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "port",
+          "description": "Port number (default: 443)",
+          "type": "number",
+          "required": false,
+          "default": "443"
+        },
+        {
+          "name": "format",
+          "description": "Output format: 'pem', 'der', or 'json' (default: pem)",
+          "type": "string",
+          "required": false,
+          "default": "\"pem\""
+        },
+        {
+          "name": "include_system_root",
+          "description": "Include system root CA in output (default: false)",
+          "type": "boolean",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "intermediate_only",
+          "description": "Output only intermediate certificates (default: false)",
+          "type": "boolean",
+          "required": false,
+          "default": "false"
+        }
+      ]
+    },
+    {
+      "constName": "ToolAnalyzeCertificateWithAI",
+      "name": "analyze_certificate_with_ai",
+      "comment": "performs advanced certificate analysis using AI collaboration.\n// Provides security assessments, compliance checks, and actionable recommendations.",
+      "description": "Analyze certificate data using AI collaboration (requires bidirectional communication)",
+      "handler": "handleAnalyzeCertificateWithAI",
+      "roleConst": "RoleAIAnalyzer",
+      "roleName": "aiAnalyzer",
+      "roleComment": "performs advanced certificate analysis using AI collaboration.\n// Provides intelligent security assessments and actionable recommendations.",
+      "withConfig": true,
+      "params": [
+        {
+          "name": "certificate",
+          "description": "Certificate file path or base64-encoded certificate data to analyze",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "analysis_type",
+          "description": "Type of analysis (required): 'security', 'compliance', 'general'",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "constName": "ToolGetResourceUsage",
+      "name": "get_resource_usage",
+      "comment": "provides server resource usage statistics and CRL cache metrics.\n// Includes memory usage, GC statistics, and performance monitoring data.",
+      "description": "Get current resource usage statistics including memory, GC, and CPU information",
+      "handler": "handleGetResourceUsage",
+      "roleConst": "RoleResourceMonitor",
+      "roleName": "resourceMonitor",
+      "roleComment": "tracks server resource usage and performance metrics.\n// Provides insights into memory usage, GC statistics, and CRL cache efficiency.",
+      "withConfig": false,
+      "params": [
+        {
+          "name": "detailed",
+          "description": "Include detailed memory breakdown (default: false)",
+          "type": "boolean",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "format",
+          "description": "Output format: 'json' or 'markdown' (default: 'json')",
+          "type": "string",
+          "required": false,
+          "default": "\"json\""
+        }
+      ]
+    }
+  ]
+}
