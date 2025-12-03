@@ -25,10 +25,8 @@ import (
 //   - docs://certificate-formats: Documentation on supported certificate formats and usage
 //   - status://server-status: Current status and health information for the MCP server
 //
-// The function defines resources for configuration templates, version information,
-// certificate format documentation, and server status. These resources provide
-// static content and metadata to MCP clients. Each resource includes URI, name,
-// description, MIME type, and handler function.
+// These resources provide static content and metadata to MCP clients. Each resource
+// includes a URI, name, description, MIME type, and handler function.
 func createResources() []server.ServerResource {
 	return []server.ServerResource{
 		{

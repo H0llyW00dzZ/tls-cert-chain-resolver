@@ -9,10 +9,8 @@
 //   - {{.URI}}: {{.Description}}
 {{- end}}
 //
-// The function defines resources for configuration templates, version information,
-// certificate format documentation, and server status. These resources provide
-// static content and metadata to MCP clients. Each resource includes URI, name,
-// description, MIME type, and handler function.
+// These resources provide static content and metadata to MCP clients. Each resource
+// includes a URI, name, description, MIME type, and handler function.
 func createResources() []server.ServerResource {
 	return []server.ServerResource{
 {{- range .Resources}}
