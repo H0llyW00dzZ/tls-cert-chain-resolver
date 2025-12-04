@@ -86,7 +86,10 @@ The tool automatically finds its configuration and template files regardless of 
 }
 ```
 
-2. Run the codegen tool
+2. Generate the code:
+```bash
+go generate ./src/mcp-server
+```
 
 ### Adding a Tool
 
@@ -117,7 +120,10 @@ The tool automatically finds its configuration and template files regardless of 
 }
 ```
 
-2. Run the codegen tool
+2. Generate the code:
+```bash
+go generate ./src/mcp-server
+```
 
 ### Adding a Prompt
 
@@ -140,7 +146,10 @@ The tool automatically finds its configuration and template files regardless of 
 }
 ```
 
-2. Run the codegen tool
+2. Generate the code:
+```bash
+go generate ./src/mcp-server
+```
 
 ## Configuration Format
 
