@@ -832,17 +832,19 @@ func TestGetCodegenDir(t *testing.T) {
 
 func TestGetTemplatePath(t *testing.T) {
 	path := getTemplatePath("test.tmpl")
-	expectedSuffix := "templates/test.tmpl"
-	if !strings.HasSuffix(path, expectedSuffix) {
-		t.Errorf("getTemplatePath() = %s, expected to end with %s", path, expectedSuffix)
+	// Check that path contains the expected components regardless of OS path separators
+	parts := strings.Split(filepath.ToSlash(path), "/")
+	if len(parts) < 2 || parts[len(parts)-2] != "templates" || parts[len(parts)-1] != "test.tmpl" {
+		t.Errorf("getTemplatePath() = %s, expected to end with templates/test.tmpl", path)
 	}
 }
 
 func TestGetOutputPath(t *testing.T) {
 	path := getOutputPath("test.go")
-	expectedSuffix := "src/mcp-server/test.go"
-	if !strings.HasSuffix(path, expectedSuffix) {
-		t.Errorf("getOutputPath() = %s, expected to end with %s", path, expectedSuffix)
+	// Check that path contains the expected components regardless of OS path separators
+	parts := strings.Split(filepath.ToSlash(path), "/")
+	if len(parts) < 3 || parts[len(parts)-3] != "src" || parts[len(parts)-2] != "mcp-server" || parts[len(parts)-1] != "test.go" {
+		t.Errorf("getOutputPath() = %s, expected to end with src/mcp-server/test.go", path)
 	}
 }
 
