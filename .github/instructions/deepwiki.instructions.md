@@ -364,6 +364,7 @@ Current external dependencies to research:
 - `google.golang.org/genai` v1.36.0 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
 - `golang.org/x/crypto` v0.45.0 - Supplementary cryptography libraries leveraged in recent releases
+- `golang.org/x/text` v0.31.0 - Text processing utilities for proper casing and internationalization (GitHub: golang/text)
 - `golang/go` (standard library) - Review Go 1.25.5 crypto/tls and net/http updates
 
 ### Useful Queries for This Project
@@ -384,6 +385,10 @@ deepwiki_ask_question("valyala/bytebufferpool", "When should I use bytebufferpoo
 deepwiki_ask_question("olekukonko/tablewriter", "How do I create markdown tables with emoji headers and structured formatting?")
 deepwiki_ask_question("olekukonko/tablewriter", "How do I set table borders and alignment for resource usage reports?")
 deepwiki_ask_question("olekukonko/tablewriter", "How do I render tables to strings for MCP resource formatting?")
+
+# Text processing
+deepwiki_ask_question("golang/text", "How do I use cases.Title for proper casing in Go?")
+deepwiki_ask_question("golang/text", "What are the best practices for text transformation and casing?")
 
 # gRPC and protobuf
 deepwiki_ask_question("grpc/grpc-go", "How do I implement bidirectional streaming in gRPC?")
@@ -471,4 +476,5 @@ Solutions:
 - `google.golang.org/genai` v1.36.0 - For Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - For enhanced markdown table formatting with emoji headers
 - `golang.org/x/crypto` v0.45.0 - For supplementary cryptography libraries leveraged in recent releases
+- `golang.org/x/text` v0.31.0 - For text processing utilities for proper casing and internationalization (GitHub: golang/text)
 - `golang/go` - For standard library best practices
