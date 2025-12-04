@@ -185,6 +185,8 @@ gopls_go_search("TestValidateResources") → Find resource validation tests
 gopls_go_search("validatePrompts") → Find prompt validation functions
 gopls_go_search("TestValidatePrompts") → Find prompt validation tests
 gopls_go_search("TestToGoMap") → Find Go map generation tests
+gopls_go_search("validatePromptArguments") → Find prompt argument validation functions
+gopls_go_search("PromptArgument") → Find prompt argument structures
 gopls_go_search("jsonrpc.UnmarshalFromMap") → Find JSON-RPC unmarshaling helper
 gopls_go_search("normalizeIDValue") → Find ID value normalization functions
 gopls_go_search("getParams") → Find JSON-RPC parameter extraction helper (`src/mcp-server/helper.go`)
@@ -725,8 +727,9 @@ grep("getParams\\|getStringParam\\|getOptionalStringParam\\|getMapParam", includ
 # Find codegen logic
 grep("GenerateResources\\|GenerateTools\\|GeneratePrompts", include="*.go")
 grep("ToolDefinition\\|ResourceDefinition\\|PromptDefinition", include="*.go")
-grep("validateParamConstraints\\|validateToolParams", include="*.go")
-grep("ToolParam\\|ToolAnnotation", include="*.go")
+grep("validateParamConstraints\\|validateToolParams\\|validateTool\\|validateResources\\|validatePrompts", include="*.go")
+grep("ToolParam\\|ToolAnnotation\\|PromptArgument", include="*.go")
+grep("generateFile\\|writeHeader\\|writeGeneratedFile\\|toGoMap\\|formatGoValue", include="*.go")
 ```
 
 ## Summary
