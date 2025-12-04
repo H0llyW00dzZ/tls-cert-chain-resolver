@@ -211,6 +211,18 @@ gopls_go_search("instructionData") → Find MCP instruction template data struct
 gopls_go_search("toolInfo") → Find tool info structure for template rendering
 gopls_go_search("loadInstructions") → Find MCP server instruction loader with dynamic template rendering
 gopls_go_search("WithInstructions") → Find ServerBuilder instruction configuration method
+gopls_go_search("GenerateResources") → Find resource generation functions
+gopls_go_search("GenerateTools") → Find tool generation functions
+gopls_go_search("GeneratePrompts") → Find prompt generation functions
+gopls_go_search("writeGeneratedFile") → Find generated file writing functions
+gopls_go_search("validateParamConstraints") → Find parameter validation functions
+gopls_go_search("validateToolParams") → Find tool parameter validation functions
+gopls_go_search("ToolParam") → Find tool parameter structures
+gopls_go_search("ToolAnnotation") → Find tool annotation structures
+gopls_go_search("toGoMap") → Find Go map literal generation functions
+gopls_go_search("formatGoValue") → Find Go value formatting functions
+gopls_go_search("generateFile") → Find file generation functions
+gopls_go_search("writeHeader") → Find generated file header writing functions
 ```
 
 ### gopls_go_file_context(file)
