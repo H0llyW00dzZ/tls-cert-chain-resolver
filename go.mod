@@ -7,7 +7,7 @@ require (
 	github.com/mark3labs/mcp-go v0.43.1
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/olekukonko/tablewriter v1.1.2
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/crypto v0.45.0
 	golang.org/x/text v0.31.0
