@@ -97,25 +97,34 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 	// Tools that don't need config
 	tools := []ToolDefinition{
 		{
-			Tool: mcp.NewTool(ToolResolveCertChain,
+			Tool: mcp.NewTool(
+				ToolResolveCertChain,
 				mcp.WithDescription("Resolve X509 certificate chain from a certificate file or base64-encoded certificate data"),
 				mcp.WithReadOnlyHintAnnotation(true),
 				mcp.WithIdempotentHintAnnotation(true),
-				mcp.WithString("certificate",
+
+				mcp.WithString(
+					"certificate",
 					mcp.Required(),
 					mcp.Description("Certificate file path or base64-encoded certificate data"),
 					mcp.MinLength(1),
 				),
-				mcp.WithString("format",
+
+				mcp.WithString(
+					"format",
 					mcp.Description("Output format: 'pem', 'der', or 'json' (default: pem)"),
 					mcp.Enum("pem", "der", "json"),
 					mcp.DefaultString("pem"),
 				),
-				mcp.WithBoolean("include_system_root",
+
+				mcp.WithBoolean(
+					"include_system_root",
 					mcp.Description("Include system root CA in output (default: false)"),
 					mcp.DefaultBool(false),
 				),
-				mcp.WithBoolean("intermediate_only",
+
+				mcp.WithBoolean(
+					"intermediate_only",
 					mcp.Description("Output only intermediate certificates (default: false)"),
 					mcp.DefaultBool(false),
 				),
@@ -124,13 +133,18 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    RoleChainResolver,
 		},
 		{
-			Tool: mcp.NewTool(ToolValidateCertChain,
+			Tool: mcp.NewTool(
+				ToolValidateCertChain,
 				mcp.WithDescription("Validate a X509 certificate chain for correctness and trust"),
-				mcp.WithString("certificate",
+
+				mcp.WithString(
+					"certificate",
 					mcp.Required(),
 					mcp.Description("Certificate file path or base64-encoded certificate data"),
 				),
-				mcp.WithBoolean("include_system_root",
+
+				mcp.WithBoolean(
+					"include_system_root",
 					mcp.Description("Include system root CA for validation (default: true)"),
 					mcp.DefaultBool(true),
 				),
@@ -139,21 +153,30 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    RoleChainValidator,
 		},
 		{
-			Tool: mcp.NewTool(ToolBatchResolveCertChain,
+			Tool: mcp.NewTool(
+				ToolBatchResolveCertChain,
 				mcp.WithDescription("Resolve X509 certificate chains for multiple certificates in batch"),
-				mcp.WithString("certificates",
+
+				mcp.WithString(
+					"certificates",
 					mcp.Required(),
 					mcp.Description("Comma-separated list of certificate file paths or base64-encoded certificate data"),
 				),
-				mcp.WithString("format",
+
+				mcp.WithString(
+					"format",
 					mcp.Description("Output format: 'pem', 'der', or 'json' (default: pem)"),
 					mcp.DefaultString("pem"),
 				),
-				mcp.WithBoolean("include_system_root",
+
+				mcp.WithBoolean(
+					"include_system_root",
 					mcp.Description("Include system root CA in output (default: false)"),
 					mcp.DefaultBool(false),
 				),
-				mcp.WithBoolean("intermediate_only",
+
+				mcp.WithBoolean(
+					"intermediate_only",
 					mcp.Description("Output only intermediate certificates (default: false)"),
 					mcp.DefaultBool(false),
 				),
@@ -162,13 +185,18 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    RoleBatchResolver,
 		},
 		{
-			Tool: mcp.NewTool(ToolGetResourceUsage,
+			Tool: mcp.NewTool(
+				ToolGetResourceUsage,
 				mcp.WithDescription("Get current resource usage statistics including memory, GC, and CPU information"),
-				mcp.WithBoolean("detailed",
+
+				mcp.WithBoolean(
+					"detailed",
 					mcp.Description("Include detailed memory breakdown (default: false)"),
 					mcp.DefaultBool(false),
 				),
-				mcp.WithString("format",
+
+				mcp.WithString(
+					"format",
 					mcp.Description("Output format: 'json' or 'markdown' (default: 'json')"),
 					mcp.Enum("json", "markdown"),
 					mcp.DefaultString("json"),
@@ -182,16 +210,21 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 	// Tools that need config
 	toolsWithConfig := []ToolDefinitionWithConfig{
 		{
-			Tool: mcp.NewTool(ToolCheckCertExpiry,
+			Tool: mcp.NewTool(
+				ToolCheckCertExpiry,
 				mcp.WithDescription("Check certificate expiry dates and warn about upcoming expirations"),
 				mcp.WithReadOnlyHintAnnotation(true),
 				mcp.WithIdempotentHintAnnotation(true),
-				mcp.WithString("certificate",
+
+				mcp.WithString(
+					"certificate",
 					mcp.Required(),
 					mcp.Description("Certificate file path or base64-encoded certificate data"),
 					mcp.MinLength(1),
 				),
-				mcp.WithNumber("warn_days",
+
+				mcp.WithNumber(
+					"warn_days",
 					mcp.Description("Number of days before expiry to show warning (default: 30)"),
 					mcp.Min(1),
 					mcp.Max(365),
@@ -202,26 +235,37 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    RoleExpiryChecker,
 		},
 		{
-			Tool: mcp.NewTool(ToolFetchRemoteCert,
+			Tool: mcp.NewTool(
+				ToolFetchRemoteCert,
 				mcp.WithDescription("Fetch X509 certificate chain from a remote hostname/port"),
-				mcp.WithString("hostname",
+
+				mcp.WithString(
+					"hostname",
 					mcp.Required(),
 					mcp.Description("Remote hostname to connect to"),
 				),
-				mcp.WithNumber("port",
+
+				mcp.WithNumber(
+					"port",
 					mcp.Description("Port number (default: 443)"),
 					mcp.Min(1),
 					mcp.DefaultNumber(443),
 				),
-				mcp.WithString("format",
+
+				mcp.WithString(
+					"format",
 					mcp.Description("Output format: 'pem', 'der', or 'json' (default: pem)"),
 					mcp.DefaultString("pem"),
 				),
-				mcp.WithBoolean("include_system_root",
+
+				mcp.WithBoolean(
+					"include_system_root",
 					mcp.Description("Include system root CA in output (default: false)"),
 					mcp.DefaultBool(false),
 				),
-				mcp.WithBoolean("intermediate_only",
+
+				mcp.WithBoolean(
+					"intermediate_only",
 					mcp.Description("Output only intermediate certificates (default: false)"),
 					mcp.DefaultBool(false),
 				),
@@ -230,13 +274,18 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    RoleRemoteFetcher,
 		},
 		{
-			Tool: mcp.NewTool(ToolAnalyzeCertificateWithAI,
+			Tool: mcp.NewTool(
+				ToolAnalyzeCertificateWithAI,
 				mcp.WithDescription("Analyze certificate data using AI collaboration (requires bidirectional communication)"),
-				mcp.WithString("certificate",
+
+				mcp.WithString(
+					"certificate",
 					mcp.Required(),
 					mcp.Description("Certificate file path or base64-encoded certificate data to analyze"),
 				),
-				mcp.WithString("analysis_type",
+
+				mcp.WithString(
+					"analysis_type",
 					mcp.Required(),
 					mcp.Description("Type of analysis (required): 'security', 'compliance', 'general'"),
 					mcp.Enum("general", "security", "compliance"),

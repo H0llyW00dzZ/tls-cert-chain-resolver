@@ -22,9 +22,10 @@ func createResources() []server.ServerResource {
 					mcp.WithResourceDescription("{{.Description}}"),
 					mcp.WithMIMEType("{{.MIMEType}}"),
 {{- if .Audience}}
-					mcp.WithAnnotations([]mcp.Role{
+					mcp.WithAnnotations(
+						[]mcp.Role{
 {{- range .Audience}}
-						mcp.Role{{. | title}},
+							mcp.Role{{. | title}},
 {{- end}}
 					}, {{if .Priority}}{{.Priority}}{{else}}0.0{{end}}),
 {{- end}}

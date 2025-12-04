@@ -19,10 +19,12 @@ func createPrompts() []server.ServerPrompt {
 {{- range .Prompts}}
 		{
 			Prompt: func() mcp.Prompt {
-				prompt := mcp.NewPrompt("{{.Name}}",
+				prompt := mcp.NewPrompt(
+					"{{.Name}}",
 					mcp.WithPromptDescription("{{.Description}}"),
 {{- range .Arguments}}
-					mcp.WithArgument("{{.Name}}",
+					mcp.WithArgument(
+						"{{.Name}}",
 						mcp.ArgumentDescription("{{.Description}}"),
 {{- if .Required}}
 						mcp.RequiredArgument(),
