@@ -85,12 +85,16 @@ type PromptDefinition struct {
 	Description string           `json:"description"`
 	Handler     string           `json:"handler"`
 	Arguments   []PromptArgument `json:"arguments"`
+	Audience    []string         `json:"audience,omitempty"` // MCP annotation audience roles
+	Priority    *float64         `json:"priority,omitempty"` // MCP annotation priority
+	Meta        map[string]any   `json:"meta,omitempty"`     // Additional metadata fields
 }
 
 // PromptArgument represents an argument for a prompt
 type PromptArgument struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Required    bool   `json:"required,omitempty"` // Whether the argument is required
 }
 
 // getCodegenDir returns the absolute path to the codegen directory
@@ -341,6 +345,10 @@ func validateParamConstraints(param *ToolParam, toolIndex, paramIndex int) error
 // validatePrompts validates prompt definitions
 func validatePrompts(prompts []PromptDefinition) error {
 	promptNames := make(map[string]bool)
+	validRoles := map[string]bool{
+		"user":      true,
+		"assistant": true,
+	}
 	for i, prompt := range prompts {
 		if prompt.Name == "" {
 			return fmt.Errorf("prompt %d: Name is required", i)
@@ -352,6 +360,18 @@ func validatePrompts(prompts []PromptDefinition) error {
 			return fmt.Errorf("prompt %d: duplicate name '%s'", i, prompt.Name)
 		}
 		promptNames[prompt.Name] = true
+
+		// Validate audience roles
+		for _, role := range prompt.Audience {
+			if !validRoles[role] {
+				return fmt.Errorf("prompt %d: invalid audience role '%s', must be one of: user, assistant", i, role)
+			}
+		}
+
+		// Validate priority
+		if prompt.Priority != nil && (*prompt.Priority < 0.0 || *prompt.Priority > 10.0) {
+			return fmt.Errorf("prompt %d: priority must be between 0.0 and 10.0, got %f", i, *prompt.Priority)
+		}
 
 		if err := validatePromptArguments(prompt.Arguments, i); err != nil {
 			return err
