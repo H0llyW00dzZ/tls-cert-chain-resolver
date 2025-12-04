@@ -6,6 +6,9 @@
 package codegen
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -514,4 +517,354 @@ func containsAt(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestLoadJSON(t *testing.T) {
+	// Create a temporary JSON file in the config directory
+	configDir := filepath.Join(getCodegenDir(), "config")
+	tempFile := filepath.Join(configDir, "test_temp.json")
+	jsonContent := `{"test": "value", "number": 42}`
+
+	// Ensure cleanup
+	defer os.Remove(tempFile)
+
+	if err := os.WriteFile(tempFile, []byte(jsonContent), 0644); err != nil {
+		t.Fatalf("Failed to create test JSON file: %v", err)
+	}
+
+	var result map[string]any
+	err := loadJSON("test_temp.json", &result)
+	if err != nil {
+		t.Errorf("loadJSON() error = %v", err)
+	}
+
+	if result["test"] != "value" {
+		t.Errorf("Expected test = 'value', got %v", result["test"])
+	}
+	if result["number"] != float64(42) {
+		t.Errorf("Expected number = 42, got %v", result["number"])
+	}
+}
+
+func TestLoadConfig(t *testing.T) {
+	// This test requires the actual config files to exist
+	// We'll test error cases and assume config files are present for success case
+	config, err := loadConfig()
+	if err != nil {
+		t.Errorf("loadConfig() error = %v", err)
+		return
+	}
+
+	if config == nil {
+		t.Error("Expected config to be non-nil")
+		return
+	}
+
+	// Basic validation that config has expected structure
+	if len(config.Resources) == 0 {
+		t.Error("Expected at least one resource in config")
+	}
+	if len(config.Tools) == 0 {
+		t.Error("Expected at least one tool in config")
+	}
+	if len(config.Prompts) == 0 {
+		t.Error("Expected at least one prompt in config")
+	}
+}
+
+func TestValidateConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  *Config
+		wantErr bool
+	}{
+		{
+			name: "valid config",
+			config: &Config{
+				Resources: []ResourceDefinition{
+					{URI: "test://uri", Name: "Test", Handler: "handler"},
+				},
+				Tools: []ToolDefinition{
+					{Name: "test", ConstName: "Test", Handler: "handler", RoleConst: "Role", RoleName: "role", RoleComment: "comment", WithConfig: false},
+				},
+				Prompts: []PromptDefinition{
+					{Name: "test", Handler: "handler"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid resource",
+			config: &Config{
+				Resources: []ResourceDefinition{
+					{URI: "", Name: "Test"}, // Missing required fields
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid tool",
+			config: &Config{
+				Tools: []ToolDefinition{
+					{Name: "", Handler: "handler"}, // Missing required fields
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid prompt",
+			config: &Config{
+				Prompts: []PromptDefinition{
+					{Name: "", Handler: "handler"}, // Missing required fields
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateConfig(tt.config)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateConfig() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateTools(t *testing.T) {
+	tests := []struct {
+		name    string
+		tools   []ToolDefinition
+		wantErr bool
+	}{
+		{
+			name: "valid tools",
+			tools: []ToolDefinition{
+				{
+					Name:        "test1",
+					ConstName:   "Test1",
+					Handler:     "handler1",
+					RoleConst:   "Role1",
+					RoleName:    "role1",
+					RoleComment: "comment1",
+					WithConfig:  false,
+				},
+				{
+					Name:        "test2",
+					ConstName:   "Test2",
+					Handler:     "handler2",
+					RoleConst:   "Role2",
+					RoleName:    "role2",
+					RoleComment: "comment2",
+					WithConfig:  true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "duplicate tool names",
+			tools: []ToolDefinition{
+				{Name: "duplicate", ConstName: "Test1", Handler: "handler1", RoleConst: "Role1", RoleName: "role1", RoleComment: "comment1", WithConfig: false},
+				{Name: "duplicate", ConstName: "Test2", Handler: "handler2", RoleConst: "Role2", RoleName: "role2", RoleComment: "comment2", WithConfig: false},
+			},
+			wantErr: true,
+		},
+		{
+			name: "duplicate role names",
+			tools: []ToolDefinition{
+				{Name: "test1", ConstName: "Test1", Handler: "handler1", RoleConst: "Role1", RoleName: "duplicate", RoleComment: "comment1", WithConfig: false},
+				{Name: "test2", ConstName: "Test2", Handler: "handler2", RoleConst: "Role2", RoleName: "duplicate", RoleComment: "comment2", WithConfig: false},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTools(tt.tools)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateTools() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateTool(t *testing.T) {
+	tests := []struct {
+		name    string
+		tool    ToolDefinition
+		wantErr bool
+	}{
+		{
+			name: "valid tool",
+			tool: ToolDefinition{
+				Name:        "test",
+				ConstName:   "Test",
+				Handler:     "handler",
+				RoleConst:   "Role",
+				RoleName:    "role",
+				RoleComment: "comment",
+				WithConfig:  false,
+			},
+			wantErr: false,
+		},
+		{
+			name:    "missing name",
+			tool:    ToolDefinition{Handler: "handler", RoleConst: "Role", RoleName: "role", RoleComment: "comment", WithConfig: false},
+			wantErr: true,
+		},
+		{
+			name:    "missing const name",
+			tool:    ToolDefinition{Name: "test", Handler: "handler", RoleConst: "Role", RoleName: "role", RoleComment: "comment", WithConfig: false},
+			wantErr: true,
+		},
+		{
+			name:    "missing handler",
+			tool:    ToolDefinition{Name: "test", ConstName: "Test", RoleConst: "Role", RoleName: "role", RoleComment: "comment", WithConfig: false},
+			wantErr: true,
+		},
+		{
+			name:    "missing role const",
+			tool:    ToolDefinition{Name: "test", ConstName: "Test", Handler: "handler", RoleName: "role", RoleComment: "comment", WithConfig: false},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTool(&tt.tool, 0, make(map[string]bool), make(map[string]bool))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateTool() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidatePromptArguments(t *testing.T) {
+	tests := []struct {
+		name      string
+		arguments []PromptArgument
+		wantErr   bool
+	}{
+		{
+			name: "valid arguments",
+			arguments: []PromptArgument{
+				{Name: "arg1", Description: "First arg"},
+				{Name: "arg2", Description: "Second arg", Required: true},
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing name",
+			arguments: []PromptArgument{
+				{Description: "Missing name"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "duplicate names",
+			arguments: []PromptArgument{
+				{Name: "duplicate", Description: "First"},
+				{Name: "duplicate", Description: "Second"},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePromptArguments(tt.arguments, 0)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePromptArguments() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestFormatGoValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected string
+	}{
+		{"string", "hello", `"hello"`},
+		{"int", 42, "42"},
+		{"int8", int8(8), "8"},
+		{"int16", int16(16), "16"},
+		{"int32", int32(32), "32"},
+		{"int64", int64(64), "64"},
+		{"uint", uint(1), "1"},
+		{"uint8", uint8(8), "8"},
+		{"uint16", uint16(16), "16"},
+		{"uint32", uint32(32), "32"},
+		{"uint64", uint64(64), "64"},
+		{"float32", float32(3.14), "3.14"},
+		{"float64", 3.14159, "3.14159"},
+		{"bool true", true, "true"},
+		{"bool false", false, "false"},
+		{"nil", nil, "nil"},
+		{"array", []any{"a", "b"}, `[]any{"a", "b"}`},
+		{"map", map[string]any{"key": "value"}, `map[string]any{"key": "value"}`},
+		{"complex type", complex(1, 2), `"(1+2i)"`}, // fallback case
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatGoValue(tt.input)
+			if result != tt.expected {
+				t.Errorf("formatGoValue(%v) = %q, expected %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGetCodegenDir(t *testing.T) {
+	dir := getCodegenDir()
+	if dir == "" {
+		t.Error("getCodegenDir() returned empty string")
+	}
+	// Check if directory exists
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		t.Errorf("getCodegenDir() returned non-existent directory: %s", dir)
+	}
+}
+
+func TestGetTemplatePath(t *testing.T) {
+	path := getTemplatePath("test.tmpl")
+	expectedSuffix := "templates/test.tmpl"
+	if !strings.HasSuffix(path, expectedSuffix) {
+		t.Errorf("getTemplatePath() = %s, expected to end with %s", path, expectedSuffix)
+	}
+}
+
+func TestGetOutputPath(t *testing.T) {
+	path := getOutputPath("test.go")
+	expectedSuffix := "src/mcp-server/test.go"
+	if !strings.HasSuffix(path, expectedSuffix) {
+		t.Errorf("getOutputPath() = %s, expected to end with %s", path, expectedSuffix)
+	}
+}
+
+func TestGenerateResources(t *testing.T) {
+	// Test that GenerateResources can be called without panicking
+	// Note: This will actually generate files, so we test error handling
+	// We expect this to succeed if config files exist
+	if err := GenerateResources(); err != nil {
+		t.Logf("GenerateResources() returned error (expected if config files missing): %v", err)
+	}
+}
+
+func TestGenerateTools(t *testing.T) {
+	// Test that GenerateTools can be called without panicking
+	if err := GenerateTools(); err != nil {
+		t.Logf("GenerateTools() returned error (expected if config files missing): %v", err)
+	}
+}
+
+func TestGeneratePrompts(t *testing.T) {
+	// Test that GeneratePrompts can be called without panicking
+	if err := GeneratePrompts(); err != nil {
+		t.Logf("GeneratePrompts() returned error (expected if config files missing): %v", err)
+	}
 }
