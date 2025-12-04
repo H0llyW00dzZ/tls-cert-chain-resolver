@@ -125,7 +125,8 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 {{- range .Tools}}
 {{- if .WithConfig}}
 		{
-			Tool: mcp.NewTool({{.ConstName}},
+			Tool: mcp.NewTool(
+			{{.ConstName}},
 				mcp.WithDescription("{{.Description}}"),
 {{- if .TitleAnnotation}}
 				mcp.WithTitleAnnotation("{{.TitleAnnotation}}"),

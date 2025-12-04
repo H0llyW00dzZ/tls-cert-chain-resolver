@@ -210,7 +210,8 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 	// Tools that need config
 	toolsWithConfig := []ToolDefinitionWithConfig{
 		{
-			Tool: mcp.NewTool(ToolCheckCertExpiry,
+			Tool: mcp.NewTool(
+				ToolCheckCertExpiry,
 				mcp.WithDescription("Check certificate expiry dates and warn about upcoming expirations"),
 				mcp.WithReadOnlyHintAnnotation(true),
 				mcp.WithIdempotentHintAnnotation(true),
@@ -234,7 +235,8 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    RoleExpiryChecker,
 		},
 		{
-			Tool: mcp.NewTool(ToolFetchRemoteCert,
+			Tool: mcp.NewTool(
+				ToolFetchRemoteCert,
 				mcp.WithDescription("Fetch X509 certificate chain from a remote hostname/port"),
 
 				mcp.WithString(
@@ -272,7 +274,8 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    RoleRemoteFetcher,
 		},
 		{
-			Tool: mcp.NewTool(ToolAnalyzeCertificateWithAI,
+			Tool: mcp.NewTool(
+				ToolAnalyzeCertificateWithAI,
 				mcp.WithDescription("Analyze certificate data using AI collaboration (requires bidirectional communication)"),
 
 				mcp.WithString(
