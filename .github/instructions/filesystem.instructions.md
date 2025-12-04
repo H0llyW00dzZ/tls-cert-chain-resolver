@@ -675,7 +675,7 @@ src/mcp-server/handlers.go   # MCP tool handlers, AI certificate analysis, certi
 src/mcp-server/helper.go     # Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
 src/mcp-server/pipe.go       # Pipe transport implementation for StdioServer input/output interception (sampling)
 src/mcp-server/pipe_test.go  # Pipe transport tests covering I/O performance, interception logic, and sampling response routing
-src/mcp-server/prompts.go    # MCP prompt definitions and handlers for certificate workflows
+src/mcp-server/prompts.go    # MCP prompt definitions and handlers for certificate workflows with metadata and required arguments
 src/mcp-server/resource_usage.go  # Resource usage monitoring and formatting functions
 src/mcp-server/resources.go  # MCP resource definitions and handlers (config, version, formats, status)
 src/mcp-server/run_graceful_test.go  # Graceful shutdown test (non-Windows)

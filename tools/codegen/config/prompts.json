@@ -7,9 +7,16 @@
       "arguments": [
         {
           "name": "certificate_path",
-          "description": "Path to certificate file or base64-encoded certificate data"
+          "description": "Path to certificate file or base64-encoded certificate data",
+          "required": true
         }
-      ]
+      ],
+      "audience": ["user", "assistant"],
+      "priority": 1.0,
+      "meta": {
+        "category": "analysis",
+        "workflow": "comprehensive"
+      }
     },
     {
       "name": "expiry-monitoring",
@@ -18,13 +25,21 @@
       "arguments": [
         {
           "name": "certificate_path",
-          "description": "Path to certificate file or base64-encoded certificate data"
+          "description": "Path to certificate file or base64-encoded certificate data",
+          "required": true
         },
         {
           "name": "alert_days",
-          "description": "Number of days before expiry to alert (default: 30)"
+          "description": "Number of days before expiry to alert (default: 30)",
+          "required": false
         }
-      ]
+      ],
+      "audience": ["user", "assistant"],
+      "priority": 0.9,
+      "meta": {
+        "category": "monitoring",
+        "workflow": "renewal"
+      }
     },
     {
       "name": "security-audit",
@@ -33,13 +48,21 @@
       "arguments": [
         {
           "name": "hostname",
-          "description": "Target hostname to audit"
+          "description": "Target hostname to audit",
+          "required": true
         },
         {
           "name": "port",
-          "description": "Port number (default: 443)"
+          "description": "Port number (default: 443)",
+          "required": false
         }
-      ]
+      ],
+      "audience": ["user", "assistant"],
+      "priority": 0.8,
+      "meta": {
+        "category": "security",
+        "workflow": "audit"
+      }
     },
     {
       "name": "troubleshooting",
@@ -48,17 +71,26 @@
       "arguments": [
         {
           "name": "issue_type",
-          "description": "Type of issue: 'chain', 'validation', 'expiry', 'connection'"
+          "description": "Type of issue: 'chain', 'validation', 'expiry', 'connection'",
+          "required": true
         },
         {
           "name": "certificate_path",
-          "description": "Path to certificate file or base64-encoded certificate data (for chain/validation/expiry issues)"
+          "description": "Path to certificate file or base64-encoded certificate data (for chain/validation/expiry issues)",
+          "required": false
         },
         {
           "name": "hostname",
-          "description": "Target hostname (for connection issues)"
+          "description": "Target hostname (for connection issues)",
+          "required": false
         }
-      ]
+      ],
+      "audience": ["user", "assistant"],
+      "priority": 0.7,
+      "meta": {
+        "category": "support",
+        "workflow": "diagnostic"
+      }
     }
   ]
 }

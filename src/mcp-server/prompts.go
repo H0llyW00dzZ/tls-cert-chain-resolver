@@ -33,51 +33,71 @@ import (
 func createPrompts() []server.ServerPrompt {
 	return []server.ServerPrompt{
 		{
-			Prompt: mcp.NewPrompt("certificate-analysis",
-				mcp.WithPromptDescription("Comprehensive certificate chain analysis workflow"),
-				mcp.WithArgument("certificate_path",
-					mcp.ArgumentDescription("Path to certificate file or base64-encoded certificate data"),
-				),
-			),
+			Prompt: func() mcp.Prompt {
+				prompt := mcp.NewPrompt("certificate-analysis",
+					mcp.WithPromptDescription("Comprehensive certificate chain analysis workflow"),
+					mcp.WithArgument("certificate_path",
+						mcp.ArgumentDescription("Path to certificate file or base64-encoded certificate data"),
+						mcp.RequiredArgument(),
+					),
+				)
+				prompt.Meta = mcp.NewMetaFromMap(map[string]any{"category": "analysis", "workflow": "comprehensive"})
+				return prompt
+			}(),
 			Handler: handleCertificateAnalysisPrompt,
 		},
 		{
-			Prompt: mcp.NewPrompt("expiry-monitoring",
-				mcp.WithPromptDescription("Monitor certificate expiration dates and generate renewal alerts"),
-				mcp.WithArgument("certificate_path",
-					mcp.ArgumentDescription("Path to certificate file or base64-encoded certificate data"),
-				),
-				mcp.WithArgument("alert_days",
-					mcp.ArgumentDescription("Number of days before expiry to alert (default: 30)"),
-				),
-			),
+			Prompt: func() mcp.Prompt {
+				prompt := mcp.NewPrompt("expiry-monitoring",
+					mcp.WithPromptDescription("Monitor certificate expiration dates and generate renewal alerts"),
+					mcp.WithArgument("certificate_path",
+						mcp.ArgumentDescription("Path to certificate file or base64-encoded certificate data"),
+						mcp.RequiredArgument(),
+					),
+					mcp.WithArgument("alert_days",
+						mcp.ArgumentDescription("Number of days before expiry to alert (default: 30)"),
+					),
+				)
+				prompt.Meta = mcp.NewMetaFromMap(map[string]any{"category": "monitoring", "workflow": "renewal"})
+				return prompt
+			}(),
 			Handler: handleExpiryMonitoringPrompt,
 		},
 		{
-			Prompt: mcp.NewPrompt("security-audit",
-				mcp.WithPromptDescription("Perform comprehensive SSL/TLS security audit on a server"),
-				mcp.WithArgument("hostname",
-					mcp.ArgumentDescription("Target hostname to audit"),
-				),
-				mcp.WithArgument("port",
-					mcp.ArgumentDescription("Port number (default: 443)"),
-				),
-			),
+			Prompt: func() mcp.Prompt {
+				prompt := mcp.NewPrompt("security-audit",
+					mcp.WithPromptDescription("Perform comprehensive SSL/TLS security audit on a server"),
+					mcp.WithArgument("hostname",
+						mcp.ArgumentDescription("Target hostname to audit"),
+						mcp.RequiredArgument(),
+					),
+					mcp.WithArgument("port",
+						mcp.ArgumentDescription("Port number (default: 443)"),
+					),
+				)
+				prompt.Meta = mcp.NewMetaFromMap(map[string]any{"category": "security", "workflow": "audit"})
+				return prompt
+			}(),
 			Handler: handleSecurityAuditPrompt,
 		},
 		{
-			Prompt: mcp.NewPrompt("troubleshooting",
-				mcp.WithPromptDescription("Troubleshoot common certificate and TLS issues"),
-				mcp.WithArgument("issue_type",
-					mcp.ArgumentDescription("Type of issue: 'chain', 'validation', 'expiry', 'connection'"),
-				),
-				mcp.WithArgument("certificate_path",
-					mcp.ArgumentDescription("Path to certificate file or base64-encoded certificate data (for chain/validation/expiry issues)"),
-				),
-				mcp.WithArgument("hostname",
-					mcp.ArgumentDescription("Target hostname (for connection issues)"),
-				),
-			),
+			Prompt: func() mcp.Prompt {
+				prompt := mcp.NewPrompt("troubleshooting",
+					mcp.WithPromptDescription("Troubleshoot common certificate and TLS issues"),
+					mcp.WithArgument("issue_type",
+						mcp.ArgumentDescription("Type of issue: 'chain', 'validation', 'expiry', 'connection'"),
+						mcp.RequiredArgument(),
+					),
+					mcp.WithArgument("certificate_path",
+						mcp.ArgumentDescription("Path to certificate file or base64-encoded certificate data (for chain/validation/expiry issues)"),
+					),
+					mcp.WithArgument("hostname",
+						mcp.ArgumentDescription("Target hostname (for connection issues)"),
+					),
+				)
+				prompt.Meta = mcp.NewMetaFromMap(map[string]any{"category": "support", "workflow": "diagnostic"})
+				return prompt
+			}(),
 			Handler: handleTroubleshootingPrompt,
 		},
 	}

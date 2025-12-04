@@ -119,6 +119,19 @@ The MCP server provides static resources with annotations and metadata for enhan
 
 All resources include metadata for categorization and read-only status.
 
+#### MCP Prompts
+
+The MCP server provides structured prompts with metadata for guided certificate analysis workflows:
+
+| Prompt | Purpose | Required Args | Metadata |
+|--------|---------|---------------|----------|
+| `certificate-analysis` | Comprehensive certificate chain analysis workflow | certificate_path | category: "analysis", workflow: "comprehensive" |
+| `expiry-monitoring` | Monitor certificate expiration dates and generate renewal alerts | certificate_path | category: "monitoring", workflow: "renewal" |
+| `security-audit` | Perform comprehensive SSL/TLS security audit on a server | hostname | category: "security", workflow: "audit" |
+| `troubleshooting` | Troubleshoot common certificate and TLS issues | issue_type | category: "support", workflow: "diagnostic" |
+
+All prompts include metadata for categorization and workflow identification.
+
 #### Security considerations
 
 The remote fetcher sets `InsecureSkipVerify` on its TLS dialer so it can capture every handshake certificate without relying on the sandbox trust store. No verification is performed during that session; always validate the returned chain (for example with `VerifyChain`) before treating the endpoint as trusted, since a [man-in-the-middle](https://grokipedia.com/page/Man-in-the-middle_attack) could present an arbitrary certificate set.

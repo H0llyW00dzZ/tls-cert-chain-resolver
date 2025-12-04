@@ -332,6 +332,106 @@ func TestValidateResources(t *testing.T) {
 	}
 }
 
+func TestValidatePrompts(t *testing.T) {
+	tests := []struct {
+		name    string
+		prompts []PromptDefinition
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid prompts with annotations",
+			prompts: []PromptDefinition{
+				{
+					Name:        "test-prompt",
+					Description: "Test prompt",
+					Handler:     "handleTest",
+					Arguments: []PromptArgument{
+						{Name: "arg1", Description: "First arg", Required: true},
+					},
+					Audience: []string{"user", "assistant"},
+					Priority: &[]float64{1.0}[0],
+					Meta:     map[string]any{"category": "test"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing required fields",
+			prompts: []PromptDefinition{
+				{
+					Name:    "",
+					Handler: "handleTest",
+				},
+			},
+			wantErr: true,
+			errMsg:  "Name is required",
+		},
+		{
+			name: "duplicate prompt name",
+			prompts: []PromptDefinition{
+				{
+					Name:    "duplicate",
+					Handler: "handle1",
+				},
+				{
+					Name:    "duplicate",
+					Handler: "handle2",
+				},
+			},
+			wantErr: true,
+			errMsg:  "duplicate name",
+		},
+		{
+			name: "invalid audience role",
+			prompts: []PromptDefinition{
+				{
+					Name:     "test",
+					Handler:  "handleTest",
+					Audience: []string{"invalid_role"},
+				},
+			},
+			wantErr: true,
+			errMsg:  "invalid audience role",
+		},
+		{
+			name: "invalid priority range",
+			prompts: []PromptDefinition{
+				{
+					Name:     "test",
+					Handler:  "handleTest",
+					Priority: &[]float64{-1.0}[0],
+				},
+			},
+			wantErr: true,
+			errMsg:  "priority must be between 0.0 and 10.0",
+		},
+		{
+			name: "valid priority range",
+			prompts: []PromptDefinition{
+				{
+					Name:     "test",
+					Handler:  "handleTest",
+					Priority: &[]float64{10.0}[0],
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePrompts(tt.prompts)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePrompts() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr && tt.errMsg != "" && !contains(err.Error(), tt.errMsg) {
+				t.Errorf("validatePrompts() error = %v, expected to contain %v", err, tt.errMsg)
+			}
+		})
+	}
+}
+
 func TestToGoMap(t *testing.T) {
 	tests := []struct {
 		name     string

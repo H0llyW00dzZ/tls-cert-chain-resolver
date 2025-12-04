@@ -18,14 +18,23 @@ func createPrompts() []server.ServerPrompt {
 	return []server.ServerPrompt{
 {{- range .Prompts}}
 		{
-			Prompt: mcp.NewPrompt("{{.Name}}",
-				mcp.WithPromptDescription("{{.Description}}"),
+			Prompt: func() mcp.Prompt {
+				prompt := mcp.NewPrompt("{{.Name}}",
+					mcp.WithPromptDescription("{{.Description}}"),
 {{- range .Arguments}}
-				mcp.WithArgument("{{.Name}}",
-					mcp.ArgumentDescription("{{.Description}}"),
-				),
+					mcp.WithArgument("{{.Name}}",
+						mcp.ArgumentDescription("{{.Description}}"),
+{{- if .Required}}
+						mcp.RequiredArgument(),
 {{- end}}
-			),
+					),
+{{- end}}
+				)
+{{- if .Meta}}
+				prompt.Meta = mcp.NewMetaFromMap({{.Meta | toGoMap}})
+{{- end}}
+				return prompt
+			}(),
 			Handler: {{.Handler}},
 		},
 {{- end}}
