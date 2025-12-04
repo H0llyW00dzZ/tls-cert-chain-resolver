@@ -361,7 +361,7 @@ Current external dependencies to research:
 - `github.com/mark3labs/mcp-go` v0.43.1 - MCP server implementation with enhanced bidirectional AI sampling support
 - `github.com/modelcontextprotocol/go-sdk` v1.1.0 - Official MCP SDK for transport implementations
 - `google.golang.org/adk` v0.2.0 - Google ADK integration for MCP transport creation
-- `google.golang.org/genai` v1.36.0 - Google GenAI integration for AI model interactions
+- `google.golang.org/genai` v1.37.0 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
 - `golang.org/x/crypto` v0.45.0 - Supplementary cryptography libraries leveraged in recent releases
 - `golang.org/x/text` v0.31.0 - Text processing utilities for proper casing and internationalization (GitHub: golang/text)
@@ -473,7 +473,7 @@ Solutions:
 - `mark3labs/mcp-go` v0.43.1 - For MCP server features with enhanced bidirectional AI sampling support
 - `modelcontextprotocol/go-sdk` v1.1.0 - For official MCP transport implementations
 - `google.golang.org/adk` v0.2.0 - For Google ADK integration for MCP transport creation
-- `google.golang.org/genai` v1.36.0 - For Google GenAI integration for AI model interactions
+- `google.golang.org/genai` v1.37.0 - For Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - For enhanced markdown table formatting with emoji headers
 - `golang.org/x/crypto` v0.45.0 - For supplementary cryptography libraries leveraged in recent releases
 - `golang.org/x/text` v0.31.0 - For text processing utilities for proper casing and internationalization (GitHub: golang/text)
