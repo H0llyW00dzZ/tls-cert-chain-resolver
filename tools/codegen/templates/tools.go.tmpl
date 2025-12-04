@@ -1,3 +1,61 @@
+{{/*
+	Helper template for generating MCP tool parameters.
+
+	This template handles the complex logic for creating MCP parameter definitions,
+	including type-specific constraints, validation rules, and default values.
+	It supports all MCP parameter types: string, number, boolean, array, and object.
+*/}}
+{{define "toolParams"}}
+{{- range .}}
+	{{/* Determine the MCP parameter type function */}}
+	{{- $paramType := "WithObject"}}
+	{{- if eq .Type "string"}}{{- $paramType = "WithString"}}
+	{{- else if eq .Type "number"}}{{- $paramType = "WithNumber"}}
+	{{- else if eq .Type "boolean"}}{{- $paramType = "WithBoolean"}}
+	{{- else if eq .Type "array"}}{{- $paramType = "WithArray"}}
+	{{- end}}
+
+				mcp.{{$paramType}}(
+				"{{.Name}}",
+{{- if .Required}}
+					mcp.Required(),
+{{- end}}
+					mcp.Description("{{.Description}}"),
+{{- if .Enum}}
+					mcp.Enum({{range $i, $val := .Enum}}{{if $i}}, {{end}}"{{$val}}"{{end}}),
+{{- end}}
+{{- if and (eq .Type "string") .MinLength}}
+					mcp.MinLength({{.MinLength}}),
+{{- end}}
+{{- if and (eq .Type "string") .MaxLength}}
+					mcp.MaxLength({{.MaxLength}}),
+{{- end}}
+{{- if and (eq .Type "number") .Minimum}}
+					mcp.Min({{.Minimum}}),
+{{- end}}
+{{- if and (eq .Type "number") .Maximum}}
+					mcp.Max({{.Maximum}}),
+{{- end}}
+{{- if and (eq .Type "string") .Pattern}}
+					mcp.Pattern("{{.Pattern}}"),
+{{- end}}
+{{- if and (eq .Type "array") .Items}}
+					mcp.Items({{.Items | toGoMap}}),
+{{- end}}
+{{- if and (eq .Type "object") .Properties}}
+					mcp.Properties({{.Properties | toGoMap}}),
+{{- end}}
+{{- if and (not .Required) .Default}}
+	{{- $defaultType := "DefaultBool"}}
+	{{- if eq .Type "string"}}{{- $defaultType = "DefaultString"}}
+	{{- else if eq .Type "number"}}{{- $defaultType = "DefaultNumber"}}
+	{{- end}}
+					mcp.{{$defaultType}}({{.Default}}),
+{{- end}}
+				),
+{{- end}}
+{{end}}
+
 // Tool names as constants for consistency and type safety.
 const (
 {{- range .Tools}}
@@ -35,7 +93,8 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 {{- range .Tools}}
 {{- if not .WithConfig}}
 		{
-			Tool: mcp.NewTool({{.ConstName}},
+			Tool: mcp.NewTool(
+			{{.ConstName}},
 				mcp.WithDescription("{{.Description}}"),
 {{- if .TitleAnnotation}}
 				mcp.WithTitleAnnotation("{{.TitleAnnotation}}"),
@@ -52,41 +111,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 {{- if .OpenWorldHintAnnotation}}
 				mcp.WithOpenWorldHintAnnotation({{.OpenWorldHintAnnotation}}),
 {{- end}}
-{{- range .Params}}
-				mcp.{{if eq .Type "string"}}WithString{{else if eq .Type "number"}}WithNumber{{else if eq .Type "boolean"}}WithBoolean{{else if eq .Type "array"}}WithArray{{else}}WithObject{{end}}("{{.Name}}",
-{{- if .Required}}
-					mcp.Required(),
-{{- end}}
-					mcp.Description("{{.Description}}"),
-{{- if .Enum}}
-					mcp.Enum({{range $i, $val := .Enum}}{{if $i}}, {{end}}"{{$val}}"{{end}}),
-{{- end}}
-{{- if and (eq .Type "string") .MinLength}}
-					mcp.MinLength({{.MinLength}}),
-{{- end}}
-{{- if and (eq .Type "string") .MaxLength}}
-					mcp.MaxLength({{.MaxLength}}),
-{{- end}}
-{{- if and (eq .Type "number") .Minimum}}
-					mcp.Min({{.Minimum}}),
-{{- end}}
-{{- if and (eq .Type "number") .Maximum}}
-					mcp.Max({{.Maximum}}),
-{{- end}}
-{{- if and (eq .Type "string") .Pattern}}
-					mcp.Pattern("{{.Pattern}}"),
-{{- end}}
-{{- if and (eq .Type "array") .Items}}
-					mcp.Items({{.Items | toGoMap}}),
-{{- end}}
-{{- if and (eq .Type "object") .Properties}}
-					mcp.Properties({{.Properties | toGoMap}}),
-{{- end}}
-{{- if and (not .Required) .Default}}
-					mcp.{{if eq .Type "string"}}DefaultString{{else if eq .Type "number"}}DefaultNumber{{else}}DefaultBool{{end}}({{.Default}}),
-{{- end}}
-				),
-{{- end}}
+{{- template "toolParams" .Params}}
 			),
 			Handler: {{.Handler}},
 			Role:    {{.RoleConst}},
@@ -117,41 +142,7 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 {{- if .OpenWorldHintAnnotation}}
 				mcp.WithOpenWorldHintAnnotation({{.OpenWorldHintAnnotation}}),
 {{- end}}
-{{- range .Params}}
-				mcp.{{if eq .Type "string"}}WithString{{else if eq .Type "number"}}WithNumber{{else if eq .Type "boolean"}}WithBoolean{{else if eq .Type "array"}}WithArray{{else}}WithObject{{end}}("{{.Name}}",
-{{- if .Required}}
-					mcp.Required(),
-{{- end}}
-					mcp.Description("{{.Description}}"),
-{{- if .Enum}}
-					mcp.Enum({{range $i, $val := .Enum}}{{if $i}}, {{end}}"{{$val}}"{{end}}),
-{{- end}}
-{{- if and (eq .Type "string") .MinLength}}
-					mcp.MinLength({{.MinLength}}),
-{{- end}}
-{{- if and (eq .Type "string") .MaxLength}}
-					mcp.MaxLength({{.MaxLength}}),
-{{- end}}
-{{- if and (eq .Type "number") .Minimum}}
-					mcp.Min({{.Minimum}}),
-{{- end}}
-{{- if and (eq .Type "number") .Maximum}}
-					mcp.Max({{.Maximum}}),
-{{- end}}
-{{- if and (eq .Type "string") .Pattern}}
-					mcp.Pattern("{{.Pattern}}"),
-{{- end}}
-{{- if and (eq .Type "array") .Items}}
-					mcp.Items({{.Items | toGoMap}}),
-{{- end}}
-{{- if and (eq .Type "object") .Properties}}
-					mcp.Properties({{.Properties | toGoMap}}),
-{{- end}}
-{{- if and (not .Required) .Default}}
-					mcp.{{if eq .Type "string"}}DefaultString{{else if eq .Type "number"}}DefaultNumber{{else}}DefaultBool{{end}}({{.Default}}),
-{{- end}}
-				),
-{{- end}}
+{{- template "toolParams" .Params}}
 			),
 			Handler: {{.Handler}},
 			Role:    {{.RoleConst}},

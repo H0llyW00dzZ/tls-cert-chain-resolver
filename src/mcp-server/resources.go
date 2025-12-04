@@ -36,10 +36,11 @@ func createResources() []server.ServerResource {
 					"Server Configuration Template",
 					mcp.WithResourceDescription("Example configuration file for the MCP server"),
 					mcp.WithMIMEType("application/json"),
-					mcp.WithAnnotations([]mcp.Role{
-						mcp.RoleUser,
-						mcp.RoleAssistant,
-					}, 1),
+					mcp.WithAnnotations(
+						[]mcp.Role{
+							mcp.RoleUser,
+							mcp.RoleAssistant,
+						}, 1),
 				)
 				res.Meta = mcp.NewMetaFromMap(map[string]any{"category": "configuration", "readOnly": true})
 				return res
@@ -53,10 +54,11 @@ func createResources() []server.ServerResource {
 					"Server Version Information",
 					mcp.WithResourceDescription("Version and build information for the MCP server"),
 					mcp.WithMIMEType("application/json"),
-					mcp.WithAnnotations([]mcp.Role{
-						mcp.RoleUser,
-						mcp.RoleAssistant,
-					}, 0.8),
+					mcp.WithAnnotations(
+						[]mcp.Role{
+							mcp.RoleUser,
+							mcp.RoleAssistant,
+						}, 0.8),
 				)
 				res.Meta = mcp.NewMetaFromMap(map[string]any{"category": "metadata", "readOnly": true})
 				return res
@@ -70,10 +72,11 @@ func createResources() []server.ServerResource {
 					"Certificate Format Documentation",
 					mcp.WithResourceDescription("Documentation on supported certificate formats and usage"),
 					mcp.WithMIMEType("text/markdown"),
-					mcp.WithAnnotations([]mcp.Role{
-						mcp.RoleUser,
-						mcp.RoleAssistant,
-					}, 0.9),
+					mcp.WithAnnotations(
+						[]mcp.Role{
+							mcp.RoleUser,
+							mcp.RoleAssistant,
+						}, 0.9),
 				)
 				res.Meta = mcp.NewMetaFromMap(map[string]any{"category": "documentation", "readOnly": true})
 				return res
@@ -87,10 +90,11 @@ func createResources() []server.ServerResource {
 					"Server Status Information",
 					mcp.WithResourceDescription("Current status and health information for the MCP server"),
 					mcp.WithMIMEType("application/json"),
-					mcp.WithAnnotations([]mcp.Role{
-						mcp.RoleUser,
-						mcp.RoleAssistant,
-					}, 0.7),
+					mcp.WithAnnotations(
+						[]mcp.Role{
+							mcp.RoleUser,
+							mcp.RoleAssistant,
+						}, 0.7),
 				)
 				res.Meta = mcp.NewMetaFromMap(map[string]any{"category": "monitoring", "readOnly": true})
 				return res
