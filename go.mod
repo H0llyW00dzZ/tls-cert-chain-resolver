@@ -10,6 +10,7 @@ require (
 	github.com/spf13/cobra v1.10.1
 	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/crypto v0.45.0
+	golang.org/x/text v0.31.0
 	google.golang.org/adk v0.2.0
 	google.golang.org/genai v1.36.0
 )
@@ -57,7 +58,6 @@ require (
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.32.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251014184007-4626949a642f // indirect
 	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect

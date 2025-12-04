@@ -18,6 +18,9 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Config holds the loaded configuration
@@ -465,7 +468,9 @@ func generateFile(templatePath, outputPath string, config *Config, fileType stri
 			data, _ := json.Marshal(v)
 			return string(data)
 		},
-		"title":   strings.Title,
+		"title": func(s string) string {
+			return cases.Title(language.Und).String(s)
+		},
 		"toGoMap": toGoMap,
 	}).ParseFiles(templatePath)
 	if err != nil {
