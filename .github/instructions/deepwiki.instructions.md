@@ -470,7 +470,7 @@ Solutions:
 - `spf13/cobra` - For CLI improvements
 - `cloudflare/cfssl` - For certificate handling
 - `valyala/bytebufferpool` - For memory optimization
-- `mark3labs/mcp-go` v0.43.1 - For MCP server features with enhanced bidirectional AI sampling support
+- `mark3labs/mcp-go` v0.43.2 - For MCP server features with enhanced bidirectional AI sampling support
 - `modelcontextprotocol/go-sdk` v1.1.0 - For official MCP transport implementations
 - `google.golang.org/adk` v0.2.0 - For Google ADK integration for MCP transport creation
 - `google.golang.org/genai` v1.37.0 - For Google GenAI integration for AI model interactions

@@ -97,8 +97,11 @@ tls-cert-chain-resolver/
 │   └── codegen/                              # Code generation for MCP server resources and tools
 │       ├── config/                           # Configuration files
 │       │   ├── prompts.json                  # Prompt definitions
+│       │   ├── prompts.schema.json           # JSON schema for prompt validation
 │       │   ├── resources.json                # Resource definitions
-│       │   └── tools.json                    # Tool definitions
+│       │   ├── resources.schema.json         # JSON schema for resource validation
+│       │   ├── tools.json                    # Tool definitions
+│       │   └── tools.schema.json             # JSON schema for tool validation
 │       ├── internal/
 │       │   ├── codegen.go                    # Core generation logic
 │       │   └── codegen_test.go               # Codegen tests for parameter validation
