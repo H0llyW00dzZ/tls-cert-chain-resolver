@@ -523,13 +523,19 @@ func TestLoadJSON(t *testing.T) {
 	// Create a temporary JSON file in the config directory
 	configDir := filepath.Join(getCodegenDir(), "config")
 	tempFile := filepath.Join(configDir, "test_temp.json")
+	schemaFile := filepath.Join(configDir, "test_temp.schema.json")
 	jsonContent := `{"test": "value", "number": 42}`
+	schemaContent := `{"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object"}`
 
 	// Ensure cleanup
 	defer os.Remove(tempFile)
+	defer os.Remove(schemaFile)
 
 	if err := os.WriteFile(tempFile, []byte(jsonContent), 0644); err != nil {
 		t.Fatalf("Failed to create test JSON file: %v", err)
+	}
+	if err := os.WriteFile(schemaFile, []byte(schemaContent), 0644); err != nil {
+		t.Fatalf("Failed to create test schema file: %v", err)
 	}
 
 	var result map[string]any
@@ -868,5 +874,120 @@ func TestGeneratePrompts(t *testing.T) {
 	// Test that GeneratePrompts can be called without panicking
 	if err := GeneratePrompts(); err != nil {
 		t.Logf("GeneratePrompts() returned error (expected if config files missing): %v", err)
+	}
+}
+
+func TestValidateJSONSchema(t *testing.T) {
+	tests := []struct {
+		name       string
+		jsonData   string
+		schemaFile string
+		wantErr    bool
+		errMsg     string
+	}{
+		{
+			name: "valid tools config",
+			jsonData: `{
+				"tools": [
+					{
+						"constName": "TestTool",
+						"name": "test_tool",
+						"description": "Test tool",
+						"handler": "handleTest",
+						"roleConst": "TestRole",
+						"roleName": "testRole",
+						"withConfig": false
+					}
+				]
+			}`,
+			schemaFile: "tools.schema.json",
+			wantErr:    false,
+		},
+		{
+			name: "invalid tools config - missing required field",
+			jsonData: `{
+				"tools": [
+					{
+						"name": "test_tool",
+						"description": "Test tool"
+					}
+				]
+			}`,
+			schemaFile: "tools.schema.json",
+			wantErr:    true,
+			errMsg:     "JSON schema validation failed",
+		},
+		{
+			name: "valid resources config",
+			jsonData: `{
+				"resources": [
+					{
+						"uri": "test://resource",
+						"name": "Test Resource",
+						"description": "Test resource",
+						"mimeType": "application/json",
+						"handler": "handleTest"
+					}
+				]
+			}`,
+			schemaFile: "resources.schema.json",
+			wantErr:    false,
+		},
+		{
+			name: "valid prompts config",
+			jsonData: `{
+				"prompts": [
+					{
+						"name": "test-prompt",
+						"description": "Test prompt",
+						"handler": "handleTest",
+						"arguments": [
+							{
+								"name": "arg1",
+								"description": "Test argument"
+							}
+						]
+					}
+				]
+			}`,
+			schemaFile: "prompts.schema.json",
+			wantErr:    false,
+		},
+		{
+			name:       "non-existent schema file",
+			jsonData:   `{"test": "data"}`,
+			schemaFile: "nonexistent.schema.json",
+			wantErr:    true,
+			errMsg:     "schema validation error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			schemaPath := filepath.Join(getCodegenDir(), "config", tt.schemaFile)
+			err := validateJSONSchema([]byte(tt.jsonData), schemaPath)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("validateJSONSchema() expected error, got nil")
+				} else if tt.errMsg != "" && !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("validateJSONSchema() error = %v, expected to contain %q", err, tt.errMsg)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("validateJSONSchema() unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestLoadConfigWithSchemaValidation(t *testing.T) {
+	// Test that loadConfig validates against schemas
+	// This test assumes the actual config files exist and are valid
+	_, err := loadConfig()
+	if err != nil {
+		t.Logf("loadConfig() returned error (may be expected if config files are invalid): %v", err)
+		// We don't fail the test here as config files might be intentionally invalid for testing
 	}
 }

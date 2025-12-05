@@ -11,8 +11,11 @@ tools/codegen/
 │   └── codegen.go         # Core generation logic
 ├── config/
 │   ├── resources.json     # Resource definitions
+│   ├── resources.schema.json # Resources JSON schema
 │   ├── tools.json         # Tool definitions
-│   └── prompts.json       # Prompt definitions
+│   ├── tools.schema.json  # Tools JSON schema
+│   ├── prompts.json       # Prompt definitions
+│   └── prompts.schema.json # Prompts JSON schema
 ├── templates/
 │   ├── resources.go.tmpl  # Resources template
 │   ├── tools.go.tmpl      # Tools template
@@ -41,6 +44,13 @@ tools/codegen/
 - Configuration files are validated on load
 - Checks for required fields, duplicates, and valid types
 - Clear error messages for configuration issues
+
+### 5. JSON Schema Validation
+- Configuration files are validated against JSON schemas on load
+- Ensures data structure compliance and prevents configuration errors
+- Schema files are located alongside config files (e.g., `tools.schema.json`)
+- Validation occurs before unmarshaling, providing early error detection
+- Supports complex validation rules including type constraints, required fields, and custom patterns
 
 ## Usage
 
@@ -533,8 +543,9 @@ Due to the framework implementation in `src/mcp-server/`, it has better Go code 
 ## Benefits
 
 1. **Maintainability**: Easy to add/modify resources, tools, and prompts
-2. **Reliability**: Configuration validation prevents runtime errors
+2. **Reliability**: Configuration validation and JSON schema validation prevent runtime errors
 3. **Readability**: Template-based generation is cleaner than string concatenation
 4. **Testability**: Modular design allows testing individual components
 5. **Extensibility**: New features can be added without changing existing code
 6. **Scalability**: Ready to handle highly scalable scenarios such as many tools, focusing only on business logic
+7. **Data Integrity**: JSON schema validation ensures configuration files conform to expected structure

@@ -19,6 +19,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/xeipuuv/gojsonschema"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -162,9 +163,37 @@ func loadJSON(filename string, target any) error {
 	if err != nil {
 		return fmt.Errorf("reading config from %s: %w", path, err)
 	}
+
+	// Validate against JSON schema
+	schemaPath := filepath.Join(getCodegenDir(), "config", strings.TrimSuffix(filename, ".json")+".schema.json")
+	if err := validateJSONSchema(data, schemaPath); err != nil {
+		return fmt.Errorf("validating config from %s: %w", path, err)
+	}
+
 	if err := json.Unmarshal(data, target); err != nil {
 		return fmt.Errorf("parsing config from %s: %w", path, err)
 	}
+	return nil
+}
+
+// validateJSONSchema validates JSON data against a JSON schema
+func validateJSONSchema(jsonData []byte, schemaPath string) error {
+	schemaLoader := gojsonschema.NewReferenceLoader("file://" + schemaPath)
+	documentLoader := gojsonschema.NewBytesLoader(jsonData)
+
+	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
+	if err != nil {
+		return fmt.Errorf("schema validation error: %w", err)
+	}
+
+	if !result.Valid() {
+		var errors []string
+		for _, desc := range result.Errors() {
+			errors = append(errors, desc.String())
+		}
+		return fmt.Errorf("JSON schema validation failed:\n%s", strings.Join(errors, "\n"))
+	}
+
 	return nil
 }
 
