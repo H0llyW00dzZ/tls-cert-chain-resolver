@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "constName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "comment": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "handler": {
+            "type": "string",
+            "minLength": 1
+          },
+          "roleConst": {
+            "type": "string",
+            "minLength": 1
+          },
+          "roleName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "roleComment": {
+            "type": "string"
+          },
+          "withConfig": {
+            "type": "boolean"
+          },
+          "titleAnnotation": {
+            "type": "string"
+          },
+          "readOnlyHintAnnotation": {
+            "type": "boolean"
+          },
+          "destructiveHintAnnotation": {
+            "type": "boolean"
+          },
+          "idempotentHintAnnotation": {
+            "type": "boolean"
+          },
+          "openWorldHintAnnotation": {
+            "type": "boolean"
+          },
+          "params": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["string", "number", "boolean", "array", "object"]
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "default": {
+                  "type": "string"
+                },
+                "enum": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "minLength": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maxLength": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "minimum": {
+                  "type": "number"
+                },
+                "maximum": {
+                  "type": "number"
+                },
+                "pattern": {
+                  "type": "string"
+                },
+                "items": {
+                  "type": "object"
+                },
+                "properties": {
+                  "type": "object"
+                }
+              },
+              "required": ["name", "description", "type"]
+            }
+          },
+          "meta": {
+            "type": "object"
+          }
+        },
+        "required": ["constName", "name", "description", "handler", "roleConst", "roleName", "withConfig"]
+      }
+    }
+  },
+  "required": ["tools"]
+}

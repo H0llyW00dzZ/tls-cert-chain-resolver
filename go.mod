@@ -9,6 +9,7 @@ require (
 	github.com/olekukonko/tablewriter v1.1.2
 	github.com/spf13/cobra v1.10.2
 	github.com/valyala/bytebufferpool v1.0.0
+	github.com/xeipuuv/gojsonschema v1.2.0
 	golang.org/x/crypto v0.45.0
 	golang.org/x/text v0.31.0
 	google.golang.org/adk v0.2.0
@@ -48,6 +49,8 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
+	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
+	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
