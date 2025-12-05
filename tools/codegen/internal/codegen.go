@@ -178,7 +178,13 @@ func loadJSON(filename string, target any) error {
 
 // validateJSONSchema validates JSON data against a JSON schema
 func validateJSONSchema(jsonData []byte, schemaPath string) error {
-	schemaLoader := gojsonschema.NewReferenceLoader("file://" + schemaPath)
+	// Read schema file
+	schemaData, err := os.ReadFile(schemaPath)
+	if err != nil {
+		return fmt.Errorf("reading schema file %s: %w", schemaPath, err)
+	}
+
+	schemaLoader := gojsonschema.NewBytesLoader(schemaData)
 	documentLoader := gojsonschema.NewBytesLoader(jsonData)
 
 	result, err := gojsonschema.Validate(schemaLoader, documentLoader)

@@ -958,7 +958,7 @@ func TestValidateJSONSchema(t *testing.T) {
 			jsonData:   `{"test": "data"}`,
 			schemaFile: "nonexistent.schema.json",
 			wantErr:    true,
-			errMsg:     "schema validation error",
+			errMsg:     "reading schema file",
 		},
 	}
 
