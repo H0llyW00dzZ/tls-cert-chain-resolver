@@ -537,3 +537,4 @@ Due to the framework implementation in `src/mcp-server/`, it has better Go code 
 3. **Readability**: Template-based generation is cleaner than string concatenation
 4. **Testability**: Modular design allows testing individual components
 5. **Extensibility**: New features can be added without changing existing code
+6. **Scalability**: Ready to handle highly scalable scenarios such as many tools, focusing only on business logic
