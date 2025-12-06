@@ -363,6 +363,7 @@ Current external dependencies to research:
 - `google.golang.org/adk` v0.2.0 - Google ADK integration for MCP transport creation
 - `google.golang.org/genai` v1.37.0 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
+- `github.com/xeipuuv/gojsonschema` v1.2.0 - JSON schema validation for code generation
 - `golang.org/x/crypto` v0.45.0 - Supplementary cryptography libraries leveraged in recent releases
 - `golang.org/x/text` v0.31.0 - Text processing utilities for proper casing and internationalization (GitHub: golang/text)
 - `golang/go` (standard library) - Review Go 1.25.5 crypto/tls and net/http updates
