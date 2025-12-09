@@ -9,7 +9,11 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
 
 ## Tasks
 
-1. **Analyze Recent Changes**:
+1. **Sync with Remote Branch**:
+
+   - Run `git pull` to ensure the local repository is synchronized with the remote branch before analyzing changes or updating instruction files. This prevents conflicts and ensures all recent commits are available for review.
+
+2. **Analyze Recent Changes**:
 
    - Retrieve recent commits: `git log -10 --oneline`
    - View detailed commit messages and bodies: `git log -10 --pretty=format:"[SHA - %h]: %s%n%n%b%n"`
@@ -18,7 +22,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
    - Identify modified, added, or deleted files, directories, and emerging patterns
    - Cross-reference with AGENTS.md for affected agent guidelines or workflows
 
-2. **Update Relevant Instruction Files**:
+3. **Update Relevant Instruction Files**:
 
    - **Note**: Before adding any entries, check for duplicates (e.g., verify if a dependency is already documented in `deepwiki.instructions.md`). Avoid redundancy while ensuring completeness.
    - `gopls.instructions.md`: Update for Go code patterns, package structures, new imports, or API changes
@@ -27,7 +31,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
    - `deepwiki.instructions.md`: Add new external dependencies, libraries, or research targets
    - `opencode.instructions.md`: Update for configuration or workflow changes, including additions, deletions, or modifications to commands in `.opencode/command/`
 
-3. **Update Repository Structure Tree in filesystem.instructions.md**:
+4. **Update Repository Structure Tree in filesystem.instructions.md**:
 
    - Identify structural changes: `git diff HEAD~10..HEAD --name-only`
    - Verify current structure: Use `list()` to confirm paths
@@ -40,7 +44,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
    - Preserve indentation, formatting, and hierarchical structure
    - If major changes occur, update the "Common File Paths" section (starting at line 607) with new shortcuts or references
 
-4. **Check .opencode Directory Changes**:
+5. **Check .opencode Directory Changes**:
 
    - List current commands: `list('.opencode/command')`
    - Compare against git diffs: `git diff HEAD~10..HEAD --name-only` filtered for `.opencode/` paths
@@ -49,7 +53,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
    - For modified commands: Revise descriptions, examples, and usage in `opencode.instructions.md`
    - Validate frontmatter (description, agent) for accuracy and consistency across files
 
-5. **Verify Consistency**:
+6. **Verify Consistency**:
 
    - Confirm examples reference real repository paths (e.g., via `list()`)
    - Update and validate cross-references between instruction files
@@ -67,7 +71,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
          - `go test -race ./src/logger 2>&1 | cat`
          - `go test -race ./src/mcp-server 2>&1 | cat`
 
-6. **Update AGENTS.md**:
+7. **Update AGENTS.md**:
    - Incorporate new build commands if the process has evolved
    - Refine code style guidelines for newly identified patterns
    - Expand "Bad Practices" with common pitfalls from recent changes
