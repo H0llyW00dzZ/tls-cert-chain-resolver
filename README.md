@@ -244,9 +244,12 @@ tls-cert-chain-resolver/
         │   ├── codegen.go      # Core generation logic
         │   └── codegen_test.go # Codegen tests for parameter validation
         ├── config/
-        │   ├── resources.json  # Resource definitions
-        │   ├── tools.json      # Tool definitions
-        │   └── prompts.json    # Prompt definitions
+        │   ├── prompts.json          # Prompt definitions
+        │   ├── prompts.schema.json   # JSON schema for prompt validation
+        │   ├── resources.json        # Resource definitions
+        │   ├── resources.schema.json # JSON schema for resource validation
+        │   ├── tools.json            # Tool definitions
+        │   └── tools.schema.json     # JSON schema for tool validation
         ├── templates/
         │   ├── resources.go.tmpl  # Resources template
         │   ├── tools.go.tmpl      # Tools template
