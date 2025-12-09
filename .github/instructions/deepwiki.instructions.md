@@ -365,7 +365,7 @@ Current external dependencies to research:
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
 - `github.com/xeipuuv/gojsonschema` v1.2.0 - JSON schema validation for code generation
 - `golang.org/x/crypto` v0.46.0 - Supplementary cryptography libraries leveraged in recent releases
-- `golang.org/x/text` v0.31.0 - Text processing utilities for proper casing and internationalization (GitHub: golang/text)
+- `golang.org/x/text` v0.32.0 - Text processing utilities for proper casing and internationalization (GitHub: golang/text)
 - `golang/go` (standard library) - Review Go 1.25.5 crypto/tls and net/http updates
 
 ### Useful Queries for This Project
@@ -481,5 +481,5 @@ Solutions:
 - `google.golang.org/genai` v1.38.0 - For Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - For enhanced markdown table formatting with emoji headers
 - `golang.org/x/crypto` v0.46.0 - For supplementary cryptography libraries leveraged in recent releases
-- `golang.org/x/text` v0.31.0 - For text processing utilities for proper casing and internationalization (GitHub: golang/text)
+- `golang.org/x/text` v0.32.0 - For text processing utilities for proper casing and internationalization (GitHub: golang/text)
 - `golang/go` - For standard library best practices
