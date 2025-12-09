@@ -10,6 +10,7 @@ This directory contains custom commands for OpenCode agents to assist with repos
 | [`test`](./command/test.md) | Run tests with race detection and coverage (primary test approach), then analyze failures | `/test` |
 | [`test-capabilities`](./command/test-capabilities.md) | Test agent capabilities including MCP servers and built-in tools with structured todo workflow | `/test-capabilities` |
 | [`create-changelog`](./command/create-changelog.md) | Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator) | `/create-changelog` |
+| [`vulncheck`](./command/vulncheck.md) | Check for vulnerable dependencies and suggest updates | `/vulncheck` |
 
 ## Command Usage
 
@@ -20,6 +21,7 @@ Commands are invoked in OpenCode sessions using the `/command-name` syntax:
 /update-knowledge
 /test-capabilities
 /create-changelog
+/vulncheck
 ```
 
 ## Command Structure
@@ -70,6 +72,7 @@ Commands should reference and follow patterns from instruction files.
 1. /update-knowledge
 2. /test
 3. /test-capabilities
+4. /vulncheck
 ```
 
 ### Before Releases
