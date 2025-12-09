@@ -361,10 +361,10 @@ Current external dependencies to research:
 - `github.com/mark3labs/mcp-go` v0.43.2 - MCP server implementation with enhanced bidirectional AI sampling support
 - `github.com/modelcontextprotocol/go-sdk` v1.1.0 - Official MCP SDK for transport implementations
 - `google.golang.org/adk` v0.2.0 - Google ADK integration for MCP transport creation
-- `google.golang.org/genai` v1.37.0 - Google GenAI integration for AI model interactions
+- `google.golang.org/genai` v1.38.0 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
 - `github.com/xeipuuv/gojsonschema` v1.2.0 - JSON schema validation for code generation
-- `golang.org/x/crypto` v0.45.0 - Supplementary cryptography libraries leveraged in recent releases
+- `golang.org/x/crypto` v0.46.0 - Supplementary cryptography libraries leveraged in recent releases
 - `golang.org/x/text` v0.31.0 - Text processing utilities for proper casing and internationalization (GitHub: golang/text)
 - `golang/go` (standard library) - Review Go 1.25.5 crypto/tls and net/http updates
 
@@ -397,6 +397,10 @@ deepwiki_ask_question("protocolbuffers/protobuf-go", "How do I work with protoco
 
 # YAML processing
 deepwiki_ask_question("go-yaml/yaml", "How do I parse YAML configurations with custom types?")
+
+# JSON schema validation
+deepwiki_ask_question("xeipuuv/gojsonschema", "How do I validate JSON configurations against schemas in Go?")
+deepwiki_ask_question("xeipuuv/gojsonschema", "What are the best practices for JSON schema validation in code generation tools?")
 
 # MCP server implementation
 deepwiki_ask_question("mark3labs/mcp-go", "How do I implement MCP resources in a Go server?")
@@ -474,8 +478,8 @@ Solutions:
 - `mark3labs/mcp-go` v0.43.2 - For MCP server features with enhanced bidirectional AI sampling support
 - `modelcontextprotocol/go-sdk` v1.1.0 - For official MCP transport implementations
 - `google.golang.org/adk` v0.2.0 - For Google ADK integration for MCP transport creation
-- `google.golang.org/genai` v1.37.0 - For Google GenAI integration for AI model interactions
+- `google.golang.org/genai` v1.38.0 - For Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - For enhanced markdown table formatting with emoji headers
-- `golang.org/x/crypto` v0.45.0 - For supplementary cryptography libraries leveraged in recent releases
+- `golang.org/x/crypto` v0.46.0 - For supplementary cryptography libraries leveraged in recent releases
 - `golang.org/x/text` v0.31.0 - For text processing utilities for proper casing and internationalization (GitHub: golang/text)
 - `golang/go` - For standard library best practices

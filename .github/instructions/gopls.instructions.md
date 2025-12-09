@@ -725,11 +725,15 @@ grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue\\|UnmarshalFromMap", 
 grep("getParams\\|getStringParam\\|getOptionalStringParam\\|getMapParam", include="*.go")
 
 # Find codegen logic
-grep("GenerateResources\\|GenerateTools\\|GeneratePrompts", include="*.go")
+grep("GenerateResources\\|GenerateTools\\|GeneratePrompts\\|toolParams", include="*.go")
 grep("ToolDefinition\\|ResourceDefinition\\|PromptDefinition", include="*.go")
-grep("validateParamConstraints\\|validateToolParams\\|validateTool\\|validateResources\\|validatePrompts", include="*.go")
+grep("validateParamConstraints\\|validateToolParams\\|validateTool\\|validateResources\\|validatePrompts\\|validateJSON", include="*.go")
 grep("ToolParam\\|ToolAnnotation\\|PromptArgument", include="*.go")
 grep("generateFile\\|writeHeader\\|writeGeneratedFile\\|toGoMap\\|formatGoValue", include="*.go")
+
+# Find JSON schema validation patterns
+grep("gojsonschema\\|Validate\\|SchemaLoader\\|NewReferenceLoaderURL\\|NewReferenceLoaderFileSystem", include="*.go")
+grep("JSONSchema\\|SchemaValidation\\|validateJSONSchema", include="*.go")
 ```
 
 ## Summary
