@@ -82,12 +82,14 @@ This file explains the OpenCode configuration and how to use the instruction fil
 - `/test` - Run tests with race detection and coverage (primary test approach), then analyze failures
 - `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools with structured todo workflow
 - `/create-changelog` - Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
+- `/vulncheck` - Check for vulnerable dependencies and suggest updates
 
 **When to use**:
 - After making code changes (`/update-knowledge` then `/test`)
 - Before committing changes (`/test` - uses race detection with coverage as primary approach)
 - When updating dependencies or architecture
 - Before releases (`/create-changelog` to generate release notes)
+- After dependency updates (`/vulncheck` to verify security)
 
 **Structure**: Each command is a markdown file with frontmatter:
 ```markdown
@@ -324,8 +326,10 @@ Custom Commands (WORKFLOWS)
 │   └── Run tests with race detection and coverage (primary test approach)
 ├── .opencode/command/test-capabilities.md
 │   └── Test agent capabilities including MCP servers and built-in tools with structured todo workflow
-└── .opencode/command/create-changelog.md
-    └── Generate changelog by comparing tags against master and save to temporary file
+├── .opencode/command/create-changelog.md
+│   └── Generate changelog by comparing tags against master and save to temporary file
+└── .opencode/command/vulncheck.md
+    └── Check for vulnerable dependencies and suggest updates
 
 Specific Instructions (DETAILED)
 ├── gopls.instructions.md
