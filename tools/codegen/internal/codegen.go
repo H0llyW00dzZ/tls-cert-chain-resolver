@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/xeipuuv/gojsonschema"
 	"golang.org/x/text/cases"
@@ -563,7 +564,7 @@ func GeneratePrompts() error {
 }
 
 func writeHeader(code *bytes.Buffer) {
-	code.WriteString("// Copyright (c) 2025 H0llyW00dzZ All rights reserved.\n")
+	fmt.Fprintf(code, "// Copyright (c) %d H0llyW00dzZ All rights reserved.\n", time.Now().Year())
 	code.WriteString("//\n")
 	code.WriteString("// By accessing or using this software, you agree to be bound by the terms\n")
 	code.WriteString("// of the License Agreement, which you can find at LICENSE files.\n\n")
