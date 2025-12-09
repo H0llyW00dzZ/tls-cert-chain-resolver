@@ -79,7 +79,7 @@
 - `google.golang.org/genai` v1.38.0 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
 - `github.com/xeipuuv/gojsonschema` v1.2.0 - JSON schema validation for code generation
-- `golang.org/x/text` v0.31.0 - Text processing utilities for proper casing and internationalization
+- `golang.org/x/text` v0.32.0 - Text processing utilities for proper casing and internationalization
 - `golang.org/x/crypto` v0.46.0 (via Go 1.25.5) - Standard crypto updates leveraged in recent releases
 
 ### Code Formatting
