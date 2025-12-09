@@ -26,6 +26,7 @@ Check for vulnerable dependencies using `govulncheck ./...`, analyze findings, a
 
    - For each vulnerable dependency, check for available updates using `go list -m -u all`
    - Identify safe minor/patch updates that maintain compatibility
+   - For indirect dependencies, use `go get <module>@<version>` to explicitly update them
    - Prioritize security fixes over breaking changes
    - Generate report of recommended updates with rationale
 
