@@ -648,6 +648,7 @@ write("new_test.go", ...)       # Create new test files when needed
 .opencode/command/test.md
 .opencode/command/update-knowledge.md
 .opencode/command/test-capabilities.md
+.opencode/command/vulncheck.md
 
 # Main entry point
 cmd/run.go
