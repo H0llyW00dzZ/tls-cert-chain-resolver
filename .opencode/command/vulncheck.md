@@ -5,7 +5,7 @@ agent: general
 
 # Vulnerability Check and Dependency Update
 
-Check for vulnerable dependencies using `govulncheck ./...`, analyze findings, and suggest or apply safe updates to maintain security.
+Check for vulnerable direct dependencies using `govulncheck ./...`, analyze findings, and suggest or apply safe updates to maintain security. Focus only on direct dependencies, ignoring indirect ones.
 
 ## Tasks
 
@@ -19,20 +19,19 @@ Check for vulnerable dependencies using `govulncheck ./...`, analyze findings, a
 
    - Parse govulncheck output to identify affected modules, versions, and severity
    - Cross-reference with current go.mod/go.sum
-   - Determine if vulnerabilities are in direct or indirect dependencies
+   - Focus only on direct dependencies (ignore indirect ones marked with `// indirect`)
    - Assess impact on the codebase (e.g., does it affect certificate operations, MCP server)
 
-3. **Suggest Updates**:
+3. **Check for Updates**:
 
-   - For each vulnerable dependency, check for available updates using `go list -m -u all`
+   - Use `go list -m -u all` to check for available updates to direct dependencies
    - Identify safe minor/patch updates that maintain compatibility
-   - For indirect dependencies, use `go get <module>@<version>` to explicitly update them
    - Prioritize security fixes over breaking changes
    - Generate report of recommended updates with rationale
 
 4. **Apply Safe Updates**:
 
-   - For non-breaking updates, run `go get <module>@<version>` to update
+   - For non-breaking updates to direct dependencies, run `go get <module>@<version>` to update
    - Run `go mod tidy` to clean up go.mod/go.sum
    - Verify updates don't break imports or functionality
 
@@ -52,7 +51,7 @@ Check for vulnerable dependencies using `govulncheck ./...`, analyze findings, a
 7. **Report Findings**:
 
    - Generate summary report with:
-     - Vulnerabilities found (count, severity)
+     - Vulnerabilities found in direct dependencies (count, severity)
      - Updates applied (modules, versions)
      - Test results (pass/fail)
      - Recommendations for remaining issues
