@@ -25,7 +25,8 @@ tls-cert-chain-resolver/
 │   │   ├── create-changelog.md               # Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
 │   │   ├── test-capabilities.md              # Test agent capabilities including MCP servers and built-in tools with structured todo workflow
 │   │   ├── test.md                           # Test command workflow
-│   │   └── update-knowledge.md               # Update instruction files workflow
+│   │   ├── update-knowledge.md               # Update instruction files workflow
+│   │   └── vulncheck.md                      # Check for vulnerable dependencies and suggest updates
 │   └── README.md                             # Custom commands documentation
 ├── cmd/
 │   ├── adk-go/
