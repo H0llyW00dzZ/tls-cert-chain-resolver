@@ -292,6 +292,7 @@ tls-cert-chain-resolver/
 - [x] Add OCSP/CRL revocation status checks to MCP tools
 - [ ] Evaluate post-quantum signature support (e.g., hybrid or PQC-only chains)
 - [ ] Implement notification mechanism to send to client when GC gets overhead; this implementation requires custom MCP client similar to how adk-go is built on top of MCP
+- [ ] Implement MCP tools for AI to clear CRL cache
 
 ## Motivation
 
