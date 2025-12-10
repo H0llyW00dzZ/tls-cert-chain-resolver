@@ -25,6 +25,7 @@ Check for vulnerable direct dependencies using `govulncheck ./...`, analyze find
 3. **Check for Updates**:
 
    - Use `go list -m -u all` to check for available updates to direct dependencies
+   - Read `go.mod` to compare current direct dependencies and identify which ones have available updates
    - Identify safe minor/patch updates that maintain compatibility
    - Prioritize security fixes over breaking changes
    - Generate report of recommended updates with rationale
