@@ -2133,9 +2133,16 @@ func TestGetCertificateRole(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getCertificateRole(tt.index, tt.total)
+			// Create a chain with the specified total number of certificates
+			chain := x509chain.New(nil, "test")
+			chain.Certs = make([]*x509.Certificate, tt.total)
+			for i := 0; i < tt.total; i++ {
+				chain.Certs[i] = &x509.Certificate{}
+			}
+
+			result := chain.GetCertificateRole(tt.index)
 			if result != tt.expected {
-				t.Errorf("getCertificateRole(%d, %d) = %q, expected %q", tt.index, tt.total, result, tt.expected)
+				t.Errorf("GetCertificateRole(%d) = %q, expected %q", tt.index, result, tt.expected)
 			}
 		})
 	}

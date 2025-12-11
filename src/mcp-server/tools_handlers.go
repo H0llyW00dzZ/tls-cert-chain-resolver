@@ -783,7 +783,7 @@ func buildCertificateContextWithRevocation(chain *x509chain.Chain, revocationSta
 	// Detailed certificate information
 	for i, cert := range certs {
 		fmt.Fprintf(&context, "=== CERTIFICATE %d ===\n", i+1)
-		fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(certs)))
+		fmt.Fprintf(&context, "Role: %s\n", chain.GetCertificateRole(i))
 
 		appendSubjectInfo(&context, cert)
 		appendIssuerInfo(&context, cert)
@@ -1007,31 +1007,6 @@ func appendSecurityContext(context *strings.Builder) {
 	context.WriteString("- Hybrid certificates combining classical and quantum-resistant algorithms provide transitional security\n")
 	context.WriteString("- Deprecated: MD5, SHA-1 signatures\n")
 	context.WriteString("- Deprecated: SSLv3, TLS 1.0, TLS 1.1\n")
-}
-
-// getCertificateRole determines the role of a certificate in the chain based on its position.
-// It categorizes certificates as end-entity, intermediate CA, root CA, or self-signed.
-//
-// Parameters:
-//   - index: Zero-based position of the certificate in the chain (0 = leaf/end-entity)
-//   - total: Total number of certificates in the chain
-//
-// Returns:
-//   - A descriptive string indicating the certificate's role in the chain
-//
-// The function uses positional logic: first certificate is end-entity, last is root CA,
-// middle certificates are intermediates, and single certificates are self-signed.
-func getCertificateRole(index int, total int) string {
-	if total == 1 {
-		return "Self-Signed Certificate"
-	}
-	if index == 0 {
-		return "End-Entity (Server/Leaf) Certificate"
-	}
-	if index == total-1 {
-		return "Root CA Certificate"
-	}
-	return "Intermediate CA Certificate"
 }
 
 // formatKeyUsage converts x509.KeyUsage bit flags to a human-readable comma-separated string.
