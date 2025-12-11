@@ -13,7 +13,7 @@ require (
 	golang.org/x/crypto v0.46.0
 	golang.org/x/text v0.32.0
 	google.golang.org/adk v0.2.0
-	google.golang.org/genai v1.38.0
+	google.golang.org/genai v1.39.0
 )
 
 require (
