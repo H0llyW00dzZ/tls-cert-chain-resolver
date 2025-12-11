@@ -204,7 +204,7 @@ func (ch *Chain) RenderTable(ctx context.Context) string {
 			role,
 			cert.Subject.CommonName,
 			cert.Issuer.CommonName,
-			cert.NotAfter.Format("2006-01-02"),
+			cert.NotAfter.Format("January 2, 2006 at 3:04 PM MST"),
 			keySize,
 			status,
 		})
