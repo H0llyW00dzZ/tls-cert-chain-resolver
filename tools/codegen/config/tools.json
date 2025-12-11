@@ -242,6 +242,36 @@
           "enum": ["json", "markdown"]
         }
       ]
+    },
+    {
+      "constName": "ToolVisualizeCertChain",
+      "name": "visualize_cert_chain",
+      "comment": "provides certificate chain visualization in multiple formats.\n// Supports ASCII tree, markdown table, and JSON output for better certificate chain analysis.",
+      "description": "Visualize certificate chain in multiple formats (ASCII tree, table, JSON)",
+      "handler": "handleVisualizeCertChain",
+      "roleConst": "RoleChainVisualizer",
+      "roleName": "chainVisualizer",
+      "roleComment": "provides certificate chain visualization capabilities.\n// Supports multiple output formats for enhanced certificate analysis and debugging.",
+      "withConfig": false,
+      "readOnlyHintAnnotation": true,
+      "idempotentHintAnnotation": true,
+      "params": [
+        {
+          "name": "certificate",
+          "description": "Certificate file path or base64-encoded certificate data",
+          "type": "string",
+          "required": true,
+          "minLength": 1
+        },
+        {
+          "name": "format",
+          "description": "Output format: 'ascii', 'table', or 'json' (default: ascii)",
+          "type": "string",
+          "required": false,
+          "default": "\"ascii\"",
+          "enum": ["ascii", "table", "json"]
+        }
+      ]
     }
   ]
 }

@@ -7,7 +7,10 @@ package x509chain
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"math/big"
 	"runtime"
@@ -18,6 +21,101 @@ import (
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 )
+
+// createTestChain creates a test certificate chain for visualization testing
+func createTestChain(t *testing.T) []*x509.Certificate {
+	t.Helper()
+
+	// Create root CA
+	rootKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate root key: %v", err)
+	}
+
+	rootTemplate := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName: "Test Root CA",
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+
+	rootCertDER, err := x509.CreateCertificate(rand.Reader, &rootTemplate, &rootTemplate, &rootKey.PublicKey, rootKey)
+	if err != nil {
+		t.Fatalf("failed to create root cert: %v", err)
+	}
+
+	rootCert, err := x509.ParseCertificate(rootCertDER)
+	if err != nil {
+		t.Fatalf("failed to parse root cert: %v", err)
+	}
+
+	// Create intermediate CA
+	intKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate intermediate key: %v", err)
+	}
+
+	intTemplate := x509.Certificate{
+		SerialNumber: big.NewInt(2),
+		Subject: pkix.Name{
+			CommonName: "Test Intermediate CA",
+		},
+		Issuer:                rootTemplate.Subject,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+
+	intCertDER, err := x509.CreateCertificate(rand.Reader, &intTemplate, rootCert, &intKey.PublicKey, rootKey)
+	if err != nil {
+		t.Fatalf("failed to create intermediate cert: %v", err)
+	}
+
+	intCert, err := x509.ParseCertificate(intCertDER)
+	if err != nil {
+		t.Fatalf("failed to parse intermediate cert: %v", err)
+	}
+
+	// Create leaf certificate
+	leafKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate leaf key: %v", err)
+	}
+
+	leafTemplate := x509.Certificate{
+		SerialNumber: big.NewInt(3),
+		Subject: pkix.Name{
+			CommonName: "test.example.com",
+		},
+		Issuer:    intTemplate.Subject,
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().Add(90 * 24 * time.Hour),
+		KeyUsage:  x509.KeyUsageDigitalSignature,
+		ExtKeyUsage: []x509.ExtKeyUsage{
+			x509.ExtKeyUsageServerAuth,
+		},
+		DNSNames: []string{"test.example.com"},
+	}
+
+	leafCertDER, err := x509.CreateCertificate(rand.Reader, &leafTemplate, intCert, &leafKey.PublicKey, intKey)
+	if err != nil {
+		t.Fatalf("failed to create leaf cert: %v", err)
+	}
+
+	leafCert, err := x509.ParseCertificate(leafCertDER)
+	if err != nil {
+		t.Fatalf("failed to parse leaf cert: %v", err)
+	}
+
+	return []*x509.Certificate{leafCert, intCert, rootCert}
+}
 
 // Test certificate from www.google.com (valid until December 15, 2025)
 // Retrieved: October 16, 2025
@@ -63,7 +161,7 @@ func TestChainOperations(t *testing.T) {
 			name:    "Fetch Certificate Chain",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -88,7 +186,7 @@ func TestChainOperations(t *testing.T) {
 			certPEM:     testCertPEM,
 			skipOnMacOS: true,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -111,7 +209,7 @@ func TestChainOperations(t *testing.T) {
 			name:    "Filter Intermediates",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -137,7 +235,7 @@ func TestChainOperations(t *testing.T) {
 			name:    "IsSelfSigned - Root Certificate",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -159,7 +257,7 @@ func TestChainOperations(t *testing.T) {
 			name:    "IsRootNode",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -193,7 +291,7 @@ func TestChainOperations(t *testing.T) {
 			name:    "VerifyChain - Valid Chain",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -254,6 +352,46 @@ func TestChainOperations(t *testing.T) {
 	}
 }
 
+func TestChain_Visualization(t *testing.T) {
+	// Create a test certificate chain
+	certs := createTestChain(t)
+
+	chain := New(certs[0], "1.0.0")
+	if len(certs) > 1 {
+		chain.Certs = append(chain.Certs, certs[1:]...)
+	}
+
+	// Test ASCII tree visualization
+	treeOutput := chain.RenderASCIITree(t.Context())
+	if treeOutput == "" {
+		t.Error("Expected non-empty tree output")
+	}
+	if !strings.Contains(treeOutput, "test.example.com") {
+		t.Error("Expected tree to contain leaf certificate")
+	}
+
+	// Test table visualization
+	tableOutput := chain.RenderTable(t.Context())
+	if tableOutput == "" {
+		t.Error("Expected non-empty table output")
+	}
+	if !strings.Contains(tableOutput, "test.example.com") {
+		t.Error("Expected table to contain leaf certificate")
+	}
+
+	// Test JSON visualization
+	jsonData, err := chain.ToVisualizationJSON(t.Context())
+	if err != nil {
+		t.Fatalf("ToVisualizationJSON failed: %v", err)
+	}
+	if len(jsonData) == 0 {
+		t.Error("Expected non-empty JSON output")
+	}
+	if !strings.Contains(string(jsonData), "test.example.com") {
+		t.Error("Expected JSON to contain leaf certificate")
+	}
+}
+
 func TestChain_ContextCancellation(t *testing.T) {
 	block, _ := pem.Decode([]byte(testCertPEM))
 	if block == nil {
@@ -267,7 +405,7 @@ func TestChain_ContextCancellation(t *testing.T) {
 
 	manager := New(cert, version)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	err = manager.FetchCertificate(ctx)
@@ -320,7 +458,7 @@ func TestFetchRemoteChain(t *testing.T) {
 				t.Skip("Skipping remote fetch test in short mode")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			ctx, cancel := context.WithTimeout(t.Context(), tt.timeout)
 			defer cancel()
 
 			chain, certs, err := FetchRemoteChain(ctx, tt.hostname, tt.port, tt.timeout, version)
@@ -410,7 +548,7 @@ func TestCheckRevocationStatus(t *testing.T) {
 			manager := New(cert, version)
 
 			// Fetch the chain first
-			ctx, cancel := context.WithTimeout(context.Background(), tt.setupTimeout)
+			ctx, cancel := context.WithTimeout(t.Context(), tt.setupTimeout)
 			defer cancel()
 
 			if err := manager.FetchCertificate(ctx); err != nil {
@@ -418,7 +556,7 @@ func TestCheckRevocationStatus(t *testing.T) {
 			}
 
 			// Test revocation status check
-			revocationCtx, revocationCancel := context.WithTimeout(context.Background(), tt.setupTimeout)
+			revocationCtx, revocationCancel := context.WithTimeout(t.Context(), tt.setupTimeout)
 			defer revocationCancel()
 
 			result, err := manager.CheckRevocationStatus(revocationCtx)
@@ -544,7 +682,7 @@ func TestRevocationStatus_Timeout(t *testing.T) {
 	manager := New(cert, version)
 
 	// Fetch the chain first
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	if err := manager.FetchCertificate(ctx); err != nil {
@@ -552,7 +690,7 @@ func TestRevocationStatus_Timeout(t *testing.T) {
 	}
 
 	// Test with very short timeout to force timeout
-	revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	revocationCtx, revocationCancel := context.WithTimeout(t.Context(), 1*time.Millisecond)
 	defer revocationCancel()
 
 	_, err = manager.CheckRevocationStatus(revocationCtx)
@@ -580,7 +718,7 @@ func TestRevocationStatus_ContextCancellation(t *testing.T) {
 	manager := New(cert, version)
 
 	// Fetch the chain first
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	if err := manager.FetchCertificate(ctx); err != nil {
@@ -588,7 +726,7 @@ func TestRevocationStatus_ContextCancellation(t *testing.T) {
 	}
 
 	// Test with context that gets cancelled mid-operation
-	revocationCtx, revocationCancel := context.WithCancel(context.Background())
+	revocationCtx, revocationCancel := context.WithCancel(t.Context())
 
 	// Cancel after a short delay to ensure the operation starts
 	go func() {
@@ -630,7 +768,7 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 				manager := New(cert, version)
 
 				// 3. Fetch certificate chain
-				fetchCtx, fetchCancel := context.WithTimeout(context.Background(), 10*time.Second)
+				fetchCtx, fetchCancel := context.WithTimeout(t.Context(), 10*time.Second)
 				defer fetchCancel()
 
 				if err := manager.FetchCertificate(fetchCtx); err != nil {
@@ -644,7 +782,7 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 				t.Logf("Successfully fetched certificate chain with %d certificates", len(manager.Certs))
 
 				// 4. Check revocation status
-				revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 15*time.Second)
+				revocationCtx, revocationCancel := context.WithTimeout(t.Context(), 15*time.Second)
 				defer revocationCancel()
 
 				revocationStatus, err := manager.CheckRevocationStatus(revocationCtx)
@@ -715,7 +853,7 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 				manager := New(cert, version)
 
 				// 3. Fetch certificate chain
-				fetchCtx, fetchCancel := context.WithTimeout(context.Background(), 10*time.Second)
+				fetchCtx, fetchCancel := context.WithTimeout(t.Context(), 10*time.Second)
 				defer fetchCancel()
 
 				if err := manager.FetchCertificate(fetchCtx); err != nil {
@@ -733,7 +871,7 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 				}
 
 				// 5. Check revocation status (should work with root CA)
-				revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 15*time.Second)
+				revocationCtx, revocationCancel := context.WithTimeout(t.Context(), 15*time.Second)
 				defer revocationCancel()
 
 				revocationStatus, err := manager.CheckRevocationStatus(revocationCtx)
@@ -1010,7 +1148,7 @@ func TestCRLCacheCleanup_ContextCancellation(t *testing.T) {
 	atomic.StoreInt32(&crlCache.cleanupRunning, 0)
 
 	// Create a cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // Cancel immediately
 
 	// Start cleanup with cancelled context
@@ -1050,7 +1188,7 @@ func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
 	})
 
 	// Start cleanup with context
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	StartCRLCacheCleanup(ctx)
 
 	// Let cleanup run for several intervals initially

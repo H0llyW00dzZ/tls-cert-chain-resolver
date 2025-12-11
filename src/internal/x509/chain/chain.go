@@ -7,6 +7,8 @@ package x509chain
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	"net/http"
@@ -335,4 +337,31 @@ func (ch *Chain) findIssuerForCertificate(cert *x509.Certificate) *x509.Certific
 		}
 	}
 	return nil
+}
+
+// KeySize extracts the key size in bits from a certificate's public key.
+// It handles both RSA and ECDSA keys, returning the appropriate bit length.
+//
+// Parameters:
+//   - cert: X.509 certificate containing the public key to analyze
+//
+// Returns:
+//   - The key size in bits (e.g., 2048 for RSA, 256 for P-256 ECDSA)
+//   - 0 if the key type is unsupported or unrecognized
+//
+// The function supports both pointer and value types for RSA and ECDSA public keys
+// to handle different certificate parsing scenarios.
+func (ch *Chain) KeySize(cert *x509.Certificate) int {
+	switch pub := cert.PublicKey.(type) {
+	case *rsa.PublicKey:
+		return pub.Size() * 8 // Convert bytes to bits
+	case rsa.PublicKey:
+		return pub.Size() * 8 // Convert bytes to bits
+	case *ecdsa.PublicKey:
+		return pub.Curve.Params().BitSize
+	case ecdsa.PublicKey:
+		return pub.Curve.Params().BitSize
+	default:
+		return 0
+	}
 }

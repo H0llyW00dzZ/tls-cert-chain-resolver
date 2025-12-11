@@ -18,7 +18,6 @@ import (
 	"encoding/pem"
 	"io"
 	"math/big"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -33,6 +32,8 @@ import (
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
+	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 )
 
 // Test certificate from www.google.com (valid until December 15, 2025)
@@ -1521,8 +1522,8 @@ func TestCreateTools(t *testing.T) {
 	tools, toolsWithConfig := createTools()
 
 	// Verify we get the expected number of tools
-	if len(tools) != 4 {
-		t.Errorf("Expected 4 regular tools, got %d", len(tools))
+	if len(tools) != 5 {
+		t.Errorf("Expected 5 regular tools, got %d", len(tools))
 	}
 	if len(toolsWithConfig) != 3 {
 		t.Errorf("Expected 3 config tools, got %d", len(toolsWithConfig))
@@ -2186,11 +2187,12 @@ func TestGetKeySize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getKeySize(tt.cert)
+			chain := x509chain.New(tt.cert, version.Version)
+			result := chain.KeySize(tt.cert)
 			// Debug: print what type the PublicKey is
 			t.Logf("PublicKey type: %T, value: %+v", tt.cert.PublicKey, tt.cert.PublicKey)
 			if result != tt.expected {
-				t.Errorf("getKeySize() = %d, expected %d", result, tt.expected)
+				t.Errorf("KeySize() = %d, expected %d", result, tt.expected)
 			}
 		})
 	}
@@ -2304,92 +2306,6 @@ func TestFormatExtKeyUsage(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestBuildCertificateContext(t *testing.T) {
-	// Create test certificates
-	cert1 := &x509.Certificate{
-		Subject: pkix.Name{
-			CommonName:   "test.example.com",
-			Organization: []string{"Test Org"},
-		},
-		Issuer: pkix.Name{
-			CommonName:   "Test CA",
-			Organization: []string{"Test CA Org"},
-		},
-		NotBefore:             time.Now().Add(-24 * time.Hour),
-		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
-		Version:               3,
-		SerialNumber:          big.NewInt(12345),
-		SignatureAlgorithm:    x509.SHA256WithRSA,
-		PublicKeyAlgorithm:    x509.RSA,
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		DNSNames:              []string{"test.example.com", "www.test.example.com"},
-		EmailAddresses:        []string{"admin@test.example.com"},
-		IPAddresses:           []net.IP{net.ParseIP("192.168.1.1")},
-		IssuingCertificateURL: []string{"http://ca.example.com/cert"},
-		CRLDistributionPoints: []string{"http://ca.example.com/crl"},
-		OCSPServer:            []string{"http://ocsp.example.com"},
-	}
-
-	cert2 := &x509.Certificate{
-		Subject: pkix.Name{
-			CommonName: "Test CA",
-		},
-		Issuer: pkix.Name{
-			CommonName: "Root CA",
-		},
-		NotBefore: time.Now().Add(-365 * 24 * time.Hour),
-		NotAfter:  time.Now().Add(10 * 365 * 24 * time.Hour),
-		Version:   3,
-		IsCA:      true,
-	}
-
-	certs := []*x509.Certificate{cert1, cert2}
-
-	result := buildCertificateContext(certs, "security")
-
-	// Verify the context contains expected information
-	expectedContents := []string{
-		"Chain Length: 2 certificates",
-		"Analysis Type: security",
-		"End-Entity (Server/Leaf) Certificate",
-		"Root CA Certificate",
-		"test.example.com",
-		"SHA256-RSA", // This is what x509.SHA256WithRSA.String() returns
-		"Digital Signature, Key Encipherment",
-		"Server Authentication",
-		"test.example.com",
-		"admin@test.example.com",
-		"192.168.1.1",
-		"http://ca.example.com/cert",
-		"http://ca.example.com/crl",
-		"http://ocsp.example.com",
-		"CHAIN VALIDATION CONTEXT",
-		"SECURITY CONTEXT",
-		"Quantum Vulnerable",
-	}
-
-	for _, expected := range expectedContents {
-		if !strings.Contains(result, expected) {
-			t.Errorf("buildCertificateContext() result should contain %q", expected)
-		}
-	}
-
-	// Test with different analysis types
-	resultGeneral := buildCertificateContext(certs, "general")
-	if !strings.Contains(resultGeneral, "Analysis Type: general") {
-		t.Error("buildCertificateContext() should include analysis type")
-	}
-
-	resultCompliance := buildCertificateContext(certs, "compliance")
-	if !strings.Contains(resultCompliance, "Analysis Type: compliance") {
-		t.Error("buildCertificateContext() should include analysis type")
-	}
-
-	// Debug: print what the signature algorithm string actually is
-	t.Logf("SignatureAlgorithm string: %q", x509.SHA256WithRSA.String())
 }
 
 // TestDefaultSamplingHandler_CreateMessage tests CreateMessage method of DefaultSamplingHandler
@@ -3172,7 +3088,8 @@ func TestBuildCertificateContextWithRevocation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := buildCertificateContextWithRevocation([]*x509.Certificate{cert}, tt.revocationStatus, tt.analysisType)
+			chain := x509chain.New(cert, version.Version)
+			result := buildCertificateContextWithRevocation(chain, tt.revocationStatus, tt.analysisType)
 
 			// Check that expected fields are present
 			for _, field := range tt.expectedFields {
@@ -3312,8 +3229,9 @@ func TestAppendCryptoInfo(t *testing.T) {
 		t.Fatalf("Failed to parse certificate: %v", err)
 	}
 
+	chain := x509chain.New(cert, version.Version)
 	var context strings.Builder
-	appendCryptoInfo(&context, cert)
+	appendCryptoInfo(&context, chain, cert)
 
 	result := context.String()
 
@@ -3556,8 +3474,9 @@ func TestBufferPoolIntegration(t *testing.T) {
 		go func() {
 			for range numIterations {
 				// This should use buffer pooling internally
+				chain := x509chain.New(cert, version.Version)
 				result := buildCertificateContextWithRevocation(
-					[]*x509.Certificate{cert},
+					chain,
 					"Good",
 					"security",
 				)
@@ -3657,8 +3576,9 @@ func TestMemoryUsageInContextBuilding(t *testing.T) {
 		}()
 
 		// Build context using buffer
+		chain := x509chain.New(cert, version.Version)
 		result := buildCertificateContextWithRevocation(
-			[]*x509.Certificate{cert},
+			chain,
 			"Good",
 			"general",
 		)
@@ -3703,7 +3623,8 @@ func TestErrorHandlingInContextBuilding(t *testing.T) {
 			t.Fatalf("Failed to parse certificate: %v", err)
 		}
 
-		result := buildCertificateContextWithRevocation([]*x509.Certificate{cert}, "", "security")
+		chain := x509chain.New(cert, version.Version)
+		result := buildCertificateContextWithRevocation(chain, "", "security")
 
 		// Should handle empty status gracefully
 		if !strings.Contains(result, "REVOCATION STATUS") {

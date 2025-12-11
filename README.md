@@ -37,6 +37,7 @@ TLS Cert Chain Resolver is a Go toolkit for building, validating, and inspecting
 
 - Deterministic TLS certificate chain resolution with optional system trust roots
 - Multiple output formats: PEM, DER, or JSON (structured metadata with PEM payloads)
+- Rich certificate chain visualization: ASCII tree diagrams, markdown tables, and JSON exports
 - Efficient memory usage via reusable buffer pools
 - Standalone MCP server with composable tools for automation workflows
 - Optional AI-powered certificate analysis using bidirectional sampling
@@ -55,6 +56,13 @@ Run against a certificate file:
 tls-cert-chain-resolver -f cert.pem -o chain.pem
 ```
 
+Visualize certificate chains:
+
+```bash
+tls-cert-chain-resolver -f cert.pem --tree    # ASCII tree diagram
+tls-cert-chain-resolver -f cert.pem --table   # Markdown table
+```
+
 ## CLI Usage
 
 ```bash
@@ -71,6 +79,8 @@ tls-cert-chain-resolver -f INPUT_CERT [FLAGS]
 | `-d, --der` | Output bundle in DER format |
 | `-s, --include-system` | Append system trust root (where available) |
 | `-j, --json` | Emit JSON summary with PEM-encoded certificates |
+| `-t, --tree` | Display certificate chain as ASCII tree diagram |
+| `--table` | Display certificate chain as markdown table |
 
 > **Tip:** If `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest` fails due to module proxies, use `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd@latest` or build from source with the provided Makefile targets.
 
@@ -90,6 +100,18 @@ Produce JSON output:
 tls-cert-chain-resolver -f cert.pem --json > chain.json
 ```
 
+Visualize certificate chain as ASCII tree:
+
+```bash
+tls-cert-chain-resolver -f cert.pem --tree
+```
+
+Display certificate chain as markdown table:
+
+```bash
+tls-cert-chain-resolver -f cert.pem --table
+```
+
 ## Model Context Protocol (MCP) Server
 
 The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes certificate operations to AI assistants or automation clients over stdio.
@@ -103,6 +125,7 @@ The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes
 | `check_cert_expiry` | Report upcoming expirations with configurable warning windows |
 | `batch_resolve_cert_chain` | Resolve multiple certificates in a single call |
 | `fetch_remote_cert` | Retrieve chains directly from TLS endpoints (HTTPS, SMTP, IMAP, etc.) |
+| `visualize_cert_chain` | Visualize certificate chains in ASCII tree, table, or JSON formats |
 | `analyze_certificate_with_ai` | Delegate structured certificate analysis to a configured LLM |
 | `get_resource_usage` | Monitor server resource usage (memory, GC, system info) in JSON or markdown format |
 
@@ -233,7 +256,7 @@ tls-cert-chain-resolver/
 │   │   │   └── jsonrpc/  # JSON-RPC 2.0 normalization utilities
 │   │   └── x509/
 │   │       ├── certs/    # Certificate encoding/decoding helpers
-│   │       └── chain/    # Chain resolution and revocation logic
+│   │       └── chain/    # Chain resolution, revocation logic, and visualization
 │   ├── logger/           # Thread-safe logging abstraction
 │   ├── mcp-server/       # MCP server framework, tools, prompts, resources
 │   └── version/          # Build metadata
@@ -277,6 +300,7 @@ tls-cert-chain-resolver/
 - [x] **Implement bidirectional AI communication** via MCP sampling (servers can request LLM completions from clients)
 - [x] Add OCSP/CRL revocation status checks to MCP tools
 - [x] **Add resource usage monitoring tool** with JSON and markdown output formats
+- [x] **Add certificate chain visualization tool** with ASCII tree, table, and JSON output formats
 - [x] Integrate with [`google.golang.org/adk`](https://github.com/google/adk-go) (adk-go) for MCP transport creation
 - [x] Create abstraction layer for both MCP libraries (mark3labs server + ADK transport bridge)
 - [x] Improve internal package documentation and API consistency in `src/internal/`
@@ -290,6 +314,7 @@ tls-cert-chain-resolver/
 
 - [ ] Implement streaming support for large certificate chains
 - [x] Add OCSP/CRL revocation status checks to MCP tools
+- [ ] Improve certificate chain visualization tool to support output image formats such as .png
 - [ ] Evaluate post-quantum signature support (e.g., hybrid or PQC-only chains)
 - [ ] Implement notification mechanism to send to client when GC gets overhead; this implementation requires custom MCP client similar to how adk-go is built on top of MCP
 - [ ] Implement MCP tools for AI to clear CRL cache

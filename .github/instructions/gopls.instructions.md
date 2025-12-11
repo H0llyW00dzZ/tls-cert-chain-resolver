@@ -25,6 +25,9 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`handlers.go`** — MCP server instruction loading and template data structures
   - **`resource_handlers.go`** — MCP resource handlers (config, version, formats, status) with embedded templates
   - **`tools_handlers.go`** — MCP tool handlers and certificate processing utilities
+  - **`templates/docs.go`** — Package documentation
+  - **`templates/magic_embed.go`** — Magic embedded filesystem abstraction
+  - **`templates/magic_embed_test.go`** — Tests for magic embedded filesystem
   - **`helper.go`** — Helper utilities (JSON-RPC parameter extraction: `getStringParam`, `getMapParam`, `getOptionalStringParam`)
   - **`pipe.go`** — Pipe transport implementation for StdioServer input/output interception (sampling) with buffer pooling
   - **`pipe_test.go`** — Pipe transport tests covering I/O performance and interception logic
@@ -39,6 +42,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`cache.go`** — CRL cache implementation with LRU eviction and metrics
   - **`remote.go`** — Context-aware remote TLS chain retrieval (`FetchRemoteChain`)
   - **`revocation.go`** — OCSP/CRL revocation status checking (`CheckRevocationStatus`, `ParseCRLResponse`)
+  - **`visualization.go`** — Certificate chain visualization utilities
 - **`src/internal/helper/gc/`** — Memory management utilities
   - **`docs.go`** — Package documentation
 - **`src/internal/helper/jsonrpc/`** — JSON-RPC canonicalization helper for MCP transport normalization
@@ -158,6 +162,7 @@ gopls_go_search("getCachedCRL") → Find CRL caching functions
 gopls_go_search("tryOCSPServer") → Find OCSP server retry functions
 gopls_go_search("tryCRLDistributionPoint") → Find CRL distribution point functions
 gopls_go_search("buildCertificateContextWithRevocation") → Find AI certificate context builder with revocation
+gopls_go_search("visualization") → Find certificate chain visualization functions
 gopls_go_search("formatKeyUsage") → Find ordered key usage formatting function
 gopls_go_search("appendSubjectInfo") → Find certificate subject info appenders
 gopls_go_search("appendIssuerInfo") → Find certificate issuer info appenders

@@ -12,6 +12,7 @@
   - [x509_resolver_fetch_remote_cert(hostname, port?)](#x509_resolver_fetch_remote_certhostname-port)
   - [x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?)](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type---enterprise-grade)
   - [x509_resolver_get_resource_usage(detailed?, format?)](#x509_resolver_get_resource_usagedetailed-format---monitoring)
+  - [x509_resolver_visualize_cert_chain(certificate, format?)](#x509_resolver_visualize_cert_chaincertificate-format)
 - [MCP Resources](#mcp-resources)
   - [config://template](#configtemplate)
   - [info://version](#infoversion)
@@ -211,6 +212,25 @@ x509_resolver_get_resource_usage(detailed=true, format="markdown")
 - Thread-safe data collection using atomic operations for cache metrics
 - Enhanced markdown formatting using `github.com/olekukonko/tablewriter` v1.1.1 with emoji headers and structured tables
 - Human-readable timestamp formatting for better user experience
+
+### x509_resolver_visualize_cert_chain(certificate, format?)
+
+**Purpose**: Visualize certificate chain in multiple formats (ASCII tree, table, JSON)  
+**Returns**: Certificate chain visualization in the specified format  
+**When to use**: Displaying certificate chains in human-readable formats for analysis
+
+**Parameters**:
+
+- `certificate`: Certificate file path or base64-encoded certificate data
+- `format`: Output format ('ascii', 'table', 'json', default: 'ascii')
+
+**Examples**:
+
+```
+x509_resolver_visualize_cert_chain("cert.pem")
+x509_resolver_visualize_cert_chain("cert.pem", format="table")
+x509_resolver_visualize_cert_chain("cert.pem", format="json")
+```
 
 ## MCP Resources
 
@@ -615,8 +635,9 @@ for i, chain := range chains {
 5. **Use [`x509_resolver_fetch_remote_cert`](#x509_resolver_fetch_remote_certhostname-port)** to retrieve certificates from remote servers
 6. **Use [`x509_resolver_analyze_certificate_with_ai`](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type)** for AI-powered security analysis (requires sampling handler and AI API key)
 7. **Use [`x509_resolver_get_resource_usage`](#x509_resolver_get_resource_usagedetailed-format---monitoring)** for monitoring server performance, memory usage, and CRL cache efficiency
-8. **Configure [`MCP_X509_CONFIG_FILE`](#2-configuration)** environment variable for server configuration
-9. **Access [MCP resources](#mcp-resources)** for configuration templates, version info, and documentation
-10. **Use [MCP prompts](#mcp-prompts)** for guided certificate analysis workflows
-11. **Handle errors appropriately** - check return values and handle common certificate issues
-12. **Follow [certificate operation workflows](#integration-with-repository-workflow)** - resolve → validate → check expiry
+8. **Use [`x509_resolver_visualize_cert_chain`](#x509_resolver_visualize_cert_chaincertificate-format)** for certificate chain visualization in multiple formats
+9. **Configure [`MCP_X509_CONFIG_FILE`](#2-configuration)** environment variable for server configuration
+10. **Access [MCP resources](#mcp-resources)** for configuration templates, version info, and documentation
+11. **Use [MCP prompts](#mcp-prompts)** for guided certificate analysis workflows
+12. **Handle errors appropriately** - check return values and handle common certificate issues
+13. **Follow [certificate operation workflows](#integration-with-repository-workflow)** - resolve → validate → check expiry

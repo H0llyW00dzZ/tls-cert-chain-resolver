@@ -62,7 +62,8 @@ tls-cert-chain-resolver/
 │   │           ├── docs.go                   # Package documentation
 │   │           ├── lru_test.go               # LRU cache tests for access, eviction, and concurrency
 │   │           ├── remote.go                 # Context-aware remote TLS chain fetcher
-│   │           └── revocation.go             # OCSP/CRL revocation status checking
+│   │           ├── revocation.go             # OCSP/CRL revocation status checking
+│   │           └── visualization.go          # Certificate chain visualization utilities
 │   ├── logger/
 │   │   ├── benchmark_test.go                 # Logger benchmarks
 │   │   ├── logger.go                         # Logger abstraction (CLI/MCP, thread-safe with bytebufferpool)
@@ -714,6 +715,7 @@ src/internal/x509/chain/cache.go  # O(1) LRU CRL cache implementation with hashm
 src/internal/x509/chain/lru_test.go  # O(1) LRU cache tests for access order, eviction correctness, concurrency, and leak detection
 src/internal/x509/chain/remote.go  # Context-aware remote TLS chain helper
 src/internal/x509/chain/revocation.go  # OCSP/CRL revocation status checking
+src/internal/x509/chain/visualization.go  # Certificate chain visualization utilities
 
 # Helper utilities (buffer pool abstraction)
 src/internal/helper/gc/reduce_overhead.go
@@ -902,6 +904,15 @@ grep("RoleChainResolver\\|RoleChainValidator\\|RoleBatchResolver\\|RoleExpiryChe
 
 # Find instruction template patterns
 grep("loadInstructions\\|instructionData\\|toolInfo\\|WithInstructions", include="*.go")
+
+# Find certificate visualization patterns
+grep("RenderASCIITree\\|RenderTable\\|ToVisualizationJSON\\|CertificateTree\\|CertificateTable", include="*.go")
+
+# Find visualization data structures
+grep("VisualizationData\\|CertificateVizData\\|RelationshipData", include="*.go")
+
+# Find certificate role determination
+grep("getCertificateRole", include="*.go")
 
 
 # Find graceful shutdown tests

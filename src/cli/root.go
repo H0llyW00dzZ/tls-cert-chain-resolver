@@ -32,6 +32,8 @@ var (
 	derFormat        bool
 	includeSystem    bool
 	jsonFormat       bool          // New flag for JSON output
+	treeFormat       bool          // New flag for ASCII tree visualization
+	tableFormat      bool          // New flag for table visualization
 	inputFile        string        // New variable for input file
 	globalLogger     logger.Logger // Global logger instance
 )
@@ -63,7 +65,7 @@ func Execute(ctx context.Context, version string, log logger.Logger) error {
 			globalLogger.Printf("Starting TLS certificate chain resolver (v%s)...", version)
 			globalLogger.Println(
 				"Note: Press CTRL+C or send a termination signal (e.g., SIGINT or SIGTERM)",
-				"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).",
+				"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).\n",
 			)
 			OperationPerformed = true
 			return execCli(ctx, cmd)
@@ -78,6 +80,8 @@ func Execute(ctx context.Context, version string, log logger.Logger) error {
 	rootCmd.Flags().BoolVarP(&derFormat, "der", "d", false, "output DER format")
 	rootCmd.Flags().BoolVarP(&includeSystem, "include-system", "s", false, "include root CA from system in output")
 	rootCmd.Flags().BoolVarP(&jsonFormat, "json", "j", false, "output in JSON format with PEM-encoded certificates and their chains")
+	rootCmd.Flags().BoolVarP(&treeFormat, "tree", "t", false, "display certificate chain as ASCII tree")
+	rootCmd.Flags().BoolVarP(&tableFormat, "table", "", false, "display certificate chain as formatted table")
 
 	return rootCmd.Execute()
 }
@@ -132,20 +136,31 @@ func execCli(ctx context.Context, cmd *cobra.Command) error {
 		}
 	}
 
-	// Log each certificate in the chain
-	for i, c := range chain.Certs {
-		globalLogger.Printf("%d: %s", i+1, c.Subject.CommonName)
-	}
-	globalLogger.Printf("Certificate chain complete. Total %d certificate(s) found.", len(chain.Certs))
-
 	// Filter certificates if needed
 	certsToOutput := filterCertificates(chain)
+
+	// Determine visualization format - default to tree
+	visualizationFormat := "tree"
+	if tableFormat {
+		visualizationFormat = "table"
+	}
+
+	// Show visualization
+	switch visualizationFormat {
+	case "tree":
+		globalLogger.Println("Certificate chain complete. Total", len(chain.Certs), "certificate(s) found.")
+		treeOutput := chain.RenderASCIITree(ctx)
+		globalLogger.Println(treeOutput)
+	case "table":
+		tableOutput := chain.RenderTable(ctx)
+		globalLogger.Println(tableOutput)
+		globalLogger.Println("Certificate chain complete. Total", len(chain.Certs), "certificate(s) found.\n")
+	}
 
 	// Output in JSON format if specified
 	if jsonFormat {
 		return outputJSON(certsToOutput, certManager)
 	}
-
 	// Output certificates in DER/PEM format
 	return outputCertificates(certsToOutput, certManager)
 }

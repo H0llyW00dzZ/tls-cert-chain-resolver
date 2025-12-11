@@ -41,6 +41,10 @@ const (
 	// ToolGetResourceUsage provides server resource usage statistics and CRL cache metrics.
 	// Includes memory usage, GC statistics, and performance monitoring data.
 	ToolGetResourceUsage = "get_resource_usage"
+
+	// ToolVisualizeCertChain provides certificate chain visualization in multiple formats.
+	// Supports ASCII tree, markdown table, and JSON output for better certificate chain analysis.
+	ToolVisualizeCertChain = "visualize_cert_chain"
 )
 
 // Tool roles as constants for consistency and type safety.
@@ -72,6 +76,10 @@ const (
 	// RoleResourceMonitor tracks server resource usage and performance metrics.
 	// Provides insights into memory usage, GC statistics, and CRL cache efficiency.
 	RoleResourceMonitor = "resourceMonitor"
+
+	// RoleChainVisualizer provides certificate chain visualization capabilities.
+	// Supports multiple output formats for enhanced certificate analysis and debugging.
+	RoleChainVisualizer = "chainVisualizer"
 )
 
 // createTools creates and returns all MCP tool definitions with their handlers.
@@ -90,6 +98,7 @@ const (
 //   - fetch_remote_cert: Fetch X509 certificate chain from a remote hostname/port
 //   - analyze_certificate_with_ai: Analyze certificate data using AI collaboration (requires bidirectional communication)
 //   - get_resource_usage: Get current resource usage statistics including memory, GC, and CPU information
+//   - visualize_cert_chain: Visualize certificate chain in multiple formats (ASCII tree, table, JSON)
 //
 // Each tool includes proper parameter definitions, descriptions, default values,
 // and MCP annotations as required by the MCP specification.
@@ -204,6 +213,30 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			),
 			Handler: handleGetResourceUsage,
 			Role:    RoleResourceMonitor,
+		},
+		{
+			Tool: mcp.NewTool(
+				ToolVisualizeCertChain,
+				mcp.WithDescription("Visualize certificate chain in multiple formats (ASCII tree, table, JSON)"),
+				mcp.WithReadOnlyHintAnnotation(true),
+				mcp.WithIdempotentHintAnnotation(true),
+
+				mcp.WithString(
+					"certificate",
+					mcp.Required(),
+					mcp.Description("Certificate file path or base64-encoded certificate data"),
+					mcp.MinLength(1),
+				),
+
+				mcp.WithString(
+					"format",
+					mcp.Description("Output format: 'ascii', 'table', or 'json' (default: ascii)"),
+					mcp.Enum("ascii", "table", "json"),
+					mcp.DefaultString("ascii"),
+				),
+			),
+			Handler: handleVisualizeCertChain,
+			Role:    RoleChainVisualizer,
 		},
 	}
 
