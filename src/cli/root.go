@@ -32,6 +32,8 @@ var (
 	derFormat        bool
 	includeSystem    bool
 	jsonFormat       bool          // New flag for JSON output
+	treeFormat       bool          // New flag for ASCII tree visualization
+	tableFormat      bool          // New flag for table visualization
 	inputFile        string        // New variable for input file
 	globalLogger     logger.Logger // Global logger instance
 )
@@ -78,6 +80,8 @@ func Execute(ctx context.Context, version string, log logger.Logger) error {
 	rootCmd.Flags().BoolVarP(&derFormat, "der", "d", false, "output DER format")
 	rootCmd.Flags().BoolVarP(&includeSystem, "include-system", "s", false, "include root CA from system in output")
 	rootCmd.Flags().BoolVarP(&jsonFormat, "json", "j", false, "output in JSON format with PEM-encoded certificates and their chains")
+	rootCmd.Flags().BoolVarP(&treeFormat, "tree", "t", false, "display certificate chain as ASCII tree")
+	rootCmd.Flags().BoolVarP(&tableFormat, "table", "", false, "display certificate chain as formatted table")
 
 	return rootCmd.Execute()
 }
@@ -140,6 +144,21 @@ func execCli(ctx context.Context, cmd *cobra.Command) error {
 
 	// Filter certificates if needed
 	certsToOutput := filterCertificates(chain)
+
+	// Output in visualization formats if specified
+	if treeFormat {
+		// For now, use empty revocation status - could be enhanced later
+		treeOutput := chain.RenderASCIITree(nil)
+		fmt.Println(treeOutput)
+		return nil
+	}
+
+	if tableFormat {
+		// For now, use empty revocation status - could be enhanced later
+		tableOutput := chain.RenderTable(nil)
+		fmt.Println(tableOutput)
+		return nil
+	}
 
 	// Output in JSON format if specified
 	if jsonFormat {
