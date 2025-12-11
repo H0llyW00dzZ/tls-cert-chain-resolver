@@ -22,7 +22,9 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
   - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
   - **`prompt_handlers.go`** — MCP prompt handlers (generated/custom mix)
   - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
-  - **`handlers.go`** — Core certificate processing utilities, AI analysis, and individual tool handlers
+  - **`handlers.go`** — MCP server instruction loading and template data structures
+  - **`resource_handlers.go`** — MCP resource handlers (config, version, formats, status) with embedded templates
+  - **`tools_handlers.go`** — MCP tool handlers and certificate processing utilities
   - **`helper.go`** — Helper utilities (JSON-RPC parameter extraction: `getStringParam`, `getMapParam`, `getOptionalStringParam`)
   - **`pipe.go`** — Pipe transport implementation for StdioServer input/output interception (sampling) with buffer pooling
   - **`pipe_test.go`** — Pipe transport tests covering I/O performance and interception logic
@@ -451,7 +453,9 @@ read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI streaming integ
 read("src/mcp-server/resources.go")  # Resource definitions including status resource
 read("src/mcp-server/prompts.go")    # Prompt definitions
 read("src/mcp-server/templates/certificate-analysis-system-prompt.md")  # Embedded system prompt for AI analysis
-read("src/mcp-server/handlers.go")   # Tool handlers, AI analysis with analysis types
+read("src/mcp-server/handlers.go")   # MCP server instruction loading and template data structures
+read("src/mcp-server/resource_handlers.go")  # Resource handlers with embedded templates
+read("src/mcp-server/tools_handlers.go")  # Tool handlers, AI analysis with analysis types
 read("src/mcp-server/config.go")     # AI and MCP configuration
 read("src/mcp-server/adk.go")        # Google ADK integration support
 read("src/mcp-server/transport.go")  # In-memory transport for ADK compatibility with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting

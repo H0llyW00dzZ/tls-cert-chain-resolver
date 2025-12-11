@@ -612,7 +612,7 @@ todowrite([
 // ✅ Good - timeout and resource limits for HTTP requests
 func fetchCertificateFromURL(ctx context.Context, url string) (*x509.Certificate, error) {
     client := &http.Client{
-        Timeout: 10 * time.Second,
+        Timeout: 30 * time.Second,
         Transport: &http.Transport{
             MaxIdleConns:        10,
             MaxIdleConnsPerHost: 2,
