@@ -7,7 +7,10 @@ package x509chain
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"math/big"
 	"runtime"
@@ -18,6 +21,101 @@ import (
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 )
+
+// createTestChain creates a test certificate chain for visualization testing
+func createTestChain(t *testing.T) []*x509.Certificate {
+	t.Helper()
+
+	// Create root CA
+	rootKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate root key: %v", err)
+	}
+
+	rootTemplate := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName: "Test Root CA",
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+
+	rootCertDER, err := x509.CreateCertificate(rand.Reader, &rootTemplate, &rootTemplate, &rootKey.PublicKey, rootKey)
+	if err != nil {
+		t.Fatalf("failed to create root cert: %v", err)
+	}
+
+	rootCert, err := x509.ParseCertificate(rootCertDER)
+	if err != nil {
+		t.Fatalf("failed to parse root cert: %v", err)
+	}
+
+	// Create intermediate CA
+	intKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate intermediate key: %v", err)
+	}
+
+	intTemplate := x509.Certificate{
+		SerialNumber: big.NewInt(2),
+		Subject: pkix.Name{
+			CommonName: "Test Intermediate CA",
+		},
+		Issuer:                rootTemplate.Subject,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+
+	intCertDER, err := x509.CreateCertificate(rand.Reader, &intTemplate, rootCert, &intKey.PublicKey, rootKey)
+	if err != nil {
+		t.Fatalf("failed to create intermediate cert: %v", err)
+	}
+
+	intCert, err := x509.ParseCertificate(intCertDER)
+	if err != nil {
+		t.Fatalf("failed to parse intermediate cert: %v", err)
+	}
+
+	// Create leaf certificate
+	leafKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate leaf key: %v", err)
+	}
+
+	leafTemplate := x509.Certificate{
+		SerialNumber: big.NewInt(3),
+		Subject: pkix.Name{
+			CommonName: "test.example.com",
+		},
+		Issuer:    intTemplate.Subject,
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().Add(90 * 24 * time.Hour),
+		KeyUsage:  x509.KeyUsageDigitalSignature,
+		ExtKeyUsage: []x509.ExtKeyUsage{
+			x509.ExtKeyUsageServerAuth,
+		},
+		DNSNames: []string{"test.example.com"},
+	}
+
+	leafCertDER, err := x509.CreateCertificate(rand.Reader, &leafTemplate, intCert, &leafKey.PublicKey, intKey)
+	if err != nil {
+		t.Fatalf("failed to create leaf cert: %v", err)
+	}
+
+	leafCert, err := x509.ParseCertificate(leafCertDER)
+	if err != nil {
+		t.Fatalf("failed to parse leaf cert: %v", err)
+	}
+
+	return []*x509.Certificate{leafCert, intCert, rootCert}
+}
 
 // Test certificate from www.google.com (valid until December 15, 2025)
 // Retrieved: October 16, 2025
@@ -251,6 +349,46 @@ func TestChainOperations(t *testing.T) {
 			manager := New(cert, version)
 			tt.testFunc(t, manager)
 		})
+	}
+}
+
+func TestChain_Visualization(t *testing.T) {
+	// Create a test certificate chain
+	certs := createTestChain(t)
+
+	chain := New(certs[0], "1.0.0")
+	if len(certs) > 1 {
+		chain.Certs = append(chain.Certs, certs[1:]...)
+	}
+
+	// Test ASCII tree visualization
+	treeOutput := chain.RenderASCIITree(nil)
+	if treeOutput == "" {
+		t.Error("Expected non-empty tree output")
+	}
+	if !strings.Contains(treeOutput, "test.example.com") {
+		t.Error("Expected tree to contain leaf certificate")
+	}
+
+	// Test table visualization
+	tableOutput := chain.RenderTable(nil)
+	if tableOutput == "" {
+		t.Error("Expected non-empty table output")
+	}
+	if !strings.Contains(tableOutput, "test.example.com") {
+		t.Error("Expected table to contain leaf certificate")
+	}
+
+	// Test JSON visualization
+	jsonData, err := chain.ToVisualizationJSON(nil)
+	if err != nil {
+		t.Fatalf("ToVisualizationJSON failed: %v", err)
+	}
+	if len(jsonData) == 0 {
+		t.Error("Expected non-empty JSON output")
+	}
+	if !strings.Contains(string(jsonData), "test.example.com") {
+		t.Error("Expected JSON to contain leaf certificate")
 	}
 }
 
