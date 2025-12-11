@@ -19,6 +19,61 @@ import (
 	"github.com/olekukonko/tablewriter/tw"
 )
 
+// parseRevocationStatusForVisualization parses the revocation status report into a map format
+// suitable for visualization methods.
+//
+// It extracts the final status for each certificate from the detailed revocation report
+// and creates a map where keys are certificate serial numbers and values are status strings.
+//
+// Parameters:
+//   - revocationReport: The formatted string report from CheckRevocationStatus
+//   - chain: The certificate chain to extract serial numbers from
+//
+// Returns:
+//   - map[string]string: Map of serial number to revocation status
+//
+// Thread Safety: Safe for concurrent use (no state modification).
+func parseRevocationStatusForVisualization(revocationReport string, chain *Chain) map[string]string {
+	statusMap := make(map[string]string)
+
+	// Default all certificates to "unknown"
+	for _, cert := range chain.Certs {
+		statusMap[cert.SerialNumber.String()] = "unknown"
+	}
+
+	// Parse the revocation report to extract actual statuses
+	lines := strings.Split(revocationReport, "\n")
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Certificate ") && strings.Contains(line, ":") {
+			// Extract certificate index
+			parts := strings.Split(line, ":")
+			if len(parts) >= 1 {
+				certIndexStr := strings.TrimPrefix(parts[0], "Certificate ")
+				var certIndex int
+				if _, err := fmt.Sscanf(certIndexStr, "%d", &certIndex); err == nil {
+					certIndex-- // Convert to 0-based index
+
+					// Look for the final status in subsequent lines
+					for j := i + 1; j < len(lines) && j < i+10; j++ {
+						nextLine := strings.TrimSpace(lines[j])
+						if after, ok := strings.CutPrefix(nextLine, "Final Status:"); ok {
+							status := strings.TrimSpace(after)
+							// Update status for this certificate
+							if certIndex >= 0 && certIndex < len(chain.Certs) {
+								statusMap[chain.Certs[certIndex].SerialNumber.String()] = status
+							}
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return statusMap
+}
+
 // RenderASCIITree renders the certificate chain as an ASCII tree diagram.
 //
 // It displays the certificate hierarchy with visual connectors showing the
@@ -40,6 +95,12 @@ func (ch *Chain) RenderASCIITree(ctx context.Context) string {
 		return "No certificates in chain"
 	}
 
+	// Get revocation status for all certificates
+	revocationMap := make(map[string]string)
+	if revocationResult, err := ch.CheckRevocationStatus(ctx); err == nil {
+		revocationMap = parseRevocationStatusForVisualization(revocationResult, ch)
+	}
+
 	var result strings.Builder
 	for i, cert := range ch.Certs {
 		isLast := i == len(ch.Certs)-1
@@ -50,24 +111,11 @@ func (ch *Chain) RenderASCIITree(ctx context.Context) string {
 			connector = "└── "
 		}
 
-		// Status indicator - check revocation status
+		// Status indicator - check revocation status for this certificate
 		statusIcon := "✓"
-		if revocationResult, err := ch.CheckRevocationStatus(ctx); err == nil {
-			// Parse revocation result to check if this certificate is revoked
-			if strings.Contains(revocationResult, fmt.Sprintf("Certificate %d:", i+1)) {
-				// Look for "REVOKED" in the result for this certificate
-				lines := strings.SplitSeq(revocationResult, "\n")
-				for line := range lines {
-					if strings.Contains(line, fmt.Sprintf("Certificate %d:", i+1)) {
-						// Check subsequent lines for final status
-						// This is a simplified check - in practice you'd parse more carefully
-						if strings.Contains(revocationResult, "REVOKED") &&
-							strings.Contains(revocationResult, fmt.Sprintf("Certificate %d:", i+1)) {
-							statusIcon = "✗"
-							break
-						}
-					}
-				}
+		if status, exists := revocationMap[cert.SerialNumber.String()]; exists {
+			if strings.Contains(status, "Revoked") {
+				statusIcon = "✗"
 			}
 		}
 
@@ -117,7 +165,7 @@ func (ch *Chain) RenderTable(ctx context.Context) string {
 	// Get revocation status for all certificates
 	revocationMap := make(map[string]string)
 	if revocationResult, err := ch.CheckRevocationStatus(ctx); err == nil {
-		revocationMap = parseRevocationStatusForTable(revocationResult, ch)
+		revocationMap = parseRevocationStatusForVisualization(revocationResult, ch)
 	}
 
 	// Prepare rows
@@ -212,7 +260,7 @@ func (ch *Chain) ToVisualizationJSON(ctx context.Context) ([]byte, error) {
 	// Get revocation status for all certificates
 	revocationMap := make(map[string]string)
 	if revocationResult, err := ch.CheckRevocationStatus(ctx); err == nil {
-		revocationMap = parseRevocationStatusForTable(revocationResult, ch)
+		revocationMap = parseRevocationStatusForVisualization(revocationResult, ch)
 	}
 
 	// Convert certificates
@@ -284,58 +332,4 @@ func (ch *Chain) getCertificateRole(index int) string {
 	default:
 		return "Intermediate CA Certificate"
 	}
-}
-
-// parseRevocationStatusForTable parses the revocation status report into a map format
-// suitable for table rendering.
-//
-// It extracts the final status for each certificate from the detailed revocation report
-// and creates a map where keys are certificate serial numbers and values are status strings.
-//
-// Parameters:
-//   - revocationReport: The formatted string report from CheckRevocationStatus
-//   - chain: The certificate chain to extract serial numbers from
-//
-// Returns:
-//   - map[string]string: Map of serial number to revocation status
-func parseRevocationStatusForTable(revocationReport string, chain *Chain) map[string]string {
-	statusMap := make(map[string]string)
-
-	// Default all certificates to "unknown"
-	for _, cert := range chain.Certs {
-		statusMap[cert.SerialNumber.String()] = "unknown"
-	}
-
-	// Parse the revocation report to extract actual statuses
-	lines := strings.Split(revocationReport, "\n")
-	for i, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "Certificate ") && strings.Contains(line, ":") {
-			// Extract certificate index
-			parts := strings.Split(line, ":")
-			if len(parts) >= 1 {
-				certIndexStr := strings.TrimPrefix(parts[0], "Certificate ")
-				if certIndex, err := fmt.Sscanf(certIndexStr, "%d", new(int)); err == nil {
-					certIndex-- // Convert to 0-based index
-
-					// Look for the final status in subsequent lines
-					for j := i + 1; j < len(lines) && j < i+10; j++ {
-						nextLine := strings.TrimSpace(lines[j])
-						if after, ok := strings.CutPrefix(nextLine, "Final Status:"); ok {
-							status := after
-							status = strings.TrimSpace(status)
-
-							// Update status for this certificate
-							if certIndex >= 0 && certIndex < len(chain.Certs) {
-								statusMap[chain.Certs[certIndex].SerialNumber.String()] = status
-							}
-							break
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return statusMap
 }
