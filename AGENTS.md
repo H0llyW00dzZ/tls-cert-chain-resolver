@@ -76,7 +76,7 @@
 - `github.com/mark3labs/mcp-go` v0.43.2 - MCP server implementation with enhanced bidirectional AI sampling support
 - `github.com/modelcontextprotocol/go-sdk` v1.1.0 - Official MCP SDK for transport implementations
 - `google.golang.org/adk` v0.2.0 - Google ADK integration for MCP transport creation
-- `google.golang.org/genai` v1.38.0 - Google GenAI integration for AI model interactions
+- `google.golang.org/genai` v1.39.0 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
 - `github.com/xeipuuv/gojsonschema` v1.2.0 - JSON schema validation for code generation
 - `golang.org/x/text` v0.32.0 - Text processing utilities for proper casing and internationalization
