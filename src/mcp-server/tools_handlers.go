@@ -1324,3 +1324,87 @@ Based on the certificate data above, provide a comprehensive analysis covering:
 Provide actionable insights for certificate management and security.`
 	}
 }
+
+// handleVisualizeCertChain visualizes a certificate chain in multiple formats (ASCII tree, table, JSON).
+// It resolves the certificate chain and provides rich visualization for better analysis and debugging.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP tool call request containing certificate input and format options
+//
+// Returns:
+//   - The tool execution result containing the certificate chain visualization
+//   - An error if certificate resolution or visualization fails
+//
+// The function supports multiple output formats:
+//   - "ascii": ASCII tree diagram showing certificate hierarchy
+//   - "table": Markdown table with certificate details
+//   - "json": Structured JSON export for external tools
+//
+// This provides enhanced certificate chain analysis capabilities for debugging and documentation.
+func handleVisualizeCertChain(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Extract arguments
+	certInput, err := request.RequireString("certificate")
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("certificate parameter required: %v", err)), nil
+	}
+
+	format := request.GetString("format", "ascii")
+
+	// Parse certificate input (file path or base64)
+	var certData []byte
+	if _, err := os.Stat(certInput); err == nil {
+		// It's a file path
+		certData, err = os.ReadFile(certInput)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to read certificate file: %v", err)), nil
+		}
+	} else {
+		// Try as base64
+		certData, err = base64.StdEncoding.DecodeString(certInput)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("invalid certificate input (not a file path or base64): %v", err)), nil
+		}
+	}
+
+	// Decode certificate
+	certManager := x509certs.New()
+	cert, err := certManager.Decode(certData)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to decode certificate: %v", err)), nil
+	}
+
+	// Resolve certificate chain
+	chain := x509chain.New(cert, version.Version)
+	err = chain.FetchCertificate(ctx)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to resolve certificate chain: %v", err)), nil
+	}
+
+	// Get revocation status for visualization
+	revocationStatus := make(map[string]string)
+	if revocationResult, revocationErr := chain.CheckRevocationStatus(ctx); revocationErr == nil {
+		// Parse revocation result to extract status per certificate
+		// This is a simplified approach - in practice you'd parse the full result
+		revocationStatus["summary"] = revocationResult
+	}
+
+	// Generate visualization based on format
+	var result string
+	switch format {
+	case "ascii":
+		result = chain.RenderASCIITree(revocationStatus)
+	case "table":
+		result = chain.RenderTable(revocationStatus)
+	case "json":
+		jsonData, err := chain.ToVisualizationJSON(revocationStatus)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("failed to generate JSON visualization: %v", err)), nil
+		}
+		result = string(jsonData)
+	default:
+		return mcp.NewToolResultError(fmt.Sprintf("unsupported format '%s', supported formats: ascii, table, json", format)), nil
+	}
+
+	return mcp.NewToolResultText(result), nil
+}

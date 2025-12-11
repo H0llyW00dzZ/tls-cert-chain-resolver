@@ -1521,8 +1521,8 @@ func TestCreateTools(t *testing.T) {
 	tools, toolsWithConfig := createTools()
 
 	// Verify we get the expected number of tools
-	if len(tools) != 4 {
-		t.Errorf("Expected 4 regular tools, got %d", len(tools))
+	if len(tools) != 5 {
+		t.Errorf("Expected 5 regular tools, got %d", len(tools))
 	}
 	if len(toolsWithConfig) != 3 {
 		t.Errorf("Expected 3 config tools, got %d", len(toolsWithConfig))
