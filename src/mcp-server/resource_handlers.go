@@ -40,7 +40,7 @@ func handleConfigResource(ctx context.Context, request mcp.ReadResourceRequest) 
 			"includeSystemRoot": false,
 			"intermediateOnly":  false,
 			"warnDays":          30,
-			"timeoutSeconds":    10,
+			"timeoutSeconds":    30,
 		},
 	}
 
