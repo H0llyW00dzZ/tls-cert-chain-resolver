@@ -161,7 +161,7 @@ func TestChainOperations(t *testing.T) {
 			name:    "Fetch Certificate Chain",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -186,7 +186,7 @@ func TestChainOperations(t *testing.T) {
 			certPEM:     testCertPEM,
 			skipOnMacOS: true,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -209,7 +209,7 @@ func TestChainOperations(t *testing.T) {
 			name:    "Filter Intermediates",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -235,7 +235,7 @@ func TestChainOperations(t *testing.T) {
 			name:    "IsSelfSigned - Root Certificate",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -257,7 +257,7 @@ func TestChainOperations(t *testing.T) {
 			name:    "IsRootNode",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -291,7 +291,7 @@ func TestChainOperations(t *testing.T) {
 			name:    "VerifyChain - Valid Chain",
 			certPEM: testCertPEM,
 			testFunc: func(t *testing.T, manager *Chain) {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				if err := manager.FetchCertificate(ctx); err != nil {
@@ -362,7 +362,7 @@ func TestChain_Visualization(t *testing.T) {
 	}
 
 	// Test ASCII tree visualization
-	treeOutput := chain.RenderASCIITree(nil)
+	treeOutput := chain.RenderASCIITree(t.Context())
 	if treeOutput == "" {
 		t.Error("Expected non-empty tree output")
 	}
@@ -371,7 +371,7 @@ func TestChain_Visualization(t *testing.T) {
 	}
 
 	// Test table visualization
-	tableOutput := chain.RenderTable(nil)
+	tableOutput := chain.RenderTable(t.Context())
 	if tableOutput == "" {
 		t.Error("Expected non-empty table output")
 	}
@@ -380,7 +380,7 @@ func TestChain_Visualization(t *testing.T) {
 	}
 
 	// Test JSON visualization
-	jsonData, err := chain.ToVisualizationJSON(nil)
+	jsonData, err := chain.ToVisualizationJSON(t.Context())
 	if err != nil {
 		t.Fatalf("ToVisualizationJSON failed: %v", err)
 	}
@@ -405,7 +405,7 @@ func TestChain_ContextCancellation(t *testing.T) {
 
 	manager := New(cert, version)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	err = manager.FetchCertificate(ctx)
@@ -458,7 +458,7 @@ func TestFetchRemoteChain(t *testing.T) {
 				t.Skip("Skipping remote fetch test in short mode")
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			ctx, cancel := context.WithTimeout(t.Context(), tt.timeout)
 			defer cancel()
 
 			chain, certs, err := FetchRemoteChain(ctx, tt.hostname, tt.port, tt.timeout, version)
@@ -548,7 +548,7 @@ func TestCheckRevocationStatus(t *testing.T) {
 			manager := New(cert, version)
 
 			// Fetch the chain first
-			ctx, cancel := context.WithTimeout(context.Background(), tt.setupTimeout)
+			ctx, cancel := context.WithTimeout(t.Context(), tt.setupTimeout)
 			defer cancel()
 
 			if err := manager.FetchCertificate(ctx); err != nil {
@@ -556,7 +556,7 @@ func TestCheckRevocationStatus(t *testing.T) {
 			}
 
 			// Test revocation status check
-			revocationCtx, revocationCancel := context.WithTimeout(context.Background(), tt.setupTimeout)
+			revocationCtx, revocationCancel := context.WithTimeout(t.Context(), tt.setupTimeout)
 			defer revocationCancel()
 
 			result, err := manager.CheckRevocationStatus(revocationCtx)
@@ -682,7 +682,7 @@ func TestRevocationStatus_Timeout(t *testing.T) {
 	manager := New(cert, version)
 
 	// Fetch the chain first
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	if err := manager.FetchCertificate(ctx); err != nil {
@@ -690,7 +690,7 @@ func TestRevocationStatus_Timeout(t *testing.T) {
 	}
 
 	// Test with very short timeout to force timeout
-	revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	revocationCtx, revocationCancel := context.WithTimeout(t.Context(), 1*time.Millisecond)
 	defer revocationCancel()
 
 	_, err = manager.CheckRevocationStatus(revocationCtx)
@@ -718,7 +718,7 @@ func TestRevocationStatus_ContextCancellation(t *testing.T) {
 	manager := New(cert, version)
 
 	// Fetch the chain first
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	if err := manager.FetchCertificate(ctx); err != nil {
@@ -726,7 +726,7 @@ func TestRevocationStatus_ContextCancellation(t *testing.T) {
 	}
 
 	// Test with context that gets cancelled mid-operation
-	revocationCtx, revocationCancel := context.WithCancel(context.Background())
+	revocationCtx, revocationCancel := context.WithCancel(t.Context())
 
 	// Cancel after a short delay to ensure the operation starts
 	go func() {
@@ -768,7 +768,7 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 				manager := New(cert, version)
 
 				// 3. Fetch certificate chain
-				fetchCtx, fetchCancel := context.WithTimeout(context.Background(), 10*time.Second)
+				fetchCtx, fetchCancel := context.WithTimeout(t.Context(), 10*time.Second)
 				defer fetchCancel()
 
 				if err := manager.FetchCertificate(fetchCtx); err != nil {
@@ -782,7 +782,7 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 				t.Logf("Successfully fetched certificate chain with %d certificates", len(manager.Certs))
 
 				// 4. Check revocation status
-				revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 15*time.Second)
+				revocationCtx, revocationCancel := context.WithTimeout(t.Context(), 15*time.Second)
 				defer revocationCancel()
 
 				revocationStatus, err := manager.CheckRevocationStatus(revocationCtx)
@@ -853,7 +853,7 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 				manager := New(cert, version)
 
 				// 3. Fetch certificate chain
-				fetchCtx, fetchCancel := context.WithTimeout(context.Background(), 10*time.Second)
+				fetchCtx, fetchCancel := context.WithTimeout(t.Context(), 10*time.Second)
 				defer fetchCancel()
 
 				if err := manager.FetchCertificate(fetchCtx); err != nil {
@@ -871,7 +871,7 @@ func TestRevocationWorkflow_Integration(t *testing.T) {
 				}
 
 				// 5. Check revocation status (should work with root CA)
-				revocationCtx, revocationCancel := context.WithTimeout(context.Background(), 15*time.Second)
+				revocationCtx, revocationCancel := context.WithTimeout(t.Context(), 15*time.Second)
 				defer revocationCancel()
 
 				revocationStatus, err := manager.CheckRevocationStatus(revocationCtx)
@@ -1148,7 +1148,7 @@ func TestCRLCacheCleanup_ContextCancellation(t *testing.T) {
 	atomic.StoreInt32(&crlCache.cleanupRunning, 0)
 
 	// Create a cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // Cancel immediately
 
 	// Start cleanup with cancelled context
@@ -1188,7 +1188,7 @@ func TestCRLCacheCleanupMemoryLeak(t *testing.T) {
 	})
 
 	// Start cleanup with context
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	StartCRLCacheCleanup(ctx)
 
 	// Let cleanup run for several intervals initially

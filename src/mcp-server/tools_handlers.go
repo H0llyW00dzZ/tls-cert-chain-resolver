@@ -1225,23 +1225,16 @@ func handleVisualizeCertChain(ctx context.Context, request mcp.CallToolRequest) 
 		return mcp.NewToolResultError(fmt.Sprintf("failed to resolve certificate chain: %v", err)), nil
 	}
 
-	// Get revocation status for visualization
-	revocationStatus := make(map[string]string)
-	if revocationResult, revocationErr := chain.CheckRevocationStatus(ctx); revocationErr == nil {
-		// Parse revocation result to extract status per certificate
-		// This is a simplified approach - in practice you'd parse the full result
-		revocationStatus["summary"] = revocationResult
-	}
-
 	// Generate visualization based on format
+	// Note: Revocation status is now checked internally by the visualization methods
 	var result string
 	switch format {
 	case "ascii":
-		result = chain.RenderASCIITree(revocationStatus)
+		result = chain.RenderASCIITree(ctx)
 	case "table":
-		result = chain.RenderTable(revocationStatus)
+		result = chain.RenderTable(ctx)
 	case "json":
-		jsonData, err := chain.ToVisualizationJSON(revocationStatus)
+		jsonData, err := chain.ToVisualizationJSON(ctx)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to generate JSON visualization: %v", err)), nil
 		}

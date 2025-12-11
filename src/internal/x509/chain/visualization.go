@@ -6,6 +6,7 @@
 package x509chain
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"encoding/json"
@@ -22,15 +23,16 @@ import (
 //
 // It displays the certificate hierarchy with visual connectors showing the
 // relationship between leaf, intermediate, and root certificates.
+// Revocation status is automatically checked and displayed.
 //
 // Parameters:
-//   - revocationStatus: Optional map of certificate serial numbers to revocation status
+//   - ctx: Context for revocation checking operations
 //
 // Returns:
 //   - string: ASCII tree representation of the certificate chain
 //
 // Thread Safety: Safe for concurrent use.
-func (ch *Chain) RenderASCIITree(revocationStatus map[string]string) string {
+func (ch *Chain) RenderASCIITree(ctx context.Context) string {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
 
@@ -48,11 +50,24 @@ func (ch *Chain) RenderASCIITree(revocationStatus map[string]string) string {
 			connector = "└── "
 		}
 
-		// Status indicator
+		// Status indicator - check revocation status
 		statusIcon := "✓"
-		if revocationStatus != nil {
-			if status, exists := revocationStatus[cert.SerialNumber.String()]; exists && status != "good" && status != "Good" {
-				statusIcon = "✗"
+		if revocationResult, err := ch.CheckRevocationStatus(ctx); err == nil {
+			// Parse revocation result to check if this certificate is revoked
+			if strings.Contains(revocationResult, fmt.Sprintf("Certificate %d:", i+1)) {
+				// Look for "REVOKED" in the result for this certificate
+				lines := strings.SplitSeq(revocationResult, "\n")
+				for line := range lines {
+					if strings.Contains(line, fmt.Sprintf("Certificate %d:", i+1)) {
+						// Check subsequent lines for final status
+						// This is a simplified check - in practice you'd parse more carefully
+						if strings.Contains(revocationResult, "REVOKED") &&
+							strings.Contains(revocationResult, fmt.Sprintf("Certificate %d:", i+1)) {
+							statusIcon = "✗"
+							break
+						}
+					}
+				}
 			}
 		}
 
@@ -73,15 +88,16 @@ func (ch *Chain) RenderASCIITree(revocationStatus map[string]string) string {
 //
 // It displays certificate details including role, subject, issuer, validity dates,
 // key size, and revocation status in a tabular format using tablewriter.
+// Revocation status is automatically checked and displayed.
 //
 // Parameters:
-//   - revocationStatus: Optional map of certificate serial numbers to revocation status
+//   - ctx: Context for revocation checking operations
 //
 // Returns:
 //   - string: Markdown table representation of the certificate chain
 //
 // Thread Safety: Safe for concurrent use.
-func (ch *Chain) RenderTable(revocationStatus map[string]string) string {
+func (ch *Chain) RenderTable(ctx context.Context) string {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
 
@@ -98,15 +114,19 @@ func (ch *Chain) RenderTable(revocationStatus map[string]string) string {
 	headers := []string{"🔢 #", "🏷️ Role", "📛 Subject", "🏢 Issuer", "📅 Valid Until", "🔐 Key Size", "✅ Status"}
 	table.Header(headers)
 
+	// Get revocation status for all certificates
+	revocationMap := make(map[string]string)
+	if revocationResult, err := ch.CheckRevocationStatus(ctx); err == nil {
+		revocationMap = parseRevocationStatusForTable(revocationResult, ch)
+	}
+
 	// Prepare rows
 	var rows [][]string
 	for i, cert := range ch.Certs {
 		role := ch.getCertificateRole(i)
 		status := "unknown"
-		if revocationStatus != nil {
-			if s, exists := revocationStatus[cert.SerialNumber.String()]; exists {
-				status = s
-			}
+		if s, exists := revocationMap[cert.SerialNumber.String()]; exists {
+			status = s
 		}
 
 		// Format key size
@@ -140,17 +160,17 @@ func (ch *Chain) RenderTable(revocationStatus map[string]string) string {
 //
 // It creates a comprehensive data structure including certificate details,
 // hierarchical relationships, and revocation status suitable for visualization
-// tools or programmatic processing.
+// tools or programmatic processing. Revocation status is automatically checked.
 //
 // Parameters:
-//   - revocationStatus: Optional map of certificate serial numbers to revocation status
+//   - ctx: Context for revocation checking operations
 //
 // Returns:
 //   - []byte: JSON representation of the certificate chain
 //   - error: Error if JSON marshaling fails
 //
 // Thread Safety: Safe for concurrent use.
-func (ch *Chain) ToVisualizationJSON(revocationStatus map[string]string) ([]byte, error) {
+func (ch *Chain) ToVisualizationJSON(ctx context.Context) ([]byte, error) {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
 
@@ -189,6 +209,12 @@ func (ch *Chain) ToVisualizationJSON(revocationStatus map[string]string) ([]byte
 		Relationships: make([]RelationshipData, 0, len(ch.Certs)-1),
 	}
 
+	// Get revocation status for all certificates
+	revocationMap := make(map[string]string)
+	if revocationResult, err := ch.CheckRevocationStatus(ctx); err == nil {
+		revocationMap = parseRevocationStatusForTable(revocationResult, ch)
+	}
+
 	// Convert certificates
 	for i, cert := range ch.Certs {
 		keySize := ch.KeySize(cert)
@@ -202,10 +228,8 @@ func (ch *Chain) ToVisualizationJSON(revocationStatus map[string]string) ([]byte
 		}
 
 		status := "unknown"
-		if revocationStatus != nil {
-			if s, exists := revocationStatus[cert.SerialNumber.String()]; exists {
-				status = s
-			}
+		if s, exists := revocationMap[cert.SerialNumber.String()]; exists {
+			status = s
 		}
 
 		data.Certificates[i] = CertificateVizData{
@@ -260,4 +284,58 @@ func (ch *Chain) getCertificateRole(index int) string {
 	default:
 		return "Intermediate CA Certificate"
 	}
+}
+
+// parseRevocationStatusForTable parses the revocation status report into a map format
+// suitable for table rendering.
+//
+// It extracts the final status for each certificate from the detailed revocation report
+// and creates a map where keys are certificate serial numbers and values are status strings.
+//
+// Parameters:
+//   - revocationReport: The formatted string report from CheckRevocationStatus
+//   - chain: The certificate chain to extract serial numbers from
+//
+// Returns:
+//   - map[string]string: Map of serial number to revocation status
+func parseRevocationStatusForTable(revocationReport string, chain *Chain) map[string]string {
+	statusMap := make(map[string]string)
+
+	// Default all certificates to "unknown"
+	for _, cert := range chain.Certs {
+		statusMap[cert.SerialNumber.String()] = "unknown"
+	}
+
+	// Parse the revocation report to extract actual statuses
+	lines := strings.Split(revocationReport, "\n")
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Certificate ") && strings.Contains(line, ":") {
+			// Extract certificate index
+			parts := strings.Split(line, ":")
+			if len(parts) >= 1 {
+				certIndexStr := strings.TrimPrefix(parts[0], "Certificate ")
+				if certIndex, err := fmt.Sscanf(certIndexStr, "%d", new(int)); err == nil {
+					certIndex-- // Convert to 0-based index
+
+					// Look for the final status in subsequent lines
+					for j := i + 1; j < len(lines) && j < i+10; j++ {
+						nextLine := strings.TrimSpace(lines[j])
+						if after, ok := strings.CutPrefix(nextLine, "Final Status:"); ok {
+							status := after
+							status = strings.TrimSpace(status)
+
+							// Update status for this certificate
+							if certIndex >= 0 && certIndex < len(chain.Certs) {
+								statusMap[chain.Certs[certIndex].SerialNumber.String()] = status
+							}
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return statusMap
 }

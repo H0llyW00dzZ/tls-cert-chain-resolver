@@ -147,15 +147,15 @@ func execCli(ctx context.Context, cmd *cobra.Command) error {
 
 	// Output in visualization formats if specified
 	if treeFormat {
-		// For now, use empty revocation status - could be enhanced later
-		treeOutput := chain.RenderASCIITree(nil)
+		// Use context for revocation checking
+		treeOutput := chain.RenderASCIITree(ctx)
 		fmt.Println(treeOutput)
 		return nil
 	}
 
 	if tableFormat {
-		// For now, use empty revocation status - could be enhanced later
-		tableOutput := chain.RenderTable(nil)
+		// Use context for revocation checking
+		tableOutput := chain.RenderTable(ctx)
 		fmt.Println(tableOutput)
 		return nil
 	}
