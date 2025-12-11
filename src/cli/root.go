@@ -139,36 +139,30 @@ func execCli(ctx context.Context, cmd *cobra.Command) error {
 	// Filter certificates if needed
 	certsToOutput := filterCertificates(chain)
 
-	// Determine output format
-	outputFormat := "certificates" // default to PEM certificates
+	// Determine visualization format - default to tree
+	visualizationFormat := "tree"
 	if tableFormat {
-		outputFormat = "table"
-	} else if treeFormat {
-		outputFormat = "tree"
-	} else if jsonFormat {
-		outputFormat = "json"
-	} else if derFormat {
-		outputFormat = "der"
-	} else if outputFile == "" && !treeFormat && !tableFormat && !jsonFormat && !derFormat {
-		// No format flags and no output file specified, default to tree for interactive use
-		outputFormat = "tree"
+		visualizationFormat = "table"
 	}
 
-	// Output in the specified format
-	switch outputFormat {
+	// Show visualization
+	switch visualizationFormat {
 	case "tree":
+		globalLogger.Println("Certificate chain complete. Total", len(chain.Certs), "certificate(s) found.")
 		treeOutput := chain.RenderASCIITree(ctx)
-		fmt.Println(treeOutput)
-		return nil
+		globalLogger.Println(treeOutput)
 	case "table":
 		tableOutput := chain.RenderTable(ctx)
-		fmt.Println(tableOutput)
-		return nil
-	case "json":
-		return outputJSON(certsToOutput, certManager)
-	default: // der or pem
-		return outputCertificates(certsToOutput, certManager)
+		globalLogger.Println(tableOutput)
+		globalLogger.Println("Certificate chain complete. Total", len(chain.Certs), "certificate(s) found.")
 	}
+
+	// Output in JSON format if specified
+	if jsonFormat {
+		return outputJSON(certsToOutput, certManager)
+	}
+	// Output certificates in DER/PEM format
+	return outputCertificates(certsToOutput, certManager)
 }
 
 // readCertificateFile reads the certificate from the specified file.
