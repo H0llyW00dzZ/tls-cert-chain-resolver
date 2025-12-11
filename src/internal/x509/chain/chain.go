@@ -351,6 +351,10 @@ func (ch *Chain) findIssuerForCertificate(cert *x509.Certificate) *x509.Certific
 //
 // The function supports both pointer and value types for RSA and ECDSA public keys
 // to handle different certificate parsing scenarios.
+//
+// TODO: future enhancement - add support for [post-quantum cryptography] keysize
+//
+// [post-quantum cryptography]: https://grokipedia.com/page/Post-quantum_cryptography
 func (ch *Chain) KeySize(cert *x509.Certificate) int {
 	switch pub := cert.PublicKey.(type) {
 	case *rsa.PublicKey:
