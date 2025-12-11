@@ -21,6 +21,7 @@ import (
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -584,7 +585,7 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 	// Try to get AI analysis if API key is configured
 	if config.AI.APIKey != "" {
 		// Read system prompt from embedded template
-		systemPromptBytes, err := MagicEmbed.ReadFile("templates/certificate-analysis-system-prompt.md")
+		systemPromptBytes, err := templates.MagicEmbed.ReadFile("certificate-analysis-system-prompt.md")
 		systemPrompt := ""
 		if err == nil {
 			systemPrompt = string(systemPromptBytes)

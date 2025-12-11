@@ -90,7 +90,9 @@ tls-cert-chain-resolver/
 │   │   ├── templates/
 │   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt used for sampling
 │   │   │   ├── certificate-formats.md                    # Certificate format documentation
-│   │   │   └── X509_instructions.md                      # Server instructions for MCP client initialization
+│   │   │   ├── X509_instructions.md                      # Server instructions for MCP client initialization
+│   │   │   ├── magic_embed.go                            # Magic embedded filesystem abstraction
+│   │   │   └── magic_embed_test.go                       # Tests for magic embedded filesystem
 │   │   ├── tools.go                          # Tool definitions with constants (ToolResolveCertChain, RoleChainResolver, etc.) and creation functions
 │   │   ├── tools_handlers.go                 # MCP tool handlers and certificate processing utilities
 │   │   └── transport.go                      # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
@@ -695,7 +697,8 @@ src/mcp-server/transport.go  # In-memory transport implementation for ADK integr
 src/mcp-server/templates/certificate-analysis-system-prompt.md  # Embedded AI system prompt
 src/mcp-server/templates/certificate-formats.md
 src/mcp-server/templates/X509_instructions.md  # Server instructions for MCP client initialization
-
+src/mcp-server/templates/magic_embed.go        # Magic embedded filesystem abstraction
+src/mcp-server/templates/magic_embed_test.go   # Tests for magic embedded filesystem
 
 # Certificate operations
 src/internal/x509/certs/certs.go

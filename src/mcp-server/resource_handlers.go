@@ -7,19 +7,14 @@ package mcpserver
 
 import (
 	"context"
-	"embed"
 	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 	"github.com/mark3labs/mcp-go/mcp"
 )
-
-// MagicEmbed provides access to embedded template files for certificate analysis and documentation.
-//
-//go:embed templates/*.md
-var MagicEmbed embed.FS
 
 // handleConfigResource handles requests for the configuration template resource.
 // It provides a JSON template showing the expected configuration structure for the MCP server.
@@ -111,7 +106,7 @@ func handleVersionResource(ctx context.Context, request mcp.ReadResourceRequest)
 // The documentation is stored in templates/certificate-formats.md and provides
 // detailed information about certificate encoding formats and usage.
 func handleCertificateFormatsResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	content, err := MagicEmbed.ReadFile("templates/certificate-formats.md")
+	content, err := templates.MagicEmbed.ReadFile("certificate-formats.md")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read certificate formats template: %w", err)
 	}
