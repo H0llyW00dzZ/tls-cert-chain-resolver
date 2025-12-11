@@ -65,7 +65,7 @@ func Execute(ctx context.Context, version string, log logger.Logger) error {
 			globalLogger.Printf("Starting TLS certificate chain resolver (v%s)...", version)
 			globalLogger.Println(
 				"Note: Press CTRL+C or send a termination signal (e.g., SIGINT or SIGTERM)",
-				"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).",
+				"via your operating system to exit if incomplete (e.g., hanging while fetching certificates).\n",
 			)
 			OperationPerformed = true
 			return execCli(ctx, cmd)
@@ -136,37 +136,39 @@ func execCli(ctx context.Context, cmd *cobra.Command) error {
 		}
 	}
 
-	// Log each certificate in the chain
-	for i, c := range chain.Certs {
-		globalLogger.Printf("%d: %s", i+1, c.Subject.CommonName)
-	}
-	globalLogger.Printf("Certificate chain complete. Total %d certificate(s) found.", len(chain.Certs))
-
 	// Filter certificates if needed
 	certsToOutput := filterCertificates(chain)
 
-	// Output in visualization formats if specified
-	if treeFormat {
-		// Use context for revocation checking
+	// Determine output format
+	outputFormat := "certificates" // default to PEM certificates
+	if tableFormat {
+		outputFormat = "table"
+	} else if treeFormat {
+		outputFormat = "tree"
+	} else if jsonFormat {
+		outputFormat = "json"
+	} else if derFormat {
+		outputFormat = "der"
+	} else if outputFile == "" && !treeFormat && !tableFormat && !jsonFormat && !derFormat {
+		// No format flags and no output file specified, default to tree for interactive use
+		outputFormat = "tree"
+	}
+
+	// Output in the specified format
+	switch outputFormat {
+	case "tree":
 		treeOutput := chain.RenderASCIITree(ctx)
 		fmt.Println(treeOutput)
 		return nil
-	}
-
-	if tableFormat {
-		// Use context for revocation checking
+	case "table":
 		tableOutput := chain.RenderTable(ctx)
 		fmt.Println(tableOutput)
 		return nil
-	}
-
-	// Output in JSON format if specified
-	if jsonFormat {
+	case "json":
 		return outputJSON(certsToOutput, certManager)
+	default: // der or pem
+		return outputCertificates(certsToOutput, certManager)
 	}
-
-	// Output certificates in DER/PEM format
-	return outputCertificates(certsToOutput, certManager)
 }
 
 // readCertificateFile reads the certificate from the specified file.
