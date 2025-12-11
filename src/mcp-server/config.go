@@ -55,7 +55,7 @@ func loadConfig(configPath string) (*Config, error) {
 	config.Defaults.IncludeSystemRoot = false
 	config.Defaults.IntermediateOnly = false
 	config.Defaults.WarnDays = 30
-	config.Defaults.Timeout = 10
+	config.Defaults.Timeout = 30
 
 	// Set AI defaults
 	config.AI.Endpoint = "https://api.x.ai"
