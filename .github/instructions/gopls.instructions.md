@@ -237,6 +237,26 @@ gopls_go_search("toGoMap") → Find Go map literal generation functions
 gopls_go_search("formatGoValue") → Find Go value formatting functions
 gopls_go_search("generateFile") → Find file generation functions
 gopls_go_search("writeHeader") → Find generated file header writing functions
+gopls_go_search("visualization") → Find certificate chain visualization functions
+gopls_go_search("RenderASCIITree") → Find ASCII tree rendering
+gopls_go_search("RenderTable") → Find table rendering
+gopls_go_search("ToVisualizationJSON") → Find JSON visualization
+gopls_go_search("CertificateTree") → Find certificate tree structures
+gopls_go_search("CertificateTable") → Find certificate table structures
+gopls_go_search("VisualizationData") → Find visualization data structures
+gopls_go_search("RelationshipData") → Find relationship data structures
+gopls_go_search("getCertificateRole") → Find certificate role determination
+gopls_go_search("formatKeyUsage") → Find ordered key usage formatting function
+gopls_go_search("appendSubjectInfo") → Find certificate subject info appenders
+gopls_go_search("appendIssuerInfo") → Find certificate issuer info appenders
+gopls_go_search("appendValidityInfo") → Find certificate validity info appenders
+gopls_go_search("appendCryptoInfo") → Find certificate crypto info appenders
+gopls_go_search("appendCertProperties") → Find certificate properties appenders
+gopls_go_search("appendCertExtensions") → Find certificate extensions appenders
+gopls_go_search("appendCAInfo") → Find certificate authority info appenders
+gopls_go_search("appendChainValidationContext") → Find chain validation context appenders
+gopls_go_search("appendSecurityContext") → Find security context appenders
+gopls_go_search("MagicEmbed") → Find embedded filesystem abstraction
 ```
 
 ### gopls_go_file_context(file)
