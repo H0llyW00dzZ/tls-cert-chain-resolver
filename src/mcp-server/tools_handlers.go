@@ -761,8 +761,14 @@ func formatJSON(certs []*x509.Certificate, certManager *x509certs.Certificate) s
 func buildCertificateContextWithRevocation(chain *x509chain.Chain, revocationStatus string, analysisType string) string {
 	var context strings.Builder
 
+	// Handle nil chain gracefully
+	var certs []*x509.Certificate
+	if chain != nil {
+		certs = chain.Certs
+	}
+
 	// Chain overview
-	fmt.Fprintf(&context, "Chain Length: %d certificates\n", len(chain.Certs))
+	fmt.Fprintf(&context, "Chain Length: %d certificates\n", len(certs))
 	fmt.Fprintf(&context, "Analysis Type: %s\n", analysisType)
 	fmt.Fprintf(&context, "Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05"))
 
@@ -775,9 +781,9 @@ func buildCertificateContextWithRevocation(chain *x509chain.Chain, revocationSta
 	context.WriteString("\n")
 
 	// Detailed certificate information
-	for i, cert := range chain.Certs {
+	for i, cert := range certs {
 		fmt.Fprintf(&context, "=== CERTIFICATE %d ===\n", i+1)
-		fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(chain.Certs)))
+		fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(certs)))
 
 		appendSubjectInfo(&context, cert)
 		appendIssuerInfo(&context, cert)
@@ -790,7 +796,7 @@ func buildCertificateContextWithRevocation(chain *x509chain.Chain, revocationSta
 		context.WriteString("\n")
 	}
 
-	appendChainValidationContext(&context, chain.Certs)
+	appendChainValidationContext(&context, certs)
 	appendSecurityContext(&context)
 
 	return context.String()
@@ -871,7 +877,12 @@ func appendCryptoInfo(context *strings.Builder, chain *x509chain.Chain, cert *x5
 	context.WriteString("CRYPTOGRAPHY:\n")
 	fmt.Fprintf(context, "  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String())
 	fmt.Fprintf(context, "  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String())
-	fmt.Fprintf(context, "  Key Size: %d bits\n", chain.KeySize(cert))
+
+	keySize := 0
+	if chain != nil {
+		keySize = chain.KeySize(cert)
+	}
+	fmt.Fprintf(context, "  Key Size: %d bits\n", keySize)
 }
 
 // appendCertProperties adds basic certificate properties to the context builder for AI analysis.
