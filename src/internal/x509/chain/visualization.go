@@ -97,11 +97,17 @@ func (ch *Chain) RenderASCIITree(ctx context.Context) string {
 
 	// Get revocation status for all certificates
 	revocationMap := make(map[string]string)
-	if revocationResult, err := ch.CheckRevocationStatus(ctx); err == nil {
+	revocationError := ""
+	if revocationResult, err := ch.CheckRevocationStatus(ctx); err != nil {
+		revocationError = fmt.Sprintf("Warning: Revocation status check failed: %v\n", err)
+	} else {
 		revocationMap = parseRevocationStatusForVisualization(revocationResult, ch)
 	}
 
 	var result strings.Builder
+	if revocationError != "" {
+		result.WriteString(revocationError)
+	}
 	for i, cert := range ch.Certs {
 		isLast := i == len(ch.Certs)-1
 
@@ -154,6 +160,17 @@ func (ch *Chain) RenderTable(ctx context.Context) string {
 	}
 
 	var buf strings.Builder
+
+	// Get revocation status for all certificates
+	revocationMap := make(map[string]string)
+	revocationError := ""
+	if revocationResult, err := ch.CheckRevocationStatus(ctx); err != nil {
+		revocationError = fmt.Sprintf("Warning: Revocation status check failed: %v\n\n", err)
+		buf.WriteString(revocationError)
+	} else {
+		revocationMap = parseRevocationStatusForVisualization(revocationResult, ch)
+	}
+
 	table := tablewriter.NewTable(&buf,
 		tablewriter.WithRenderer(renderer.NewMarkdown(tw.Rendition{Streaming: true})),
 	)
@@ -161,12 +178,6 @@ func (ch *Chain) RenderTable(ctx context.Context) string {
 	// Headers with emojis
 	headers := []string{"🔢 #", "🏷️ Role", "📛 Subject", "🏢 Issuer", "📅 Valid Until", "🔐 Key Size", "✅ Status"}
 	table.Header(headers)
-
-	// Get revocation status for all certificates
-	revocationMap := make(map[string]string)
-	if revocationResult, err := ch.CheckRevocationStatus(ctx); err == nil {
-		revocationMap = parseRevocationStatusForVisualization(revocationResult, ch)
-	}
 
 	// Prepare rows
 	var rows [][]string
@@ -244,23 +255,28 @@ func (ch *Chain) ToVisualizationJSON(ctx context.Context) ([]byte, error) {
 	}
 
 	type VisualizationData struct {
-		Timestamp     string               `json:"timestamp"`
-		ChainLength   int                  `json:"chainLength"`
-		Certificates  []CertificateVizData `json:"certificates"`
-		Relationships []RelationshipData   `json:"relationships"`
-	}
-
-	data := VisualizationData{
-		Timestamp:     time.Now().UTC().Format(time.RFC3339),
-		ChainLength:   len(ch.Certs),
-		Certificates:  make([]CertificateVizData, len(ch.Certs)),
-		Relationships: make([]RelationshipData, 0, len(ch.Certs)-1),
+		Timestamp         string               `json:"timestamp"`
+		ChainLength       int                  `json:"chainLength"`
+		Certificates      []CertificateVizData `json:"certificates"`
+		Relationships     []RelationshipData   `json:"relationships"`
+		RevocationWarning string               `json:"revocationWarning,omitempty"`
 	}
 
 	// Get revocation status for all certificates
 	revocationMap := make(map[string]string)
-	if revocationResult, err := ch.CheckRevocationStatus(ctx); err == nil {
+	var revocationWarning string
+	if revocationResult, err := ch.CheckRevocationStatus(ctx); err != nil {
+		revocationWarning = fmt.Sprintf("Revocation status check failed: %v", err)
+	} else {
 		revocationMap = parseRevocationStatusForVisualization(revocationResult, ch)
+	}
+
+	data := VisualizationData{
+		Timestamp:         time.Now().UTC().Format(time.RFC3339),
+		ChainLength:       len(ch.Certs),
+		Certificates:      make([]CertificateVizData, len(ch.Certs)),
+		Relationships:     make([]RelationshipData, 0, len(ch.Certs)-1),
+		RevocationWarning: revocationWarning,
 	}
 
 	// Convert certificates
