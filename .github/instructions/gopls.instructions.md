@@ -178,6 +178,11 @@ gopls_go_search("CollectResourceUsage") → Find resource usage data collection 
 gopls_go_search("FormatResourceUsageAsJSON") → Find JSON formatting for resource usage
 gopls_go_search("FormatResourceUsageAsMarkdown") → Find Markdown formatting for resource usage
 gopls_go_search("ResourceUsageData") → Find resource usage data structures
+gopls_go_search("MagicEmbed") → Find embedded filesystem abstraction
+gopls_go_search("loadInstructions") → Find MCP server instruction loader with dynamic template rendering
+gopls_go_search("instructionData") → Find MCP instruction template data structure
+gopls_go_search("toolInfo") → Find tool info structure for template rendering
+gopls_go_search("WithInstructions") → Find ServerBuilder instruction configuration method
 gopls_go_search("jsonrpc.Marshal") → Find JSON-RPC marshaling functions
 gopls_go_search("jsonrpc.Map") → Find JSON-RPC field normalization functions
 gopls_go_search("toGoMap") → Find Go map literal generation functions
