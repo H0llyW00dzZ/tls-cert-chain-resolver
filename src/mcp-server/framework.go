@@ -129,7 +129,7 @@ type ToolHandler = func(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 //   - The tool execution result or an error if the tool failed
 //
 // This type is used for tools that need access to configuration like AI API keys or timeouts.
-type ToolHandlerWithConfig func(ctx context.Context, request mcp.CallToolRequest, config *Config) (*mcp.CallToolResult, error)
+type ToolHandlerWithConfig = func(ctx context.Context, request mcp.CallToolRequest, config *Config) (*mcp.CallToolResult, error)
 
 // ResourceHandler defines the signature for resource handlers that provide static or dynamic resources.
 // It processes resource read requests and returns the resource contents.
