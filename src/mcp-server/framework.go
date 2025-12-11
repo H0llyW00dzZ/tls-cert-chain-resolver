@@ -9,7 +9,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -38,7 +38,7 @@ import (
 type ServerConfig struct {
 	Version string
 	Config  *Config
-	Embed   embed.FS
+	Embed   templates.EmbedFS
 }
 
 // CertificateManager defines the interface for certificate operations.
@@ -207,7 +207,7 @@ type ToolDefinitionWithConfig struct {
 // This struct is used internally by ServerBuilder and should not be instantiated directly.
 type ServerDependencies struct {
 	Config          *Config
-	Embed           embed.FS
+	Embed           templates.EmbedFS
 	Version         string
 	CertManager     CertificateManager
 	ChainResolver   ChainResolver
@@ -268,14 +268,14 @@ func (b *ServerBuilder) WithConfig(config *Config) *ServerBuilder {
 // It configures the server with an embedded filesystem containing templates and documentation.
 //
 // Parameters:
-//   - embed: The embedded filesystem (typically from //go:embed directives)
+//   - embed: The embedded filesystem interface (typically from [templates.MagicEmbed])
 //
 // Returns:
 //   - The ServerBuilder instance for method chaining
 //
 // The embedded filesystem is used to serve static resources like certificate format documentation
 // and analysis templates. If not set, some resources may not be available.
-func (b *ServerBuilder) WithEmbed(embed embed.FS) *ServerBuilder {
+func (b *ServerBuilder) WithEmbed(embed templates.EmbedFS) *ServerBuilder {
 	b.deps.Embed = embed
 	return b
 }

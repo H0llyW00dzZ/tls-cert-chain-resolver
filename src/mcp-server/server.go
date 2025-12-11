@@ -14,6 +14,7 @@ import (
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -121,7 +122,7 @@ func Run(version string) error {
 	// Create MCP server using ServerBuilder for better testability
 	s, err := NewServerBuilder().
 		WithConfig(config).
-		WithEmbed(MagicEmbed).
+		WithEmbed(templates.MagicEmbed).
 		WithVersion(version).
 		WithCertManager(x509certs.New()).
 		WithChainResolver(DefaultChainResolver{}).

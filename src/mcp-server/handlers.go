@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"html/template"
 	"strings"
+
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 )
 
 // instructionData holds the data used to populate the MCP server instructions template.
@@ -37,7 +39,7 @@ type toolInfo struct {
 // all available certificate analysis tools and workflows.
 func loadInstructions(tools []ToolDefinition, toolsWithConfig []ToolDefinitionWithConfig) (string, error) {
 	// Read the template file
-	templateBytes, err := MagicEmbed.ReadFile("templates/X509_instructions.md")
+	templateBytes, err := templates.MagicEmbed.ReadFile("X509_instructions.md")
 	if err != nil {
 		return "", fmt.Errorf("failed to load MCP server instructions template: %w", err)
 	}
