@@ -120,7 +120,7 @@ func (ch *Chain) RenderASCIITree(ctx context.Context) string {
 		}
 
 		// Certificate info
-		role := ch.getCertificateRole(i)
+		role := ch.GetCertificateRole(i)
 		certInfo := fmt.Sprintf("[%s] %s", statusIcon, cert.Subject.CommonName)
 		if role != "" {
 			certInfo += fmt.Sprintf(" (%s)", role)
@@ -171,7 +171,7 @@ func (ch *Chain) RenderTable(ctx context.Context) string {
 	// Prepare rows
 	var rows [][]string
 	for i, cert := range ch.Certs {
-		role := ch.getCertificateRole(i)
+		role := ch.GetCertificateRole(i)
 		status := "unknown"
 		if s, exists := revocationMap[cert.SerialNumber.String()]; exists {
 			status = s
@@ -282,7 +282,7 @@ func (ch *Chain) ToVisualizationJSON(ctx context.Context) ([]byte, error) {
 
 		data.Certificates[i] = CertificateVizData{
 			Index:              i,
-			Role:               ch.getCertificateRole(i),
+			Role:               ch.GetCertificateRole(i),
 			Subject:            cert.Subject.CommonName,
 			Issuer:             cert.Issuer.CommonName,
 			SerialNumber:       cert.SerialNumber.String(),
@@ -306,30 +306,4 @@ func (ch *Chain) ToVisualizationJSON(ctx context.Context) ([]byte, error) {
 	}
 
 	return json.MarshalIndent(data, "", "  ")
-}
-
-// getCertificateRole determines the role of a certificate in the chain.
-//
-// It returns a descriptive string indicating the certificate's position
-// and function within the certificate chain hierarchy.
-//
-// Parameters:
-//   - index: Zero-based position of the certificate in the chain
-//
-// Returns:
-//   - string: Role description ("Leaf/End-Entity", "Intermediate CA", or "Root CA")
-//
-// Thread Safety: Safe for concurrent use (no state modification).
-func (ch *Chain) getCertificateRole(index int) string {
-	total := len(ch.Certs)
-	switch {
-	case total == 1:
-		return "Self-Signed Certificate"
-	case index == 0:
-		return "End-Entity (Server/Leaf) Certificate"
-	case index == total-1:
-		return "Root CA Certificate"
-	default:
-		return "Intermediate CA Certificate"
-	}
 }

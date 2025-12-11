@@ -365,3 +365,29 @@ func (ch *Chain) KeySize(cert *x509.Certificate) int {
 		return 0
 	}
 }
+
+// GetCertificateRole determines the role of a certificate in the chain.
+//
+// It returns a descriptive string indicating the certificate's position
+// and function within the certificate chain hierarchy.
+//
+// Parameters:
+//   - index: Zero-based position of the certificate in the chain
+//
+// Returns:
+//   - string: Role description ("Leaf/End-Entity", "Intermediate CA", or "Root CA")
+//
+// Thread Safety: Safe for concurrent use (no state modification).
+func (ch *Chain) GetCertificateRole(index int) string {
+	total := len(ch.Certs)
+	switch {
+	case total == 1:
+		return "Self-Signed Certificate"
+	case index == 0:
+		return "End-Entity (Server/Leaf) Certificate"
+	case index == total-1:
+		return "Root CA Certificate"
+	default:
+		return "Intermediate CA Certificate"
+	}
+}
