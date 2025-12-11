@@ -7,8 +7,6 @@ package mcpserver
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -577,7 +575,7 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 	}
 
 	// Build comprehensive certificate context for AI analysis including revocation status
-	certificateContext := buildCertificateContextWithRevocation(chain.Certs, revocationStatus, analysisType)
+	certificateContext := buildCertificateContextWithRevocation(chain, revocationStatus, analysisType)
 
 	// Use context engineering as the primary prompt for AI analysis
 	analysisPrompt := certificateContext + "\n\n" + getAnalysisInstruction(analysisType)
@@ -746,150 +744,11 @@ func formatJSON(certs []*x509.Certificate, certManager *x509certs.Certificate) s
 	return string(jsonData)
 }
 
-// buildCertificateContext creates comprehensive context information about certificates for AI analysis.
-//
-// Deprecated: This function is deprecated and replaced by buildCertificateContextWithRevocation.
-// The replacement includes revocation status checks for comprehensive certificate analysis.
-//
-// Parameters:
-//   - certs: Slice of X.509 certificates to analyze
-//   - analysisType: Type of analysis (general, security, compliance)
-//
-// Returns:
-//   - A formatted string containing certificate context for AI analysis
-//
-// This function provides basic certificate information without revocation status.
-// Use buildCertificateContextWithRevocation for complete analysis including OCSP/CRL status.
-func buildCertificateContext(certs []*x509.Certificate, analysisType string) string {
-	var context strings.Builder
-
-	// Chain overview
-	fmt.Fprintf(&context, "Chain Length: %d certificates\n", len(certs))
-	fmt.Fprintf(&context, "Analysis Type: %s\n", analysisType)
-	fmt.Fprintf(&context, "Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05"))
-
-	// Detailed certificate information
-	for i, cert := range certs {
-		fmt.Fprintf(&context, "=== CERTIFICATE %d ===\n", i+1)
-		fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(certs)))
-
-		// Subject information
-		context.WriteString("SUBJECT:\n")
-		fmt.Fprintf(&context, "  Common Name: %s\n", cert.Subject.CommonName)
-		fmt.Fprintf(&context, "  Organization: %s\n", strings.Join(cert.Subject.Organization, ", "))
-		fmt.Fprintf(&context, "  Organizational Unit: %s\n", strings.Join(cert.Subject.OrganizationalUnit, ", "))
-		fmt.Fprintf(&context, "  Country: %s\n", strings.Join(cert.Subject.Country, ", "))
-		fmt.Fprintf(&context, "  State/Province: %s\n", strings.Join(cert.Subject.Province, ", "))
-		fmt.Fprintf(&context, "  Locality: %s\n", strings.Join(cert.Subject.Locality, ", "))
-
-		// Issuer information
-		context.WriteString("ISSUER:\n")
-		fmt.Fprintf(&context, "  Common Name: %s\n", cert.Issuer.CommonName)
-		fmt.Fprintf(&context, "  Organization: %s\n", strings.Join(cert.Issuer.Organization, ", "))
-
-		// Validity period
-		context.WriteString("VALIDITY:\n")
-		fmt.Fprintf(&context, "  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST"))
-		fmt.Fprintf(&context, "  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST"))
-
-		now := time.Now()
-		daysUntilExpiry := int(cert.NotAfter.Sub(now).Hours() / 24)
-		fmt.Fprintf(&context, "  Days until expiry: %d\n", daysUntilExpiry)
-		if daysUntilExpiry < 0 {
-			context.WriteString("  Status: EXPIRED\n")
-		} else if daysUntilExpiry < 30 {
-			context.WriteString("  Status: EXPIRING SOON\n")
-		} else {
-			context.WriteString("  Status: VALID\n")
-		}
-
-		// Cryptographic information
-		context.WriteString("CRYPTOGRAPHY:\n")
-		fmt.Fprintf(&context, "  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String())
-		fmt.Fprintf(&context, "  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String())
-		fmt.Fprintf(&context, "  Key Size: %d bits\n", getKeySize(cert))
-
-		// Certificate properties
-		context.WriteString("PROPERTIES:\n")
-		fmt.Fprintf(&context, "  Version: %d\n", cert.Version)
-		fmt.Fprintf(&context, "  Serial Number: %s\n", cert.SerialNumber.String())
-		fmt.Fprintf(&context, "  Is CA: %t\n", cert.IsCA)
-
-		// Key usage and extended key usage
-		if cert.KeyUsage != 0 {
-			fmt.Fprintf(&context, "  Key Usage: %s\n", formatKeyUsage(cert.KeyUsage))
-		}
-		if len(cert.ExtKeyUsage) > 0 {
-			fmt.Fprintf(&context, "  Extended Key Usage: %s\n", formatExtKeyUsage(cert.ExtKeyUsage))
-		}
-
-		// Subject Alternative Names
-		if len(cert.DNSNames) > 0 {
-			fmt.Fprintf(&context, "  DNS Names: %s\n", strings.Join(cert.DNSNames, ", "))
-		}
-		if len(cert.EmailAddresses) > 0 {
-			fmt.Fprintf(&context, "  Email Addresses: %s\n", strings.Join(cert.EmailAddresses, ", "))
-		}
-		if len(cert.IPAddresses) > 0 {
-			ips := make([]string, len(cert.IPAddresses))
-			for j, ip := range cert.IPAddresses {
-				ips[j] = ip.String()
-			}
-			fmt.Fprintf(&context, "  IP Addresses: %s\n", strings.Join(ips, ", "))
-		}
-
-		// Certificate Authority Information
-		if cert.IssuingCertificateURL != nil {
-			fmt.Fprintf(&context, "  Issuer URLs: %s\n", strings.Join(cert.IssuingCertificateURL, ", "))
-		}
-		if cert.CRLDistributionPoints != nil {
-			fmt.Fprintf(&context, "  CRL Distribution Points: %s\n", strings.Join(cert.CRLDistributionPoints, ", "))
-		}
-		if cert.OCSPServer != nil {
-			fmt.Fprintf(&context, "  OCSP Servers: %s\n", strings.Join(cert.OCSPServer, ", "))
-		}
-
-		context.WriteString("\n")
-	}
-
-	// Chain validation context
-	context.WriteString("=== CHAIN VALIDATION CONTEXT ===\n")
-	if len(certs) > 1 {
-		for i := 0; i < len(certs)-1; i++ {
-			subject := certs[i].Subject.CommonName
-			issuer := certs[i].Issuer.CommonName
-			nextSubject := certs[i+1].Subject.CommonName
-
-			if issuer == nextSubject {
-				fmt.Fprintf(&context, "✓ Certificate %d (%s) is properly signed by Certificate %d (%s)\n",
-					i+1, subject, i+2, nextSubject)
-			} else {
-				fmt.Fprintf(&context, "⚠ Certificate %d (%s) issuer (%s) doesn't match Certificate %d subject (%s)\n",
-					i+1, subject, issuer, i+2, nextSubject)
-			}
-		}
-	}
-
-	// Security context
-	context.WriteString("\n=== SECURITY CONTEXT ===\n")
-	context.WriteString("Current TLS/SSL Best Practices:\n")
-	context.WriteString("- ~RSA keys should be 2048 bits or larger~ (Quantum Vulnerable 💀)\n")
-	context.WriteString("- ~ECDSA keys should use P-256 or stronger curves~ (Quantum Vulnerable 💀)\n")
-	context.WriteString("- Certificates should not be valid for more than 398 days (CA/Browser Forum)\n")
-	context.WriteString("- Modern clients require SAN (Subject Alternative Name) extension\n")
-	context.WriteString("- Quantum-resistant algorithms: Consider ML-KEM (Kyber), ML-DSA (Dilithium), and SLH-DSA (SPHINCS+) for post-quantum cryptography\n")
-	context.WriteString("- Hybrid certificates combining classical and quantum-resistant algorithms provide transitional security\n")
-	context.WriteString("- Deprecated: MD5, SHA-1 signatures\n")
-	context.WriteString("- Deprecated: SSLv3, TLS 1.0, TLS 1.1\n")
-
-	return context.String()
-}
-
 // buildCertificateContextWithRevocation creates comprehensive context information about certificates for AI analysis including revocation status.
 // It builds detailed certificate context with OCSP/CRL revocation information for enhanced security analysis.
 //
 // Parameters:
-//   - certs: Slice of X.509 certificates to analyze
+//   - chain: Certificate chain to analyze
 //   - revocationStatus: String containing revocation check results (OCSP/CRL status)
 //   - analysisType: Type of analysis (general, security, compliance)
 //
@@ -899,11 +758,11 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
 // This function provides complete certificate analysis context including cryptographic details,
 // validity periods, extensions, and revocation status for AI-powered security assessment.
 // It uses helper functions to organize information into logical sections.
-func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocationStatus string, analysisType string) string {
+func buildCertificateContextWithRevocation(chain *x509chain.Chain, revocationStatus string, analysisType string) string {
 	var context strings.Builder
 
 	// Chain overview
-	fmt.Fprintf(&context, "Chain Length: %d certificates\n", len(certs))
+	fmt.Fprintf(&context, "Chain Length: %d certificates\n", len(chain.Certs))
 	fmt.Fprintf(&context, "Analysis Type: %s\n", analysisType)
 	fmt.Fprintf(&context, "Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05"))
 
@@ -916,14 +775,14 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 	context.WriteString("\n")
 
 	// Detailed certificate information
-	for i, cert := range certs {
+	for i, cert := range chain.Certs {
 		fmt.Fprintf(&context, "=== CERTIFICATE %d ===\n", i+1)
-		fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(certs)))
+		fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(chain.Certs)))
 
 		appendSubjectInfo(&context, cert)
 		appendIssuerInfo(&context, cert)
 		appendValidityInfo(&context, cert)
-		appendCryptoInfo(&context, cert)
+		appendCryptoInfo(&context, chain, cert)
 		appendCertProperties(&context, cert)
 		appendCertExtensions(&context, cert)
 		appendCAInfo(&context, cert)
@@ -931,7 +790,7 @@ func buildCertificateContextWithRevocation(certs []*x509.Certificate, revocation
 		context.WriteString("\n")
 	}
 
-	appendChainValidationContext(&context, certs)
+	appendChainValidationContext(&context, chain.Certs)
 	appendSecurityContext(&context)
 
 	return context.String()
@@ -1003,15 +862,16 @@ func appendValidityInfo(context *strings.Builder, cert *x509.Certificate) {
 //
 // Parameters:
 //   - context: String builder to append cryptographic information to
+//   - chain: Certificate chain instance for key size calculation
 //   - cert: X.509 certificate to extract cryptographic information from
 //
 // The function extracts signature algorithm, public key algorithm, and key size
 // information for security analysis and compliance assessment.
-func appendCryptoInfo(context *strings.Builder, cert *x509.Certificate) {
+func appendCryptoInfo(context *strings.Builder, chain *x509chain.Chain, cert *x509.Certificate) {
 	context.WriteString("CRYPTOGRAPHY:\n")
 	fmt.Fprintf(context, "  Signature Algorithm: %s\n", cert.SignatureAlgorithm.String())
 	fmt.Fprintf(context, "  Public Key Algorithm: %s\n", cert.PublicKeyAlgorithm.String())
-	fmt.Fprintf(context, "  Key Size: %d bits\n", getKeySize(cert))
+	fmt.Fprintf(context, "  Key Size: %d bits\n", chain.KeySize(cert))
 }
 
 // appendCertProperties adds basic certificate properties to the context builder for AI analysis.
@@ -1161,33 +1021,6 @@ func getCertificateRole(index int, total int) string {
 		return "Root CA Certificate"
 	}
 	return "Intermediate CA Certificate"
-}
-
-// getKeySize extracts the key size in bits from a certificate's public key.
-// It handles both RSA and ECDSA keys, returning the appropriate bit length.
-//
-// Parameters:
-//   - cert: X.509 certificate containing the public key to analyze
-//
-// Returns:
-//   - The key size in bits (e.g., 2048 for RSA, 256 for P-256 ECDSA)
-//   - 0 if the key type is unsupported or unrecognized
-//
-// The function supports both pointer and value types for RSA and ECDSA public keys
-// to handle different certificate parsing scenarios.
-func getKeySize(cert *x509.Certificate) int {
-	switch pub := cert.PublicKey.(type) {
-	case *rsa.PublicKey:
-		return pub.Size() * 8 // Convert bytes to bits
-	case rsa.PublicKey:
-		return pub.Size() * 8 // Convert bytes to bits
-	case *ecdsa.PublicKey:
-		return pub.Curve.Params().BitSize
-	case ecdsa.PublicKey:
-		return pub.Curve.Params().BitSize
-	default:
-		return 0
-	}
 }
 
 // formatKeyUsage converts x509.KeyUsage bit flags to a human-readable comma-separated string.

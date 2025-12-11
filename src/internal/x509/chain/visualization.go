@@ -111,10 +111,13 @@ func (ch *Chain) RenderTable(revocationStatus map[string]string) string {
 
 		// Format key size
 		keySize := "unknown"
-		if rsaKey, ok := cert.PublicKey.(*rsa.PublicKey); ok {
-			keySize = fmt.Sprintf("%d-bit RSA", rsaKey.Size()*8)
-		} else if ecdsaKey, ok := cert.PublicKey.(*ecdsa.PublicKey); ok {
-			keySize = fmt.Sprintf("%d-bit ECDSA", ecdsaKey.Curve.Params().BitSize)
+		if keyBits := ch.KeySize(cert); keyBits > 0 {
+			switch cert.PublicKey.(type) {
+			case *rsa.PublicKey:
+				keySize = fmt.Sprintf("%d-bit RSA", keyBits)
+			case *ecdsa.PublicKey:
+				keySize = fmt.Sprintf("%d-bit ECDSA", keyBits)
+			}
 		}
 
 		rows = append(rows, []string{
@@ -188,15 +191,13 @@ func (ch *Chain) ToVisualizationJSON(revocationStatus map[string]string) ([]byte
 
 	// Convert certificates
 	for i, cert := range ch.Certs {
-		keySize := 0
+		keySize := ch.KeySize(cert)
 		pubKeyAlgo := "unknown"
 
-		switch pubKey := cert.PublicKey.(type) {
+		switch cert.PublicKey.(type) {
 		case *rsa.PublicKey:
-			keySize = pubKey.Size() * 8
 			pubKeyAlgo = "RSA"
 		case *ecdsa.PublicKey:
-			keySize = pubKey.Curve.Params().BitSize
 			pubKeyAlgo = "ECDSA"
 		}
 
