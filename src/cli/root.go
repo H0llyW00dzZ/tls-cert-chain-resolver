@@ -154,7 +154,7 @@ func execCli(ctx context.Context, cmd *cobra.Command) error {
 	case "table":
 		tableOutput := chain.RenderTable(ctx)
 		globalLogger.Println(tableOutput)
-		globalLogger.Println("Certificate chain complete. Total", len(chain.Certs), "certificate(s) found.")
+		globalLogger.Println("Certificate chain complete. Total", len(chain.Certs), "certificate(s) found.\n")
 	}
 
 	// Output in JSON format if specified
