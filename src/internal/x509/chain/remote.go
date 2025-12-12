@@ -38,6 +38,11 @@ import (
 //
 // [Wireshark]: https://www.wireshark.org/
 func FetchRemoteChain(ctx context.Context, hostname string, port int, timeout time.Duration, version string) (*Chain, []*x509.Certificate, error) {
+	// Validate port number
+	if port < 1 || port > 65535 {
+		return nil, nil, fmt.Errorf("invalid port number %d: must be between 1 and 65535", port)
+	}
+
 	// Establish TLS connection to get certificate chain
 	netDialer := &net.Dialer{Timeout: timeout}
 
