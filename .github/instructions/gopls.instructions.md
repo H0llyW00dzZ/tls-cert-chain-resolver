@@ -60,10 +60,10 @@ See [README.md](../../README.md) for repository overview and structure.
 
 **Example Output**:
 ```
-Module: github.com/H0llyW00dzZ/tls-cert-chain-resolver
-Go Version: 1.25.5
 Packages: [lists all Go packages in the workspace]
 ```
+
+See [README.md](./README.md) for repository module and Go version information.
 
 ### gopls_go_search(query)
 **Purpose**: Fuzzy search for Go symbols  
