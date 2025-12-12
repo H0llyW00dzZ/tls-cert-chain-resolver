@@ -26,7 +26,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
 
    - **Note**: Before adding any entries, check for duplicates (e.g., verify if a dependency is already documented in `deepwiki.instructions.md`). Avoid redundancy while ensuring completeness.
    - `gopls.instructions.md`: Update for Go code patterns, package structures, new imports, or API changes
-   - `filesystem.instructions.md`: Update for new/moved/deleted file paths, directory structures, and the **Repository Structure tree** (starting at line 7)
+   - `filesystem.instructions.md`: Update for new/moved/deleted file paths, directory structures, the **Repository Structure tree** (starting at line 7), and the **Common File Paths** section
    - `memory.instructions.md`: Update for changes in context/memory management, caching strategies, or state handling
    - `deepwiki.instructions.md`: Add new external dependencies, libraries, or research targets
    - `opencode.instructions.md`: Update for configuration or workflow changes, including additions, deletions, or modifications to commands in `.opencode/command/`
@@ -42,7 +42,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
      - Removed files/directories (delete from tree)
    - Ensure descriptions are precise and reflect current functionality
    - Preserve indentation, formatting, and hierarchical structure
-   - If major changes occur, update the "Common File Paths" section (starting at line 607) with new shortcuts or references
+   - Update the **Common File Paths** section with new shortcuts or references for any file path changes
 
 5. **Check .opencode Directory Changes**:
 
