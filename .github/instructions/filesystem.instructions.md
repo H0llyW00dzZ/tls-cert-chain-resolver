@@ -691,6 +691,9 @@ grep("RenderASCIITree\\|RenderTable\\|ToVisualizationJSON", include="*.go")
 # Find revocation status parsing for visualization
 grep("parseRevocationStatusForVisualization", include="*.go")
 
+# Find prompt template parsing patterns
+grep("parsePromptTemplate\\|detectRoleMarker\\|promptTemplateData", include="*.go")
+
 
 # Find graceful shutdown tests
 grep("run_graceful_test\\.go\\|syscall\\.Kill", include="*_test.go")

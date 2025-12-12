@@ -124,6 +124,7 @@ gopls_go_search("handleSecurityAuditPrompt") → Find security audit prompt hand
 gopls_go_search("handleTroubleshootingPrompt") → Find troubleshooting prompt handler
 gopls_go_search("parsePromptTemplate") → Find prompt template parsing function
 gopls_go_search("detectRoleMarker") → Find role marker detection for prompt parsing
+gopls_go_search("promptTemplateData") → Find prompt template data structures
 gopls_go_search("GenerateResources") → Find resource generation functions
 gopls_go_search("GenerateTools") → Find tool generation functions
 gopls_go_search("GeneratePrompts") → Find prompt generation functions
