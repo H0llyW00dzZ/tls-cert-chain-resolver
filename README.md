@@ -116,7 +116,22 @@ tls-cert-chain-resolver -f cert.pem --table
 
 The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes certificate operations to AI assistants or automation clients over stdio.
 
+> [!IMPORTANT]
+> **Go-Native Implementation**: This MCP server is implemented entirely in Go and leverages Go-specific features that provide superior performance and memory efficiency but limit portability to other programming languages. Key Go-native dependencies include:
+>
+> - **`embed` package**: Templates, resources, and configuration files are embedded directly into the binary at compile time
+> - **Goroutines and channels**: Concurrent request processing with semaphore-based rate limiting (100 concurrent requests)
+> - **Buffer pooling**: Custom `gc.Pool` interface for efficient memory reuse in certificate operations and AI streaming
+> - **Context management**: Native Go context propagation for cancellation and timeouts
+> - **Interface-based design**: Type-safe abstractions that aren't directly translatable to other languages
+>
+> While this provides excellent performance and reliability, it means the implementation cannot be easily ported to languages like Python, JavaScript, or Java without significant reimplementation effort. Consider this when evaluating MCP server options for multi-language environments.
+>
+> Learn more about Go's design principles at [Effective Go](https://go.dev/doc/effective_go).
+
 ### MCP Tooling
+
+The MCP server provides comprehensive certificate operations powered by Go's efficient crypto libraries and concurrent processing capabilities:
 
 | Tool | Purpose |
 |------|---------|
@@ -128,6 +143,8 @@ The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes
 | `visualize_cert_chain` | Visualize certificate chains in ASCII tree, table, or JSON formats |
 | `analyze_certificate_with_ai` | Delegate structured certificate analysis to a configured LLM |
 | `get_resource_usage` | Monitor server resource usage (memory, GC, system info) in JSON or markdown format |
+
+**Performance Benefits**: Go's goroutines enable concurrent certificate processing, buffer pooling minimizes memory allocations, and the `embed` package eliminates filesystem dependencies for templates and resources.
 
 #### MCP Resources
 
@@ -322,6 +339,8 @@ tls-cert-chain-resolver/
 ## Motivation
 
 TLS Cert Chain Resolver is inspired by the unmaintained [`zakjan/cert-chain-resolver`](https://github.com/zakjan/cert-chain-resolver.git) project. This repository aims to provide an actively maintained, memory-conscious implementation with modern tooling support (CLI + MCP + AI sampling).
+
+**Why Go?** This project leverages Go's strengths in systems programming and concurrency to deliver a high-performance, memory-efficient certificate chain resolver. The Go ecosystem provides excellent TLS/crypto libraries and the language's design enables efficient implementations that would be challenging in other languages. However, this Go-native approach means the MCP server implementation is not easily portable to other programming languages.
 
 ## License
 
