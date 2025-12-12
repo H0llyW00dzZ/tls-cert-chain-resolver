@@ -7,8 +7,8 @@ package mcpserver
 
 import (
 	"fmt"
-	"html/template"
 	"strings"
+	"text/template"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 )
