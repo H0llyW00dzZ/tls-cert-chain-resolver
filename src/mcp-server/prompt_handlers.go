@@ -8,8 +8,8 @@ package mcpserver
 import (
 	"context"
 	"fmt"
-	"html/template"
 	"strings"
+	"text/template"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	"github.com/mark3labs/mcp-go/mcp"
