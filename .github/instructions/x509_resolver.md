@@ -35,8 +35,7 @@ The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP ser
 
 ## Repository Context
 
-**Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`
-**Key Packages**:
+See [README.md](./README.md) for repository overview. This MCP server focuses on X509 certificate operations using packages:
 
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic with OCSP/CRL revocation checking
@@ -332,7 +331,7 @@ Read resource: status://server-status
 
 ## MCP Prompts
 
-The server provides predefined prompts for common certificate analysis workflows. These prompts are generated from `tools/codegen/config/prompts.json` and can be updated via the codegen tool.
+The server provides predefined prompts for common certificate analysis workflows. These prompts are now template-based using embedded Markdown templates for better maintainability and dynamic content generation.
 
 ### certificate-analysis
 

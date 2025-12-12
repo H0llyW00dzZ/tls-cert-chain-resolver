@@ -354,19 +354,7 @@ bash("go test -v ./src/cli")
 
 ### Dependencies in go.mod
 
-Current external dependencies to research:
-- `github.com/spf13/cobra` - CLI framework
-- `github.com/cloudflare/cfssl` - Certificate utilities
-- `github.com/valyala/bytebufferpool` - Memory pooling
-- `github.com/mark3labs/mcp-go` v0.43.2 - MCP server implementation with enhanced bidirectional AI sampling support
-- `github.com/modelcontextprotocol/go-sdk` v1.1.0 - Official MCP SDK for transport implementations
-- `google.golang.org/adk` v0.2.0 - Google ADK integration for MCP transport creation
-- `google.golang.org/genai` v1.39.0 - Google GenAI integration for AI model interactions
-- `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
-- `github.com/xeipuuv/gojsonschema` v1.2.0 - JSON schema validation for code generation
-- `golang.org/x/crypto` v0.46.0 - Supplementary cryptography libraries leveraged in recent releases
-- `golang.org/x/text` v0.32.0 - Text processing utilities for proper casing and internationalization (GitHub: golang/text)
-- `golang/go` (standard library) - Review Go 1.25.5 crypto/tls and net/http updates
+See [go.mod](../../go.mod) for the complete dependency list. Key external libraries for research:
 
 ### Useful Queries for This Project
 

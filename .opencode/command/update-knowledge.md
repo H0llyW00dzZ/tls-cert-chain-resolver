@@ -24,25 +24,22 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
 
 3. **Update Relevant Instruction Files**:
 
-   - **Note**: Before adding any entries, check for duplicates (e.g., verify if a dependency is already documented in `deepwiki.instructions.md`). Avoid redundancy while ensuring completeness.
+   - **Note**: Check for duplicates and centralize common information in README.md. Avoid redundancy while ensuring completeness.
+   - `README.md`: Update repository context, module info, and file table as central reference
    - `gopls.instructions.md`: Update for Go code patterns, package structures, new imports, or API changes
-   - `filesystem.instructions.md`: Update for new/moved/deleted file paths, directory structures, the **Repository Structure tree** (starting at line 7), and the **Common File Paths** section
+   - `filesystem.instructions.md`: Update for new/moved/deleted file paths and directory structures
    - `memory.instructions.md`: Update for changes in context/memory management, caching strategies, or state handling
    - `deepwiki.instructions.md`: Add new external dependencies, libraries, or research targets
-   - `opencode.instructions.md`: Update for configuration or workflow changes, including additions, deletions, or modifications to commands in `.opencode/command/`
+   - `opencode.instructions.md`: Update for configuration or workflow changes
+   - `x509_resolver.md`: Update for MCP server changes, new tools, or API modifications
 
-4. **Update Repository Structure Tree in filesystem.instructions.md**:
+4. **Remove Duplicate Content**:
 
-   - Identify structural changes: `git diff HEAD~10..HEAD --name-only`
-   - Verify current structure: Use `list()` to confirm paths
-   - Update the Repository Structure tree (starting at line 7) in `filesystem.instructions.md` to include:
-     - Newly added files (with concise, purpose-driven descriptions)
-     - Moved or renamed files/directories
-     - Newly created or reorganized directories
-     - Removed files/directories (delete from tree)
-   - Ensure descriptions are precise and reflect current functionality
-   - Preserve indentation, formatting, and hierarchical structure
-   - Update the **Common File Paths** section with new shortcuts or references for any file path changes
+   - Centralize repository context (module, Go version) in README.md
+   - Remove redundant package structures from specialized files
+   - Simplify repository structure trees to high-level overviews with references to README.md
+   - Eliminate duplicate dependency lists and configuration examples
+   - Ensure each file focuses on its specialized purpose without repeating common information
 
 5. **Check .opencode Directory Changes**:
 
@@ -72,19 +69,21 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
          - `go test -race ./src/mcp-server 2>&1 | cat`
 
 7. **Update AGENTS.md**:
+
    - Incorporate new build commands if the process has evolved
    - Refine code style guidelines for newly identified patterns
    - Expand "Bad Practices" with common pitfalls from recent changes
 
 ## What to Look For
 
-- **New packages/files**: Document in `gopls.instructions.md` and update the Repository Structure tree in `filesystem.instructions.md`
-- **Directory reorgs**: Reflect in `filesystem.instructions.md` tree and paths
-- **New CLI features**: Update examples in `gopls.instructions.md` and `filesystem.instructions.md`
+- **New packages/files**: Document in `gopls.instructions.md` and update repository structure references
+- **Directory reorgs**: Update references in specialized files, centralize details in README.md
+- **New CLI features**: Update examples in relevant specialized files
 - **New dependencies**: List in `deepwiki.instructions.md` for research
-- **Refactors**: Revise code snippets in all relevant files
+- **Refactors**: Revise code snippets in all relevant files, remove duplicates
 - **Emerging patterns**: Add to AGENTS.md and specific instruction files
 - **Build updates**: Modify commands in AGENTS.md
+- **Duplicate content**: Identify and remove, centralize in README.md where appropriate
 - **.opencode changes**: Track new/deleted/modified commands, updating `opencode.instructions.md` and `.opencode/README.md`
 
 ## Error Handling
@@ -120,5 +119,11 @@ For each updated file, report in this structured format:
 2. **Affected Sections**: Specify which parts of the instruction file require updates (e.g., "Repository Structure tree in filesystem.instructions.md")
 3. **Updated Content**: Provide the revised text with examples (e.g., paste the updated tree or code snippet)
 4. **Verification**: Confirm examples work (e.g., "Tested CLI flag; output matches expected format. Race tests pass for affected package.")
+
+## Recent Updates Applied
+
+- **Duplicate Removal**: Centralized repository context in README.md, removed redundant information from specialized files
+- **Consistency**: Updated cross-references to point to centralized information
+- **Maintainability**: Each instruction file now focuses on its specialized purpose without repeating common details
 
 Prioritize precision, avoid overgeneralization, and ensure all updates align with actual repository state. Use tools proactively to validate before finalizing changes.

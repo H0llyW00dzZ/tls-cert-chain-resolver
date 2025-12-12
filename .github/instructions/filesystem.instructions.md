@@ -6,132 +6,29 @@ Built-in filesystem tools for reading, writing, editing, listing, and searching 
 
 ## Repository Structure
 
+See [README.md](./README.md) for repository overview. Key directories for file operations:
+
 ```
 tls-cert-chain-resolver/
-├── .github/
-│   ├── instructions/                         # Agent instruction files
-│   │   ├── README.md                         # Instructions overview (for humans)
-│   │   ├── deepwiki.instructions.md          # External library research
-│   │   ├── filesystem.instructions.md        # THIS FILE - File operations
-│   │   ├── gopls.instructions.md             # Go language intelligence
-│   │   ├── memory.instructions.md            # Memory/context management
-│   │   ├── opencode.instructions.md          # OpenCode configuration
-│   │   └── x509_resolver.md                  # X509 certificate chain resolver MCP server
-│   ├── workflows/
-│   │   └── coverage.yml                      # CI/CD coverage workflow
-│   └── dependabot.yml                        # Dependency updates config
-├── .opencode/
-│   ├── command/
-│   │   ├── create-changelog.md               # Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
-│   │   ├── test-capabilities.md              # Test agent capabilities including MCP servers and built-in tools with structured todo workflow
-│   │   ├── test.md                           # Test command workflow
-│   │   ├── update-knowledge.md               # Update instruction files workflow
-│   │   └── vulncheck.md                      # Check for vulnerable dependencies and suggest updates
-│   └── README.md                             # Custom commands documentation
-├── cmd/
-│   ├── adk-go/
-│   │   └── run.go                            # ADK integration example with thinking mode support
-│   ├── mcp-server/
-│   │   └── run.go                            # MCP server entry point
-│   └── run.go                                # Main CLI entry point
-├── src/
-│   ├── cli/
-│   │   ├── root.go                           # Cobra CLI implementation
-│   │   └── root_test.go                      # CLI tests
-│   ├── internal/
-│   │   ├── helper/
-│   │   │   └── gc/
-│   │   │       ├── docs.go                   # Package documentation
-│   │   │       ├── mock_buffer_test.go       # Mock buffer for testing
-│   │   │       ├── reduce_overhead.go        # Buffer pool abstraction (gc.Pool interface)
-│   │   │       └── reduce_overhead_test.go   # Buffer pool tests
-│   │   │   └── jsonrpc/
-│   │   │       ├── docs.go                   # Package documentation
-│   │   │       ├── json_rpc.go               # JSON-RPC canonicalization helper
-│   │   │       └── json_rpc_test.go          # JSON-RPC helper tests
-│   │   └── x509/
-│   │       ├── certs/
-│   │       │   ├── cert_test.go              # Certificate tests
-│   │       │   ├── certs.go                  # Certificate encoding/decoding
-│   │       │   └── docs.go                   # Package documentation
-│   │       └── chain/
-│   │           ├── benchmark_test.go         # Chain resolution and revocation benchmarks
-│   │           ├── cache.go                  # CRL cache implementation with LRU eviction and metrics
-│   │           ├── chain.go                  # Chain resolution logic
-│   │           ├── chain_test.go             # Chain tests
-│   │           ├── docs.go                   # Package documentation
-│   │           ├── lru_test.go               # LRU cache tests for access, eviction, and concurrency
-│   │           ├── remote.go                 # Context-aware remote TLS chain fetcher
-│   │           ├── revocation.go             # OCSP/CRL revocation status checking
-│   │           └── visualization.go          # Certificate chain visualization utilities
-│   ├── logger/
-│   │   ├── benchmark_test.go                 # Logger benchmarks
-│   │   ├── logger.go                         # Logger abstraction (CLI/MCP, thread-safe with bytebufferpool)
-│   │   └── logger_test.go                    # Logger tests
-│   ├── mcp-server/
-│   │   ├── adk.go                            # Google ADK integration support with transport builder pattern
-│   │   ├── adk_test.go                       # Google ADK integration tests with enhanced concurrency testing
-│   │   ├── analysis_coverage_test.go         # Analysis coverage tests
-│   │   ├── config.example.json               # MCP server configuration example
-│   │   ├── config.go                         # MCP server configuration and AI settings
-│   │   ├── docs.go                           # MCP server package documentation
-│   │   ├── framework.go                      # ServerBuilder pattern, sampling registration, streaming buffer pooling
-│   │   ├── handlers.go                       # MCP server instruction loading and template data structures
-│   │   ├── helper.go                         # Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
-│   │   ├── pipe.go                           # Pipe transport implementation for StdioServer input/output interception (sampling)
-│   │   ├── pipe_test.go                      # Pipe transport tests covering I/O performance, interception logic, and sampling response routing
-│   │   ├── prompt_handlers.go                # MCP prompt handlers (generated/custom mix)
-│   │   ├── prompts.go                        # MCP prompt definitions and handlers for certificate workflows
-│   │   ├── resource_handlers.go              # MCP resource handlers (config, version, formats, status) with embedded templates
-│   │   ├── resource_usage.go                 # Resource usage monitoring and formatting functions
-│   │   ├── resources.go                      # MCP resource definitions and handlers (config, version, formats, status)
-│   │   ├── run_graceful_test.go              # Graceful shutdown test (Windows build constraint)
-│   │   ├── run_test.go                       # MCP server tests
-│   │   ├── server.go                         # Server execution and lifecycle management
-│   │   ├── templates/
-│   │   │   ├── docs.go                                   # Package documentation
-│   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt used for sampling
-│   │   │   ├── certificate-analysis-prompt.md            # Certificate analysis workflow template
-│   │   │   ├── certificate-formats.md                    # Certificate format documentation
-│   │   │   ├── expiry-monitoring-prompt.md               # Certificate expiry monitoring template
-│   │   │   ├── security-audit-prompt.md                  # Security audit workflow template
-│   │   │   ├── troubleshooting-prompt.md                 # Certificate troubleshooting template
-│   │   │   ├── X509_instructions.md                      # Server instructions for MCP client initialization
-│   │   │   ├── magic_embed.go                            # Magic embedded filesystem abstraction
-│   │   │   └── magic_embed_test.go                       # Tests for magic embedded filesystem
-│   │   ├── tools.go                          # Tool definitions with constants (ToolResolveCertChain, RoleChainResolver, etc.) and creation functions
-│   │   ├── tools_handlers.go                 # MCP tool handlers and certificate processing utilities
-│   │   └── transport.go                      # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
-│   └── version/
-│       └── version.go                        # Version information and build metadata
-├── tools/
-│   └── codegen/                              # Code generation for MCP server resources and tools
-│       ├── config/                           # Configuration files
-│       │   ├── prompts.json                  # Prompt definitions
-│       │   ├── prompts.schema.json           # JSON schema for prompt validation
-│       │   ├── resources.json                # Resource definitions
-│       │   ├── resources.schema.json         # JSON schema for resource validation
-│       │   ├── tools.json                    # Tool definitions
-│       │   └── tools.schema.json             # JSON schema for tool validation
-│       ├── internal/
-│       │   ├── codegen.go                    # Core generation logic with JSON schema validation
-│       │   └── codegen_test.go               # Codegen tests for parameter validation and JSON schema
-│       ├── templates/                        # Go templates
-│       │   ├── prompts.go.tmpl
-│       │   ├── resources.go.tmpl
-│       │   └── tools.go.tmpl
-│       ├── README.md                         # Codegen documentation
-│       └── run.go                            # Entry point
+├── .github/instructions/                     # Agent instruction files
+├── .opencode/command/                        # Custom commands
+├── cmd/                                      # Main CLI and MCP server binaries
+├── src/                                      # Source code
+│   ├── cli/                                  # Cobra CLI implementation
+│   ├── internal/x509/                        # Certificate operations
+│   ├── logger/                               # Logger abstraction
+│   ├── mcp-server/                           # MCP server implementation
+│   └── version/                              # Version information
+├── tools/codegen/                            # Code generation
 ├── .gitignore                                # Git ignore patterns
-├── .ignore                                   # Tool ignore patterns (glob/grep)
+├── .ignore                                   # Tool ignore patterns
 ├── AGENTS.md                                 # Primary agent guidelines
-├── LICENSE                                   # BSD 3-Clause License
 ├── Makefile                                  # Build commands
-├── README.md                                 # Project documentation
-├── go.mod                                    # Go module definition (Go 1.25.5)
-├── go.sum                                    # Go dependency checksums
+├── go.mod                                    # Go module definition
 └── opencode.json                             # OpenCode configuration
 ```
+
+For complete repository structure, see [filesystem.instructions.md](./filesystem.instructions.md).
 
 ## Available Tools
 
@@ -642,127 +539,7 @@ write("new_test.go", ...)       # Create new test files when needed
 
 ### Common File Paths
 
-```
-# Agent instructions
-.github/instructions/README.md
-.github/instructions/gopls.instructions.md
-.github/instructions/deepwiki.instructions.md
-.github/instructions/filesystem.instructions.md
-.github/instructions/memory.instructions.md
-.github/instructions/opencode.instructions.md
-.github/instructions/x509_resolver.md
-
-# Custom commands
-.opencode/README.md
-.opencode/command/create-changelog.md
-.opencode/command/test.md
-.opencode/command/update-knowledge.md
-.opencode/command/test-capabilities.md
-.opencode/command/vulncheck.md
-
-# Main entry point
-cmd/run.go
-
-# ADK example runner
-cmd/adk-go/run.go
-
-# MCP server entry point
-cmd/mcp-server/run.go
-
-# CLI implementation
-src/cli/root.go
-src/cli/root_test.go
-
-# Logger abstraction (thread-safe with sync.Mutex and gc.Pool)
-src/logger/logger.go
-src/logger/logger_test.go
-src/logger/benchmark_test.go
-
-# MCP server implementation
-src/mcp-server/config.example.json
-src/mcp-server/config.go
-src/mcp-server/docs.go
-src/mcp-server/adk.go        # Google ADK integration support with transport builder pattern
-src/mcp-server/adk_test.go   # Google ADK integration tests with enhanced concurrency testing
-src/mcp-server/analysis_coverage_test.go # Analysis coverage tests
-src/mcp-server/framework.go  # ServerBuilder pattern, AI sampling with buffer pooling (DefaultSamplingHandler)
-src/mcp-server/handlers.go   # MCP server instruction loading and template data structures
-src/mcp-server/helper.go     # Helper utilities (JSON-RPC parameter extraction: getParams, getStringParam, getOptionalStringParam, getMapParam)
-src/mcp-server/pipe.go       # Pipe transport implementation for StdioServer input/output interception (sampling)
-src/mcp-server/pipe_test.go  # Pipe transport tests covering I/O performance, interception logic, and sampling response routing
-src/mcp-server/prompts.go    # MCP prompt definitions and handlers for certificate workflows with metadata and required arguments
-src/mcp-server/resource_handlers.go  # MCP resource handlers (config, version, formats, status) with embedded templates
-src/mcp-server/resource_usage.go  # Resource usage monitoring and formatting functions
-src/mcp-server/resources.go  # MCP resource definitions
-src/mcp-server/run_graceful_test.go  # Graceful shutdown test (non-Windows)
-src/mcp-server/run_test.go   # Comprehensive tool coverage tests with macOS skip for validation
-src/mcp-server/server.go
-src/mcp-server/tools.go  # Tool definitions with constants (ToolResolveCertChain, RoleChainResolver, etc.) and creation functions
-src/mcp-server/tools_handlers.go  # MCP tool handlers and certificate processing utilities
-src/mcp-server/transport.go  # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
-src/mcp-server/templates/docs.go                               # Package documentation
-src/mcp-server/templates/certificate-analysis-system-prompt.md  # Embedded AI system prompt
-src/mcp-server/templates/certificate-analysis-prompt.md         # Certificate analysis workflow template
-src/mcp-server/templates/certificate-formats.md
-src/mcp-server/templates/expiry-monitoring-prompt.md            # Certificate expiry monitoring template
-src/mcp-server/templates/security-audit-prompt.md               # Security audit workflow template
-src/mcp-server/templates/troubleshooting-prompt.md              # Certificate troubleshooting template
-src/mcp-server/templates/X509_instructions.md  # Server instructions for MCP client initialization
-src/mcp-server/templates/magic_embed.go        # Magic embedded filesystem abstraction
-src/mcp-server/templates/magic_embed_test.go   # Tests for magic embedded filesystem
-
-# Certificate operations
-src/internal/x509/certs/certs.go
-src/internal/x509/certs/cert_test.go
-
-# Chain resolution
-src/internal/x509/chain/chain.go
-src/internal/x509/chain/chain_test.go
-src/internal/x509/chain/benchmark_test.go  # Chain resolution and revocation benchmarks
-src/internal/x509/chain/cache.go  # O(1) LRU CRL cache implementation with hashmap, doubly-linked list, and atomic metrics
-src/internal/x509/chain/lru_test.go  # O(1) LRU cache tests for access order, eviction correctness, concurrency, and leak detection
-src/internal/x509/chain/remote.go  # Context-aware remote TLS chain helper
-src/internal/x509/chain/revocation.go  # OCSP/CRL revocation status checking
-src/internal/x509/chain/visualization.go  # Certificate chain visualization utilities
-
-# Helper utilities (buffer pool abstraction)
-src/internal/helper/gc/reduce_overhead.go
-src/internal/helper/gc/reduce_overhead_test.go
-src/internal/helper/gc/mock_buffer_test.go
-
-# JSON-RPC utilities
-src/internal/helper/jsonrpc/json_rpc.go
-src/internal/helper/jsonrpc/json_rpc_test.go
-
-# Version information
-src/version/version.go
-
-# Build configuration
-Makefile
-go.mod
-go.sum
-
-# Code Generation
-tools/codegen/run.go
-tools/codegen/internal/codegen.go
-tools/codegen/internal/codegen_test.go  # Comprehensive tests for parameter validation, tool generation, and resource annotations
-tools/codegen/config/prompts.json
-tools/codegen/config/resources.json
-tools/codegen/config/tools.json
-tools/codegen/templates/prompts.go.tmpl
-tools/codegen/templates/resources.go.tmpl
-tools/codegen/templates/tools.go.tmpl
-tools/codegen/README.md
-
-# Documentation
-README.md
-AGENTS.md
-LICENSE
-
-# Configuration
-opencode.json
-.ignore
-```
+See the repository structure section above for key directories. Common patterns for file operations:
 
 ### Common Search Patterns
 

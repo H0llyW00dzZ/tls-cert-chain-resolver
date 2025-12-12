@@ -6,54 +6,14 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 
 ## Repository Context
 
-**Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`  
-**Go Version**: 1.25.5+  
-**Key Packages**:
-- **`cmd/`** — Main CLI entry point, MCP server binaries, and ADK example runner (`adk-go/`)
-- **`src/cli/`** — Cobra CLI implementation  
-- **`src/logger/`** — Logger abstraction (CLI/MCP modes, thread-safe with sync.Mutex and gc.Pool)
- - **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
-  - **`docs.go`** — MCP server package documentation
-  - **`adk.go`** — Google ADK integration support with transport builder pattern
-  - **`adk_test.go`** — Comprehensive ADK transport builder tests with JSON-RPC cycle testing
-  - **`analysis_coverage_test.go`** — Analysis coverage tests
-  - **`transport.go`** — In-memory transport implementation bridging ADK SDK and mark3labs/mcp-go with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
-  - **`framework.go`** — Builder pattern for server construction (ServerBuilder), sampling handler with streaming support, AI API integration
-  - **`resources.go`** — MCP resource definitions and handlers (config, version, formats, status)
-  - **`prompt_handlers.go`** — MCP prompt handlers (generated/custom mix)
-  - **`prompts.go`** — MCP prompt definitions and handlers (certificate analysis workflows)
-  - **`handlers.go`** — MCP server instruction loading and template data structures
-  - **`resource_handlers.go`** — MCP resource handlers (config, version, formats, status) with embedded templates
-  - **`tools_handlers.go`** — MCP tool handlers and certificate processing utilities
-  - **`templates/docs.go`** — Package documentation
-  - **`templates/magic_embed.go`** — Magic embedded filesystem abstraction
-  - **`templates/magic_embed_test.go`** — Tests for magic embedded filesystem
-  - **`helper.go`** — Helper utilities (JSON-RPC parameter extraction: `getStringParam`, `getMapParam`, `getOptionalStringParam`)
-  - **`pipe.go`** — Pipe transport implementation for StdioServer input/output interception (sampling) with buffer pooling
-  - **`pipe_test.go`** — Pipe transport tests covering I/O performance and interception logic
-  - **`resource_usage.go`** — Resource usage monitoring and formatting functions
-  - **`server.go`** — Server execution and lifecycle management
-  - **`tools.go`** — Tool definitions and creation functions
-  - **`config.go`** — Configuration management for AI and MCP settings
+See [README.md](./README.md) for repository overview. Key packages relevant to Go language intelligence:
+
+- **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
-  - **`docs.go`** — Package documentation
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic
-  - **`docs.go`** — Package documentation
-  - **`cache.go`** — CRL cache implementation with LRU eviction and metrics
-  - **`remote.go`** — Context-aware remote TLS chain retrieval (`FetchRemoteChain`)
-  - **`revocation.go`** — OCSP/CRL revocation status checking (`CheckRevocationStatus`, `ParseCRLResponse`)
-  - **`visualization.go`** — Certificate chain visualization utilities
 - **`src/internal/helper/gc/`** — Memory management utilities
-  - **`docs.go`** — Package documentation
-- **`src/internal/helper/jsonrpc/`** — JSON-RPC canonicalization helper for MCP transport normalization
-  - **`docs.go`** — Package documentation
-- **`src/version/`** — Version information
+- **`src/internal/helper/jsonrpc/`** — JSON-RPC canonicalization helper
 - **`tools/codegen/`** — Code generation for MCP server resources, tools, and prompts
-  - **`config/`** — JSON configuration files for resources, tools, and prompts
-  - **`internal/`** — Core code generation logic
-  - **`templates/`** — Go templates for generation
-  - **`README.md`** — Codegen documentation
-  - **`run.go`** — Entry point for the codegen tool
 
 ## Core Workflows
 
@@ -109,15 +69,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 ```
 Module: github.com/H0llyW00dzZ/tls-cert-chain-resolver
 Go Version: 1.25.5
-Packages:
-- cmd (main)
-- src/cli
-- src/logger (CLI/MCP logger abstraction, thread-safe with bytebufferpool)
-- src/mcp-server (MCP server tools for certificate operations with ServerBuilder pattern and resource monitoring)
-- src/internal/x509/certs
-- src/internal/x509/chain
-- src/internal/helper/gc
-- src/internal/helper/jsonrpc
+Packages: [lists all Go packages in the workspace]
 ```
 
 ### gopls_go_search(query)
@@ -452,6 +404,19 @@ gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("certificate-analysis") → Find certificate analysis prompts
 gopls_go_search("security-audit") → Find security audit prompts
 gopls_go_search("parsePromptTemplate") → Find prompt template parsing function
+gopls_go_search("handleCertificateAnalysisPrompt") → Find certificate analysis prompt handler
+gopls_go_search("handleExpiryMonitoringPrompt") → Find expiry monitoring prompt handler
+gopls_go_search("handleSecurityAuditPrompt") → Find security audit prompt handler
+gopls_go_search("handleTroubleshootingPrompt") → Find troubleshooting prompt handler
+gopls_go_search("certificate-analysis-prompt.md") → Find certificate analysis prompt template
+gopls_go_search("expiry-monitoring-prompt.md") → Find expiry monitoring prompt template
+gopls_go_search("security-audit-prompt.md") → Find security audit prompt template
+gopls_go_search("troubleshooting-prompt.md") → Find troubleshooting prompt template
+gopls_go_search("RenderASCIITree") → Find ASCII tree rendering for certificate chains
+gopls_go_search("RenderTable") → Find table rendering for certificate chains
+gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains
+gopls_go_search("parseRevocationStatusForVisualization") → Find revocation status parsing for visualization
+gopls_go_search("ToolHandlerWithConfig") → Find enhanced type alias for tool handlers with config
 gopls_go_search("CRLCacheEntry") → Find CRL cache entry structures
 gopls_go_search("CRLCacheConfig") → Find CRL cache configuration
 gopls_go_search("CRLCacheMetrics") → Find CRL cache metrics tracking
@@ -480,7 +445,7 @@ gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-se
 
 # Read MCP server implementations
 read("src/mcp-server/docs.go")       # MCP server package documentation
-read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI streaming integration with buffer pooling
+read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI streaming integration with buffer pooling, enhanced ToolHandlerWithConfig type alias
 read("src/mcp-server/resources.go")  # Resource definitions including status resource
 read("src/mcp-server/prompts.go")    # Prompt definitions
 read("src/mcp-server/templates/certificate-analysis-system-prompt.md")  # Embedded system prompt for AI analysis
@@ -496,6 +461,7 @@ read("src/mcp-server/adk_test.go")   # Comprehensive ADK transport tests with JS
 read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
 read("src/mcp-server/resource_usage.go")  # Resource usage monitoring and formatting functions
 read("src/mcp-server/tools.go")  # Tool definitions with constants (ToolResolveCertChain, RoleChainResolver, etc.)
+read("src/mcp-server/prompt_handlers.go")  # Prompt handlers for certificate analysis, expiry monitoring, security audit, troubleshooting
 ```
 
 ### 3. Understanding Tool Constants and Roles (New Pattern)
@@ -692,84 +658,9 @@ gopls_go_symbol_references("file.go", "Chain.FetchCertificate")  # ✅
 
 ## Repository-Specific Patterns
 
-### Common MCP Server Patterns
+### Common Repository Patterns
 
-```go
-# Find context cancellation tests
-grep("context\\.WithCancel\\|ctx\\.Done", include="*_test.go")
-
-# Find table-driven tests
-grep("tests := \\[\\]struct", include="*_test.go")
-
-# Find platform-specific test skips
-grep("runtime\\.GOOS", include="*_test.go")
-
-# Find test cleanup patterns
-grep("t\\.TempDir\\|t\\.Cleanup", include="*_test.go")
-
-# Find JSON escaping tests
-grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
-
-# Find concurrent test patterns
-grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
-
-# Find MCP server tools
-grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert\\|analyze_certificate_with_ai\\|get_resource_usage", include="*.go")
-
-# Find MCP server configuration
-grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults\\|AI.*API", include="*.go")
-
-# Find MCP tool handlers
-grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert\\|handleAnalyzeCertificateWithAI\\|handleGetResourceUsage", include="*.go")
-
-# Find MCP resources and prompts
-grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
-
-# Find AI integration patterns
-grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens\\|handleNoAPIKey\\|convertMessages\\|selectModel\\|prepareMessages\\|buildAPIRequest\\|sendAPIRequest\\|handleAPIError\\|parseStreamingResponse\\|buildSamplingResult\\|TokenCallback", include="*.go")
-
-# Find MCP server builder pattern
-grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")
-
-# Find ADK integration patterns
-grep("ADKTransportBuilder\\|NewADKTransportBuilder\\|WithInMemoryTransport\\|BuildTransport\\|ADKTransportConfig\\|InMemoryTransport\\|NewInMemoryTransport\\|ConnectServer\\|TransportBuilder\\|NewTransportBuilder\\|BuildInMemoryTransport", include="*.go")
-
-# Find MCP server status resource
-grep("handleStatusResource\\|status://server-status", include="*.go")
-
-# Find embedded templates
-grep("MagicEmbed\\|templates/certificate.*\\.md\\|templates/X509.*\\.md", include="*.go")
-
-# Find revocation checking patterns
-grep("CheckRevocationStatus\\|ParseCRLResponse\\|RevocationStatus\\|OCSPStatus\\|CRLStatus\\|getCachedCRL\\|setCachedCRL\\|tryOCSPServer\\|tryCRLDistributionPoint", include="*.go")
-
-# Find CRL cache patterns
-grep("CRLCacheEntry\\|CRLCacheConfig\\|CRLCacheMetrics\\|GetCachedCRL\\|SetCachedCRL\\|StartCRLCacheCleanup\\|StopCRLCacheCleanup\\|updateCacheOrder\\|removeFromCacheOrder\\|pruneCRLCache\\|isFresh\\|isExpired", include="*.go")
-
-# Find LRU eviction patterns
-grep("updateCacheOrder\\|removeFromCacheOrder\\|pruneCRLCache", include="*.go")
-
-# Find HTTP client configuration
-grep("HTTPConfig\\|Client\\(\\)\\|GetUserAgent", include="*.go")
-
-# Find certificate context builders
-grep("buildCertificateContextWithRevocation\\|buildCertificateContext", include="*.go")
-
-# Find JSON-RPC normalization patterns
-grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue\\|UnmarshalFromMap", include="*.go")
-grep("getParams\\|getStringParam\\|getOptionalStringParam\\|getMapParam", include="*.go")
-
-# Find codegen logic
-grep("GenerateResources\\|GenerateTools\\|GeneratePrompts\\|toolParams", include="*.go")
-grep("ToolDefinition\\|ResourceDefinition\\|PromptDefinition", include="*.go")
-grep("validateParamConstraints\\|validateToolParams\\|validateTool\\|validateResources\\|validatePrompts\\|validateJSON", include="*.go")
-grep("ToolParam\\|ToolAnnotation\\|PromptArgument", include="*.go")
-grep("generateFile\\|writeHeader\\|writeGeneratedFile\\|toGoMap\\|formatGoValue", include="*.go")
-
-# Find JSON schema validation patterns
-grep("gojsonschema\\|Validate\\|SchemaLoader\\|NewReferenceLoaderURL\\|NewReferenceLoaderFileSystem", include="*.go")
-grep("JSONSchema\\|SchemaValidation\\|validateJSONSchema", include="*.go")
-```
+See [filesystem.instructions.md](./filesystem.instructions.md) for comprehensive search patterns. Key patterns for Go development:
 
 ## Summary
 
