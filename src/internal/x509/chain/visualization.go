@@ -118,10 +118,21 @@ func (ch *Chain) RenderASCIITree(ctx context.Context) string {
 		}
 
 		// Status indicator - check revocation status for this certificate
-		statusIcon := "✓"
+		statusIcon := "⚠" // Default to warning for unknown/error states
 		if status, exists := revocationMap[cert.SerialNumber.String()]; exists {
-			if strings.Contains(status, "Revoked") {
+			switch {
+			case strings.Contains(status, "Good"):
+				statusIcon = "✓"
+			case strings.Contains(status, "Revoked"):
 				statusIcon = "✗"
+			case strings.Contains(status, "Unknown"):
+				statusIcon = "⚠"
+			default:
+				if ch.GetCertificateRole(i) == "Root CA Certificate" {
+					statusIcon = "✓"
+				} else {
+					statusIcon = "⚠"
+				}
 			}
 		}
 
