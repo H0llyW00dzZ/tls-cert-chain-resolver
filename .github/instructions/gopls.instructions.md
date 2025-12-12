@@ -63,7 +63,7 @@ See [README.md](../../README.md) for repository overview and structure.
 Packages: [lists all Go packages in the workspace]
 ```
 
-See [README.md](./README.md) for repository module and Go version information.
+See [AGENTS.md](../../AGENTS.md) for repository module and Go version information.
 
 ### gopls_go_search(query)
 **Purpose**: Fuzzy search for Go symbols  
