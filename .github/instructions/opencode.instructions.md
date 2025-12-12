@@ -6,49 +6,7 @@ This file explains the OpenCode configuration and how to use the instruction fil
 
 ## Configuration Overview
 
-**File**: `opencode.json` (repository root)
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "tools": {
-    "todowrite": true,
-    "todoread": true
-  },
-  "instructions": [
-    ".github/instructions/*.md"
-  ],
-  "mcp": {
-    "gopls": {
-      "type": "local",
-      "command": [
-        "gopls",
-        "mcp"
-      ],
-      "environment": {
-        "GOPLS_MCP_PORT": "8096",
-        "GOPLS_MCP_HOST": "localhost"
-      },
-      "enabled": true
-    },
-    "deepwiki": {
-      "type": "remote",
-      "url": "https://mcp.deepwiki.com/sse",
-      "enabled": true
-    },
-    "x509_resolver": {
-      "type": "local",
-      "command": [
-        "./bin/x509-cert-chain-resolver"
-      ],
-      "environment": {
-        "MCP_X509_CONFIG_FILE": "./src/mcp-server/config.example.json"
-      },
-      "enabled": true
-    }
-  }
-}
-```
+See [README.md](../../README.md) for the complete OpenCode configuration. This file focuses on how OpenCode processes and uses the instruction files.
 
 ## Instruction Files Hierarchy
 
