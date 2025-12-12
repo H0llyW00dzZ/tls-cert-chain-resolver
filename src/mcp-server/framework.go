@@ -455,7 +455,7 @@ func (b *ServerBuilder) WithDefaultTools() *ServerBuilder {
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 func (b *ServerBuilder) Build() (*server.MCPServer, error) {
 	s := server.NewMCPServer(
-		"X509 Certificate Chain Resolver",
+		"X.509 Certificate Chain Resolver",
 		b.deps.Version,
 		server.WithToolCapabilities(true),
 		server.WithResourceCapabilities(true, true),
