@@ -20,11 +20,6 @@ These instruction files provide:
 - **[`.opencode/command/`](../../.opencode/command/)** - Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`, `/create-changelog`, `/vulncheck`)
 - **[`/AGENTS.md`](../../AGENTS.md)** - High-level repository guidelines
 
-## Repository Context
-
-**Module**: `github.com/H0llyW00dzZ/tls-cert-chain-resolver`
-**Go Version**: 1.25.5+
-
 ## Files in This Directory
 
 | File | Purpose |

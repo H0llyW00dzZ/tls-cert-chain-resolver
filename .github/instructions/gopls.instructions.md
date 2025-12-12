@@ -87,8 +87,6 @@ gopls_go_search("createPrompts") → Find prompt creation functions
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis tools
 gopls_go_search("DefaultSamplingHandler") → Find AI sampling implementation
-gopls_go_search("ADKTransportBuilder") → Find Google ADK transport builder
-gopls_go_search("NewADKTransportBuilder") → Find ADK transport builder constructor
 gopls_go_search("WithInMemoryTransport") → Find ADK in-memory transport configuration
 gopls_go_search("BuildTransport") → Find ADK transport building methods
 gopls_go_search("InMemoryTransport") → Find in-memory transport implementation
@@ -137,7 +135,6 @@ gopls_go_search("formatGoValue") → Find Go value formatting functions
 gopls_go_search("generateFile") → Find file generation functions
 gopls_go_search("writeHeader") → Find generated file header writing functions
 gopls_go_search("visualization") → Find certificate chain visualization functions
-gopls_go_search("RenderASCIITree") → Find ASCII tree rendering
 gopls_go_search("RenderTable") → Find table rendering
 gopls_go_search("ToVisualizationJSON") → Find JSON visualization
 gopls_go_search("CertificateTree") → Find certificate tree structures
@@ -343,10 +340,6 @@ gopls_go_search("handleCertificateAnalysisPrompt") → Find certificate analysis
 gopls_go_search("handleExpiryMonitoringPrompt") → Find expiry monitoring prompt handler
 gopls_go_search("handleSecurityAuditPrompt") → Find security audit prompt handler
 gopls_go_search("handleTroubleshootingPrompt") → Find troubleshooting prompt handler
-gopls_go_search("certificate-analysis-prompt.md") → Find certificate analysis prompt template
-gopls_go_search("expiry-monitoring-prompt.md") → Find expiry monitoring prompt template
-gopls_go_search("security-audit-prompt.md") → Find security audit prompt template
-gopls_go_search("troubleshooting-prompt.md") → Find troubleshooting prompt template
 gopls_go_search("RenderASCIITree") → Find ASCII tree rendering for certificate chains
 gopls_go_search("RenderTable") → Find table rendering for certificate chains
 gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains
