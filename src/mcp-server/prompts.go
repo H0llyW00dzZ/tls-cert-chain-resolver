@@ -27,6 +27,7 @@ import (
 //   - expiry-monitoring: Monitor certificate expiration dates and generate renewal alerts
 //   - security-audit: Perform comprehensive SSL/TLS security audit on a server
 //   - troubleshooting: Troubleshoot common certificate and TLS issues
+//   - resource-monitoring: Monitor server resource usage and performance metrics for certificate operations
 //
 // These prompts guide users through systematic approaches to certificate management
 // and provide context-specific instructions for using MCP tools effectively.
@@ -111,6 +112,25 @@ func createPrompts() []server.ServerPrompt {
 				return prompt
 			}(),
 			Handler: handleTroubleshootingPrompt,
+		},
+		{
+			Prompt: func() mcp.Prompt {
+				prompt := mcp.NewPrompt(
+					"resource-monitoring",
+					mcp.WithPromptDescription("Monitor server resource usage and performance metrics for certificate operations"),
+					mcp.WithArgument(
+						"monitoring_context",
+						mcp.ArgumentDescription("Context for monitoring: 'debugging', 'optimization', 'routine', 'troubleshooting'"),
+					),
+					mcp.WithArgument(
+						"format_preference",
+						mcp.ArgumentDescription("Preferred output format: 'json' or 'markdown' (default: json)"),
+					),
+				)
+				prompt.Meta = mcp.NewMetaFromMap(map[string]any{"category": "monitoring", "workflow": "performance"})
+				return prompt
+			}(),
+			Handler: handleResourceMonitoringPrompt,
 		},
 	}
 }

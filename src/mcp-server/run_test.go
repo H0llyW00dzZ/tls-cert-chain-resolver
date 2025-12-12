@@ -1559,8 +1559,8 @@ func TestCreatePrompts(t *testing.T) {
 	prompts := createPrompts()
 
 	// Verify we get the expected number of prompts
-	if len(prompts) != 4 {
-		t.Errorf("Expected 4 prompts, got %d", len(prompts))
+	if len(prompts) != 5 {
+		t.Errorf("Expected 5 prompts, got %d", len(prompts))
 	}
 
 	// Verify prompt names
@@ -1569,6 +1569,7 @@ func TestCreatePrompts(t *testing.T) {
 		"expiry-monitoring",
 		"security-audit",
 		"troubleshooting",
+		"resource-monitoring",
 	}
 
 	foundPrompts := make(map[string]bool)
@@ -1975,6 +1976,118 @@ func TestHandleTroubleshootingPrompt_InvalidIssueType(t *testing.T) {
 
 	if result.Description != "Certificate Troubleshooting Guide" {
 		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
+	}
+}
+
+func TestHandleResourceMonitoringPrompt_Debugging(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "resource-monitoring",
+			Arguments: map[string]string{
+				"monitoring_context": "debugging",
+				"format_preference":  "json",
+			},
+		},
+	}
+
+	result, err := handleResourceMonitoringPrompt(t.Context(), req)
+	if err != nil {
+		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if len(result.Messages) < 5 {
+		t.Errorf("Expected at least 5 messages for debugging context, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Resource Monitoring and Performance Analysis" {
+		t.Errorf("Expected description 'Resource Monitoring and Performance Analysis', got %s", result.Description)
+	}
+}
+
+func TestHandleResourceMonitoringPrompt_Optimization(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "resource-monitoring",
+			Arguments: map[string]string{
+				"monitoring_context": "optimization",
+			},
+		},
+	}
+
+	result, err := handleResourceMonitoringPrompt(t.Context(), req)
+	if err != nil {
+		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if len(result.Messages) < 5 {
+		t.Errorf("Expected at least 5 messages for optimization context, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Resource Monitoring and Performance Analysis" {
+		t.Errorf("Expected description 'Resource Monitoring and Performance Analysis', got %s", result.Description)
+	}
+}
+
+func TestHandleResourceMonitoringPrompt_Routine(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name: "resource-monitoring",
+			Arguments: map[string]string{
+				"monitoring_context": "routine",
+				"format_preference":  "markdown",
+			},
+		},
+	}
+
+	result, err := handleResourceMonitoringPrompt(t.Context(), req)
+	if err != nil {
+		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if len(result.Messages) < 5 {
+		t.Errorf("Expected at least 5 messages for routine context, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Resource Monitoring and Performance Analysis" {
+		t.Errorf("Expected description 'Resource Monitoring and Performance Analysis', got %s", result.Description)
+	}
+}
+
+func TestHandleResourceMonitoringPrompt_Defaults(t *testing.T) {
+	req := mcp.GetPromptRequest{
+		Params: mcp.GetPromptParams{
+			Name:      "resource-monitoring",
+			Arguments: map[string]string{}, // No arguments provided
+		},
+	}
+
+	result, err := handleResourceMonitoringPrompt(t.Context(), req)
+	if err != nil {
+		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if len(result.Messages) < 5 {
+		t.Errorf("Expected at least 5 messages for default context, got %d", len(result.Messages))
+	}
+
+	if result.Description != "Resource Monitoring and Performance Analysis" {
+		t.Errorf("Expected description 'Resource Monitoring and Performance Analysis', got %s", result.Description)
 	}
 }
 

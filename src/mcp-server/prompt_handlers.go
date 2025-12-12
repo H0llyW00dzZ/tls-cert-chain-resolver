@@ -301,3 +301,48 @@ func handleTroubleshootingPrompt(ctx context.Context, request mcp.GetPromptReque
 		messages,
 	), nil
 }
+
+// handleResourceMonitoringPrompt handles the resource monitoring prompt.
+//
+// This function implements the resource-monitoring prompt, which provides
+// comprehensive guidance for monitoring server resource usage and performance
+// metrics in the context of certificate operations. It helps users understand
+// when and how to monitor resources, interpret metrics, and optimize performance.
+//
+// Parameters:
+//   - ctx: Context for the request, used for cancellation and timeouts
+//   - request: The MCP get prompt request containing arguments
+//
+// Returns:
+//   - *mcp.GetPromptResult: The prompt result with resource monitoring guidance
+//   - error: Any error that occurred during prompt handling
+//
+// The prompt covers:
+//   - When to monitor resources (performance issues, memory leaks, optimization)
+//   - How to interpret memory, GC, and CRL cache metrics
+//   - Best practices for resource management in certificate operations
+//   - Format preferences for different monitoring contexts
+//
+// Expected arguments in request.Params.Arguments:
+//   - monitoring_context: Context for monitoring ('debugging', 'optimization', 'routine', 'troubleshooting') - maps to CertificatePath in template
+//   - format_preference: Preferred output format ('json' or 'markdown', default: json) - maps to Hostname in template
+func handleResourceMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+	monitoringContext := request.Params.Arguments["monitoring_context"]
+	formatPreference := request.Params.Arguments["format_preference"]
+	if formatPreference == "" {
+		formatPreference = "json"
+	}
+
+	messages, err := parsePromptTemplate("resource-monitoring-prompt", promptTemplateData{
+		CertificatePath: monitoringContext, // Reusing CertificatePath field for context
+		Hostname:        formatPreference,  // Reusing Hostname field for format
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse resource monitoring template: %w", err)
+	}
+
+	return mcp.NewGetPromptResult(
+		"Resource Monitoring and Performance Analysis",
+		messages,
+	), nil
+}
