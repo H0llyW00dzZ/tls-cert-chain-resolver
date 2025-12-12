@@ -65,7 +65,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
       - Test examples in `x509_resolver.md`, `memory.instructions.md`, etc.
       - Ensure all code examples compile and patterns find expected results
 
-8. **Verify Consistency**:
+7. **Verify Consistency**:
 
     - Confirm examples reference real repository paths (e.g., via `list()`)
     - Update and validate cross-references between instruction files
@@ -83,7 +83,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
           - `go test -race ./src/logger 2>&1 | cat`
           - `go test -race ./src/mcp-server 2>&1 | cat`
 
-7. **Update AGENTS.md**:
+8. **Update AGENTS.md**:
 
    - Incorporate new build commands if the process has evolved
    - Refine code style guidelines for newly identified patterns
