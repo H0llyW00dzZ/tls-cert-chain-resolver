@@ -28,6 +28,8 @@ type promptTemplateData struct {
 //
 // This function reads a template file from the embedded filesystem, executes
 // it with the provided data, and converts the structured content into MCP prompt messages.
+// The template-based approach enables dynamic content generation instead of hardcoded values,
+// making prompts more maintainable and flexible.
 //
 // Parameters:
 //   - templateName: Name of the template file (without .md extension)
