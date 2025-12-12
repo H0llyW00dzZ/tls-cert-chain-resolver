@@ -327,6 +327,7 @@ tls-cert-chain-resolver/
 
 - [ ] Maintain compatibility with `github.com/mark3labs/mcp-go` (ongoing)
 - [ ] Document differences and use cases for each library
+- [ ] Add metrics for template cache hits/misses and performance monitoring
 
 ##### [X.509](https://grokipedia.com/page/X.509) Operations Roadmap
 
