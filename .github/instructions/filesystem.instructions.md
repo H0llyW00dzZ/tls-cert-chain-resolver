@@ -91,7 +91,11 @@ tls-cert-chain-resolver/
 │   │   ├── templates/
 │   │   │   ├── docs.go                                   # Package documentation
 │   │   │   ├── certificate-analysis-system-prompt.md     # Embedded AI analysis system prompt used for sampling
+│   │   │   ├── certificate-analysis-prompt.md            # Certificate analysis workflow template
 │   │   │   ├── certificate-formats.md                    # Certificate format documentation
+│   │   │   ├── expiry-monitoring-prompt.md               # Certificate expiry monitoring template
+│   │   │   ├── security-audit-prompt.md                  # Security audit workflow template
+│   │   │   ├── troubleshooting-prompt.md                 # Certificate troubleshooting template
 │   │   │   ├── X509_instructions.md                      # Server instructions for MCP client initialization
 │   │   │   ├── magic_embed.go                            # Magic embedded filesystem abstraction
 │   │   │   └── magic_embed_test.go                       # Tests for magic embedded filesystem
@@ -698,7 +702,11 @@ src/mcp-server/tools_handlers.go  # MCP tool handlers and certificate processing
 src/mcp-server/transport.go  # In-memory transport implementation for ADK integration with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting, and internal response channel for sampling
 src/mcp-server/templates/docs.go                               # Package documentation
 src/mcp-server/templates/certificate-analysis-system-prompt.md  # Embedded AI system prompt
+src/mcp-server/templates/certificate-analysis-prompt.md         # Certificate analysis workflow template
 src/mcp-server/templates/certificate-formats.md
+src/mcp-server/templates/expiry-monitoring-prompt.md            # Certificate expiry monitoring template
+src/mcp-server/templates/security-audit-prompt.md               # Security audit workflow template
+src/mcp-server/templates/troubleshooting-prompt.md              # Certificate troubleshooting template
 src/mcp-server/templates/X509_instructions.md  # Server instructions for MCP client initialization
 src/mcp-server/templates/magic_embed.go        # Magic embedded filesystem abstraction
 src/mcp-server/templates/magic_embed_test.go   # Tests for magic embedded filesystem
@@ -891,7 +899,10 @@ grep("ADKTransportBuilder\\|NewADKTransportBuilder\\|WithInMemoryTransport\\|Bui
 grep("handleStatusResource\\|status://server-status", include="*.go")
 
 # Find embedded templates
-grep("MagicEmbed\\|templates/certificate.*\\.md\\|templates/X509.*\\.md", include="*.go")
+grep("MagicEmbed\\|templates/.*prompt.*\\.md\\|templates/X509.*\\.md", include="*.go")
+
+# Find prompt template files
+grep("certificate-analysis-prompt\.md\\|expiry-monitoring-prompt\.md\\|security-audit-prompt\.md\\|troubleshooting-prompt\.md", include="*.md")
 
 # Find resource usage monitoring patterns
 grep("ResourceUsageData\\|CollectResourceUsage\\|FormatResourceUsage", include="*.go")
