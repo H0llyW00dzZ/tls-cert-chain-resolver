@@ -169,6 +169,7 @@ The MCP server provides structured prompts with metadata for guided certificate 
 | `expiry-monitoring` | Monitor certificate expiration dates and generate renewal alerts | certificate_path | category: "monitoring", workflow: "renewal" |
 | `security-audit` | Perform comprehensive SSL/TLS security audit on a server | hostname | category: "security", workflow: "audit" |
 | `troubleshooting` | Troubleshoot common certificate and TLS issues | issue_type | category: "support", workflow: "diagnostic" |
+| `resource-monitoring` | Monitor server resource usage and performance metrics for certificate operations | monitoring_context (optional) | category: "monitoring", workflow: "performance" |
 
 All prompts include metadata for categorization and workflow identification.
 
