@@ -91,6 +91,29 @@
         "category": "support",
         "workflow": "diagnostic"
       }
+    },
+    {
+      "name": "resource-monitoring",
+      "description": "Monitor server resource usage and performance metrics for certificate operations",
+      "handler": "handleResourceMonitoringPrompt",
+      "arguments": [
+        {
+          "name": "monitoring_context",
+          "description": "Context for monitoring: 'debugging', 'optimization', 'routine', 'troubleshooting'",
+          "required": false
+        },
+        {
+          "name": "format_preference",
+          "description": "Preferred output format: 'json' or 'markdown' (default: json)",
+          "required": false
+        }
+      ],
+      "audience": ["user", "assistant"],
+      "priority": 0.6,
+      "meta": {
+        "category": "monitoring",
+        "workflow": "performance"
+      }
     }
   ]
 }
