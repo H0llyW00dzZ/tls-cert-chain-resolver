@@ -404,6 +404,19 @@ gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("certificate-analysis") → Find certificate analysis prompts
 gopls_go_search("security-audit") → Find security audit prompts
 gopls_go_search("parsePromptTemplate") → Find prompt template parsing function
+gopls_go_search("handleCertificateAnalysisPrompt") → Find certificate analysis prompt handler
+gopls_go_search("handleExpiryMonitoringPrompt") → Find expiry monitoring prompt handler
+gopls_go_search("handleSecurityAuditPrompt") → Find security audit prompt handler
+gopls_go_search("handleTroubleshootingPrompt") → Find troubleshooting prompt handler
+gopls_go_search("certificate-analysis-prompt.md") → Find certificate analysis prompt template
+gopls_go_search("expiry-monitoring-prompt.md") → Find expiry monitoring prompt template
+gopls_go_search("security-audit-prompt.md") → Find security audit prompt template
+gopls_go_search("troubleshooting-prompt.md") → Find troubleshooting prompt template
+gopls_go_search("RenderASCIITree") → Find ASCII tree rendering for certificate chains
+gopls_go_search("RenderTable") → Find table rendering for certificate chains
+gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains
+gopls_go_search("parseRevocationStatusForVisualization") → Find revocation status parsing for visualization
+gopls_go_search("ToolHandlerWithConfig") → Find enhanced type alias for tool handlers with config
 gopls_go_search("CRLCacheEntry") → Find CRL cache entry structures
 gopls_go_search("CRLCacheConfig") → Find CRL cache configuration
 gopls_go_search("CRLCacheMetrics") → Find CRL cache metrics tracking
@@ -432,7 +445,7 @@ gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-se
 
 # Read MCP server implementations
 read("src/mcp-server/docs.go")       # MCP server package documentation
-read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI streaming integration with buffer pooling
+read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI streaming integration with buffer pooling, enhanced ToolHandlerWithConfig type alias
 read("src/mcp-server/resources.go")  # Resource definitions including status resource
 read("src/mcp-server/prompts.go")    # Prompt definitions
 read("src/mcp-server/templates/certificate-analysis-system-prompt.md")  # Embedded system prompt for AI analysis
@@ -448,6 +461,7 @@ read("src/mcp-server/adk_test.go")   # Comprehensive ADK transport tests with JS
 read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
 read("src/mcp-server/resource_usage.go")  # Resource usage monitoring and formatting functions
 read("src/mcp-server/tools.go")  # Tool definitions with constants (ToolResolveCertChain, RoleChainResolver, etc.)
+read("src/mcp-server/prompt_handlers.go")  # Prompt handlers for certificate analysis, expiry monitoring, security audit, troubleshooting
 ```
 
 ### 3. Understanding Tool Constants and Roles (New Pattern)
