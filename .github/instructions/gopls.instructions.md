@@ -343,10 +343,6 @@ gopls_go_search("handleCertificateAnalysisPrompt") → Find certificate analysis
 gopls_go_search("handleExpiryMonitoringPrompt") → Find expiry monitoring prompt handler
 gopls_go_search("handleSecurityAuditPrompt") → Find security audit prompt handler
 gopls_go_search("handleTroubleshootingPrompt") → Find troubleshooting prompt handler
-gopls_go_search("certificate-analysis-prompt.md") → Find certificate analysis prompt template
-gopls_go_search("expiry-monitoring-prompt.md") → Find expiry monitoring prompt template
-gopls_go_search("security-audit-prompt.md") → Find security audit prompt template
-gopls_go_search("troubleshooting-prompt.md") → Find troubleshooting prompt template
 gopls_go_search("RenderASCIITree") → Find ASCII tree rendering for certificate chains
 gopls_go_search("RenderTable") → Find table rendering for certificate chains
 gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains

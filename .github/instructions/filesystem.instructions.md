@@ -6,7 +6,7 @@ Built-in filesystem tools for reading, writing, editing, listing, and searching 
 
 ## Repository Structure
 
-See [README.md](./README.md) for repository overview. Key directories for file operations:
+See [README.md](../../README.md) for repository overview. Key directories for file operations:
 
 ```
 tls-cert-chain-resolver/
@@ -27,8 +27,6 @@ tls-cert-chain-resolver/
 ├── go.mod                                    # Go module definition
 └── opencode.json                             # OpenCode configuration
 ```
-
-For complete repository structure, see [filesystem.instructions.md](./filesystem.instructions.md).
 
 ## Available Tools
 
