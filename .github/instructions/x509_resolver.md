@@ -331,7 +331,7 @@ Read resource: status://server-status
 
 ## MCP Prompts
 
-The server provides predefined prompts for common certificate analysis workflows. These prompts are generated from `tools/codegen/config/prompts.json` and can be updated via the codegen tool.
+The server provides predefined prompts for common certificate analysis workflows. These prompts are now template-based using embedded Markdown templates for better maintainability and dynamic content generation.
 
 ### certificate-analysis
 
