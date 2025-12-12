@@ -50,23 +50,38 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
    - For modified commands: Revise descriptions, examples, and usage in `opencode.instructions.md`
    - Validate frontmatter (description, agent) for accuracy and consistency across files
 
-6. **Verify Consistency**:
+6. **Verify Instruction File Patterns**:
 
-   - Confirm examples reference real repository paths (e.g., via `list()`)
-   - Update and validate cross-references between instruction files
-   - Test commands in examples for functionality (e.g., run sample CLI commands)
-   - Ensure code examples compile: `go build ./... 2>&1 | cat`
-   - Perform race detection tests: `go test -v -race ./... 2>&1 | cat`
-     - If output is truncated, use alternatives:
-       - Check exit code: `go test -race ./...; echo "Exit code: $?"`
-       - Filter results: `go test -race ./... 2>&1 | grep -E "(FAIL|panic|ok|WARNING: DATA RACE)" | tail -10`
-       - Summarize: `go test -race ./... 2>&1 | tail -20`
-       - Test specific packages:
-         - `go test -race ./src/cli 2>&1 | cat`
-         - `go test -race ./src/internal/x509/certs 2>&1 | cat`
-         - `go test -race ./src/internal/x509/chain 2>&1 | cat`
-         - `go test -race ./src/logger 2>&1 | cat`
-         - `go test -race ./src/mcp-server 2>&1 | cat`
+    - **Gopls patterns**: Test `gopls_go_search` patterns in `gopls.instructions.md` to ensure they find expected symbols
+      - Example: `gopls_go_search("Certificate")` should return certificate-related symbols
+      - Verify all search patterns in the examples section work correctly
+
+    - **Filesystem patterns**: Test `grep` patterns in `filesystem.instructions.md` to ensure they find matches
+      - Example: `grep("func \(c \*Certificate\)", include="*.go")` should find certificate methods
+      - Remove or fix patterns that don't work (e.g., embedded files, non-existent functions)
+      - Remove duplicate patterns across the file
+
+    - **Other tool patterns**: Verify patterns in other instruction files work correctly
+      - Test examples in `x509_resolver.md`, `memory.instructions.md`, etc.
+      - Ensure all code examples compile and patterns find expected results
+
+8. **Verify Consistency**:
+
+    - Confirm examples reference real repository paths (e.g., via `list()`)
+    - Update and validate cross-references between instruction files
+    - Test commands in examples for functionality (e.g., run sample CLI commands)
+    - Ensure code examples compile: `go build ./... 2>&1 | cat`
+    - Perform race detection tests: `go test -v -race ./... 2>&1 | cat`
+      - If output is truncated, use alternatives:
+        - Check exit code: `go test -race ./...; echo "Exit code: $?"`
+        - Filter results: `go test -race ./... 2>&1 | grep -E "(FAIL|panic|ok|WARNING: DATA RACE)" | tail -10`
+        - Summarize: `go test -race ./... 2>&1 | tail -20`
+        - Test specific packages:
+          - `go test -race ./src/cli 2>&1 | cat`
+          - `go test -race ./src/internal/x509/certs 2>&1 | cat`
+          - `go test -race ./src/internal/x509/chain 2>&1 | cat`
+          - `go test -race ./src/logger 2>&1 | cat`
+          - `go test -race ./src/mcp-server 2>&1 | cat`
 
 7. **Update AGENTS.md**:
 
@@ -84,6 +99,7 @@ Update agent instruction files in `.github/instructions/` to reflect recent code
 - **Emerging patterns**: Add to AGENTS.md and specific instruction files
 - **Build updates**: Modify commands in AGENTS.md
 - **Duplicate content**: Identify and remove, centralize in README.md where appropriate
+- **Pattern verification**: Test gopls_go_search and grep patterns in instruction files, remove non-working or duplicate patterns
 - **.opencode changes**: Track new/deleted/modified commands, updating `opencode.instructions.md` and `.opencode/README.md`
 
 ## Error Handling
@@ -125,5 +141,6 @@ For each updated file, report in this structured format:
 - **Duplicate Removal**: Centralized repository context in README.md, removed redundant information from specialized files
 - **Consistency**: Updated cross-references to point to centralized information
 - **Maintainability**: Each instruction file now focuses on its specialized purpose without repeating common details
+- **Pattern Verification**: Added verification of gopls_go_search and grep patterns in instruction files, removed non-working patterns and duplicates
 
 Prioritize precision, avoid overgeneralization, and ensure all updates align with actual repository state. Use tools proactively to validate before finalizing changes.
