@@ -119,7 +119,7 @@ The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes
 > [!IMPORTANT]
 > **Go-Native Implementation**: This MCP server is implemented entirely in Go and leverages Go-specific features that provide superior performance and memory efficiency but limit portability to other programming languages. Key Go-native dependencies include:
 >
-> - **`embed` package**: Templates, resources, and configuration files are embedded directly into the binary at compile time
+> - **`embed` package**: Templates and resources are embedded directly into the binary at compile time (configuration is loaded from external files)
 > - **Goroutines and channels**: Concurrent request processing with semaphore-based rate limiting (100 concurrent requests)
 > - **Buffer pooling**: Custom `gc.Pool` interface for efficient memory reuse in certificate operations and AI streaming
 > - **Context management**: Native Go context propagation for cancellation and timeouts
@@ -144,7 +144,7 @@ The MCP server provides comprehensive certificate operations powered by Go's eff
 | `analyze_certificate_with_ai` | Delegate structured certificate analysis to a configured LLM |
 | `get_resource_usage` | Monitor server resource usage (memory, GC, system info) in JSON or markdown format |
 
-**Performance Benefits**: Go's goroutines enable concurrent certificate processing, buffer pooling minimizes memory allocations, and the `embed` package eliminates filesystem dependencies for templates and resources.
+**Performance Benefits**: Go's goroutines enable concurrent certificate processing, buffer pooling minimizes memory allocations, and the `embed` package eliminates filesystem dependencies for templates and resources (while allowing runtime configuration loading).
 
 #### MCP Resources
 
