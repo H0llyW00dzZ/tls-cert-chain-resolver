@@ -24,6 +24,17 @@ type promptTemplateData struct {
 	IssueType       string
 }
 
+// detectRoleMarker checks if a line starts with a role marker and returns the role.
+func detectRoleMarker(line string) mcp.Role {
+	if strings.HasPrefix(line, "### Assistant:") || strings.HasPrefix(line, "##### Assistant:") {
+		return mcp.RoleAssistant
+	}
+	if strings.HasPrefix(line, "### User:") || strings.HasPrefix(line, "##### User:") {
+		return mcp.RoleUser
+	}
+	return ""
+}
+
 // parsePromptTemplate parses a prompt template file and converts it to MCP messages.
 //
 // This function reads a template file from the embedded filesystem, executes
@@ -59,17 +70,27 @@ func parsePromptTemplate(templateName string, data promptTemplateData) ([]mcp.Pr
 
 	content := buf.String()
 
-	// Parse the executed content into MCP messages
+	// Parse the executed content into MCP messages using efficient line-by-line processing
 	var messages []mcp.PromptMessage
-	lines := strings.Split(content, "\n")
+	contentLen := len(content)
+	pos := 0
 	var currentRole mcp.Role
 	var currentContent strings.Builder
 
-	for _, line := range lines {
+	for pos < contentLen {
+		// Find the next newline
+		lineEnd := strings.Index(content[pos:], "\n")
+		if lineEnd == -1 {
+			lineEnd = contentLen - pos
+		}
+
+		// Extract the line
+		line := content[pos : pos+lineEnd]
 		line = strings.TrimSpace(line)
+		pos += lineEnd + 1 // +1 for the newline character
 
 		// Check for role markers first (before skipping headers)
-		if strings.HasPrefix(line, "### Assistant:") || strings.HasPrefix(line, "##### Assistant:") {
+		if role := detectRoleMarker(line); role != "" {
 			// Save previous message if any
 			if currentContent.Len() > 0 {
 				messages = append(messages, mcp.NewPromptMessage(
@@ -78,25 +99,12 @@ func parsePromptTemplate(templateName string, data promptTemplateData) ([]mcp.Pr
 				))
 				currentContent.Reset()
 			}
-			currentRole = mcp.RoleAssistant
+			currentRole = role
 			continue
 		}
 
-		if strings.HasPrefix(line, "### User:") || strings.HasPrefix(line, "##### User:") {
-			// Save previous message if any
-			if currentContent.Len() > 0 {
-				messages = append(messages, mcp.NewPromptMessage(
-					currentRole,
-					mcp.NewTextContent(strings.TrimSpace(currentContent.String())),
-				))
-				currentContent.Reset()
-			}
-			currentRole = mcp.RoleUser
-			continue
-		}
-
-		// Skip empty lines and headers
-		if line == "" || strings.HasPrefix(line, "#") {
+		// Skip headers only (preserve empty lines for markdown formatting)
+		if strings.HasPrefix(line, "#") {
 			continue
 		}
 
