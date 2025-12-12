@@ -451,6 +451,7 @@ gopls_go_search("jsonRPCResponse") → Find JSON-RPC response struct
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("certificate-analysis") → Find certificate analysis prompts
 gopls_go_search("security-audit") → Find security audit prompts
+gopls_go_search("parsePromptTemplate") → Find prompt template parsing function
 gopls_go_search("CRLCacheEntry") → Find CRL cache entry structures
 gopls_go_search("CRLCacheConfig") → Find CRL cache configuration
 gopls_go_search("CRLCacheMetrics") → Find CRL cache metrics tracking

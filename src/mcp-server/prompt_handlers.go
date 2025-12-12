@@ -8,9 +8,117 @@ package mcpserver
 import (
 	"context"
 	"fmt"
+	"html/template"
+	"strings"
 
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	"github.com/mark3labs/mcp-go/mcp"
 )
+
+// promptTemplateData holds the data used to populate prompt templates.
+type promptTemplateData struct {
+	CertificatePath string
+	AlertDays       string
+	Hostname        string
+	Port            string
+	IssueType       string
+}
+
+// parsePromptTemplate parses a prompt template file and converts it to MCP messages.
+//
+// This function reads a template file from the embedded filesystem, executes
+// it with the provided data, and converts the structured content into MCP prompt messages.
+// The template-based approach enables dynamic content generation instead of hardcoded values,
+// making prompts more maintainable and flexible.
+//
+// Parameters:
+//   - templateName: Name of the template file (without .md extension)
+//   - data: Template data to populate placeholders
+//
+// Returns:
+//   - []mcp.PromptMessage: Parsed MCP messages
+//   - error: Any error during template execution or parsing
+func parsePromptTemplate(templateName string, data promptTemplateData) ([]mcp.PromptMessage, error) {
+	// Read the template file
+	templateContent, err := templates.MagicEmbed.ReadFile(templateName + ".md")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read template %s: %w", templateName, err)
+	}
+
+	// Parse the template
+	tmpl, err := template.New(templateName).Parse(string(templateContent))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse template %s: %w", templateName, err)
+	}
+
+	// Execute the template
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return nil, fmt.Errorf("failed to execute template %s: %w", templateName, err)
+	}
+
+	content := buf.String()
+
+	// Parse the executed content into MCP messages
+	var messages []mcp.PromptMessage
+	lines := strings.Split(content, "\n")
+	var currentRole mcp.Role
+	var currentContent strings.Builder
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+
+		// Check for role markers first (before skipping headers)
+		if strings.HasPrefix(line, "### Assistant:") || strings.HasPrefix(line, "##### Assistant:") {
+			// Save previous message if any
+			if currentContent.Len() > 0 {
+				messages = append(messages, mcp.NewPromptMessage(
+					currentRole,
+					mcp.NewTextContent(strings.TrimSpace(currentContent.String())),
+				))
+				currentContent.Reset()
+			}
+			currentRole = mcp.RoleAssistant
+			continue
+		}
+
+		if strings.HasPrefix(line, "### User:") || strings.HasPrefix(line, "##### User:") {
+			// Save previous message if any
+			if currentContent.Len() > 0 {
+				messages = append(messages, mcp.NewPromptMessage(
+					currentRole,
+					mcp.NewTextContent(strings.TrimSpace(currentContent.String())),
+				))
+				currentContent.Reset()
+			}
+			currentRole = mcp.RoleUser
+			continue
+		}
+
+		// Skip empty lines and headers
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Add line to current content if we have a role
+		if currentRole != "" {
+			if currentContent.Len() > 0 {
+				currentContent.WriteString("\n")
+			}
+			currentContent.WriteString(line)
+		}
+	}
+
+	// Add final message if any
+	if currentContent.Len() > 0 {
+		messages = append(messages, mcp.NewPromptMessage(
+			currentRole,
+			mcp.NewTextContent(strings.TrimSpace(currentContent.String())),
+		))
+	}
+
+	return messages, nil
+}
 
 // handleCertificateAnalysisPrompt handles the certificate analysis workflow prompt.
 //
@@ -38,41 +146,11 @@ import (
 func handleCertificateAnalysisPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	certPath := request.Params.Arguments["certificate_path"]
 
-	messages := []mcp.PromptMessage{
-		mcp.NewPromptMessage(
-			mcp.RoleAssistant,
-			mcp.NewTextContent(fmt.Sprintf(`I'll help you perform a comprehensive analysis of the certificate chain for: %s
-
-Let's start with the basic chain resolution:`, certPath)),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`1. First, let's resolve the complete certificate chain to see all certificates in the hierarchy.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`Use the "resolve_cert_chain" tool to get the full certificate chain including all intermediates and optionally the root CA.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`2. Next, validate the certificate chain to ensure it's properly formed and trusted.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`Use the "validate_cert_chain" tool to check the chain's validity and trust status.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`3. Check for upcoming certificate expirations.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`Use the "check_cert_expiry" tool to identify certificates that are expired or expiring soon.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleAssistant,
-			mcp.NewTextContent(`4. Analyze the results and provide recommendations for any issues found.`),
-		),
+	messages, err := parsePromptTemplate("certificate-analysis-prompt", promptTemplateData{
+		CertificatePath: certPath,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate analysis template: %w", err)
 	}
 
 	return mcp.NewGetPromptResult(
@@ -110,27 +188,12 @@ func handleExpiryMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequ
 		alertDays = "30"
 	}
 
-	messages := []mcp.PromptMessage{
-		mcp.NewPromptMessage(
-			mcp.RoleAssistant,
-			mcp.NewTextContent(fmt.Sprintf(`I'll help you monitor certificate expiration for: %s with %s-day alert threshold.`, certPath, alertDays)),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`Use the "check_cert_expiry" tool to analyze expiration dates and identify certificates requiring attention.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleAssistant,
-			mcp.NewTextContent(`Key things to look for:
-• Certificates that have already expired
-• Certificates expiring within the alert window
-• Certificates that are still valid
-• Recommended renewal timelines based on the results`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleAssistant,
-			mcp.NewTextContent(`Based on the results, I'll provide specific recommendations for certificate renewal and monitoring.`),
-		),
+	messages, err := parsePromptTemplate("expiry-monitoring-prompt", promptTemplateData{
+		CertificatePath: certPath,
+		AlertDays:       alertDays,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse expiry monitoring template: %w", err)
 	}
 
 	return mcp.NewGetPromptResult(
@@ -172,49 +235,12 @@ func handleSecurityAuditPrompt(ctx context.Context, request mcp.GetPromptRequest
 		port = "443"
 	}
 
-	messages := []mcp.PromptMessage{
-		mcp.NewPromptMessage(
-			mcp.RoleAssistant,
-			mcp.NewTextContent(fmt.Sprintf(`I'll perform a comprehensive SSL/TLS security audit for %s:%s.`, hostname, port)),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`1. First, fetch the server's certificate chain.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`Use the "fetch_remote_cert" tool to retrieve the certificate chain presented by the server.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`2. Validate the certificate chain.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`Use the "validate_cert_chain" tool to verify the chain's validity and trust status.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`3. Check certificate expiration dates.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleUser,
-			mcp.NewTextContent(`Use the "check_cert_expiry" tool to identify any expired or soon-to-expire certificates.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleAssistant,
-			mcp.NewTextContent(`4. Analyze the results for security issues.`),
-		),
-		mcp.NewPromptMessage(
-			mcp.RoleAssistant,
-			mcp.NewTextContent(`Security considerations to evaluate:
-• Certificate chain validity and trust
-• Certificate expiration status
-• Certificate authority reputation
-• Protocol and cipher suite support (if available)
-• Certificate transparency compliance
-• Proper hostname validation`),
-		),
+	messages, err := parsePromptTemplate("security-audit-prompt", promptTemplateData{
+		Hostname: hostname,
+		Port:     port,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse security audit template: %w", err)
 	}
 
 	return mcp.NewGetPromptResult(
@@ -253,96 +279,13 @@ func handleTroubleshootingPrompt(ctx context.Context, request mcp.GetPromptReque
 	certPath := request.Params.Arguments["certificate_path"]
 	hostname := request.Params.Arguments["hostname"]
 
-	var messages []mcp.PromptMessage
-
-	switch issueType {
-	case "chain":
-		messages = []mcp.PromptMessage{
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(fmt.Sprintf(`Troubleshooting certificate chain issues for: %s`, certPath)),
-			),
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(`Common chain issues:
-• Missing intermediate certificates
-• Incorrect certificate order
-• Self-signed certificates in production
-• Certificate authority not recognized`),
-			),
-			mcp.NewPromptMessage(
-				mcp.RoleUser,
-				mcp.NewTextContent(`Let's resolve the certificate chain to see what's available.`),
-			),
-		}
-	case "validation":
-		messages = []mcp.PromptMessage{
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(fmt.Sprintf(`Troubleshooting certificate validation issues for: %s`, certPath)),
-			),
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(`Common validation issues:
-• Certificate expired
-• Certificate not yet valid
-• Certificate revoked
-• Untrusted certificate authority
-• Hostname mismatch
-• Invalid certificate signature`),
-			),
-			mcp.NewPromptMessage(
-				mcp.RoleUser,
-				mcp.NewTextContent(`Let's validate the certificate chain to identify specific issues.`),
-			),
-		}
-	case "expiry":
-		messages = []mcp.PromptMessage{
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(fmt.Sprintf(`Troubleshooting certificate expiry issues for: %s`, certPath)),
-			),
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(`Common expiry issues:
-• Certificate already expired
-• Certificate expiring soon
-• Renewal process not completed
-• Certificate not updated after renewal`),
-			),
-			mcp.NewPromptMessage(
-				mcp.RoleUser,
-				mcp.NewTextContent(`Let's check the expiration dates to identify certificates needing attention.`),
-			),
-		}
-	case "connection":
-		messages = []mcp.PromptMessage{
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(fmt.Sprintf(`Troubleshooting TLS connection issues for: %s`, hostname)),
-			),
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(`Common connection issues:
-• SSL/TLS handshake failure
-• Certificate chain incomplete
-• Server not presenting certificate
-• Network connectivity issues
-• Firewall blocking connections
-• Incorrect port number`),
-			),
-			mcp.NewPromptMessage(
-				mcp.RoleUser,
-				mcp.NewTextContent(`Let's try to fetch the certificate chain from the remote server.`),
-			),
-		}
-	default:
-		messages = []mcp.PromptMessage{
-			mcp.NewPromptMessage(
-				mcp.RoleAssistant,
-				mcp.NewTextContent(`Please specify a valid issue type: 'chain', 'validation', 'expiry', or 'connection'.`),
-			),
-		}
+	messages, err := parsePromptTemplate("troubleshooting-prompt", promptTemplateData{
+		IssueType:       issueType,
+		CertificatePath: certPath,
+		Hostname:        hostname,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse troubleshooting template: %w", err)
 	}
 
 	return mcp.NewGetPromptResult(
