@@ -6,14 +6,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 
 ## Repository Context
 
-See [README.md](./README.md) for repository overview. Key packages relevant to Go language intelligence:
-
-- **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
-- **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
-- **`src/internal/x509/chain/`** — Certificate chain resolution logic
-- **`src/internal/helper/gc/`** — Memory management utilities
-- **`src/internal/helper/jsonrpc/`** — JSON-RPC canonicalization helper
-- **`tools/codegen/`** — Code generation for MCP server resources, tools, and prompts
+See [README.md](../../README.md) for repository overview and structure.
 
 ## Core Workflows
 
@@ -67,10 +60,10 @@ See [README.md](./README.md) for repository overview. Key packages relevant to G
 
 **Example Output**:
 ```
-Module: github.com/H0llyW00dzZ/tls-cert-chain-resolver
-Go Version: 1.25.5
 Packages: [lists all Go packages in the workspace]
 ```
+
+See [README.md](./README.md) for repository module and Go version information.
 
 ### gopls_go_search(query)
 **Purpose**: Fuzzy search for Go symbols  
@@ -137,46 +130,11 @@ gopls_go_search("FormatResourceUsageAsMarkdown") → Find Markdown formatting fo
 gopls_go_search("ResourceUsageData") → Find resource usage data structures
 gopls_go_search("MagicEmbed") → Find embedded filesystem abstraction
 gopls_go_search("loadInstructions") → Find MCP server instruction loader with dynamic template rendering
-gopls_go_search("instructionData") → Find MCP instruction template data structure
-gopls_go_search("toolInfo") → Find tool info structure for template rendering
-gopls_go_search("WithInstructions") → Find ServerBuilder instruction configuration method
-gopls_go_search("jsonrpc.Marshal") → Find JSON-RPC marshaling functions
-gopls_go_search("jsonrpc.Map") → Find JSON-RPC field normalization functions
-gopls_go_search("toGoMap") → Find Go map literal generation functions
-gopls_go_search("formatGoValue") → Find Go value formatting functions
-gopls_go_search("validateResources") → Find resource validation functions
-gopls_go_search("TestValidateResources") → Find resource validation tests
-gopls_go_search("validatePrompts") → Find prompt validation functions
-gopls_go_search("TestValidatePrompts") → Find prompt validation tests
-gopls_go_search("TestToGoMap") → Find Go map generation tests
-gopls_go_search("validatePromptArguments") → Find prompt argument validation functions
-gopls_go_search("PromptArgument") → Find prompt argument structures
-gopls_go_search("jsonrpc.UnmarshalFromMap") → Find JSON-RPC unmarshaling helper
-gopls_go_search("normalizeIDValue") → Find ID value normalization functions
-gopls_go_search("getParams") → Find JSON-RPC parameter extraction helper (`src/mcp-server/helper.go`)
-gopls_go_search("getStringParam") → Find required string parameter extraction
-gopls_go_search("getOptionalStringParam") → Find optional string parameter extraction
-gopls_go_search("getMapParam") → Find map parameter extraction
-gopls_go_search("UnmarshalFromMap") → Find JSON-RPC map-to-struct unmarshaling helper
-gopls_go_search("pipeReader") → Find pipe reader implementation for StdioServer interception
-gopls_go_search("pipeWriter") → Find pipe writer implementation for StdioServer interception
-gopls_go_search("internalRespCh") → Find internal response channel for sampling responses
-gopls_go_search("sendInternalResponse") → Find internal response sender for sampling
-gopls_go_search("sendInternalErrorResponse") → Find internal error response sender for sampling
-gopls_go_search("processMessages") → Find transport message processing with concurrent goroutines
-gopls_go_search("SendJSONRPCNotification") → Find JSON-RPC notification sender for streaming
-gopls_go_search("ThinkingConfig") → Find AI thinking mode configuration (adk-go example)
-gopls_go_search("ThinkingBudget") → Find thinking mode budget settings
-gopls_go_search("ToolResolveCertChain") → Find tool name constants for MCP tool definitions
-gopls_go_search("ToolValidateCertChain") → Find validation tool constant
-gopls_go_search("ToolAnalyzeCertificateWithAI") → Find AI analysis tool constant
-gopls_go_search("RoleChainResolver") → Find tool role constants for template generation
-gopls_go_search("RoleAIAnalyzer") → Find AI analyzer role constant
-gopls_go_search("RoleResourceMonitor") → Find resource monitor role constant
-gopls_go_search("instructionData") → Find MCP instruction template data structure
-gopls_go_search("toolInfo") → Find tool info structure for template rendering
-gopls_go_search("loadInstructions") → Find MCP server instruction loader with dynamic template rendering
-gopls_go_search("WithInstructions") → Find ServerBuilder instruction configuration method
+gopls_go_search("parseRevocationStatusForVisualization") → Find revocation status parsing for visualization
+gopls_go_search("handleCertificateAnalysisPrompt") → Find certificate analysis prompt handler
+gopls_go_search("handleExpiryMonitoringPrompt") → Find expiry monitoring prompt handler
+gopls_go_search("handleSecurityAuditPrompt") → Find security audit prompt handler
+gopls_go_search("handleTroubleshootingPrompt") → Find troubleshooting prompt handler
 gopls_go_search("GenerateResources") → Find resource generation functions
 gopls_go_search("GenerateTools") → Find tool generation functions
 gopls_go_search("GeneratePrompts") → Find prompt generation functions
@@ -208,7 +166,6 @@ gopls_go_search("appendCertExtensions") → Find certificate extensions appender
 gopls_go_search("appendCAInfo") → Find certificate authority info appenders
 gopls_go_search("appendChainValidationContext") → Find chain validation context appenders
 gopls_go_search("appendSecurityContext") → Find security context appenders
-gopls_go_search("MagicEmbed") → Find embedded filesystem abstraction
 ```
 
 ### gopls_go_file_context(file)

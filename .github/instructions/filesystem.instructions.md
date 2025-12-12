@@ -648,9 +648,6 @@ grep("Benchmark.*Chain\\|Benchmark.*Revocation\\|Benchmark.*Certificate", includ
 # Find CRL cache benchmarks
 grep("BenchmarkCRLCacheOperations", include="*_test.go")
 
-# Find CRL cache patterns
-grep("CRLCacheEntry\\|CRLCacheConfig\\|CRLCacheMetrics", include="*.go")
-
 # Find MCP server tools
 grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert\\|analyze_certificate_with_ai\\|get_resource_usage", include="*.go")
 
@@ -678,8 +675,8 @@ grep("handleStatusResource\\|status://server-status", include="*.go")
 # Find embedded templates
 grep("MagicEmbed\\|templates/.*prompt.*\\.md\\|templates/X509.*\\.md", include="*.go")
 
-# Find prompt template files
-grep("certificate-analysis-prompt\.md\\|expiry-monitoring-prompt\.md\\|security-audit-prompt\.md\\|troubleshooting-prompt\.md", include="*.md")
+# Find embedded template files (note: these are embedded, not in src/)
+# grep("certificate-analysis-prompt\.md", path="src/mcp-server/templates", include="*.md")
 
 # Find resource usage monitoring patterns
 grep("ResourceUsageData\\|CollectResourceUsage\\|FormatResourceUsage", include="*.go")
@@ -699,15 +696,15 @@ grep("RenderASCIITree\\|RenderTable\\|ToVisualizationJSON\\|CertificateTree\\|Ce
 # Find visualization data structures
 grep("VisualizationData\\|CertificateVizData\\|RelationshipData", include="*.go")
 
-# Find certificate role determination
-grep("getCertificateRole", include="*.go")
+# Find certificate role references (no specific function exists)
+grep("certificate.*role", include="*.go")
 
 
 # Find graceful shutdown tests
 grep("run_graceful_test\\.go\\|syscall\\.Kill", include="*_test.go")
 
 # Find platform-specific test skips
-grep("runtime\\.GOOS == \\"windows\\"\\|t\\.Skip\\(\\"Skipping on macOS\\", include="*_test.go")
+grep("runtime\.GOOS.*darwin\|t\.Skip.*macOS", include="*_test.go")
 ```
 
 ### Common Edit Patterns
