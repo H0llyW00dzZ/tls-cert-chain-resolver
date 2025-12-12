@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
@@ -20,6 +21,10 @@ import (
 // Using map[string]any for maximum flexibility, type safety, and cleaner field naming.
 // This allows different prompts to use different field names without struct field reuse.
 type promptTemplateData map[string]any
+
+// templateCache provides thread-safe caching of parsed templates to improve performance.
+// Templates are parsed once and reused across multiple calls.
+var templateCache sync.Map // map[string]*template.Template
 
 // detectRoleMarker checks if a line starts with a role marker and returns the role.
 func detectRoleMarker(line string) mcp.Role {
@@ -39,6 +44,9 @@ func detectRoleMarker(line string) mcp.Role {
 // The template-based approach enables dynamic content generation instead of hardcoded values,
 // making prompts more maintainable and flexible.
 //
+// Templates are cached for performance and thread safety. Each execution uses a cloned
+// template to avoid sharing state between concurrent calls.
+//
 // Parameters:
 //   - templateName: Name of the template file (without .md extension)
 //   - data: Template data to populate placeholders (map[string]any)
@@ -47,16 +55,39 @@ func detectRoleMarker(line string) mcp.Role {
 //   - []mcp.PromptMessage: Parsed MCP messages
 //   - error: Any error during template execution or parsing
 func parsePromptTemplate(templateName string, data promptTemplateData) ([]mcp.PromptMessage, error) {
-	// Read the template file
-	templateContent, err := templates.MagicEmbed.ReadFile(templateName + ".md")
-	if err != nil {
-		return nil, fmt.Errorf("failed to read template %s: %w", templateName, err)
-	}
+	// Try to get cached template first
+	cachedTmpl, found := templateCache.Load(templateName)
+	var tmpl *template.Template
 
-	// Parse the template
-	tmpl, err := template.New(templateName).Parse(string(templateContent))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse template %s: %w", templateName, err)
+	if found {
+		// Clone the cached template for thread safety
+		tmpl = cachedTmpl.(*template.Template)
+		cloned, err := tmpl.Clone()
+		if err != nil {
+			return nil, fmt.Errorf("failed to clone cached template %s: %w", templateName, err)
+		}
+		tmpl = cloned
+	} else {
+		// Read and parse template, then cache it
+		templateContent, err := templates.MagicEmbed.ReadFile(templateName + ".md")
+		if err != nil {
+			return nil, fmt.Errorf("failed to read template %s: %w", templateName, err)
+		}
+
+		tmpl, err = template.New(templateName).Parse(string(templateContent))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse template %s: %w", templateName, err)
+		}
+
+		// Cache the parsed template for future use
+		templateCache.Store(templateName, tmpl)
+
+		// Clone for this execution to avoid sharing state
+		cloned, err := tmpl.Clone()
+		if err != nil {
+			return nil, fmt.Errorf("failed to clone template %s: %w", templateName, err)
+		}
+		tmpl = cloned
 	}
 
 	// Execute the template
