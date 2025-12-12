@@ -6,7 +6,7 @@ This file explains the OpenCode configuration and how to use the instruction fil
 
 ## Configuration Overview
 
-See [README.md](../../README.md) for the complete OpenCode configuration. This file focuses on how OpenCode processes and uses the instruction files.
+See [README.md](./README.md) for the complete OpenCode configuration. This file focuses on how OpenCode processes and uses the instruction files.
 
 ## Instruction Files Hierarchy
 

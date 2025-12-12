@@ -6,7 +6,7 @@ The Gopls MCP server provides Go language intelligence and workspace operations 
 
 ## Repository Context
 
-See [README.md](../../README.md) for repository overview. Key packages relevant to Go language intelligence:
+See [README.md](./README.md) for repository overview. Key packages relevant to Go language intelligence:
 
 - **`src/mcp-server/`** — MCP server implementation with X509 certificate tools and AI integration
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations

@@ -35,7 +35,7 @@ The [X509](https://grokipedia.com/page/X.509) Certificate Chain Resolver MCP ser
 
 ## Repository Context
 
-See [README.md](../../README.md) for repository overview. This MCP server focuses on X509 certificate operations using packages:
+See [README.md](./README.md) for repository overview. This MCP server focuses on X509 certificate operations using packages:
 
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic with OCSP/CRL revocation checking

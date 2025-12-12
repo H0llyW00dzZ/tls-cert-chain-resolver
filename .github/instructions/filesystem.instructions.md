@@ -6,7 +6,7 @@ Built-in filesystem tools for reading, writing, editing, listing, and searching 
 
 ## Repository Structure
 
-See [README.md](../../README.md) for repository overview. Key directories for file operations:
+See [README.md](./README.md) for repository overview. Key directories for file operations:
 
 ```
 tls-cert-chain-resolver/

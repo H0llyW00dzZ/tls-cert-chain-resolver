@@ -17,7 +17,7 @@ These instruction files provide:
 ## Related Directories
 
 - **`.github/instructions/`** (this directory) - Tool-specific instructions for AI agents
-- **[`.opencode/command/`](../../.opencode/command/)** - Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`, `/create-changelog`)
+- **[`.opencode/command/`](../../.opencode/command/)** - Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`, `/create-changelog`, `/vulncheck`)
 - **[`/AGENTS.md`](../../AGENTS.md)** - High-level repository guidelines
 
 ## Repository Context
