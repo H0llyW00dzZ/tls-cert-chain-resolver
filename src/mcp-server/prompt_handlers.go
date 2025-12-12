@@ -8,6 +8,7 @@ package mcpserver
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -16,13 +17,9 @@ import (
 )
 
 // promptTemplateData holds the data used to populate prompt templates.
-type promptTemplateData struct {
-	CertificatePath string
-	AlertDays       string
-	Hostname        string
-	Port            string
-	IssueType       string
-}
+// Using map[string]any for maximum flexibility, type safety, and cleaner field naming.
+// This allows different prompts to use different field names without struct field reuse.
+type promptTemplateData map[string]any
 
 // detectRoleMarker checks if a line starts with a role marker and returns the role.
 func detectRoleMarker(line string) mcp.Role {
@@ -44,7 +41,7 @@ func detectRoleMarker(line string) mcp.Role {
 //
 // Parameters:
 //   - templateName: Name of the template file (without .md extension)
-//   - data: Template data to populate placeholders
+//   - data: Template data to populate placeholders (map[string]any)
 //
 // Returns:
 //   - []mcp.PromptMessage: Parsed MCP messages
@@ -155,7 +152,7 @@ func handleCertificateAnalysisPrompt(ctx context.Context, request mcp.GetPromptR
 	certPath := request.Params.Arguments["certificate_path"]
 
 	messages, err := parsePromptTemplate("certificate-analysis-prompt", promptTemplateData{
-		CertificatePath: certPath,
+		"CertificatePath": certPath,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse certificate analysis template: %w", err)
@@ -191,14 +188,19 @@ func handleCertificateAnalysisPrompt(ctx context.Context, request mcp.GetPromptR
 //   - alert_days: Number of days before expiry to alert (default: 30)
 func handleExpiryMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	certPath := request.Params.Arguments["certificate_path"]
-	alertDays := request.Params.Arguments["alert_days"]
-	if alertDays == "" {
-		alertDays = "30"
+	alertDaysStr := request.Params.Arguments["alert_days"]
+
+	// Convert to int for type flexibility (template will convert back to string)
+	alertDays := 30 // default
+	if alertDaysStr != "" {
+		if parsed, err := strconv.Atoi(alertDaysStr); err == nil {
+			alertDays = parsed
+		}
 	}
 
 	messages, err := parsePromptTemplate("expiry-monitoring-prompt", promptTemplateData{
-		CertificatePath: certPath,
-		AlertDays:       alertDays,
+		"CertificatePath": certPath,
+		"AlertDays":       alertDays, // Now passing int instead of string
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse expiry monitoring template: %w", err)
@@ -238,14 +240,19 @@ func handleExpiryMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequ
 //   - port: Port number (default: 443)
 func handleSecurityAuditPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	hostname := request.Params.Arguments["hostname"]
-	port := request.Params.Arguments["port"]
-	if port == "" {
-		port = "443"
+	portStr := request.Params.Arguments["port"]
+
+	// Convert to int for type flexibility (template will convert back to string)
+	port := 443 // default
+	if portStr != "" {
+		if parsed, err := strconv.Atoi(portStr); err == nil {
+			port = parsed
+		}
 	}
 
 	messages, err := parsePromptTemplate("security-audit-prompt", promptTemplateData{
-		Hostname: hostname,
-		Port:     port,
+		"Hostname": hostname,
+		"Port":     port, // Now passing int instead of string
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse security audit template: %w", err)
@@ -288,9 +295,9 @@ func handleTroubleshootingPrompt(ctx context.Context, request mcp.GetPromptReque
 	hostname := request.Params.Arguments["hostname"]
 
 	messages, err := parsePromptTemplate("troubleshooting-prompt", promptTemplateData{
-		IssueType:       issueType,
-		CertificatePath: certPath,
-		Hostname:        hostname,
+		"IssueType":       issueType,
+		"CertificatePath": certPath,
+		"Hostname":        hostname,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse troubleshooting template: %w", err)
@@ -334,8 +341,8 @@ func handleResourceMonitoringPrompt(ctx context.Context, request mcp.GetPromptRe
 	}
 
 	messages, err := parsePromptTemplate("resource-monitoring-prompt", promptTemplateData{
-		CertificatePath: monitoringContext, // Reusing CertificatePath field for context
-		Hostname:        formatPreference,  // Reusing Hostname field for format
+		"MonitoringContext": monitoringContext, // Clear field name
+		"FormatPreference":  formatPreference,  // Clear field name
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse resource monitoring template: %w", err)

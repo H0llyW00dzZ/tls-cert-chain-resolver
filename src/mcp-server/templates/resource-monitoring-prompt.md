@@ -3,7 +3,7 @@
 This template defines the workflow messages for resource monitoring and performance analysis.
 
 ## Messages
-{{if eq .CertificatePath "debugging"}}
+{{if eq .MonitoringContext "debugging"}}
 ##### Assistant: Introduction
 Debugging resource usage issues for certificate operations.
 
@@ -16,7 +16,7 @@ Common debugging scenarios:
 
 ##### User: Detailed Analysis
 Let's get detailed resource usage information to identify performance bottlenecks.
-{{else if eq .CertificatePath "optimization"}}
+{{else if eq .MonitoringContext "optimization"}}
 ##### Assistant: Introduction
 Optimizing resource usage for certificate operations.
 
@@ -29,7 +29,7 @@ Common optimization opportunities:
 
 ##### User: Performance Analysis
 Let's analyze current resource usage to identify optimization opportunities.
-{{else if eq .CertificatePath "troubleshooting"}}
+{{else if eq .MonitoringContext "troubleshooting"}}
 ##### Assistant: Introduction
 Troubleshooting resource-related issues in certificate operations.
 
@@ -60,7 +60,7 @@ Let's check current resource usage and performance metrics.
 ##### Assistant: Tool Usage Guide
 Use the get_resource_usage tool with these parameters:
 
-{{if eq .Hostname "markdown"}}
+{{if eq .FormatPreference "markdown"}}
 • For human-readable reports: get_resource_usage(detailed=false, format="markdown")
 • For detailed analysis: get_resource_usage(detailed=true, format="markdown")
 {{else}}
