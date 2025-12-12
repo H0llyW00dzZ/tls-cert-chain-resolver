@@ -107,23 +107,12 @@ gopls_go_search("getCachedCRL") → Find CRL caching functions
 gopls_go_search("tryOCSPServer") → Find OCSP server retry functions
 gopls_go_search("tryCRLDistributionPoint") → Find CRL distribution point functions
 gopls_go_search("buildCertificateContextWithRevocation") → Find AI certificate context builder with revocation
-gopls_go_search("visualization") → Find certificate chain visualization functions
-gopls_go_search("formatKeyUsage") → Find ordered key usage formatting function
-gopls_go_search("appendSubjectInfo") → Find certificate subject info appenders
-gopls_go_search("appendIssuerInfo") → Find certificate issuer info appenders
-gopls_go_search("appendValidityInfo") → Find certificate validity info appenders
-gopls_go_search("appendCryptoInfo") → Find certificate crypto info appenders
-gopls_go_search("appendCertProperties") → Find certificate properties appenders
-gopls_go_search("appendCertExtensions") → Find certificate extensions appenders
-gopls_go_search("appendCAInfo") → Find certificate authority info appenders
-gopls_go_search("appendChainValidationContext") → Find chain validation context appenders
-gopls_go_search("appendSecurityContext") → Find security context appenders
+gopls_go_search("Chain.GetCertificateRole") → Find certificate role determination method
 gopls_go_search("CRLCacheEntry") → Find CRL cache entry structures
 gopls_go_search("CRLCacheConfig") → Find CRL cache configuration
 gopls_go_search("CRLCacheMetrics") → Find CRL cache metrics tracking
 gopls_go_search("isFresh") → Find CRL freshness checking methods
 gopls_go_search("isExpired") → Find CRL expiration checking methods
-gopls_go_search("handleGetResourceUsage") → Find resource usage monitoring tool handler
 gopls_go_search("CollectResourceUsage") → Find resource usage data collection functions
 gopls_go_search("FormatResourceUsageAsJSON") → Find JSON formatting for resource usage
 gopls_go_search("FormatResourceUsageAsMarkdown") → Find Markdown formatting for resource usage
@@ -155,17 +144,6 @@ gopls_go_search("CertificateTree") → Find certificate tree structures
 gopls_go_search("CertificateTable") → Find certificate table structures
 gopls_go_search("VisualizationData") → Find visualization data structures
 gopls_go_search("RelationshipData") → Find relationship data structures
-gopls_go_search("getCertificateRole") → Find certificate role determination
-gopls_go_search("formatKeyUsage") → Find ordered key usage formatting function
-gopls_go_search("appendSubjectInfo") → Find certificate subject info appenders
-gopls_go_search("appendIssuerInfo") → Find certificate issuer info appenders
-gopls_go_search("appendValidityInfo") → Find certificate validity info appenders
-gopls_go_search("appendCryptoInfo") → Find certificate crypto info appenders
-gopls_go_search("appendCertProperties") → Find certificate properties appenders
-gopls_go_search("appendCertExtensions") → Find certificate extensions appenders
-gopls_go_search("appendCAInfo") → Find certificate authority info appenders
-gopls_go_search("appendChainValidationContext") → Find chain validation context appenders
-gopls_go_search("appendSecurityContext") → Find security context appenders
 ```
 
 ### gopls_go_file_context(file)
@@ -372,15 +350,9 @@ gopls_go_search("troubleshooting-prompt.md") → Find troubleshooting prompt tem
 gopls_go_search("RenderASCIITree") → Find ASCII tree rendering for certificate chains
 gopls_go_search("RenderTable") → Find table rendering for certificate chains
 gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains
-gopls_go_search("parseRevocationStatusForVisualization") → Find revocation status parsing for visualization
 gopls_go_search("ToolHandlerWithConfig") → Find enhanced type alias for tool handlers with config
-gopls_go_search("CRLCacheEntry") → Find CRL cache entry structures
-gopls_go_search("CRLCacheConfig") → Find CRL cache configuration
-gopls_go_search("CRLCacheMetrics") → Find CRL cache metrics tracking
 gopls_go_search("CRLCache") → Find CRL cache encapsulated struct
 gopls_go_search("newCRLCache") → Find CRL cache constructor
-gopls_go_search("isFresh") → Find CRL freshness checking methods
-gopls_go_search("isExpired") → Find CRL expiration checking methods
 gopls_go_search("get") → Find internal CRL cache retrieval methods
 gopls_go_search("set") → Find internal CRL cache storage methods
 gopls_go_search("prune") → Find internal LRU eviction methods
