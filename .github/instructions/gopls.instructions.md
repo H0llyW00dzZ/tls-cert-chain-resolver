@@ -122,6 +122,8 @@ gopls_go_search("handleCertificateAnalysisPrompt") → Find certificate analysis
 gopls_go_search("handleExpiryMonitoringPrompt") → Find expiry monitoring prompt handler
 gopls_go_search("handleSecurityAuditPrompt") → Find security audit prompt handler
 gopls_go_search("handleTroubleshootingPrompt") → Find troubleshooting prompt handler
+gopls_go_search("parsePromptTemplate") → Find prompt template parsing function
+gopls_go_search("detectRoleMarker") → Find role marker detection for prompt parsing
 gopls_go_search("GenerateResources") → Find resource generation functions
 gopls_go_search("GenerateTools") → Find tool generation functions
 gopls_go_search("GeneratePrompts") → Find prompt generation functions
@@ -137,7 +139,6 @@ gopls_go_search("writeHeader") → Find generated file header writing functions
 gopls_go_search("RenderASCIITree") → Find ASCII tree rendering for certificate chains
 gopls_go_search("RenderTable") → Find table rendering for certificate chains
 gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains
-gopls_go_search("parseRevocationStatusForVisualization") → Find revocation status parsing for visualization
 ```
 
 ### gopls_go_file_context(file)
@@ -294,98 +295,12 @@ gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/intern
 read("src/internal/x509/certs/certs.go")
 ```
 
-### 2. Understanding MCP Server Operations
+### 2. Understanding Tool Constants and Roles (New Pattern)
 
 ```
 # Start with workspace
 gopls_go_workspace()
 
-# Find MCP server tool implementations
-gopls_go_search("resolve_cert_chain")
-gopls_go_search("validate_cert_chain")
-gopls_go_search("check_cert_expiry")
-gopls_go_search("batch_resolve_cert_chain")
-gopls_go_search("fetch_remote_cert")
-gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis entry points
-gopls_go_search("addResources") → Find MCP server resource implementations
-gopls_go_search("addPrompts") → Find MCP server prompt implementations
-gopls_go_search("ServerBuilder") → Find builder pattern implementation
-gopls_go_search("WithSampling") → Locate sampling registration on the server builder
-gopls_go_search("DefaultSamplingHandler") → Inspect bidirectional AI streaming handler (`src/mcp-server/framework.go`)
-gopls_go_search("TokenCallback") → Find streaming token callback configuration
-gopls_go_search("parseStreamingResponse") → Find SSE streaming response parser
-gopls_go_search("SamplingRequest") → Explore sampling request markers
-gopls_go_search("ADKTransportBuilder") → Find Google ADK transport builder implementation
-gopls_go_search("NewADKTransportBuilder") → Find ADK transport builder constructor
-gopls_go_search("WithInMemoryTransport") → Find ADK in-memory transport configuration
-gopls_go_search("BuildTransport") → Find ADK transport building methods
-gopls_go_search("InMemoryTransport") → Find in-memory transport implementation
-gopls_go_search("NewInMemoryTransport") → Find in-memory transport constructor with context parameter
-gopls_go_search("ConnectServer") → Find server connection methods
-gopls_go_search("TransportBuilder") → Find transport builder pattern
-gopls_go_search("NewTransportBuilder") → Find transport builder constructor
-gopls_go_search("BuildInMemoryTransport") → Find in-memory transport building
-gopls_go_search("ADKTransportConnection") → Find ADK transport bridge implementation
-gopls_go_search("SendJSONRPCNotification") → Find JSON-RPC notification sender
-gopls_go_search("jsonRPCError") → Find JSON-RPC error struct
-gopls_go_search("jsonRPCResponse") → Find JSON-RPC response struct
-gopls_go_search("handleStatusResource") → Find status resource handler
-gopls_go_search("certificate-analysis") → Find certificate analysis prompts
-gopls_go_search("security-audit") → Find security audit prompts
-gopls_go_search("parsePromptTemplate") → Find prompt template parsing function
-gopls_go_search("handleCertificateAnalysisPrompt") → Find certificate analysis prompt handler
-gopls_go_search("handleExpiryMonitoringPrompt") → Find expiry monitoring prompt handler
-gopls_go_search("handleSecurityAuditPrompt") → Find security audit prompt handler
-gopls_go_search("handleTroubleshootingPrompt") → Find troubleshooting prompt handler
-gopls_go_search("RenderASCIITree") → Find ASCII tree rendering for certificate chains
-gopls_go_search("RenderTable") → Find table rendering for certificate chains
-gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains
-gopls_go_search("ToolHandlerWithConfig") → Find enhanced type alias for tool handlers with config
-gopls_go_search("CRLCache") → Find CRL cache encapsulated struct
-gopls_go_search("newCRLCache") → Find CRL cache constructor
-gopls_go_search("get") → Find internal CRL cache retrieval methods
-gopls_go_search("set") → Find internal CRL cache storage methods
-gopls_go_search("prune") → Find internal LRU eviction methods
-gopls_go_search("GetCachedCRL") → Find public CRL cache retrieval functions
-gopls_go_search("SetCachedCRL") → Find public CRL cache storage functions
-gopls_go_search("StartCRLCacheCleanup") → Find CRL cache cleanup lifecycle management
-gopls_go_search("StopCRLCacheCleanup") → Find CRL cache cleanup termination
-gopls_go_search("updateCacheOrder") → Find LRU access order management
-gopls_go_search("removeFromCacheOrder") → Find LRU order removal functions
-gopls_go_search("pruneCRLCache") → Find LRU eviction implementation
-gopls_go_search("cleanupExpiredCRLs") → Find expired CRL cleanup implementation
-gopls_go_search("GetCRLCacheStats") → Find CRL cache statistics formatting
-gopls_go_search("ClearCRLCache") → Find CRL cache clearing functions
-gopls_go_search("crlCacheCounters") → Find atomic counters for cache metrics
-gopls_go_search("LRUNode") → Find LRU linked list node structure
-
-# Understand MCP server package API
-gopls_go_package_api(["github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"])
-
-# Read MCP server implementations
-read("src/mcp-server/docs.go")       # MCP server package documentation
-read("src/mcp-server/framework.go")  # ServerBuilder pattern, AI streaming integration with buffer pooling, enhanced ToolHandlerWithConfig type alias
-read("src/mcp-server/resources.go")  # Resource definitions including status resource
-read("src/mcp-server/prompts.go")    # Prompt definitions
-read("src/mcp-server/templates/certificate-analysis-system-prompt.md")  # Embedded system prompt for AI analysis
-read("src/mcp-server/handlers.go")   # MCP server instruction loading and template data structures
-read("src/mcp-server/resource_handlers.go")  # Resource handlers with embedded templates
-read("src/mcp-server/tools_handlers.go")  # Tool handlers, AI analysis with analysis types
-read("src/mcp-server/config.go")     # AI and MCP configuration
-read("src/mcp-server/adk.go")        # Google ADK integration support
-read("src/mcp-server/transport.go")  # In-memory transport for ADK compatibility with JSON-RPC normalization, concurrent message processing, semaphore-based rate limiting
-read("src/mcp-server/helper.go")     # JSON-RPC parameter extraction helper (getParams, getStringParam, getOptionalStringParam, getMapParam)
-read("src/mcp-server/pipe.go")       # Pipe transport implementation with buffer pooling
-read("src/mcp-server/adk_test.go")   # Comprehensive ADK transport tests with JSON-RPC cycle testing
-read("src/mcp-server/run_graceful_test.go")  # Graceful shutdown tests
-read("src/mcp-server/resource_usage.go")  # Resource usage monitoring and formatting functions
-read("src/mcp-server/tools.go")  # Tool definitions with constants (ToolResolveCertChain, RoleChainResolver, etc.)
-read("src/mcp-server/prompt_handlers.go")  # Prompt handlers for certificate analysis, expiry monitoring, security audit, troubleshooting
-```
-
-### 3. Understanding Tool Constants and Roles (New Pattern)
-
-```
 # Find tool name constants (type-safe tool definitions)
 gopls_go_search("ToolResolveCertChain")  # Tool name constant
 gopls_go_search("ToolValidateCertChain")
