@@ -134,13 +134,10 @@ gopls_go_search("toGoMap") → Find Go map literal generation functions
 gopls_go_search("formatGoValue") → Find Go value formatting functions
 gopls_go_search("generateFile") → Find file generation functions
 gopls_go_search("writeHeader") → Find generated file header writing functions
-gopls_go_search("visualization") → Find certificate chain visualization functions
-gopls_go_search("RenderTable") → Find table rendering
-gopls_go_search("ToVisualizationJSON") → Find JSON visualization
-gopls_go_search("CertificateTree") → Find certificate tree structures
-gopls_go_search("CertificateTable") → Find certificate table structures
-gopls_go_search("VisualizationData") → Find visualization data structures
-gopls_go_search("RelationshipData") → Find relationship data structures
+gopls_go_search("RenderASCIITree") → Find ASCII tree rendering for certificate chains
+gopls_go_search("RenderTable") → Find table rendering for certificate chains
+gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains
+gopls_go_search("parseRevocationStatusForVisualization") → Find revocation status parsing for visualization
 ```
 
 ### gopls_go_file_context(file)

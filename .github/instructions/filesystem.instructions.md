@@ -676,9 +676,6 @@ grep("MagicEmbed\\|templates/.*prompt.*\\.md\\|templates/X509.*\\.md", include="
 # Find embedded template files (note: these are embedded, not in src/)
 # grep("certificate-analysis-prompt\.md", path="src/mcp-server/templates", include="*.md")
 
-# Find resource usage monitoring patterns
-grep("ResourceUsageData\\|CollectResourceUsage\\|FormatResourceUsage", include="*.go")
-
 # Find tool name constants
 grep("ToolResolveCertChain\\|ToolValidateCertChain\\|ToolBatchResolveCertChain\\|ToolCheckCertExpiry\\|ToolFetchRemoteCert\\|ToolAnalyzeCertificateWithAI\\|ToolGetResourceUsage", include="*.go")
 
@@ -689,13 +686,10 @@ grep("RoleChainResolver\\|RoleChainValidator\\|RoleBatchResolver\\|RoleExpiryChe
 grep("loadInstructions\\|instructionData\\|toolInfo\\|WithInstructions", include="*.go")
 
 # Find certificate visualization patterns
-grep("RenderASCIITree\\|RenderTable\\|ToVisualizationJSON\\|CertificateTree\\|CertificateTable", include="*.go")
+grep("RenderASCIITree\\|RenderTable\\|ToVisualizationJSON", include="*.go")
 
-# Find visualization data structures
-grep("VisualizationData\\|CertificateVizData\\|RelationshipData", include="*.go")
-
-# Find certificate role references (no specific function exists)
-grep("certificate.*role", include="*.go")
+# Find revocation status parsing for visualization
+grep("parseRevocationStatusForVisualization", include="*.go")
 
 
 # Find graceful shutdown tests
