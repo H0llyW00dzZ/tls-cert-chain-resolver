@@ -122,7 +122,7 @@ x509_resolver_batch_resolve_cert_chain("cert1.pem,cert2.pem,cert3.pem")
 **Parameters**:
 
 - `hostname`: Remote hostname to connect to
-- `port`: Port number (default: 443, validated for correctness)
+- `port`: Port number (default: 443, must be between 1 and 65535)
 - `format`: Output format (`pem`, `der`, `json`), defaults to configured format
 - `include_system_root`: Include platform roots (defaults to config setting)
 - `intermediate_only`: Return only intermediates (defaults to config setting)
