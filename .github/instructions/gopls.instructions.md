@@ -141,6 +141,7 @@ gopls_go_search("RenderASCIITree") → Find ASCII tree rendering for certificate
 gopls_go_search("RenderTable") → Find table rendering for certificate chains
 gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains
 gopls_go_search("templateCache") → Find template caching implementation
+gopls_go_search("handleResourceMonitoringPrompt") → Find resource monitoring prompt handler
 ```
 
 ### gopls_go_file_context(file)
