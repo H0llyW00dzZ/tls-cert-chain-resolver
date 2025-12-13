@@ -93,58 +93,6 @@ func main() {
 - Use context for passing request-scoped values (use parameters)
 ```
 
-### 4. Thread-Safe Logger Pattern
-
-**Pattern**: Logger with mutex protection and buffer pooling (see `src/logger/logger.go`)
-
-```go
-// Thread-safe logger implementation with buffer pooling
-type MCPLogger struct {
-    mu      sync.Mutex                // Protects concurrent writes
-    writer  io.Writer
-    silent  bool
-    bufPool gc.Pool                   // Buffer pool for efficient memory usage
-}
-
-// Thread-safe Printf - safe to call from multiple goroutines
-func (m *MCPLogger) Printf(format string, v ...any) {
-    if m.silent {
-        return
-    }
-    
-    // Get buffer from pool
-    buf := m.bufPool.Get()
-    defer func() {
-        buf.Reset()                   // Reset buffer before returning to pool
-        m.bufPool.Put(buf)
-    }()
-    
-    // Build JSON directly in buffer (no intermediate allocations)
-    msg := fmt.Sprintf(format, v...)
-    buf.WriteString(`{"level":"info","message":"`)
-    writeJSONString(buf, msg)         // Custom JSON escaping
-    buf.WriteString(`"}`)
-    buf.WriteByte('\n')
-    
-    // Lock only for write operation
-    m.mu.Lock()
-    m.writer.Write(buf.Bytes())
-    m.mu.Unlock()
-}
-
-// All logger methods use same mutex protection + buffer pooling pattern
-// This ensures safe concurrent logging with minimal allocations
-```
-
-**Key Points**:
-- Use `sync.Mutex` to protect shared mutable state (writer)
-- Use `gc.Pool` interface for efficient memory usage under high concurrency
-- **IMPORTANT**: Always `Reset()` buffer before returning to pool to prevent memory leaks
-- Minimize critical section - only lock for actual write
-- Prepare data outside lock to reduce contention
-- Build JSON directly in buffer to avoid intermediate string allocations
-- Document thread-safety in type/function comments
-
 ## Memory Management
 
 ### 1. Buffer Pooling for Certificate Pipelines
@@ -274,7 +222,45 @@ defer func() {
 }()
 ```
 
-### 2. Avoid Memory Leaks
+### 2. Template Caching for Performance
+
+**Pattern**: Use thread-safe template caching to improve parsing performance (see `src/mcp-server/prompt_handlers.go`)
+
+**Implementation**:
+```go
+// Thread-safe template caching with sync.Map for concurrent access
+var templateCache sync.Map // map[string]*template.Template
+
+func parsePromptTemplate(templateName string, data map[string]any) (string, error) {
+    // Check cache first
+    if cachedTmpl, found := templateCache.Load(templateName); found {
+        tmpl := cachedTmpl.(*template.Template)
+        // Use cached template
+        return executeTemplate(tmpl, data)
+    }
+
+    // Parse and cache template
+    tmpl, err := template.ParseFS(embedFS, templateName)
+    if err != nil {
+        return "", err
+    }
+
+    // Store in cache for future use
+    templateCache.Store(templateName, tmpl)
+
+    return executeTemplate(tmpl, data)
+}
+```
+
+**Benefits**:
+- Eliminates repeated template parsing overhead
+- Thread-safe with `sync.Map` for concurrent access
+- Significant performance improvement for frequently used templates
+- Memory efficient - templates are parsed once and reused
+
+**When to use**: For templates that are parsed multiple times with the same structure
+
+### 3. Avoid Memory Leaks
 
 ```go
 // ❌ BAD - potential memory leak:
@@ -313,7 +299,7 @@ func fetchAllCerts(ctx context.Context, maxCerts int) ([]*x509.Certificate, erro
 }
 ```
 
-### 3. Efficient Certificate Handling
+### 4. Efficient Certificate Handling
 
 ```go
 // ✅ Good - process certificates without loading all into memory at once
@@ -345,7 +331,168 @@ func processCertificateStream(reader io.Reader, processor func(*x509.Certificate
 }
 ```
 
-### 4. Efficient String Building with fmt.Fprintf
+### 5. Resource Monitoring and Usage Tracking
+
+**Pattern**: Use `CollectResourceUsage` for comprehensive memory and performance monitoring (see `src/mcp-server/resource_usage.go`)
+
+**Implementation**:
+```go
+// ✅ Good - comprehensive resource monitoring
+import "runtime"
+
+// ResourceUsageData contains comprehensive statistics about the MCP server's
+// memory usage, GC statistics, system information, and CRL cache metrics.
+type ResourceUsageData struct {
+    Timestamp   string                 `json:"timestamp"`
+    MemoryUsage map[string]any         `json:"memory_usage"`
+    GCStats     map[string]any         `json:"gc_stats"`
+    SystemInfo  map[string]any         `json:"system_info"`
+    CRLCache    map[string]any         `json:"crl_cache,omitempty"` // Only when detailed=true
+}
+
+// CollectResourceUsage gathers current resource usage statistics
+func CollectResourceUsage(detailed bool) *ResourceUsageData {
+    var memStats runtime.MemStats
+    runtime.ReadMemStats(&memStats)
+
+    // Memory usage in MB for readability
+    memoryUsage := map[string]any{
+        "heap_alloc_mb":    float64(memStats.HeapAlloc) / (1024 * 1024),
+        "heap_sys_mb":      float64(memStats.HeapSys) / (1024 * 1024),
+        "heap_idle_mb":     float64(memStats.HeapIdle) / (1024 * 1024),
+        "heap_inuse_mb":    float64(memStats.HeapInuse) / (1024 * 1024),
+        "heap_released_mb": float64(memStats.HeapReleased) / (1024 * 1024),
+        "heap_objects":     memStats.HeapObjects,
+        "stack_inuse_mb":   float64(memStats.StackInuse) / (1024 * 1024),
+        "stack_sys_mb":     float64(memStats.StackSys) / (1024 * 1024),
+        "gc_cpu_fraction":  memStats.GCCPUFraction,
+    }
+
+    // GC statistics
+    gcStats := map[string]any{
+        "num_gc":          memStats.NumGC,
+        "num_forced_gc":   memStats.NumForcedGC,
+        "gc_cpu_fraction": memStats.GCCPUFraction,
+        "enable_gc":       memStats.EnableGC,
+        "debug_gc":        memStats.DebugGC,
+    }
+
+    data := &ResourceUsageData{
+        Timestamp:   time.Now().UTC().Format(time.RFC3339),
+        MemoryUsage: memoryUsage,
+        GCStats:     gcStats,
+        SystemInfo:  collectSystemInfo(),
+    }
+
+    if detailed {
+        // Include CRL cache metrics when detailed monitoring requested
+        data.CRLCache = collectCRLCacheMetrics()
+    }
+
+    return data
+}
+
+// FormatResourceUsageAsJSON formats resource usage data as JSON
+func FormatResourceUsageAsJSON(data *ResourceUsageData) (string, error) {
+    jsonData, err := json.MarshalIndent(data, "", "  ")
+    if err != nil {
+        return "", fmt.Errorf("failed to marshal resource usage data: %w", err)
+    }
+    return string(jsonData), nil
+}
+
+// FormatResourceUsageAsMarkdown formats resource usage data as a readable markdown table
+func FormatResourceUsageAsMarkdown(data *ResourceUsageData) string {
+    var buf strings.Builder
+
+    // Header with emoji and structured formatting
+    fmt.Fprintf(&buf, "# 📊 Resource Usage Report\n\n")
+    fmt.Fprintf(&buf, "**Timestamp:** %s\n\n", data.Timestamp)
+
+    // Memory usage table
+    fmt.Fprintf(&buf, "## 🧠 Memory Usage (MB)\n\n")
+    fmt.Fprintf(&buf, "| Metric | Value |\n")
+    fmt.Fprintf(&buf, "|--------|-------|\n")
+
+    if heapAlloc, ok := data.MemoryUsage["heap_alloc_mb"].(float64); ok {
+        fmt.Fprintf(&buf, "| Heap Allocated | %.2f |\n", heapAlloc)
+    }
+    if heapSys, ok := data.MemoryUsage["heap_sys_mb"].(float64); ok {
+        fmt.Fprintf(&buf, "| Heap System | %.2f |\n", heapSys)
+    }
+    if heapInuse, ok := data.MemoryUsage["heap_inuse_mb"].(float64); ok {
+        fmt.Fprintf(&buf, "| Heap In Use | %.2f |\n", heapInuse)
+    }
+
+    // GC statistics table
+    fmt.Fprintf(&buf, "\n## 🗑️ Garbage Collection Stats\n\n")
+    fmt.Fprintf(&buf, "| Metric | Value |\n")
+    fmt.Fprintf(&buf, "|--------|-------|\n")
+
+    if numGC, ok := data.GCStats["num_gc"].(uint32); ok {
+        fmt.Fprintf(&buf, "| GC Cycles | %d |\n", numGC)
+    }
+    if gcCPU, ok := data.GCStats["gc_cpu_fraction"].(float64); ok {
+        fmt.Fprintf(&buf, "| GC CPU %% | %.4f |\n", gcCPU*100)
+    }
+
+    // CRL cache metrics (when available)
+    if data.CRLCache != nil {
+        fmt.Fprintf(&buf, "\n## 🔒 CRL Cache Metrics\n\n")
+        fmt.Fprintf(&buf, "| Metric | Value |\n")
+        fmt.Fprintf(&buf, "|--------|-------|\n")
+
+        if hitRate, ok := data.CRLCache["hit_rate_percent"].(float64); ok {
+            fmt.Fprintf(&buf, "| Hit Rate | %.1f%% |\n", hitRate)
+        }
+        if size, ok := data.CRLCache["current_size"].(int); ok {
+            fmt.Fprintf(&buf, "| Cache Size | %d |\n", size)
+        }
+        if evictions, ok := data.CRLCache["total_evictions"].(int64); ok {
+            fmt.Fprintf(&buf, "| Total Evictions | %d |\n", evictions)
+        }
+    }
+
+    return buf.String()
+}
+```
+
+**Usage in MCP Server**:
+```go
+// In tools_handlers.go - handleGetResourceUsage tool
+func handleGetResourceUsage(params map[string]any) (any, error) {
+    detailed := getOptionalBoolParam(params, "detailed", false)
+    format := getOptionalStringParam(params, "format", "json")
+
+    data := CollectResourceUsage(detailed)
+
+    switch format {
+    case "json":
+        jsonStr, err := FormatResourceUsageAsJSON(data)
+        if err != nil {
+            return nil, fmt.Errorf("failed to format as JSON: %w", err)
+        }
+        return jsonStr, nil
+    case "markdown":
+        return FormatResourceUsageAsMarkdown(data), nil
+    default:
+        return nil, fmt.Errorf("unsupported format: %s", format)
+    }
+}
+```
+
+**Benefits**:
+- Comprehensive memory monitoring with runtime.ReadMemStats()
+- GC statistics tracking for performance analysis
+- CRL cache metrics integration for certificate operations
+- Multiple output formats (JSON, Markdown with emoji headers)
+- Thread-safe data collection
+- Memory values in MB for readability
+- Timestamp formatting for monitoring trends
+
+**When to use**: For debugging memory issues, performance monitoring, and tracking CRL cache efficiency
+
+### 6. Efficient String Building with fmt.Fprintf
 
 **Pattern**: Use `fmt.Fprintf` with `strings.Builder` or buffer pools for efficient string construction (see `src/mcp-server/handlers.go`)
 
@@ -355,26 +502,26 @@ func processCertificateStream(reader io.Reader, processor func(*x509.Certificate
 // ✅ Good - efficient string building for certificate context (see src/mcp-server/handlers.go)
 func buildCertificateContext(certs []*x509.Certificate, analysisType string) string {
     var context strings.Builder
-    
+
     // Direct writing to builder - no intermediate allocations
     fmt.Fprintf(&context, "Chain Length: %d certificates\n", len(certs))
     fmt.Fprintf(&context, "Analysis Type: %s\n", analysisType)
     fmt.Fprintf(&context, "Current Time: %s UTC\n\n", time.Now().UTC().Format("2006-01-02 15:04:05"))
-    
+
     for i, cert := range certs {
         fmt.Fprintf(&context, "=== CERTIFICATE %d ===\n", i+1)
         fmt.Fprintf(&context, "Role: %s\n", getCertificateRole(i, len(certs)))
-        
+
         // Certificate details with direct formatting
         fmt.Fprintf(&context, "  Common Name: %s\n", cert.Subject.CommonName)
         fmt.Fprintf(&context, "  Organization: %s\n", strings.Join(cert.Subject.Organization, ", "))
         // ... more fields
-        
+
         fmt.Fprintf(&context, "  Not Before: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST"))
         fmt.Fprintf(&context, "  Not After: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST"))
         // ... more fields
     }
-    
+
     return context.String()
 }
 

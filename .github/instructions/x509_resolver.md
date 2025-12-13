@@ -122,7 +122,7 @@ x509_resolver_batch_resolve_cert_chain("cert1.pem,cert2.pem,cert3.pem")
 **Parameters**:
 
 - `hostname`: Remote hostname to connect to
-- `port`: Port number (default: 443)
+- `port`: Port number (default: 443, validated for correctness)
 - `format`: Output format (`pem`, `der`, `json`), defaults to configured format
 - `include_system_root`: Include platform roots (defaults to config setting)
 - `intermediate_only`: Return only intermediates (defaults to config setting)
@@ -274,13 +274,13 @@ Read resource: info://version
 
 # Returns the following server information:
 {
-  "name": "X509 Certificate Chain Resolver",
+  "name": "X.509 Certificate Chain Resolver",
   "version": "0.5.1",
   "type": "MCP Server",
   "capabilities": {
     "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai", "get_resource_usage"],
     "resources": ["config://template", "info://version", "docs://certificate-formats", "status://server-status"],
-    "prompts": ["certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting"]
+    "prompts": ["certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting", "resource-monitoring"]
   },
   "supportedFormats": ["pem", "der", "json"]
 }
@@ -318,12 +318,12 @@ Read resource: status://server-status
 {
   "status": "healthy",
   "timestamp": "2025-11-02T12:00:00Z",
-  "server": "X509 Certificate Chain Resolver MCP Server",
+  "server": "X.509 Certificate Chain Resolver MCP Server",
   "version": "0.5.1",
   "capabilities": {
     "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai", "get_resource_usage"],
     "resources": ["config://template", "info://version", "docs://certificate-formats", "status://server-status"],
-    "prompts": ["certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting"]
+    "prompts": ["certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting", "resource-monitoring"]
   },
   "supportedFormats": ["pem", "der", "json"]
 }
