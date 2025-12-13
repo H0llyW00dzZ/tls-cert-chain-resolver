@@ -188,6 +188,7 @@ Multiple agents may modify code simultaneously. Preserve others' changes and rep
 - When streaming AI responses, reuse pooled buffers (`gc.Default`) and reset before return to avoid leaks
 - Run `go test -race -cover ./...` to detect race conditions before merging
 - CRL cache operations are thread-safe with `sync.RWMutex` protection, atomic operations for metrics, and O(1) LRU implementation using hashmap and doubly-linked list
+- Use `sync.RWMutex` with `RLock()` for read operations and `Lock()` for writes (see `src/internal/x509/chain/chain.go` VerifyChain method)
 - For concurrent message processing, use semaphores (buffered channels) to limit concurrent goroutines and `sync.WaitGroup` for graceful shutdown (see `src/mcp-server/transport.go` InMemoryTransport with semaphore limiting to 100 concurrent requests)
 
 ## MCP Server Instructions
