@@ -284,7 +284,12 @@ func (ch *Chain) FilterIntermediates() []*x509.Certificate {
 //
 // Returns:
 //   - error: Error if verification fails
+//
+// Thread Safety: Safe for concurrent use.
 func (ch *Chain) VerifyChain() error {
+	ch.mu.RLock()
+	defer ch.mu.RUnlock()
+
 	for i, cert := range ch.Certs {
 		if i == len(ch.Certs)-1 {
 			ch.Roots.AddCert(cert)
