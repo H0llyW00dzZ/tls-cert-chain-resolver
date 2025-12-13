@@ -378,7 +378,7 @@ The server provides predefined prompts for common certificate analysis workflows
 
 ### troubleshooting
 
-**Purpose**: Troubleshoot common certificate and TLS issues  
+**Purpose**: Troubleshoot common certificate and TLS issues
 **Arguments**:
 
 - `issue_type`: Type of issue ('chain', 'validation', 'expiry', 'connection')
@@ -392,6 +392,21 @@ Provides targeted troubleshooting guidance based on issue type:
 - **validation**: Expired certificates, untrusted CAs, hostname mismatches
 - **expiry**: Certificates nearing expiration, renewal issues
 - **connection**: Handshake failures, incomplete chains, network issues
+
+### resource-monitoring
+
+**Purpose**: Monitor server resource usage and performance metrics for certificate operations
+**Arguments**:
+
+- `monitoring_context`: Optional context for monitoring (e.g., 'debugging', 'optimization', 'routine')
+
+**Workflow**:
+Provides comprehensive resource monitoring guidance:
+
+- **Memory Analysis**: Heap usage, GC statistics, memory leaks
+- **Performance Metrics**: CPU usage, goroutine counts, system load
+- **CRL Cache Monitoring**: Hit rates, cache size, eviction statistics
+- **Optimization Recommendations**: Memory tuning, cache configuration, performance improvements
 
 ## Usage Guidelines
 
