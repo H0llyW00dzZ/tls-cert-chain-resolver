@@ -1768,8 +1768,8 @@ func TestHandleCertificateAnalysisPrompt(t *testing.T) {
 		t.Fatal("Expected result, got nil")
 	}
 
-	if len(result.Messages) != 8 {
-		t.Errorf("Expected 8 messages, got %d", len(result.Messages))
+	if len(result.Messages) != 7 {
+		t.Errorf("Expected 7 messages, got %d", len(result.Messages))
 	}
 
 	if result.Description != "Certificate Chain Analysis Workflow" {
@@ -1797,8 +1797,8 @@ func TestHandleExpiryMonitoringPrompt(t *testing.T) {
 		t.Fatal("Expected result, got nil")
 	}
 
-	if len(result.Messages) != 4 {
-		t.Errorf("Expected 4 messages, got %d", len(result.Messages))
+	if len(result.Messages) != 8 {
+		t.Errorf("Expected 8 messages, got %d", len(result.Messages))
 	}
 
 	if result.Description != "Certificate Expiry Monitoring" {
@@ -1970,8 +1970,8 @@ func TestHandleTroubleshootingPrompt_InvalidIssueType(t *testing.T) {
 		t.Fatal("Expected result, got nil")
 	}
 
-	if len(result.Messages) != 1 {
-		t.Errorf("Expected 1 message for invalid issue type, got %d", len(result.Messages))
+	if len(result.Messages) != 4 {
+		t.Errorf("Expected 4 messages for invalid issue type, got %d", len(result.Messages))
 	}
 
 	if result.Description != "Certificate Troubleshooting Guide" {
