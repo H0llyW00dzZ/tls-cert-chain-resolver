@@ -362,8 +362,8 @@ func handleTroubleshootingPrompt(ctx context.Context, request mcp.GetPromptReque
 //   - Format preferences for different monitoring contexts
 //
 // Expected arguments in request.Params.Arguments:
-//   - monitoring_context: Context for monitoring ('debugging', 'optimization', 'routine', 'troubleshooting') - maps to CertificatePath in template
-//   - format_preference: Preferred output format ('json' or 'markdown', default: json) - maps to Hostname in template
+//   - monitoring_context: Context for monitoring ('debugging', 'optimization', 'routine', 'troubleshooting') - maps to MonitoringContext in template
+//   - format_preference: Preferred output format ('json' or 'markdown', default: json) - maps to FormatPreference in template
 func handleResourceMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	monitoringContext := request.Params.Arguments["monitoring_context"]
 	formatPreference := request.Params.Arguments["format_preference"]
