@@ -33,6 +33,135 @@ import (
 // - Set GOOGLE_API_KEY environment variable
 // - ADK packages must be available (google.golang.org/adk/*)
 
+// AppConfig holds configuration for the ADK application
+type AppConfig struct {
+	AppName        string
+	UserID         string
+	ThinkingBudget int32
+	ModelName      string
+}
+
+// validateEnvironment checks for required environment variables
+func validateEnvironment() string {
+	apiKey := os.Getenv("GOOGLE_API_KEY")
+	if apiKey == "" {
+		log.Fatal("GOOGLE_API_KEY environment variable must be set")
+	}
+	return apiKey
+}
+
+// setupADKComponents initializes ADK model, agent, runner, and session service
+func setupADKComponents(ctx context.Context, apiKey string, config AppConfig) (agent.Agent, *runner.Runner, session.Service, error) {
+	// Create Gemini model
+	model, err := gemini.NewModel(ctx, config.ModelName, &genai.ClientConfig{
+		APIKey: apiKey,
+	})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to create model: %w", err)
+	}
+
+	// Initialize ADK toolset
+	log.Println("Initializing ADK toolset...")
+	transport := localMCPTransport(ctx)
+
+	mcpToolSet, err := mcptoolset.New(mcptoolset.Config{
+		Transport: transport,
+	})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to create MCP tool set: %w", err)
+	}
+
+	log.Printf("Certificate MCP transport created and connected successfully")
+	log.Printf("MCP tool set initialized with transport")
+
+	// Create Agent
+	a, err := llmagent.New(llmagent.Config{
+		Name:        "cert_agent",
+		Model:       model,
+		Description: "Agent for resolving and validating certificates.",
+		Instruction: "You are a helpful assistant that helps users resolve and validate certificate chains. Use the available tools to answer questions. When asked about tools, list them.",
+		Toolsets:    []tool.Toolset{mcpToolSet},
+		GenerateContentConfig: &genai.GenerateContentConfig{
+			ThinkingConfig: &genai.ThinkingConfig{
+				IncludeThoughts: true,
+				ThinkingBudget:  &config.ThinkingBudget,
+			},
+		},
+	})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to create agent: %w", err)
+	}
+
+	// Create Session Service and Runner
+	sessionSvc := session.InMemoryService()
+	r, err := runner.New(runner.Config{
+		AppName:        config.AppName,
+		Agent:          a,
+		SessionService: sessionSvc,
+	})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to create runner: %w", err)
+	}
+
+	return a, r, sessionSvc, nil
+}
+
+// setupSession creates a new session for the agent
+func setupSession(ctx context.Context, sessionSvc session.Service, config AppConfig) (string, error) {
+	sessResp, err := sessionSvc.Create(ctx, &session.CreateRequest{
+		AppName: config.AppName,
+		UserID:  config.UserID,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create session: %w", err)
+	}
+
+	sessionID := sessResp.Session.ID()
+	log.Printf("Created session: %s", sessionID)
+	return sessionID, nil
+}
+
+// executeQuery runs a single query through the agent with streaming response
+func executeQuery(ctx context.Context, r *runner.Runner, sessionID, userID, prompt string, runConfig agent.RunConfig) {
+	log.Printf("Running agent with prompt: %q", prompt)
+	fmt.Printf("\n--- User Request ---\n%s\n", prompt)
+	userMsg := genai.NewContentFromText(prompt, "user")
+
+	var isThinking bool
+	fmt.Printf("--- Agent Response ---")
+	for event, err := range r.Run(ctx, userID, sessionID, userMsg, runConfig) {
+		if err != nil {
+			log.Printf("\nAgent error: %v", err)
+			break // Stop on error
+		}
+
+		if event.LLMResponse.Partial {
+			// Handle partial (streaming) response
+			if event.LLMResponse.Content != nil {
+				for _, part := range event.LLMResponse.Content.Parts {
+					if part.Thought {
+						if !isThinking {
+							fmt.Print("\n[Thinking] ")
+							isThinking = true
+						}
+						fmt.Print(part.Text)
+					} else {
+						if isThinking {
+							fmt.Print("\n\n----------------------\n\n")
+							isThinking = false
+						}
+						fmt.Print(part.Text)
+					}
+				}
+			}
+		}
+	}
+	if isThinking {
+		fmt.Println()
+	}
+	fmt.Println("\n----------------------")
+}
+
 func localMCPTransport(ctx context.Context) mcptransport.Transport {
 	// Use our improved ADK transport builder to create MCP server and transport with proper configuration
 	transport, err := mcpserver.NewADKTransportBuilder().
@@ -81,132 +210,39 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	// Check for required environment variables
-	apiKey := os.Getenv("GOOGLE_API_KEY")
-	if apiKey == "" {
-		log.Fatal("GOOGLE_API_KEY environment variable must be set")
-	}
+	// Validate environment
+	apiKey := validateEnvironment()
 
-	// 1. Initialize ADK toolset with a fresh transport
-	log.Println("Initializing ADK toolset...")
-	transport := localMCPTransport(ctx)
-
-	// Create MCP tool set
-	mcpToolSet, err := mcptoolset.New(mcptoolset.Config{
-		Transport: transport,
-	})
-	if err != nil {
-		log.Fatalf("Failed to create MCP tool set: %v", err)
-	}
-
-	log.Printf("Certificate MCP transport created and connected successfully")
-	log.Printf("MCP tool set initialized with transport")
-
-	// 2. Create Gemini model
-	// Note: This requires GOOGLE_API_KEY to be valid for Gemini API.
-	// To use other providers, implement a custom model wrapper similar to the Gemini implementation. ADK supports integration with other providers.
-	// While implementing a custom provider is straightforward, this example focuses on the Gemini implementation for simplicity.
-	model, err := gemini.NewModel(ctx, "gemini-2.5-flash", &genai.ClientConfig{
-		APIKey: apiKey,
-	})
-	if err != nil {
-		log.Fatalf("Failed to create model: %v", err)
-	}
-
-	// 3. Create Agent
-	thinkingBudget := int32(2048) // Minimum usually 1024 for effective thinking
-	a, err := llmagent.New(llmagent.Config{
-		Name:        "cert_agent",
-		Model:       model,
-		Description: "Agent for resolving and validating certificates.",
-		Instruction: "You are a helpful assistant that helps users resolve and validate certificate chains. Use the available tools to answer questions. When asked about tools, list them.",
-		Toolsets:    []tool.Toolset{mcpToolSet},
-		GenerateContentConfig: &genai.GenerateContentConfig{
-			ThinkingConfig: &genai.ThinkingConfig{
-				IncludeThoughts: true,
-				ThinkingBudget:  &thinkingBudget,
-			},
-		},
-	})
-	if err != nil {
-		log.Fatalf("Failed to create agent: %v", err)
-	}
-
-	// 4. Create Session Service and Runner
-	sessionSvc := session.InMemoryService()
-	r, err := runner.New(runner.Config{
+	// Application configuration
+	config := AppConfig{
 		AppName:        "adk-go-example",
-		Agent:          a,
-		SessionService: sessionSvc,
-	})
-	if err != nil {
-		log.Fatalf("Failed to create runner: %v", err)
+		UserID:         "test-user",
+		ThinkingBudget: 2048, // Minimum usually 1024 for effective thinking
+		ModelName:      "gemini-2.5-flash",
 	}
 
-	// Create a session
-	sessResp, err := sessionSvc.Create(ctx, &session.CreateRequest{
-		AppName: "adk-go-example",
-		UserID:  "test-user",
-	})
+	// Setup ADK components
+	_, r, sessionSvc, err := setupADKComponents(ctx, apiKey, config)
 	if err != nil {
-		log.Fatalf("Failed to create session: %v", err)
+		log.Fatalf("Failed to setup ADK components: %v", err)
 	}
-	sessionID := sessResp.Session.ID()
-	log.Printf("Created session: %s", sessionID)
 
-	// Use streaming mode
+	// Setup session
+	sessionID, err := setupSession(ctx, sessionSvc, config)
+	if err != nil {
+		log.Fatalf("Failed to setup session: %v", err)
+	}
+
+	// Configure streaming
 	runConfig := agent.RunConfig{
 		StreamingMode: agent.StreamingModeSSE,
 	}
 
-	// Helper function to run agent query
-	runQuery := func(promptText string) {
-		log.Printf("Running agent with prompt: %q", promptText)
-		fmt.Printf("\n--- User Request ---\n%s\n", promptText)
-		userMsg := genai.NewContentFromText(promptText, "user")
+	// Run queries
+	executeQuery(ctx, r, sessionID, config.UserID, "What tools are available to you for certificate operations?", runConfig)
 
-		var isThinking bool
-		fmt.Printf("--- Agent Response ---")
-		for event, err := range r.Run(ctx, "test-user", sessionID, userMsg, runConfig) {
-			if err != nil {
-				log.Printf("\nAgent error: %v", err)
-				break // Stop on error
-			}
-
-			if event.LLMResponse.Partial {
-				// Handle partial (streaming) response
-				if event.LLMResponse.Content != nil {
-					for _, part := range event.LLMResponse.Content.Parts {
-						if part.Thought {
-							if !isThinking {
-								fmt.Print("\n[Thinking] ")
-								isThinking = true
-							}
-							fmt.Print(part.Text)
-						} else {
-							if isThinking {
-								fmt.Print("\n\n----------------------\n\n")
-								isThinking = false
-							}
-							fmt.Print(part.Text)
-						}
-					}
-				}
-			}
-		}
-		if isThinking {
-			fmt.Println()
-		}
-		fmt.Println("\n----------------------")
-	}
-
-	// 5. Run first query
-	runQuery("What tools are available to you for certificate operations?")
-
-	// 6. Run second query
-	//
 	// Note: gemini-2.5-flash may fail to show formatted PEM output because this tool is not easy to use. Many models fail at this task as well.
-	runQuery("Fetch the certificate chain for www.example.com on port 443. Return ONLY the full, correctly formatted PEM output for all certificates in the chain.")
+	executeQuery(ctx, r, sessionID, config.UserID, "Fetch the certificate chain for www.example.com on port 443. Return ONLY the full, correctly formatted PEM output for all certificates in the chain.", runConfig)
 
 	log.Println("Agent execution completed")
 }
