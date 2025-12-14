@@ -694,6 +694,12 @@ grep("parseRevocationStatusForVisualization", include="*.go")
 # Find prompt template parsing patterns
 grep("parsePromptTemplate\\|detectRoleMarker\\|promptTemplateData", include="*.go")
 
+# Find MCP prompt handlers
+grep("handleCertificateAnalysisPrompt\\|handleExpiryMonitoringPrompt\\|handleSecurityAuditPrompt\\|handleTroubleshootingPrompt\\|handleResourceMonitoringPrompt", include="*.go")
+
+# Find template caching patterns
+grep("templateCache\\|sync\\.Map", include="*.go")
+
 
 # Find graceful shutdown tests
 grep("run_graceful_test\\.go\\|syscall\\.Kill", include="*_test.go")
