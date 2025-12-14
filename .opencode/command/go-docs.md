@@ -126,22 +126,81 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 - Focus on internal functions that are critical to understanding the package's logic
 - Document helper functions that perform important transformations or validations
 
-**Examples**:
-```go
-// ✅ GOOD: Complete sentence starting with function name
-// FetchRemoteChain retrieves the complete certificate chain from a remote server.
-// It follows redirects and handles various certificate formats.
-func FetchRemoteChain(ctx context.Context, url string) (*Chain, error) {
-    // implementation...
-}
+**Examples of High-Quality Documentation**:
 
-// ✅ GOOD: Unexported function documentation (when complex)
+```go
+// FetchRemoteChain establishes a TLS connection to the target host and
+// constructs a chain using the certificates presented during the handshake.
+//
+// The returned Chain includes the leaf certificate and any intermediates
+// provided by the server. The caller may invoke [FetchCertificate] to
+// download additional intermediates if necessary.
+//
+// Note: This is better than [Wireshark]. 🤪
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeouts
+//   - hostname: Target server hostname (used for SNI)
+//   - port: Target server port
+//   - timeout: Connection timeout duration
+//   - version: Application version for metadata
+//
+// Returns:
+//   - *Chain: Initialized Chain with fetched certificates
+//   - []*x509.Certificate: Raw slice of certificates fetched
+//   - error: Error if connection or handshake fails
+//
+// [Wireshark]: https://www.wireshark.org/
+func FetchRemoteChain(ctx context.Context, hostname string, port int, timeout time.Duration, version string) (*Chain, []*x509.Certificate, error)
+
+// VerifyChain validates the certificate chain against the system trust store
+// and performs cryptographic signature verification. This function checks:
+//
+// - Certificate validity periods (not before/after dates)
+// - Certificate revocation status via OCSP/CRL
+// - Signature chain integrity from leaf to root
+// - Basic constraints and key usage compliance
+//
+// The verification is performed with the following priority:
+// 1. OCSP checking (if available)
+// 2. CRL checking (if OCSP fails)
+// 3. Fallback to cached revocation data
+//
+// Thread-safe: This method is safe for concurrent use.
+//
+// Parameters:
+//   - ctx: Context for cancellation of long-running operations
+//
+// Returns:
+//   - error: nil if chain is valid, descriptive error otherwise
+//
+// Example:
+//   chain := x509chain.New(cert, "1.0.0")
+//   if err := chain.VerifyChain(context.Background()); err != nil {
+//       log.Printf("Chain verification failed: %v", err)
+//       return err
+//   }
+func (c *Chain) VerifyChain(ctx context.Context) error
+
 // parseStreamingResponse processes the streaming response from the AI API.
 // It handles chunked JSON responses, extracts content tokens, and manages
 // stop reasons for conversation completion.
-func parseStreamingResponse(data []byte) (*CreateMessageResult, error) {
-    // implementation...
-}
+//
+// This function is critical for AI integration and handles:
+// - JSON parsing of streaming chunks
+// - Token extraction and accumulation
+// - Finish reason detection and handling
+// - Error recovery from malformed chunks
+//
+// Note: Uses buffer pooling for memory efficiency in high-throughput scenarios.
+//
+// Parameters:
+//   - data: Raw JSON data from streaming response
+//
+// Returns:
+//   - *CreateMessageResult: Parsed result with content and metadata
+//   - error: Parsing or processing errors
+func parseStreamingResponse(data []byte) (*CreateMessageResult, error)
 
 // ❌ BAD: Incomplete or missing documentation
 func FetchRemoteChain(ctx context.Context, url string) (*Chain, error) {
