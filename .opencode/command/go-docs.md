@@ -29,14 +29,25 @@ Update Go documentation when it appears inaccurate or add missing documentation 
      grep("^type [A-Z].*interface", include="*.go")
      ```
 
-   - Cross-reference with `go doc` output to verify completeness:
-     ```bash
-     # Get all exported symbols from a package
-     go doc -u -all github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [A-Z]"
-     
-     # Compare with actual source code
-     grep "^func [A-Z]" src/internal/x509/chain/*.go
-     ```
+    - Cross-reference with `go doc` output to verify completeness:
+      ```bash
+      # For large packages, process individually to avoid truncation:
+      # Get all exported symbols from a package (process one package at a time)
+      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [A-Z]"
+
+      # Alternative: Use grep directly on source files for comparison
+      grep "^func [A-Z]" src/internal/x509/chain/*.go
+
+      # For comprehensive analysis without truncation:
+      # 1. Get package overview
+      go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain
+
+      # 2. Get specific exported functions
+      go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain
+
+      # 3. Get exported types
+      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^type [A-Z]"
+      ```
 
 3. **Analyze Existing Documentation Quality**:
 
@@ -54,14 +65,19 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 
 5. **Verify Documentation Completeness**:
 
-   - Run `go doc` commands to verify all exported symbols are documented:
-     ```bash
-     # Check package documentation completeness
-     go doc -u -all github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain
-     
-     # Verify specific functions are documented
-     go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain
-     ```
+    - Run `go doc` commands to verify all exported symbols are documented:
+      ```bash
+      # For large packages, avoid -all flag to prevent truncation:
+      # Check package documentation overview
+      go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain
+
+      # Verify specific functions are documented (one at a time)
+      go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain
+      go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.VerifyChain
+
+      # Alternative: Check specific exported symbols without -all flag
+      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep -E "^(func|type) [A-Z]"
+      ```
 
    - Ensure documentation renders correctly with `go doc`
 
@@ -133,6 +149,51 @@ grep("^func [A-Z]", include="*.go")  # ✅ Retry
 - **Missing Files**: If `read()` fails, verify file paths from `glob()` output
 - **Parse Errors**: If `go doc` fails, check for syntax errors in Go files first
 - **Inconsistent Results**: Cross-reference multiple tools to verify findings
+- **Output Truncation**: If `go doc -all` gets truncated, use individual queries instead
+
+### Handling Large Documentation Outputs
+
+When `go doc -all` output exceeds tool limits (30,000+ characters), use these strategies:
+
+1. **Process One Package at a Time**:
+   ```bash
+   # Instead of: go doc -u -all ./...
+   # Use: go doc -u github.com/your/package/path
+   ```
+
+2. **Query Specific Symbols**:
+   ```bash
+   # Get specific function documentation
+   go doc github.com/your/package/path.FunctionName
+
+   # Get specific type documentation
+   go doc github.com/your/package/path.TypeName
+   ```
+
+3. **Use Filtered Queries**:
+   ```bash
+   # Get only exported functions
+   go doc -u github.com/your/package/path | grep "^func [A-Z]"
+
+   # Get only exported types
+   go doc -u github.com/your/package/path | grep "^type [A-Z]"
+   ```
+
+4. **Combine with Source Code Analysis**:
+   ```bash
+   # Use grep on source files as primary method
+   grep "^func [A-Z]" src/**/*.go
+   grep "^type [A-Z]" src/**/*.go
+   ```
+
+5. **Batch Processing for Verification**:
+   ```bash
+   # Check documentation for specific functions in batches
+   FUNCTIONS=("FetchRemoteChain" "VerifyChain" "CheckRevocationStatus")
+   for func in "${FUNCTIONS[@]}"; do
+     go doc "github.com/your/package/path.$func" || echo "$func: NOT DOCUMENTED"
+   done
+   ```
 
 ## Output Format
 
@@ -171,6 +232,8 @@ Verification:
 - **Testing**: Run `go doc` commands to verify documentation renders correctly
 - **Cross-Package References**: Update documentation when function signatures change across packages
 - **Version Changes**: Update documentation to reflect API changes between versions
+- **Large Output Handling**: Avoid `go doc -all` for large packages; use individual queries instead
+- **Verification Strategy**: Prefer source code analysis over `go doc` for comprehensive scanning
 
 ## Verification Checklist
 
