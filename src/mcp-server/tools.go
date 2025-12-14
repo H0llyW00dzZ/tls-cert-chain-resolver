@@ -85,6 +85,7 @@ const (
 // createTools creates and returns all MCP tool definitions with their handlers.
 // It organizes tools into two categories: those that don't require configuration
 // and those that need access to the server configuration (e.g., for AI integration or timeouts).
+// It also populates global cached metadata for resource handlers.
 //
 // Returns:
 //   - A slice of ToolDefinition for tools without config dependencies
@@ -103,6 +104,11 @@ const (
 // Each tool includes proper parameter definitions, descriptions, default values,
 // and MCP annotations as required by the MCP specification.
 func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
+	// Get server cache for storing metadata
+	cache := getServerCache()
+	cache.tools = make([]map[string]any, 0, 5)
+	cache.toolsWithConfig = make([]map[string]any, 0, 3)
+
 	// Tools that don't need config
 	tools := []ToolDefinition{
 		{
@@ -328,6 +334,9 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 			Role:    RoleAIAnalyzer,
 		},
 	}
+
+	// Populate cached metadata for resource handlers
+	populateToolMetadataCache(cache, tools, toolsWithConfig)
 
 	return tools, toolsWithConfig
 }
