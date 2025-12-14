@@ -25,7 +25,10 @@ import (
 	"golang.org/x/text/language"
 )
 
-// Config holds the loaded configuration
+// Config holds the loaded configuration for code generation.
+//
+// It contains definitions for MCP server resources, tools, and prompts
+// that will be used to generate Go code.
 type Config struct {
 	Resources []ResourceDefinition `json:"resources"`
 	Tools     []ToolDefinition     `json:"tools"`
@@ -444,7 +447,13 @@ func validatePromptArguments(args []PromptArgument, promptIndex int) error {
 	return nil
 }
 
-// GenerateResources generates the resources.go file for the MCP server
+// GenerateResources generates the resources.go file for the MCP server.
+//
+// It loads the configuration, processes resource definitions, and generates
+// Go code that implements MCP server resources with their handlers.
+//
+// Returns:
+//   - error: Error if configuration loading or file generation fails
 func GenerateResources() error {
 	config, err := loadConfig()
 	if err != nil {
@@ -547,7 +556,13 @@ func generateFile(templatePath, outputPath string, config *Config, fileType stri
 	return writeGeneratedFile(outputPath, code.Bytes())
 }
 
-// GenerateTools generates the tools.go file for the MCP server
+// GenerateTools generates the tools.go file for the MCP server.
+//
+// It loads the configuration, processes tool definitions, and generates
+// Go code that implements MCP server tools with their handlers and parameters.
+//
+// Returns:
+//   - error: Error if configuration loading or file generation fails
 func GenerateTools() error {
 	config, err := loadConfig()
 	if err != nil {
@@ -560,7 +575,13 @@ func GenerateTools() error {
 	return generateFile(templatePath, outputPath, config, "tools")
 }
 
-// GeneratePrompts generates the prompts.go file for the MCP server
+// GeneratePrompts generates the prompts.go file for the MCP server.
+//
+// It loads the configuration, processes prompt definitions, and generates
+// Go code that implements MCP server prompts with their handlers and arguments.
+//
+// Returns:
+//   - error: Error if configuration loading or file generation fails
 func GeneratePrompts() error {
 	config, err := loadConfig()
 	if err != nil {
