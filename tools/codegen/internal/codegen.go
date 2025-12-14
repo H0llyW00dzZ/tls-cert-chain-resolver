@@ -567,6 +567,15 @@ func generateFile(templatePath, outputPath string, config *Config, fileType stri
 			return cases.Title(language.Und).String(s)
 		},
 		"toGoMap": toGoMap,
+		"countTools": func(tools []ToolDefinition, withConfig bool) int {
+			count := 0
+			for _, tool := range tools {
+				if tool.WithConfig == withConfig {
+					count++
+				}
+			}
+			return count
+		},
 	}).ParseFiles(templatePath)
 	if err != nil {
 		return fmt.Errorf("parsing template from %s: %w", templatePath, err)
@@ -660,8 +669,7 @@ func writeGeneratedFile(filename string, content []byte) error {
 	defer file.Close()
 
 	writer := bufio.NewWriter(file)
-	_, err = writer.Write(formatted)
-	if err != nil {
+	if _, err = writer.Write(formatted); err != nil {
 		return fmt.Errorf("writing to file: %w", err)
 	}
 
