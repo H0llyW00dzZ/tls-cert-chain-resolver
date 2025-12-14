@@ -44,6 +44,7 @@ See [README.md](./README.md) for the complete OpenCode configuration. This file 
 - `/test` - Run tests with race detection and coverage (primary test approach), then analyze failures
 - `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools with structured todo workflow
 - `/create-changelog` - Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
+- `/go-docs` - Update Go documentation when inaccurate or add missing documentation for exported functions and types
 - `/vulncheck` - Check for vulnerable dependencies and suggest updates
 
 **When to use**:
@@ -51,6 +52,7 @@ See [README.md](./README.md) for the complete OpenCode configuration. This file 
 - Before committing changes (`/test` - uses race detection with coverage as primary approach)
 - When updating dependencies or architecture
 - Before releases (`/create-changelog` to generate release notes)
+- When documentation appears inaccurate or missing (`/go-docs` to update Go documentation)
 - After dependency updates (`/vulncheck` to verify security)
 
 **Structure**: Each command is a markdown file with frontmatter:
