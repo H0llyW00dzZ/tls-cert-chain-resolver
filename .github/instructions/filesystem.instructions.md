@@ -6,27 +6,7 @@ Built-in filesystem tools for reading, writing, editing, listing, and searching 
 
 ## Repository Structure
 
-See [README.md](../../README.md) for repository overview. Key directories for file operations:
-
-```
-tls-cert-chain-resolver/
-├── .github/instructions/                     # Agent instruction files
-├── .opencode/command/                        # Custom commands
-├── cmd/                                      # Main CLI and MCP server binaries
-├── src/                                      # Source code
-│   ├── cli/                                  # Cobra CLI implementation
-│   ├── internal/x509/                        # Certificate operations
-│   ├── logger/                               # Logger abstraction
-│   ├── mcp-server/                           # MCP server implementation
-│   └── version/                              # Version information
-├── tools/codegen/                            # Code generation
-├── .gitignore                                # Git ignore patterns
-├── .ignore                                   # Tool ignore patterns
-├── AGENTS.md                                 # Primary agent guidelines
-├── Makefile                                  # Build commands
-├── go.mod                                    # Go module definition
-└── opencode.json                             # OpenCode configuration
-```
+See [README.md](../../README.md) for complete repository overview and structure. This file focuses on filesystem operations within the repository.
 
 ## Available Tools
 
@@ -673,8 +653,7 @@ grep("handleStatusResource\\|status://server-status", include="*.go")
 # Find embedded templates
 grep("MagicEmbed\\|templates/.*prompt.*\\.md\\|templates/X509.*\\.md", include="*.go")
 
-# Find embedded template files (note: these are embedded, not in src/)
-# grep("certificate-analysis-prompt\.md", path="src/mcp-server/templates", include="*.md")
+
 
 # Find tool name constants
 grep("ToolResolveCertChain\\|ToolValidateCertChain\\|ToolBatchResolveCertChain\\|ToolCheckCertExpiry\\|ToolFetchRemoteCert\\|ToolAnalyzeCertificateWithAI\\|ToolGetResourceUsage", include="*.go")

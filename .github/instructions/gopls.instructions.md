@@ -149,6 +149,9 @@ gopls_go_search("parseMessagesFromContent") → Find message parsing from templa
 gopls_go_search("MaxTemplateSize") → Find template size constants
 gopls_go_search("MaxMessageContentSize") → Find message size limits
 gopls_go_search("MaxMessagesPerTemplate") → Find template message limits
+gopls_go_search("parseSSELine") → Find SSE line parsing functions
+gopls_go_search("parseJSONChunk") → Find JSON chunk parsing functions
+gopls_go_search("parseStreamingResponse") → Find streaming response parsing functions
 ```
 
 ### gopls_go_file_context(file)
