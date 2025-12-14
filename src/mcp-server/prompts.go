@@ -14,7 +14,6 @@ import (
 )
 
 // createPrompts creates and returns all MCP prompt definitions with their handlers.
-// It also populates global cached metadata for resource handlers.
 //
 // This function defines the available MCP prompts for certificate analysis workflows.
 // Each prompt provides a structured approach to common certificate-related tasks,
@@ -33,10 +32,6 @@ import (
 // These prompts guide users through systematic approaches to certificate management
 // and provide context-specific instructions for using MCP tools effectively.
 func createPrompts() []server.ServerPrompt {
-	// Get server cache for storing metadata
-	cache := getServerCache()
-	cache.prompts = make([]map[string]any, 0, 5)
-
 	prompts := []server.ServerPrompt{
 		{
 			Prompt: func() mcp.Prompt {
@@ -138,9 +133,6 @@ func createPrompts() []server.ServerPrompt {
 			Handler: handleResourceMonitoringPrompt,
 		},
 	}
-
-	// Extract metadata from created prompts for resource handlers
-	populatePromptMetadataCache(cache, prompts)
 
 	return prompts
 }

@@ -73,7 +73,7 @@ func handleVersionResource(ctx context.Context, request mcp.ReadResourceRequest)
 		return nil, fmt.Errorf("failed to load prompts config: %w", err)
 	}
 
-	tools, err := loadToolsConfig()
+	toolsConfig, err := loadToolsConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tools config: %w", err)
 	}
@@ -88,9 +88,9 @@ func handleVersionResource(ctx context.Context, request mcp.ReadResourceRequest)
 		"version": version.Version,
 		"type":    "MCP Server",
 		"capabilities": map[string]any{
-			"tools":     tools,     // Loaded from config with meta
-			"resources": resources, // Loaded from config with meta
-			"prompts":   prompts,   // Loaded from config with meta
+			"tools":     toolsConfig.AllTools, // Loaded from config with meta
+			"resources": resources,            // Loaded from config with meta
+			"prompts":   prompts,              // Loaded from config with meta
 		},
 		"supportedFormats": []string{"pem", "der", "json"},
 	}
@@ -158,7 +158,7 @@ func handleStatusResource(ctx context.Context, request mcp.ReadResourceRequest) 
 		return nil, fmt.Errorf("failed to load prompts config: %w", err)
 	}
 
-	tools, err := loadToolsConfig()
+	toolsConfig, err := loadToolsConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tools config: %w", err)
 	}
@@ -174,9 +174,9 @@ func handleStatusResource(ctx context.Context, request mcp.ReadResourceRequest) 
 		"server":    "X.509 Certificate Chain Resolver MCP Server",
 		"version":   version.Version,
 		"capabilities": map[string]any{
-			"tools":     tools,     // Loaded from config with meta
-			"resources": resources, // Loaded from config with meta
-			"prompts":   prompts,   // Loaded from config with meta
+			"tools":     toolsConfig.AllTools, // Loaded from config with meta
+			"resources": resources,            // Loaded from config with meta
+			"prompts":   prompts,              // Loaded from config with meta
 		},
 		"supportedFormats": []string{"pem", "der", "json"},
 	}

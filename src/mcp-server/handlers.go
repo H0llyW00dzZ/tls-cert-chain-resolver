@@ -120,7 +120,7 @@ func getServerCache() *serverCache {
 	cacheOnce.Do(func() {
 		cache = &serverCache{
 			// Cache is populated dynamically through populate*MetadataCache functions
-			// called from createTools(), createPrompts(), and createResources()
+			// called from the ServerBuilder's Build() method when WithPopulate() is used
 		}
 	})
 	return cache
@@ -133,11 +133,24 @@ func loadPromptsConfig() ([]map[string]any, error) {
 	return cache.prompts, nil
 }
 
+// toolsConfig holds the structured configuration for tools and tools with config.
+// This provides separate access to regular tools and tools requiring configuration.
+type toolsConfig struct {
+	Tools           []map[string]any // Regular tools not requiring config
+	ToolsWithConfig []map[string]any // Tools that require configuration access
+	AllTools        []map[string]any // Merged list for backward compatibility
+}
+
 // loadToolsConfig loads the tools configuration from the cache.
-// Returns the tools with user-facing information only (filters out internal fields).
-func loadToolsConfig() ([]map[string]any, error) {
+// Returns structured tool configuration with separate access to regular tools,
+// tools with config, and merged list for backward compatibility.
+func loadToolsConfig() (*toolsConfig, error) {
 	cache := getServerCache()
-	return cache.tools, nil
+	return &toolsConfig{
+		Tools:           cache.tools[:len(cache.tools)-len(cache.toolsWithConfig)], // Regular tools
+		ToolsWithConfig: cache.toolsWithConfig,                                     // Tools with config
+		AllTools:        cache.tools,                                               // Merged list
+	}, nil
 }
 
 // loadResourcesConfig loads the resources configuration from the cache.
@@ -148,7 +161,8 @@ func loadResourcesConfig() ([]map[string]any, error) {
 }
 
 // populateToolMetadataCache extracts metadata from created tools and caches it for resource handlers.
-// This function is called once at server startup with the tools created by createTools().
+// This function is called once during server initialization via the ServerBuilder's Build() method
+// when WithPopulate() is used. It processes tools created by the builder's tool registration methods.
 func populateToolMetadataCache(serverCache *serverCache, tools []ToolDefinition, toolsWithConfig []ToolDefinitionWithConfig) {
 	serverCache.tools = make([]map[string]any, 0, len(tools))
 	serverCache.toolsWithConfig = make([]map[string]any, 0, len(toolsWithConfig))
@@ -174,7 +188,7 @@ func populateToolMetadataCache(serverCache *serverCache, tools []ToolDefinition,
 	}
 
 	// Merge tools and toolsWithConfig for the loadToolsConfig function
-	// This maintains backward compatibility with the resource handlers
+	// This provides the AllTools field in toolsConfig for resource handlers
 	allTools := make([]map[string]any, 0, len(serverCache.tools)+len(serverCache.toolsWithConfig))
 	allTools = append(allTools, serverCache.tools...)
 	allTools = append(allTools, serverCache.toolsWithConfig...)
@@ -182,7 +196,8 @@ func populateToolMetadataCache(serverCache *serverCache, tools []ToolDefinition,
 }
 
 // populatePromptMetadataCache extracts metadata from created prompts and caches it for resource handlers.
-// This function is called once at server startup with the prompts created by createPrompts().
+// This function is called once during server initialization via the ServerBuilder's Build() method
+// when WithPopulate() is used. It processes prompts created by the builder's prompt registration methods.
 func populatePromptMetadataCache(serverCache *serverCache, prompts []server.ServerPrompt) {
 	serverCache.prompts = make([]map[string]any, 0, len(prompts))
 
@@ -211,11 +226,16 @@ func populatePromptMetadataCache(serverCache *serverCache, prompts []server.Serv
 		if prompt.Meta != nil {
 			// Convert Meta struct to map for JSON serialization
 			metaMap := make(map[string]any)
-			if prompt.Meta.ProgressToken != "" {
-				metaMap["progressToken"] = prompt.Meta.ProgressToken
-			}
 			maps.Copy(metaMap, prompt.Meta.AdditionalFields)
-			metadata["meta"] = metaMap
+			// Remove any null/empty progressToken that might be set by MCP library
+			if progressToken, exists := metaMap["progressToken"]; exists {
+				if progressToken == nil || progressToken == "" || progressToken == "null" {
+					delete(metaMap, "progressToken")
+				}
+			}
+			if len(metaMap) > 0 {
+				metadata["meta"] = metaMap
+			}
 		}
 
 		serverCache.prompts = append(serverCache.prompts, metadata)
@@ -223,7 +243,8 @@ func populatePromptMetadataCache(serverCache *serverCache, prompts []server.Serv
 }
 
 // populateResourceMetadataCache extracts metadata from created resources and caches it for resource handlers.
-// This function is called once at server startup with the resources created by createResources().
+// This function is called once during server initialization via the ServerBuilder's Build() method
+// when WithPopulate() is used. It processes resources created by the builder's resource registration methods.
 func populateResourceMetadataCache(serverCache *serverCache, resources []server.ServerResource) {
 	serverCache.resources = make([]map[string]any, 0, len(resources))
 
@@ -240,11 +261,16 @@ func populateResourceMetadataCache(serverCache *serverCache, resources []server.
 		if resource.Meta != nil {
 			// Convert Meta struct to map for JSON serialization
 			metaMap := make(map[string]any)
-			if resource.Meta.ProgressToken != "" {
-				metaMap["progressToken"] = resource.Meta.ProgressToken
-			}
 			maps.Copy(metaMap, resource.Meta.AdditionalFields)
-			metadata["meta"] = metaMap
+			// Remove any null/empty progressToken that might be set by MCP library
+			if progressToken, exists := metaMap["progressToken"]; exists {
+				if progressToken == nil || progressToken == "" || progressToken == "null" {
+					delete(metaMap, "progressToken")
+				}
+			}
+			if len(metaMap) > 0 {
+				metadata["meta"] = metaMap
+			}
 		}
 
 		serverCache.resources = append(serverCache.resources, metadata)

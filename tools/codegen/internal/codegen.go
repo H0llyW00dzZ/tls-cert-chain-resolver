@@ -567,6 +567,7 @@ func generateFile(templatePath, outputPath string, config *Config, fileType stri
 			return cases.Title(language.Und).String(s)
 		},
 		"toGoMap": toGoMap,
+		// TODO: Consider removing this later as it is no longer used
 		"countTools": func(tools []ToolDefinition, withConfig bool) int {
 			count := 0
 			for _, tool := range tools {

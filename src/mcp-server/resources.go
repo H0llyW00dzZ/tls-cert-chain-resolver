@@ -14,7 +14,6 @@ import (
 )
 
 // createResources creates and returns all MCP resources without adding them to a server.
-// It also populates global cached metadata for resource handlers.
 //
 // This allows for easier testing of resource creation logic and resource definition validation.
 //
@@ -30,10 +29,6 @@ import (
 // These resources provide static content and metadata to MCP clients. Each resource
 // includes a URI, name, description, MIME type, and handler function.
 func createResources() []server.ServerResource {
-	// Get server cache for storing metadata
-	cache := getServerCache()
-	cache.resources = make([]map[string]any, 0, 4)
-
 	resources := []server.ServerResource{
 		{
 			Resource: func() mcp.Resource {
@@ -108,9 +103,6 @@ func createResources() []server.ServerResource {
 			Handler: handleStatusResource,
 		},
 	}
-
-	// Extract metadata from created resources for resource handlers
-	populateResourceMetadataCache(cache, resources)
 
 	return resources
 }
