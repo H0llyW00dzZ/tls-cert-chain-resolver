@@ -102,23 +102,31 @@ type PromptArgument struct {
 	Required    bool   `json:"required,omitempty"` // Whether the argument is required
 }
 
-// getCodegenDir returns the absolute path to the codegen directory
+// getCodegenDir returns the path to the codegen directory.
+// It uses runtime.Caller to determine the current file's location
+// and navigates up two directory levels from internal/ to codegen/.
 func getCodegenDir() string {
 	_, currentFile, _, _ := runtime.Caller(0)
 	return filepath.Dir(filepath.Dir(currentFile)) // Go up from internal/ to codegen/
 }
 
-// getTemplatePath returns the path to a template file
+// getTemplatePath returns the path to a template file.
+// It constructs the full path to the templates directory
+// for the specified template file name.
 func getTemplatePath(templateName string) string {
 	return filepath.Join(getCodegenDir(), "templates", templateName)
 }
 
-// getOutputPath returns the path to an output file
+// getOutputPath returns the path to an output file.
+// It constructs the full path relative to the codegen directory
+// for the specified output file name.
 func getOutputPath(outputName string) string {
 	return filepath.Join(getCodegenDir(), "..", "..", "src", "mcp-server", outputName)
 }
 
-// loadConfig loads the configuration from JSON files
+// loadConfig loads the configuration from JSON files.
+// It reads resources.json, tools.json, and prompts.json to build
+// the complete configuration for code generation.
 func loadConfig() (*Config, error) {
 	config := &Config{}
 
@@ -177,7 +185,9 @@ func loadJSON(filename string, target any) error {
 	return nil
 }
 
-// validateJSONSchema validates JSON data against a JSON schema
+// validateJSONSchema validates JSON data against a JSON schema.
+// It reads the schema file and uses gojsonschema to validate
+// the provided JSON data against the schema.
 func validateJSONSchema(jsonData []byte, schemaPath string) error {
 	// Read schema file
 	schemaData, err := os.ReadFile(schemaPath)
@@ -572,6 +582,8 @@ func writeHeader(code *bytes.Buffer) {
 	code.WriteString("// This file is generated from tools/codegen/internal/codegen.go\n\n")
 }
 
+// writeGeneratedFile writes formatted Go code to a file.
+// It formats the code using go/format.Source and writes it to the specified file.
 func writeGeneratedFile(filename string, content []byte) error {
 	// Format the generated code
 	formatted, err := format.Source(content)
