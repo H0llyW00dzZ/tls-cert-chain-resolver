@@ -291,19 +291,4 @@ func processCertificateByType(cert *x509.Certificate) error {
 - **Revert capability**: Keep changes small enough to easily revert
 - **Comprehensive testing**: Ensure 100% test coverage for refactored functions
 
-## Examples from This Repository
-
-### Current Complex Functions (from analysis)
-1. **`validateParamConstraints` (30)** - Code generation validation
-   - **Suggested refactoring**: Extract validation rules into separate functions
-   - **Pattern**: Strategy pattern for different validation types
-
-2. **`parseStreamingResponse` (18)** - AI response parsing
-   - **Suggested refactoring**: Extract parsing logic into smaller functions
-   - **Pattern**: Extract method pattern
-
-3. **`formatValueForMarkdown` (17)** - Resource formatting
-   - **Suggested refactoring**: Create formatting pipeline
-   - **Pattern**: Pipeline pattern with small formatter functions
-
 Focus on functions that are part of the core business logic rather than test or utility functions. Prioritize refactoring that improves maintainability and testability.
