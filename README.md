@@ -163,15 +163,15 @@ All resources include metadata for categorization and read-only status.
 
 The MCP server provides structured prompts with metadata for guided certificate analysis workflows:
 
-| Prompt | Purpose | Required Args | Metadata |
-|--------|---------|---------------|----------|
-| `certificate-analysis` | Comprehensive certificate chain analysis workflow | certificate_path | category: "analysis", workflow: "comprehensive" |
-| `expiry-monitoring` | Monitor certificate expiration dates and generate renewal alerts | certificate_path | category: "monitoring", workflow: "renewal" |
-| `security-audit` | Perform comprehensive SSL/TLS security audit on a server | hostname | category: "security", workflow: "audit" |
-| `troubleshooting` | Troubleshoot common certificate and TLS issues | issue_type | category: "support", workflow: "diagnostic" |
-| `resource-monitoring` | Monitor server resource usage and performance metrics for certificate operations | monitoring_context (optional) | category: "monitoring", workflow: "performance" |
+| Prompt | Purpose | Required Args | Steps | Metadata |
+|--------|---------|---------------|-------|----------|
+| `certificate-analysis` | Comprehensive certificate chain analysis workflow | certificate_path | 7-step analysis (resolution, validation, expiry, recommendations) | category: "analysis", workflow: "comprehensive" |
+| `expiry-monitoring` | Monitor certificate expiration dates and generate renewal alerts | certificate_path, alert_days | 8-step lifecycle management with prioritization | category: "monitoring", workflow: "renewal" |
+| `security-audit` | Perform comprehensive SSL/TLS security audit on a server | hostname, port | 7-step audit with compliance frameworks | category: "security", workflow: "audit" |
+| `troubleshooting` | Troubleshoot common certificate and TLS issues | issue_type, certificate_path/hostname | Conditional workflows for different issue types | category: "support", workflow: "diagnostic" |
+| `resource-monitoring` | Monitor server resource usage and performance metrics for certificate operations | monitoring_context (optional) | Performance analysis with CRL cache metrics | category: "monitoring", workflow: "performance" |
 
-All prompts include metadata for categorization and workflow identification.
+All prompts include metadata for categorization and workflow identification, with enhanced step-by-step guidance for certificate operations.
 
 #### Security considerations
 
