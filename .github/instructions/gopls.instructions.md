@@ -142,6 +142,13 @@ gopls_go_search("RenderTable") → Find table rendering for certificate chains
 gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains
 gopls_go_search("templateCache") → Find template caching implementation
 gopls_go_search("handleResourceMonitoringPrompt") → Find resource monitoring prompt handler
+gopls_go_search("getOrCreateTemplate") → Find template caching and cloning functions
+gopls_go_search("validateTemplateStructure") → Find template validation functions
+gopls_go_search("executeTemplate") → Find template execution functions
+gopls_go_search("parseMessagesFromContent") → Find message parsing from template content
+gopls_go_search("MaxTemplateSize") → Find template size constants
+gopls_go_search("MaxMessageContentSize") → Find message size limits
+gopls_go_search("MaxMessagesPerTemplate") → Find template message limits
 ```
 
 ### gopls_go_file_context(file)

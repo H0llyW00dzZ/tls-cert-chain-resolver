@@ -700,6 +700,12 @@ grep("handleCertificateAnalysisPrompt\\|handleExpiryMonitoringPrompt\\|handleSec
 # Find template caching patterns
 grep("templateCache\\|sync\\.Map", include="*.go")
 
+# Find template validation and execution patterns
+grep("getOrCreateTemplate\\|validateTemplateStructure\\|executeTemplate\\|parseMessagesFromContent", include="*.go")
+
+# Find template size limit constants
+grep("MaxTemplateSize\\|MaxMessageContentSize\\|MaxMessagesPerTemplate", include="*.go")
+
 
 # Find graceful shutdown tests
 grep("run_graceful_test\\.go\\|syscall\\.Kill", include="*_test.go")
