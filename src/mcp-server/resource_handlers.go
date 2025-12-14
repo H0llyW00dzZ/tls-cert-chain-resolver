@@ -64,16 +64,33 @@ func handleConfigResource(ctx context.Context, request mcp.ReadResourceRequest) 
 //   - A slice containing version and capability information as JSON content
 //   - An error if JSON marshaling fails
 //
-// The resource includes server name, version, supported tools, resources, prompts, and certificate formats.
+// The resource includes server name, version, supported tools, resources, prompts with full metadata from config, and certificate formats.
+// All capabilities (tools, resources, prompts) are loaded dynamically from codegen config files with their meta information.
 func handleVersionResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	// Load configurations dynamically
+	prompts, err := loadPromptsConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load prompts config: %w", err)
+	}
+
+	tools, err := loadToolsConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tools config: %w", err)
+	}
+
+	resources, err := loadResourcesConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load resources config: %w", err)
+	}
+
 	versionInfo := map[string]any{
 		"name":    "X509 Certificate Chain Resolver",
 		"version": version.Version,
 		"type":    "MCP Server",
 		"capabilities": map[string]any{
-			"tools":     []string{"resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai", "get_resource_usage"},
-			"resources": []string{"config://template", "info://version", "docs://certificate-formats", "status://server-status"},
-			"prompts":   []string{"certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting"},
+			"tools":     tools,     // Loaded from config with meta
+			"resources": resources, // Loaded from config with meta
+			"prompts":   prompts,   // Loaded from config with meta
 		},
 		"supportedFormats": []string{"pem", "der", "json"},
 	}
@@ -132,17 +149,34 @@ func handleCertificateFormatsResource(ctx context.Context, request mcp.ReadResou
 //   - An error if JSON marshaling fails
 //
 // The status includes server health, timestamp, version, and available capabilities
-// (tools, resources, prompts, supported formats).
+// (tools, resources, prompts with full metadata from config, supported formats).
+// All capabilities are loaded dynamically from codegen config files with their meta information.
 func handleStatusResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	// Load configurations dynamically
+	prompts, err := loadPromptsConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load prompts config: %w", err)
+	}
+
+	tools, err := loadToolsConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tools config: %w", err)
+	}
+
+	resources, err := loadResourcesConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load resources config: %w", err)
+	}
+
 	statusInfo := map[string]any{
 		"status":    "healthy",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"server":    "X509 Certificate Chain Resolver MCP Server",
+		"server":    "X.509 Certificate Chain Resolver MCP Server",
 		"version":   version.Version,
 		"capabilities": map[string]any{
-			"tools":     []string{"resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai", "get_resource_usage"},
-			"resources": []string{"config://template", "info://version", "docs://certificate-formats", "status://server-status"},
-			"prompts":   []string{"certificate-analysis", "expiry-monitoring", "security-audit", "troubleshooting"},
+			"tools":     tools,     // Loaded from config with meta
+			"resources": resources, // Loaded from config with meta
+			"prompts":   prompts,   // Loaded from config with meta
 		},
 		"supportedFormats": []string{"pem", "der", "json"},
 	}
