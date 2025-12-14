@@ -452,6 +452,65 @@ func formatMarkdownTable(data map[string]any, fieldPairs []string) string {
 	return buf.String()
 }
 
+// formatStringValue formats string values
+func formatStringValue(value string) string {
+	return value
+}
+
+// formatIntValue formats int values
+func formatIntValue(value int) string {
+	return fmt.Sprintf("%d", value)
+}
+
+// formatInt64Value formats int64 values with special handling for size-related keys
+func formatInt64Value(key string, value int64) string {
+	if key == "size" || key == "max_size" {
+		return fmt.Sprintf("%d entries", value)
+	}
+	return fmt.Sprintf("%d", value)
+}
+
+// formatUint32Value formats uint32 values
+func formatUint32Value(value uint32) string {
+	return fmt.Sprintf("%d", value)
+}
+
+// formatUint64Value formats uint64 values with special handling for time-related keys
+func formatUint64Value(key string, value uint64) string {
+	if key == "pause_total_ns" {
+		return fmt.Sprintf("%.2f", float64(value)/1e6)
+	}
+	if key == "last_gc_ns" {
+		if value == 0 {
+			return "Never"
+		}
+		gcTime := time.Unix(0, int64(value))
+		return gcTime.UTC().Format("January 2, 2006 at 3:04 PM MST")
+	}
+	return fmt.Sprintf("%d", value)
+}
+
+// formatFloat64Value formats float64 values with special handling for percentages and memory
+func formatFloat64Value(key string, value float64) string {
+	if key == "gc_cpu_fraction" || key == "hit_rate_percent" {
+		return fmt.Sprintf("%.2f%%", value)
+	}
+	if strings.Contains(key, "mb") || strings.Contains(key, "memory") {
+		return fmt.Sprintf("%.2f MB", value)
+	}
+	return fmt.Sprintf("%.2f", value)
+}
+
+// formatBoolValue formats boolean values
+func formatBoolValue(value bool) string {
+	return fmt.Sprintf("%t", value)
+}
+
+// formatDefaultValue formats values of unknown types
+func formatDefaultValue(value any) string {
+	return fmt.Sprintf("%v", value)
+}
+
 // formatValueForMarkdown formats a value for markdown display with appropriate units and formatting.
 //
 // formatValueForMarkdown converts various data types to human-readable strings
@@ -476,40 +535,21 @@ func formatMarkdownTable(data map[string]any, fieldPairs []string) string {
 func formatValueForMarkdown(value any, key string) string {
 	switch v := value.(type) {
 	case string:
-		return v
+		return formatStringValue(v)
 	case int:
-		return fmt.Sprintf("%d", v)
+		return formatIntValue(v)
 	case int64:
-		if key == "size" || key == "max_size" {
-			return fmt.Sprintf("%d entries", v)
-		}
-		return fmt.Sprintf("%d", v)
+		return formatInt64Value(key, v)
 	case uint32:
-		return fmt.Sprintf("%d", v)
+		return formatUint32Value(v)
 	case uint64:
-		if key == "pause_total_ns" {
-			return fmt.Sprintf("%.2f", float64(v)/1e6)
-		}
-		if key == "last_gc_ns" {
-			if v == 0 {
-				return "Never"
-			}
-			gcTime := time.Unix(0, int64(v))
-			return gcTime.UTC().Format("January 2, 2006 at 3:04 PM MST")
-		}
-		return fmt.Sprintf("%d", v)
+		return formatUint64Value(key, v)
 	case float64:
-		if key == "gc_cpu_fraction" || key == "hit_rate_percent" {
-			return fmt.Sprintf("%.2f%%", v)
-		}
-		if strings.Contains(key, "mb") || strings.Contains(key, "memory") {
-			return fmt.Sprintf("%.2f MB", v)
-		}
-		return fmt.Sprintf("%.2f", v)
+		return formatFloat64Value(key, v)
 	case bool:
-		return fmt.Sprintf("%t", v)
+		return formatBoolValue(v)
 	default:
-		return fmt.Sprintf("%v", v)
+		return formatDefaultValue(v)
 	}
 }
 

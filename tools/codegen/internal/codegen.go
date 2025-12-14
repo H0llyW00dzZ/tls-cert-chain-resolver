@@ -332,65 +332,105 @@ func validateToolParams(params []ToolParam, toolIndex int) error {
 	return nil
 }
 
-// validateParamConstraints validates parameter-specific constraints
-func validateParamConstraints(param *ToolParam, toolIndex, paramIndex int) error {
-	// Validate enum values are appropriate for the type
-	if len(param.Enum) > 0 {
-		switch param.Type {
-		case "string":
-			// String enums are fine
-		case "number":
-			// Number enums should be numeric strings that can be parsed
-			for _, val := range param.Enum {
-				if _, err := strconv.ParseFloat(val, 64); err != nil {
-					return fmt.Errorf("tool %d param %d: enum value '%s' is not a valid number", toolIndex, paramIndex, val)
-				}
-			}
-		case "boolean":
-			// Boolean enums should be "true" or "false"
-			for _, val := range param.Enum {
-				if val != "true" && val != "false" {
-					return fmt.Errorf("tool %d param %d: enum value '%s' is not a valid boolean", toolIndex, paramIndex, val)
-				}
-			}
-		default:
-			return fmt.Errorf("tool %d param %d: enum is not supported for type '%s'", toolIndex, paramIndex, param.Type)
-		}
+// validateEnumConstraints validates enum values based on parameter type
+func validateEnumConstraints(param *ToolParam, toolIndex, paramIndex int) error {
+	if len(param.Enum) == 0 {
+		return nil
 	}
 
-	// Validate length constraints for strings
+	switch param.Type {
+	case "string":
+		// String enums are always valid
+		return nil
+	case "number":
+		// Number enums should be numeric strings that can be parsed
+		for _, val := range param.Enum {
+			if _, err := strconv.ParseFloat(val, 64); err != nil {
+				return fmt.Errorf("tool %d param %d: enum value '%s' is not a valid number", toolIndex, paramIndex, val)
+			}
+		}
+		return nil
+	case "boolean":
+		// Boolean enums should be "true" or "false"
+		for _, val := range param.Enum {
+			if val != "true" && val != "false" {
+				return fmt.Errorf("tool %d param %d: enum value '%s' is not a valid boolean", toolIndex, paramIndex, val)
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("tool %d param %d: enum is not supported for type '%s'", toolIndex, paramIndex, param.Type)
+	}
+}
+
+// validateLengthConstraints validates minLength/maxLength constraints for strings
+func validateLengthConstraints(param *ToolParam, toolIndex, paramIndex int) error {
 	if param.Type == "string" {
 		if param.MinLength != nil && param.MaxLength != nil && *param.MinLength > *param.MaxLength {
 			return fmt.Errorf("tool %d param %d: minLength (%d) cannot be greater than maxLength (%d)", toolIndex, paramIndex, *param.MinLength, *param.MaxLength)
 		}
-	} else if param.Type != "string" && (param.MinLength != nil || param.MaxLength != nil) {
+	} else if param.MinLength != nil || param.MaxLength != nil {
 		return fmt.Errorf("tool %d param %d: minLength/maxLength constraints are only valid for string type", toolIndex, paramIndex)
 	}
+	return nil
+}
 
-	// Validate numeric constraints
+// validateNumericConstraints validates minimum/maximum constraints for numbers
+func validateNumericConstraints(param *ToolParam, toolIndex, paramIndex int) error {
 	if param.Type == "number" {
 		if param.Minimum != nil && param.Maximum != nil && *param.Minimum > *param.Maximum {
 			return fmt.Errorf("tool %d param %d: minimum (%f) cannot be greater than maximum (%f)", toolIndex, paramIndex, *param.Minimum, *param.Maximum)
 		}
-	} else if param.Type != "number" && (param.Minimum != nil || param.Maximum != nil) {
+	} else if param.Minimum != nil || param.Maximum != nil {
 		return fmt.Errorf("tool %d param %d: minimum/maximum constraints are only valid for number type", toolIndex, paramIndex)
 	}
+	return nil
+}
 
-	// Validate pattern for strings
+// validatePatternConstraints validates pattern constraints for strings
+func validatePatternConstraints(param *ToolParam, toolIndex, paramIndex int) error {
 	if param.Type != "string" && param.Pattern != "" {
 		return fmt.Errorf("tool %d param %d: pattern constraint is only valid for string type", toolIndex, paramIndex)
 	}
+	return nil
+}
 
-	// Validate items for arrays
+// validateItemsConstraints validates items constraints for arrays
+func validateItemsConstraints(param *ToolParam, toolIndex, paramIndex int) error {
 	if param.Type != "array" && len(param.Items) > 0 {
 		return fmt.Errorf("tool %d param %d: items constraint is only valid for array type", toolIndex, paramIndex)
 	}
+	return nil
+}
 
-	// Validate properties for objects
+// validatePropertiesConstraints validates properties constraints for objects
+func validatePropertiesConstraints(param *ToolParam, toolIndex, paramIndex int) error {
 	if param.Type != "object" && len(param.Properties) > 0 {
 		return fmt.Errorf("tool %d param %d: properties constraint is only valid for object type", toolIndex, paramIndex)
 	}
+	return nil
+}
 
+// validateParamConstraints validates parameter-specific constraints
+func validateParamConstraints(param *ToolParam, toolIndex, paramIndex int) error {
+	if err := validateEnumConstraints(param, toolIndex, paramIndex); err != nil {
+		return err
+	}
+	if err := validateLengthConstraints(param, toolIndex, paramIndex); err != nil {
+		return err
+	}
+	if err := validateNumericConstraints(param, toolIndex, paramIndex); err != nil {
+		return err
+	}
+	if err := validatePatternConstraints(param, toolIndex, paramIndex); err != nil {
+		return err
+	}
+	if err := validateItemsConstraints(param, toolIndex, paramIndex); err != nil {
+		return err
+	}
+	if err := validatePropertiesConstraints(param, toolIndex, paramIndex); err != nil {
+		return err
+	}
 	return nil
 }
 

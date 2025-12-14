@@ -678,6 +678,75 @@ func (h *DefaultSamplingHandler) handleAPIError(resp *http.Response, buf gc.Buff
 	return fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, string(buf.Bytes()))
 }
 
+// parseSSELine parses a single Server-Sent Events line
+func parseSSELine(line string) (string, bool) {
+	// Skip empty lines and comments
+	if line == "" || strings.HasPrefix(line, ":") {
+		return "", false
+	}
+
+	// Parse Server-Sent Events format
+	if data, found := strings.CutPrefix(line, "data: "); found {
+		return data, true
+	}
+
+	return "", false
+}
+
+// parseJSONChunk parses a JSON chunk from the streaming response
+func parseJSONChunk(data string) (map[string]any, error) {
+	var chunk map[string]any
+	if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+		return nil, err
+	}
+	return chunk, nil
+}
+
+// extractModelName extracts model name from a JSON chunk
+func extractModelName(chunk map[string]any, currentModel, defaultModel string) string {
+	if modelFromChunk, ok := chunk["model"].(string); ok && currentModel == defaultModel {
+		return modelFromChunk
+	}
+	return currentModel
+}
+
+// extractContent extracts content from a choice's delta and handles token streaming
+func (h *DefaultSamplingHandler) extractContent(choice map[string]any, contentBuilder *strings.Builder) string {
+	if delta, ok := choice["delta"].(map[string]any); ok {
+		if content, ok := delta["content"].(string); ok {
+			contentBuilder.WriteString(content)
+			// Stream token via callback if configured
+			if h.TokenCallback != nil {
+				h.TokenCallback(content)
+			}
+			return content
+		}
+	}
+	return ""
+}
+
+// extractFinishReason extracts finish reason from a choice
+func extractFinishReason(choice map[string]any) string {
+	if finishReason, ok := choice["finish_reason"].(string); ok && finishReason != "" {
+		return finishReason
+	}
+	return ""
+}
+
+// processChoices processes the choices array from a JSON chunk
+func (h *DefaultSamplingHandler) processChoices(choices []any, contentBuilder *strings.Builder) string {
+	if len(choices) == 0 {
+		return ""
+	}
+
+	if choice, ok := choices[0].(map[string]any); ok {
+		h.extractContent(choice, contentBuilder)
+		return extractFinishReason(choice)
+	}
+
+	return ""
+}
+
 // parseStreamingResponse handles the streaming response parsing
 func (h *DefaultSamplingHandler) parseStreamingResponse(body io.Reader, defaultModel string) (string, string, string, error) {
 	var fullContent strings.Builder
@@ -688,48 +757,29 @@ func (h *DefaultSamplingHandler) parseStreamingResponse(body io.Reader, defaultM
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// Skip empty lines and comments
-		if line == "" || strings.HasPrefix(line, ":") {
+		data, isDataLine := parseSSELine(line)
+		if !isDataLine {
 			continue
 		}
 
-		// Parse Server-Sent Events format
-		if data, found := strings.CutPrefix(line, "data: "); found {
-			// Handle end of stream
-			if data == "[DONE]" {
-				break
-			}
+		// Handle end of stream
+		if data == "[DONE]" {
+			break
+		}
 
-			// Parse JSON chunk
-			var chunk map[string]any
-			if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-				continue // Skip malformed chunks
-			}
+		// Parse JSON chunk
+		chunk, err := parseJSONChunk(data)
+		if err != nil {
+			continue // Skip malformed chunks
+		}
 
-			// Extract model name if available
-			if modelFromChunk, ok := chunk["model"].(string); ok && modelName == defaultModel {
-				modelName = modelFromChunk
-			}
+		// Extract model name if available
+		modelName = extractModelName(chunk, modelName, defaultModel)
 
-			// Process choices
-			if choices, ok := chunk["choices"].([]any); ok && len(choices) > 0 {
-				if choice, ok := choices[0].(map[string]any); ok {
-					// Extract delta content
-					if delta, ok := choice["delta"].(map[string]any); ok {
-						if content, ok := delta["content"].(string); ok {
-							fullContent.WriteString(content)
-							// Stream token via callback if configured
-							if h.TokenCallback != nil {
-								h.TokenCallback(content)
-							}
-						}
-					}
-
-					// Check for finish reason
-					if finishReason, ok := choice["finish_reason"].(string); ok && finishReason != "" {
-						stopReason = finishReason
-					}
-				}
+		// Process choices
+		if choices, ok := chunk["choices"].([]any); ok {
+			if finishReason := h.processChoices(choices, &fullContent); finishReason != "" {
+				stopReason = finishReason
 			}
 		}
 	}
