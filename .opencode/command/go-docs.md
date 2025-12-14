@@ -5,7 +5,7 @@ agent: general
 
 # Go Documentation Management
 
-Update Go documentation when it appears inaccurate or add missing documentation for exported functions, types, and interfaces. Use built-in tools to scan the codebase and ensure documentation follows Go best practices and repository standards.
+Update Go documentation when it appears inaccurate or add missing documentation for exported and unexported functions, types, and interfaces. Use built-in tools to scan the codebase and ensure documentation follows Go best practices and repository standards.
 
 ## Tasks
 
@@ -17,16 +17,25 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 
 2. **Identify Missing Documentation**:
 
-   - Use `grep` patterns to find exported functions, types, and interfaces without proper documentation:
+   - Use `grep` patterns to find exported and unexported functions, types, and interfaces without proper documentation:
      ```go
      // Find exported functions without comments
      grep("^func [A-Z]", include="*.go")
-     
-     // Find exported types without comments  
+
+     // Find unexported functions without comments
+     grep("^func [a-z]", include="*.go")
+
+     // Find exported types without comments
      grep("^type [A-Z]", include="*.go")
-     
+
+     // Find unexported types without comments
+     grep("^type [a-z]", include="*.go")
+
      // Find exported interfaces without comments
      grep("^type [A-Z].*interface", include="*.go")
+
+     // Find unexported interfaces without comments
+     grep("^type [a-z].*interface", include="*.go")
      ```
 
     - Cross-reference with `go doc` output to verify completeness:
@@ -35,8 +44,12 @@ Update Go documentation when it appears inaccurate or add missing documentation 
       # Get all exported symbols from a package (process one package at a time)
       go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [A-Z]"
 
+      # Get unexported symbols (requires -u flag and grep for lowercase)
+      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [a-z]"
+
       # Alternative: Use grep directly on source files for comparison
-      grep "^func [A-Z]" src/internal/x509/chain/*.go
+      grep "^func [A-Z]" src/internal/x509/chain/*.go  # exported
+      grep "^func [a-z]" src/internal/x509/chain/*.go  # unexported
 
       # For comprehensive analysis without truncation:
       # 1. Get package overview
@@ -45,8 +58,11 @@ Update Go documentation when it appears inaccurate or add missing documentation 
       # 2. Get specific exported functions
       go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain
 
-      # 3. Get exported types
-      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^type [A-Z]"
+      # 3. Get unexported functions (use -u flag to show unexported)
+      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [a-z]"
+
+      # 4. Get exported and unexported types
+      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^type [A-Za-z]"
       ```
 
 3. **Analyze Existing Documentation Quality**:
@@ -65,19 +81,22 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 
 5. **Verify Documentation Completeness**:
 
-    - Run `go doc` commands to verify all exported symbols are documented:
-      ```bash
-      # For large packages, avoid -all flag to prevent truncation:
-      # Check package documentation overview
-      go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain
+   - Run `go doc` commands to verify all exported and unexported symbols are documented:
+     ```bash
+     # For large packages, avoid -all flag to prevent truncation:
+     # Check package documentation overview
+     go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain
 
-      # Verify specific functions are documented (one at a time)
-      go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain
-      go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.VerifyChain
+     # Verify specific exported functions are documented (one at a time)
+     go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain
+     go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.VerifyChain
 
-      # Alternative: Check specific exported symbols without -all flag
-      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep -E "^(func|type) [A-Z]"
-      ```
+     # Verify unexported functions using -u flag (one at a time)
+     go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [a-z]" | head -5
+
+     # Alternative: Check specific exported and unexported symbols without -all flag
+     go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep -E "^(func|type) [A-Za-z]"
+     ```
 
    - Ensure documentation renders correctly with `go doc`
 
@@ -101,6 +120,12 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 - Include parameter and return value descriptions when not obvious
 - Use proper grammar and complete sentences
 
+**Unexported Functions/Types/Interfaces**:
+- Unexported functions/types should be documented when they are complex or have non-obvious behavior
+- Comments should follow the same format as exported symbols
+- Focus on internal functions that are critical to understanding the package's logic
+- Document helper functions that perform important transformations or validations
+
 **Examples**:
 ```go
 // ✅ GOOD: Complete sentence starting with function name
@@ -110,8 +135,21 @@ func FetchRemoteChain(ctx context.Context, url string) (*Chain, error) {
     // implementation...
 }
 
+// ✅ GOOD: Unexported function documentation (when complex)
+// parseStreamingResponse processes the streaming response from the AI API.
+// It handles chunked JSON responses, extracts content tokens, and manages
+// stop reasons for conversation completion.
+func parseStreamingResponse(data []byte) (*CreateMessageResult, error) {
+    // implementation...
+}
+
 // ❌ BAD: Incomplete or missing documentation
 func FetchRemoteChain(ctx context.Context, url string) (*Chain, error) {
+    // implementation...
+}
+
+// ❌ BAD: Unexported function without documentation (if complex)
+func parseStreamingResponse(data []byte) (*CreateMessageResult, error) {
     // implementation...
 }
 ```
@@ -226,23 +264,27 @@ Verification:
 
 ## Important Notes
 
-- **Focus on Exported APIs**: Only document exported (capitalized) functions, types, and interfaces
+- **Focus on Exported and Unexported APIs**: Document exported (capitalized) functions, types, and interfaces, plus unexported symbols that are complex or critical to understanding
+- **Unexported Documentation Priority**: Focus on internal functions that perform important logic, complex algorithms, or non-obvious transformations
 - **Implementation Details**: Documentation should describe what, not how
 - **Consistency**: Follow existing documentation patterns in the codebase
-- **Testing**: Run `go doc` commands to verify documentation renders correctly
+- **Testing**: Run `go doc -u` commands to verify documentation renders correctly for unexported symbols
 - **Cross-Package References**: Update documentation when function signatures change across packages
 - **Version Changes**: Update documentation to reflect API changes between versions
 - **Large Output Handling**: Avoid `go doc -all` for large packages; use individual queries instead
-- **Verification Strategy**: Prefer source code analysis over `go doc` for comprehensive scanning
+- **Verification Strategy**: Prefer source code analysis over `go doc` for comprehensive scanning, use `-u` flag for unexported symbols
 
 ## Verification Checklist
 
 - [ ] All exported functions have documentation starting with function name
 - [ ] All exported types have documentation describing their purpose
 - [ ] All exported interfaces have documentation explaining contracts
+- [ ] Complex unexported functions have appropriate documentation
+- [ ] Critical unexported types have documentation when non-obvious
 - [ ] Documentation accurately reflects current implementation
 - [ ] `go doc` commands render documentation correctly
+- [ ] `go doc -u` commands show unexported documentation when present
 - [ ] Package-level documentation exists and is accurate
 - [ ] Examples in documentation are correct and testable
 
-Focus on creating clear, accurate documentation that helps developers understand and use the APIs correctly.
+Focus on creating clear, accurate documentation that helps developers understand and use the APIs correctly, both public and internal.
