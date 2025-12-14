@@ -247,11 +247,9 @@ func (w *pipeWriter) processLine(line []byte) {
 	if method, ok := req["method"].(string); ok && method == string(mcp.MethodSamplingCreateMessage) {
 		if _, hasID := req["id"]; hasID {
 			// It's a sampling request! Handle it locally.
-			w.t.shutdownWg.Add(1)
-			go func() {
-				defer w.t.shutdownWg.Done()
+			w.t.shutdownWg.Go(func() {
 				w.t.handleSampling(req)
-			}()
+			})
 			return
 		}
 	}
