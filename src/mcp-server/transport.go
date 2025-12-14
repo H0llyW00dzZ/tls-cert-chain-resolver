@@ -214,9 +214,7 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 	writer := &pipeWriter{t: t}
 
 	// Start server in goroutine
-	t.processWg.Add(1)
-	go func() {
-		defer t.processWg.Done()
+	t.processWg.Go(func() {
 		// Listen blocks until context is cancelled or error occurs
 		if err := stdioServer.Listen(t.ctx, reader, writer); err != nil {
 			// Context cancellation is expected
@@ -225,7 +223,7 @@ func (t *InMemoryTransport) ConnectServer(ctx context.Context, srv *server.MCPSe
 				fmt.Printf("StdioServer.Listen error: %v\n", err)
 			}
 		}
-	}()
+	})
 
 	t.started = true
 	return nil
