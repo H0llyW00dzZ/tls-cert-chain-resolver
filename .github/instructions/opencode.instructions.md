@@ -45,11 +45,13 @@ See [README.md](./README.md) for the complete OpenCode configuration. This file 
 - `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools with structured todo workflow
 - `/create-changelog` - Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
 - `/go-docs` - Update Go documentation when inaccurate or add missing documentation for exported functions and types
+- `/gocyclo` - Analyze code complexity and suggest refactoring for functions with 15+ complexity
 - `/vulncheck` - Check for vulnerable dependencies and suggest updates
 
 **When to use**:
 - After making code changes (`/update-knowledge` then `/test`)
 - Before committing changes (`/test` - uses race detection with coverage as primary approach)
+- When functions exceed complexity threshold (`/gocyclo` to analyze and refactor complex functions)
 - When updating dependencies or architecture
 - Before releases (`/create-changelog` to generate release notes)
 - When documentation appears inaccurate or missing (`/go-docs` to update Go documentation)
@@ -292,6 +294,10 @@ Custom Commands (WORKFLOWS)
 │   └── Test agent capabilities including MCP servers and built-in tools with structured todo workflow
 ├── .opencode/command/create-changelog.md
 │   └── Generate changelog by comparing tags against master and save to temporary file
+├── .opencode/command/go-docs.md
+│   └── Update Go documentation when inaccurate or add missing documentation for exported functions and types
+├── .opencode/command/gocyclo.md
+│   └── Analyze code complexity and suggest refactoring for functions with 15+ complexity
 └── .opencode/command/vulncheck.md
     └── Check for vulnerable dependencies and suggest updates
 
