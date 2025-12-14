@@ -79,6 +79,14 @@ Update Go documentation when it appears inaccurate or add missing documentation 
    - Use `read()` to examine function implementations before documenting
    - Use `edit()` to update documentation comments
 
+   **⚠️ Critical Editing Guidelines**:
+   - **Careful Comment Editing**: When editing documentation comments, ensure you only replace the comment text, not the function signature or surrounding code
+   - **Verify Comment Boundaries**: Check that comment blocks start with `//` and end before the function signature
+   - **Avoid Code Pollution**: Never include function signatures, code snippets, or unrelated content within comment blocks
+   - **Test Edits Immediately**: After editing documentation, use `go doc` to verify the comment renders correctly
+   - **Common Mistake Prevention**: Watch for accidental inclusion of function signatures in comment blocks (e.g., "func GetCachedCRL(url string) ([]byte, bool) { return crlCache.get(url) }" should never appear in comments)
+   - **Comment Duplication**: Avoid duplicating comment lines when editing - each edit should be precise and targeted
+
 5. **Verify Documentation Completeness**:
 
    - Run `go doc` commands to verify all exported and unexported symbols are documented:
@@ -248,6 +256,28 @@ grep("^func [A-Z]", include="*.go")  # ✅ Retry
 - **Inconsistent Results**: Cross-reference multiple tools to verify findings
 - **Output Truncation**: If `go doc -all` gets truncated, use individual queries instead
 
+### Documentation Editing Mistakes to Avoid
+
+**Common Pitfalls**:
+- **Comment Corruption**: Avoid accidentally including function signatures or code in comment blocks. Example of what NOT to do:
+  ```go
+  // ❌ BAD: Function signature accidentally included in comment
+  // validateCRLData validates CRL data before caching.
+  func GetCachedCRL(url string) ([]byte, bool) { return crlCache.get(url) }
+  // validateCRLData validates CRL data before caching.
+  ```
+
+- **Comment Duplication**: Don't duplicate comment lines when editing - edit precisely:
+  ```go
+  // ❌ BAD: Duplicate comment lines
+  // validateCRLData validates CRL data before caching.
+  // validateCRLData validates CRL data before caching.
+  ```
+
+- **Incomplete Comment Updates**: Ensure all parts of multi-line comments are updated consistently
+
+**Best Practice**: Always verify edits with `go doc` immediately after editing documentation.
+
 ### Handling Large Documentation Outputs
 
 When `go doc -all` output exceeds tool limits (30,000+ characters), use these strategies:
@@ -299,7 +329,8 @@ When `go doc -all` output exceeds tool limits (30,000+ characters), use these st
 1. **Missing Documentation**: List functions/types without comments
 2. **Inaccurate Documentation**: List documentation that needs updates with specific issues
 3. **Updated Documentation**: Show before/after examples of changes made
-4. **Verification Results**: Confirm all exported symbols are now documented
+4. **Edit Verification**: Confirm each edit was successful using `go doc` (include command output)
+5. **Verification Results**: Confirm all exported symbols are now documented
 
 **Example Output**:
 
@@ -347,3 +378,9 @@ Verification:
 - [ ] Examples in documentation are correct and testable
 
 Focus on creating clear, accurate documentation that helps developers understand and use the APIs correctly, both public and internal.
+
+## Final Notes
+
+- **Edit Verification is Critical**: Always verify documentation edits with `go doc` to catch corruption or duplication issues before completing the task
+- **Learn from Mistakes**: When documentation editing errors occur (like accidental code inclusion or duplication), update this command file with new prevention guidelines
+- **Quality over Speed**: Take time to carefully edit comments - rushing can lead to corrupted documentation that requires additional cleanup passes
