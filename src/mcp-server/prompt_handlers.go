@@ -17,6 +17,15 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
+const (
+	// MaxTemplateSize defines the maximum allowed size for template files (1MB)
+	MaxTemplateSize = 1024 * 1024
+	// MaxMessageContentSize defines the maximum allowed size for individual message content (64KB)
+	MaxMessageContentSize = 64 * 1024
+	// MaxMessagesPerTemplate defines the maximum number of messages allowed per template
+	MaxMessagesPerTemplate = 50
+)
+
 // promptTemplateData holds the data used to populate prompt templates.
 // Using map[string]any for maximum flexibility, type safety, and cleaner field naming.
 // This allows different prompts to use different field names without struct field reuse.
@@ -25,6 +34,44 @@ type promptTemplateData map[string]any
 // templateCache provides thread-safe caching of parsed templates to improve performance.
 // Templates are parsed once and reused across multiple calls.
 var templateCache sync.Map // map[string]*template.Template
+
+// validateTemplateStructure performs security and structural validation on template content.
+//
+// It checks for size limits, role markers, and potential security issues
+// to prevent runtime failures and injection attacks.
+//
+// Parameters:
+//   - templateName: Name of the template for error reporting
+//   - content: Raw template content to validate
+//
+// Returns:
+//   - error: Validation error or nil if valid
+func validateTemplateStructure(templateName, content string) error {
+	// Check size limits
+	if len(content) > MaxTemplateSize {
+		return fmt.Errorf("template %s exceeds maximum size limit of %d bytes (current: %d)", templateName, MaxTemplateSize, len(content))
+	}
+
+	// Check for at least one role marker (Assistant is required, User is optional for informational templates)
+	hasAssistant := strings.Contains(content, "### Assistant:")
+	if !hasAssistant {
+		return fmt.Errorf("template %s must contain at least '### Assistant:' role marker", templateName)
+	}
+
+	// Basic security check - prevent template injection via data
+	if strings.Contains(content, "{{/*") || strings.Contains(content, "*/}}") {
+		return fmt.Errorf("template %s contains potentially unsafe template constructs", templateName)
+	}
+
+	// Check for balanced template braces (basic validation)
+	openBraces := strings.Count(content, "{{")
+	closeBraces := strings.Count(content, "}}")
+	if openBraces != closeBraces {
+		return fmt.Errorf("template %s has unbalanced template braces (open: %d, close: %d)", templateName, openBraces, closeBraces)
+	}
+
+	return nil
+}
 
 // detectRoleMarker checks if a line starts with a role marker and returns the role.
 func detectRoleMarker(line string) mcp.Role {
@@ -37,68 +84,103 @@ func detectRoleMarker(line string) mcp.Role {
 	return ""
 }
 
-// parsePromptTemplate parses a prompt template file and converts it to MCP messages.
+// getOrCreateTemplate retrieves a cached template or creates and caches a new one.
 //
-// This function reads a template file from the embedded filesystem, executes
-// it with the provided data, and converts the structured content into MCP prompt messages.
-// The template-based approach enables dynamic content generation instead of hardcoded values,
-// making prompts more maintainable and flexible.
-//
-// Templates are cached for performance and thread safety. Each execution uses a cloned
-// template to avoid sharing state between concurrent calls.
+// This function implements thread-safe template caching with validation.
+// It reads the template from embedded filesystem, validates it, and caches
+// the parsed template for future use.
 //
 // Parameters:
 //   - templateName: Name of the template file (without .md extension)
-//   - data: Template data to populate placeholders (map[string]any)
 //
 // Returns:
-//   - []mcp.PromptMessage: Parsed MCP messages
-//   - error: Any error during template execution or parsing
-func parsePromptTemplate(templateName string, data promptTemplateData) ([]mcp.PromptMessage, error) {
+//   - *template.Template: Parsed and validated template ready for execution
+//   - error: Any error during reading, validation, or parsing
+func getOrCreateTemplate(templateName string) (*template.Template, error) {
 	// Try to get cached template first
 	cachedTmpl, found := templateCache.Load(templateName)
-	var tmpl *template.Template
-
 	if found {
 		// Clone the cached template for thread safety
-		tmpl = cachedTmpl.(*template.Template)
+		tmpl := cachedTmpl.(*template.Template)
 		cloned, err := tmpl.Clone()
 		if err != nil {
 			return nil, fmt.Errorf("failed to clone cached template %s: %w", templateName, err)
 		}
-		tmpl = cloned
-	} else {
-		// Read and parse template, then cache it
-		templateContent, err := templates.MagicEmbed.ReadFile(templateName + ".md")
-		if err != nil {
-			return nil, fmt.Errorf("failed to read template %s: %w", templateName, err)
-		}
-
-		tmpl, err = template.New(templateName).Parse(string(templateContent))
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse template %s: %w", templateName, err)
-		}
-
-		// Cache the parsed template for future use
-		templateCache.Store(templateName, tmpl)
-
-		// Clone for this execution to avoid sharing state
-		cloned, err := tmpl.Clone()
-		if err != nil {
-			return nil, fmt.Errorf("failed to clone template %s: %w", templateName, err)
-		}
-		tmpl = cloned
+		return cloned, nil
 	}
 
-	// Execute the template
+	// Read and parse template, then cache it
+	templateContent, err := templates.MagicEmbed.ReadFile(templateName + ".md")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read template %s: %w", templateName, err)
+	}
+
+	contentStr := string(templateContent)
+
+	// Validate template structure and security
+	if err := validateTemplateStructure(templateName, contentStr); err != nil {
+		return nil, fmt.Errorf("template validation failed for %s: %w", templateName, err)
+	}
+
+	tmpl, err := template.New(templateName).Parse(contentStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse template %s: %w", templateName, err)
+	}
+
+	// Cache the parsed template for future use
+	templateCache.Store(templateName, tmpl)
+
+	// Clone for this execution to avoid sharing state
+	cloned, err := tmpl.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("failed to clone template %s: %w", templateName, err)
+	}
+
+	return cloned, nil
+}
+
+// executeTemplate executes a template with data and validates the result.
+//
+// This function executes the template, validates the output size, and returns
+// the executed content as a string.
+//
+// Parameters:
+//   - tmpl: Parsed template to execute
+//   - templateName: Name of the template for error reporting
+//   - data: Template data to populate placeholders
+//
+// Returns:
+//   - string: Executed template content
+//   - error: Any error during execution or validation
+func executeTemplate(tmpl *template.Template, templateName string, data promptTemplateData) (string, error) {
 	var buf strings.Builder
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return nil, fmt.Errorf("failed to execute template %s: %w", templateName, err)
+		return "", fmt.Errorf("failed to execute template %s: %w", templateName, err)
 	}
 
 	content := buf.String()
 
-	// Parse the executed content into MCP messages using efficient line-by-line processing
+	// Validate executed content size
+	if len(content) > MaxTemplateSize {
+		return "", fmt.Errorf("executed template %s content exceeds maximum size limit of %d bytes (current: %d)", templateName, MaxTemplateSize, len(content))
+	}
+
+	return content, nil
+}
+
+// parseMessagesFromContent parses executed template content into MCP messages.
+//
+// This function processes the template output line-by-line, extracting role markers
+// and content to build structured MCP prompt messages.
+//
+// Parameters:
+//   - content: Executed template content
+//   - templateName: Name of the template for error reporting
+//
+// Returns:
+//   - []mcp.PromptMessage: Parsed MCP messages
+//   - error: Any error during parsing or validation
+func parseMessagesFromContent(content, templateName string) ([]mcp.PromptMessage, error) {
 	var messages []mcp.PromptMessage
 	contentLen := len(content)
 	pos := 0
@@ -151,6 +233,50 @@ func parsePromptTemplate(templateName string, data promptTemplateData) ([]mcp.Pr
 			currentRole,
 			mcp.NewTextContent(strings.TrimSpace(currentContent.String())),
 		))
+	}
+
+	// Validate message count
+	if len(messages) > MaxMessagesPerTemplate {
+		return nil, fmt.Errorf("template %s generated too many messages (%d), maximum allowed: %d", templateName, len(messages), MaxMessagesPerTemplate)
+	}
+
+	return messages, nil
+}
+
+// parsePromptTemplate parses a prompt template file and converts it to MCP messages.
+//
+// This function reads a template file from the embedded filesystem, executes
+// it with the provided data, and converts the structured content into MCP prompt messages.
+// The template-based approach enables dynamic content generation instead of hardcoded values,
+// making prompts more maintainable and flexible.
+//
+// Templates are cached for performance and thread safety. Each execution uses a cloned
+// template to avoid sharing state between concurrent calls.
+//
+// Parameters:
+//   - templateName: Name of the template file (without .md extension)
+//   - data: Template data to populate placeholders (map[string]any)
+//
+// Returns:
+//   - []mcp.PromptMessage: Parsed MCP messages
+//   - error: Any error during template execution or parsing
+func parsePromptTemplate(templateName string, data promptTemplateData) ([]mcp.PromptMessage, error) {
+	// Get or create the template
+	tmpl, err := getOrCreateTemplate(templateName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Execute the template
+	content, err := executeTemplate(tmpl, templateName, data)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse messages from content
+	messages, err := parseMessagesFromContent(content, templateName)
+	if err != nil {
+		return nil, err
 	}
 
 	return messages, nil
