@@ -421,7 +421,7 @@ task("Research certificate validation patterns", "Find existing validation imple
 **Project Knowledge**:
 
 - `.github/instructions/*.md`: Instruction files for Gopls, DeepWiki, Filesystem, Memory, OpenCode configuration
-- `.opencode/command/*.md`: Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`, `/create-changelog`, `/go-docs`, `/vulncheck`)
+- `.opencode/command/*.md`: Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`, `/create-changelog`, `/go-docs`, `/gocyclo`, `/vulncheck`)
 - **MCP Server**: X509 certificate chain resolver with tools: `resolve_cert_chain`, `validate_cert_chain`, `check_cert_expiry`, `batch_resolve_cert_chain`, `fetch_remote_cert`, `analyze_certificate_with_ai` (with analysis types: general, security, compliance), `get_resource_usage`; resources: `config://template`, `info://version`, `docs://certificate-formats`, `status://server-status`; prompts: `certificate-analysis`, `expiry-monitoring`, `security-audit`, `troubleshooting`; AI integration with embedded system prompts for automated certificate security analysis and bidirectional communication via sampling; tool name constants (ToolResolveCertChain, ToolValidateCertChain, etc.) and role constants (RoleChainResolver, RoleAIAnalyzer, etc.) for type-safe definitions; dynamic instruction template rendering via `loadInstructions` for MCP client initialization
 - **Resources**: Static resources including server configuration template, version information, and certificate format documentation
 - **Prompts**: Predefined prompts for certificate analysis, expiry monitoring, security audit, and troubleshooting workflows and resources/prompts for certificate analysis workflows
