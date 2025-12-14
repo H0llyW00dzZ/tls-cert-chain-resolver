@@ -188,7 +188,7 @@ func populateToolMetadataCache(serverCache *serverCache, tools []ToolDefinition,
 	}
 
 	// Merge tools and toolsWithConfig for the loadToolsConfig function
-	// This maintains backward compatibility with the resource handlers
+	// This provides the AllTools field in toolsConfig for resource handlers
 	allTools := make([]map[string]any, 0, len(serverCache.tools)+len(serverCache.toolsWithConfig))
 	allTools = append(allTools, serverCache.tools...)
 	allTools = append(allTools, serverCache.toolsWithConfig...)
