@@ -306,5 +306,4 @@ func processCertificateByType(cert *x509.Certificate) error {
    - **Suggested refactoring**: Create formatting pipeline
    - **Pattern**: Pipeline pattern with small formatter functions
 
-Focus on functions that are part of the core business logic rather than test or utility functions. Prioritize refactoring that improves maintainability and testability.</content>
-<parameter name="filePath">.opencode/command/gocyclo.md
+Focus on functions that are part of the core business logic rather than test or utility functions. Prioritize refactoring that improves maintainability and testability.
