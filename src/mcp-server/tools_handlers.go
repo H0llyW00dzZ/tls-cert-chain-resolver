@@ -103,14 +103,15 @@ func handleResolveCertChain(ctx context.Context, request mcp.CallToolRequest) (*
 	}
 
 	// Build result with chain information
-	chainInfo := "Certificate chain resolved successfully:\n"
+	var chainInfo strings.Builder
+	chainInfo.WriteString("Certificate chain resolved successfully:\n")
 	for i, c := range certs {
-		chainInfo += fmt.Sprintf("%d: %s\n", i+1, c.Subject.CommonName)
+		chainInfo.WriteString(fmt.Sprintf("%d: %s\n", i+1, c.Subject.CommonName))
 	}
-	chainInfo += fmt.Sprintf("\nTotal: %d certificate(s)\n\n", len(certs))
-	chainInfo += output
+	chainInfo.WriteString(fmt.Sprintf("\nTotal: %d certificate(s)\n\n", len(certs)))
+	chainInfo.WriteString(output)
 
-	return mcp.NewToolResultText(chainInfo), nil
+	return mcp.NewToolResultText(chainInfo.String()), nil
 }
 
 // handleValidateCertChain validates a certificate chain for correctness and trust.
@@ -184,24 +185,25 @@ func handleValidateCertChain(ctx context.Context, request mcp.CallToolRequest) (
 	}
 
 	// Build success result
-	result := "Certificate chain validation successful!\n\n"
-	result += "Chain Details:\n"
+	var result strings.Builder
+	result.WriteString("Certificate chain validation successful!\n\n")
+	result.WriteString("Chain Details:\n")
 	for i, c := range chain.Certs {
-		result += fmt.Sprintf("%d: %s\n", i+1, c.Subject.CommonName)
-		result += fmt.Sprintf("   Valid: %s to %s\n", c.NotBefore.Format("2006-01-02"), c.NotAfter.Format("2006-01-02"))
+		result.WriteString(fmt.Sprintf("%d: %s\n", i+1, c.Subject.CommonName))
+		result.WriteString(fmt.Sprintf("   Valid: %s to %s\n", c.NotBefore.Format("2006-01-02"), c.NotAfter.Format("2006-01-02")))
 		if chain.IsRootNode(c) {
-			result += "   Type: Root CA\n"
+			result.WriteString("   Type: Root CA\n")
 		} else if chain.IsSelfSigned(c) {
-			result += "   Type: Self-signed\n"
+			result.WriteString("   Type: Self-signed\n")
 		} else {
-			result += "   Type: Intermediate\n"
+			result.WriteString("   Type: Intermediate\n")
 		}
 	}
-	result += fmt.Sprintf("\nTotal certificates: %d\n", len(chain.Certs))
-	result += "Validation: PASSED ✓\n\n"
-	result += revocationStatus
+	result.WriteString(fmt.Sprintf("\nTotal certificates: %d\n", len(chain.Certs)))
+	result.WriteString("Validation: PASSED ✓\n\n")
+	result.WriteString(revocationStatus)
 
-	return mcp.NewToolResultText(result), nil
+	return mcp.NewToolResultText(result.String()), nil
 }
 
 // handleBatchResolveCertChain processes multiple certificate chains in batch from comma-separated inputs.
@@ -452,7 +454,8 @@ func handleCheckCertExpiry(ctx context.Context, request mcp.CallToolRequest, con
 	}
 
 	// Check expiry for each certificate
-	result := "Certificate Expiry Check Results:\n\n"
+	var result strings.Builder
+	result.WriteString("Certificate Expiry Check Results:\n\n")
 	now := time.Now()
 
 	allValid := true
@@ -460,40 +463,40 @@ func handleCheckCertExpiry(ctx context.Context, request mcp.CallToolRequest, con
 	expiredCount := 0
 
 	for i, cert := range certs {
-		result += fmt.Sprintf("Certificate %d: %s\n", i+1, cert.Subject.CommonName)
-		result += fmt.Sprintf("  Issued: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST"))
-		result += fmt.Sprintf("  Expires: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST"))
+		result.WriteString(fmt.Sprintf("Certificate %d: %s\n", i+1, cert.Subject.CommonName))
+		result.WriteString(fmt.Sprintf("  Issued: %s\n", cert.NotBefore.Format("2006-01-02 15:04:05 MST")))
+		result.WriteString(fmt.Sprintf("  Expires: %s\n", cert.NotAfter.Format("2006-01-02 15:04:05 MST")))
 
 		daysUntilExpiry := int(cert.NotAfter.Sub(now).Hours() / 24)
 
 		if now.After(cert.NotAfter) {
-			result += fmt.Sprintf("  Status: EXPIRED (%d days ago)\n", -daysUntilExpiry)
+			result.WriteString(fmt.Sprintf("  Status: EXPIRED (%d days ago)\n", -daysUntilExpiry))
 			expiredCount++
 			allValid = false
 		} else if daysUntilExpiry <= warnDays {
-			result += fmt.Sprintf("  Status: EXPIRING SOON (%d days remaining)\n", daysUntilExpiry)
+			result.WriteString(fmt.Sprintf("  Status: EXPIRING SOON (%d days remaining)\n", daysUntilExpiry))
 			expiringSoonCount++
 			allValid = false
 		} else {
-			result += fmt.Sprintf("  Status: VALID (%d days remaining)\n", daysUntilExpiry)
+			result.WriteString(fmt.Sprintf("  Status: VALID (%d days remaining)\n", daysUntilExpiry))
 		}
-		result += "\n"
+		result.WriteString("\n")
 	}
 
 	// Summary
-	result += "Summary:\n"
-	result += fmt.Sprintf("- Total certificates checked: %d\n", len(certs))
-	result += fmt.Sprintf("- Expired: %d\n", expiredCount)
-	result += fmt.Sprintf("- Expiring within %d days: %d\n", warnDays, expiringSoonCount)
-	result += fmt.Sprintf("- Valid: %d\n", len(certs)-expiredCount-expiringSoonCount)
+	result.WriteString("Summary:\n")
+	result.WriteString(fmt.Sprintf("- Total certificates checked: %d\n", len(certs)))
+	result.WriteString(fmt.Sprintf("- Expired: %d\n", expiredCount))
+	result.WriteString(fmt.Sprintf("- Expiring within %d days: %d\n", warnDays, expiringSoonCount))
+	result.WriteString(fmt.Sprintf("- Valid: %d\n", len(certs)-expiredCount-expiringSoonCount))
 
 	if allValid {
-		result += "\n✓ All certificates are valid and not expiring soon."
+		result.WriteString("\n✓ All certificates are valid and not expiring soon.")
 	} else {
-		result += "\n⚠️  Some certificates require attention."
+		result.WriteString("\n⚠️  Some certificates require attention.")
 	}
 
-	return mcp.NewToolResultText(result), nil
+	return mcp.NewToolResultText(result.String()), nil
 }
 
 // handleAnalyzeCertificateWithAI analyzes certificate data using AI collaboration through sampling.
