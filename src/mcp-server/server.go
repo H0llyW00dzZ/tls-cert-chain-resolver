@@ -132,6 +132,7 @@ func Run(version string) error {
 		WithResources(createResources()...).
 		WithPrompts(createPrompts()...).
 		WithInstructions(instructions).
+		WithPopulate().
 		Build()
 	if err != nil {
 		return fmt.Errorf("failed to build server: %w", err)

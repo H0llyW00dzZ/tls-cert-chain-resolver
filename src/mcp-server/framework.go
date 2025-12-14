@@ -203,6 +203,7 @@ type ToolDefinitionWithConfig struct {
 //   - Prompts: List of predefined prompts for guided workflows
 //   - SamplingHandler: Handler for bidirectional AI communication and streaming responses
 //   - Instructions: Server instructions for MCP clients describing capabilities and behavior
+//   - PopulateCache: Whether to populate metadata cache for resource handlers
 //
 // This struct is used internally by ServerBuilder and should not be instantiated directly.
 type ServerDependencies struct {
@@ -217,6 +218,7 @@ type ServerDependencies struct {
 	Prompts         []server.ServerPrompt
 	SamplingHandler client.SamplingHandler // Added for bidirectional AI communication
 	Instructions    string                 // Server instructions for MCP clients
+	PopulateCache   bool                   // Whether to populate metadata cache
 }
 
 // ServerBuilder helps construct the [MCP] server with proper dependencies using a fluent interface.
@@ -441,6 +443,20 @@ func (b *ServerBuilder) WithDefaultTools() *ServerBuilder {
 	return b
 }
 
+// WithPopulate enables metadata cache population for resource handlers.
+// It configures the server to populate the metadata cache with tool, prompt, and resource information
+// that resource handlers can access dynamically.
+//
+// Returns:
+//   - The ServerBuilder instance for method chaining
+//
+// This should be called when using resource handlers that need access to server capabilities metadata.
+// The cache is populated during the Build() method after all components are registered.
+func (b *ServerBuilder) WithPopulate() *ServerBuilder {
+	b.deps.PopulateCache = true
+	return b
+}
+
 // Build creates the [MCP] server with all configured dependencies.
 // It validates the configuration and constructs a fully configured MCP server instance.
 //
@@ -491,6 +507,14 @@ func (b *ServerBuilder) Build() (*server.MCPServer, error) {
 	// Add prompts
 	for _, prompt := range b.deps.Prompts {
 		s.AddPrompt(prompt.Prompt, prompt.Handler)
+	}
+
+	// Populate metadata cache for resource handlers if requested
+	if b.deps.PopulateCache {
+		cache := getServerCache()
+		populateToolMetadataCache(cache, b.deps.Tools, b.deps.ToolsWithConfig)
+		populatePromptMetadataCache(cache, b.deps.Prompts)
+		populateResourceMetadataCache(cache, b.deps.Resources)
 	}
 
 	return s, nil
