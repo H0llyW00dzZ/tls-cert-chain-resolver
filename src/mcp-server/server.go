@@ -119,7 +119,10 @@ func Run(version string) error {
 		cancel()
 	}()
 
-	// Create MCP server using ServerBuilder for better testability
+	// Create MCP server using ServerBuilder for better testability and maintainability.
+	// The mcpserver implementation follows a framework-style design, allowing flexible
+	// server construction with dependency injection, making the codebase more modular
+	// and easier to extend with new features.
 	s, err := NewServerBuilder().
 		WithConfig(config).
 		WithEmbed(templates.MagicEmbed).
