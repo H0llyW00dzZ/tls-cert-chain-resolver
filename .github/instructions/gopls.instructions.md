@@ -82,6 +82,7 @@ gopls_go_search("handleGetResourceUsage") → Find resource usage monitoring too
 gopls_go_search("addResources") → Find MCP server resource implementations
 gopls_go_search("addPrompts") → Find MCP server prompt implementations
 gopls_go_search("ServerBuilder") → Find builder pattern implementation
+gopls_go_search("WithPopulate") → Find opt-in metadata cache population method
 gopls_go_search("createResources") → Find resource creation functions
 gopls_go_search("createPrompts") → Find prompt creation functions
 gopls_go_search("handleStatusResource") → Find status resource handler

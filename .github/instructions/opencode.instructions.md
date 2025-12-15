@@ -44,7 +44,7 @@ See [README.md](./README.md) for the complete OpenCode configuration. This file 
 - `/test` - Run tests with race detection and coverage (primary test approach), then analyze failures
 - `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools with structured todo workflow
 - `/create-changelog` - Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
-- `/go-docs` - Update Go documentation when inaccurate or add missing documentation for exported functions and types
+- `/go-docs` - Update Go documentation when inaccurate or add missing documentation for exported and unexported functions, types, and interfaces with comprehensive guidelines and error handling
 - `/gocyclo` - Analyze code complexity and suggest refactoring for functions with 15+ complexity
 - `/vulncheck` - Check for vulnerable dependencies and suggest updates
 
