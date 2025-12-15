@@ -160,9 +160,9 @@ When dealing with very large releases (>100 commits), consider these approaches:
 git rev-list --count v0.5.1..master
 
 # Process in batches of 50 commits
-git log --oneline v0.5.1..master | head -50
-git log --oneline v0.5.1..master | sed -n '51,100p'
-git log --oneline v0.5.1..master | sed -n '101,150p'
+git log --oneline --max-count=50 v0.5.1..master
+git log --oneline --skip=50 --max-count=50 v0.5.1..master
+git log --oneline --skip=100 --max-count=50 v0.5.1..master
 
 # Get statistics without full details
 git shortlog --numbered --summary v0.5.1..master
