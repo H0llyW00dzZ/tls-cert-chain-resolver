@@ -15,10 +15,16 @@ import (
 
 // createResources creates and returns all MCP resources without adding them to a server.
 //
-// This allows for easier testing of resource creation logic and resource definition validation.
+// This function generates MCP-compliant resource definitions that provide access to
+// static content, configuration templates, and metadata. Resources are created
+// independently of server initialization to enable testing and validation.
+//
+// Resource definitions include URI patterns, MIME types, audience restrictions,
+// and handler functions that provide the actual content. This separation allows
+// for flexible resource management and testing scenarios.
 //
 // Returns:
-//   - A slice of server.ServerResource containing all static and dynamic resources
+//   - []server.ServerResource: Slice of server resource definitions with their handlers
 //
 // The function defines the following resources:
 //   - config://template: Example configuration file for the MCP server
@@ -26,8 +32,13 @@ import (
 //   - docs://certificate-formats: Documentation on supported certificate formats and usage
 //   - status://server-status: Current status and health information for the MCP server
 //
-// These resources provide static content and metadata to MCP clients. Each resource
-// includes a URI, name, description, MIME type, and handler function.
+// Each resource definition includes:
+//   - Unique URI identifier following MCP resource naming conventions
+//   - Human-readable name and description for user interfaces
+//   - MIME type specification for proper content handling
+//   - Audience restrictions and priority settings for access control
+//   - Metadata tags for categorization and discovery
+//   - Handler functions that generate or serve the resource content
 func createResources() []server.ServerResource {
 	resources := []server.ServerResource{
 		{
