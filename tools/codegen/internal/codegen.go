@@ -577,6 +577,18 @@ func generateFile(templatePath, outputPath string, config *Config, fileType stri
 			}
 			return count
 		},
+		"joinTools": func(tools []ToolDefinition, withConfig bool) string {
+			var names []string
+			for _, tool := range tools {
+				if tool.WithConfig == withConfig {
+					names = append(names, tool.Name)
+				}
+			}
+			if len(names) == 0 {
+				return ""
+			}
+			return strings.Join(names, ", ")
+		},
 	}).ParseFiles(templatePath)
 	if err != nil {
 		return fmt.Errorf("parsing template from %s: %w", templatePath, err)
