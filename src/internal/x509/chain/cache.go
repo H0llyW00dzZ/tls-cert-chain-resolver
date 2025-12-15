@@ -163,6 +163,11 @@ type CRLCacheMetrics struct {
 }
 
 // crlCacheCounters holds atomic counters for thread-safe metrics tracking.
+//
+// It provides lock-free access to cache performance statistics, allowing
+// concurrent goroutines to increment counters without synchronization overhead.
+// Each field uses atomic.Int64 for safe concurrent updates across multiple
+// goroutine accesses during cache operations.
 type crlCacheCounters struct {
 	// Hits: Atomic counter for cache hit operations
 	Hits atomic.Int64
