@@ -93,7 +93,8 @@ The tool automatically finds its configuration and template files regardless of 
       "name": "New Resource",
       "description": "Description of the new resource",
       "mimeType": "application/json",
-      "handler": "handleNewResource"
+      "handler": "handleNewResource",
+      "withEmbed": false
     }
   ]
 }
@@ -148,6 +149,7 @@ go generate ./src/mcp-server
       "name": "new-prompt",
       "description": "Description of the new prompt",
       "handler": "handleNewPrompt",
+      "withEmbed": true,
       "arguments": [
         {
           "name": "arg1",
@@ -174,6 +176,7 @@ go generate ./src/mcp-server
   "description": "string",   // Required: Description
   "mimeType": "string",      // Required: MIME type
   "handler": "string",       // Required: Handler function name
+  "withEmbed": boolean,      // Optional: Whether resource needs embedded filesystem access (default: false)
   "audience": ["string"],    // Optional: MCP audience roles ("user", "assistant")
   "priority": number,        // Optional: MCP priority (0.0-10.0)
   "meta": {                  // Optional: Additional metadata
@@ -233,6 +236,7 @@ go generate ./src/mcp-server
   "name": "string",          // Required: Prompt name (must be unique)
   "description": "string",   // Required: Prompt description
   "handler": "string",       // Required: Handler function name
+  "withEmbed": boolean,      // Optional: Whether prompt needs embedded filesystem access (default: false)
   "arguments": [             // Optional: Prompt arguments
     {
       "name": "string",        // Required: Argument name (must be unique)
@@ -283,6 +287,11 @@ The configuration files follow these formal JSON schemas for validation and docu
           "handler": {
             "type": "string",
             "description": "Handler function name"
+          },
+          "withEmbed": {
+            "type": "boolean",
+            "description": "Whether resource needs embedded filesystem access",
+            "default": false
           },
           "audience": {
             "type": "array",
@@ -477,6 +486,11 @@ The configuration files follow these formal JSON schemas for validation and docu
             "type": "string",
             "description": "Handler function name"
           },
+          "withEmbed": {
+            "type": "boolean",
+            "description": "Whether prompt needs embedded filesystem access",
+            "default": false
+          },
           "arguments": {
             "type": "array",
             "items": {
@@ -523,6 +537,20 @@ The configuration files follow these formal JSON schemas for validation and docu
   }
 }
 ```
+
+## Embed Access Configuration
+
+The `withEmbed` field controls whether a resource or prompt requires access to the embedded filesystem:
+
+- **`withEmbed: false`** (default): Component does not need embedded filesystem access
+- **`withEmbed: true`**: Component requires embedded filesystem access (e.g., for loading templates)
+
+Components with `withEmbed: true` will be generated with special handler types (`ResourceHandlerWithEmbed`, `PromptHandlerWithEmbed`) that receive the embedded filesystem as an additional parameter.
+
+### When to use `withEmbed: true`:
+
+- **Resources**: When serving static content like documentation that needs to load embedded templates
+- **Prompts**: When generating dynamic content that requires access to embedded template files
 
 ## Validation Rules
 

@@ -10,40 +10,38 @@ package mcpserver
 
 import (
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
 )
 
 // createPrompts creates and returns all MCP prompt definitions with their handlers.
+// It organizes prompts into two categories: those that don't require embedded filesystem
+// access and those that need access to embedded templates for dynamic content generation.
 //
-// This function generates MCP-compliant prompt definitions that provide structured
-// workflows for certificate analysis and management tasks. Each prompt encapsulates
-// a specific use case with predefined arguments and execution logic.
-//
-// Prompts serve as guided workflows that combine multiple MCP tools in logical
-// sequences, making complex certificate operations accessible through simple,
-// high-level interfaces. They include argument validation, metadata for categorization,
-// and handler functions that orchestrate tool execution.
+// This function generates MCP-compliant prompt definitions with proper argument validation,
+// metadata for categorization, and handler bindings. Prompts are categorized based on their
+// embedded filesystem requirements to enable flexible server initialization.
 //
 // Returns:
-//   - []server.ServerPrompt: Slice of server prompt definitions with their handlers
+//   - []ServerPrompt: Slice of server prompt definitions without embed access
+//   - []ServerPromptWithEmbed: Slice of server prompt definitions with embed access
 //
-// The defined prompts are:
+// The function defines the following prompts:
 //   - certificate-analysis: Comprehensive certificate chain analysis workflow
 //   - expiry-monitoring: Monitor certificate expiration dates and generate renewal alerts
 //   - security-audit: Perform comprehensive SSL/TLS security audit on a server
 //   - troubleshooting: Troubleshoot common certificate and TLS issues
 //   - resource-monitoring: Monitor server resource usage and performance metrics for certificate operations
 //
-// Prompt Features:
-//   - Structured argument definitions with validation and descriptions
-//   - Metadata tags for categorization and filtering
-//   - Handler functions that implement workflow logic
-//   - Integration with MCP tool ecosystem for comprehensive certificate operations
-//
-// These prompts enable users to perform complex certificate management tasks
-// through guided, context-aware workflows rather than individual tool invocations.
-func createPrompts() []server.ServerPrompt {
-	prompts := []server.ServerPrompt{
+// Each prompt definition includes:
+//   - MCP argument specifications with validation and descriptions
+//   - Comprehensive descriptions for user interface display
+//   - Metadata tags for categorization and discovery
+//   - Proper handler function bindings for prompt execution
+func createPrompts() ([]ServerPrompt, []ServerPromptWithEmbed) {
+	// Prompts that don't need embed access
+	prompts := []ServerPrompt{}
+
+	// Prompts that need embed access
+	promptsWithEmbed := []ServerPromptWithEmbed{
 		{
 			Prompt: func() mcp.Prompt {
 				prompt := mcp.NewPrompt(
@@ -145,5 +143,5 @@ func createPrompts() []server.ServerPrompt {
 		},
 	}
 
-	return prompts
+	return prompts, promptsWithEmbed
 }

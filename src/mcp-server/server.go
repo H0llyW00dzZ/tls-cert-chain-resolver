@@ -95,6 +95,12 @@ func Run(version string) error {
 	// Create tools (called once and reused)
 	tools, toolsWithConfig := createTools()
 
+	// Create resources (called once and reused)
+	resources, resourcesWithEmbed := createResources()
+
+	// Create prompts (called once and reused)
+	prompts, promptsWithEmbed := createPrompts()
+
 	// Load server instructions with tool information
 	//
 	// This approach is better as it uses dynamic content generation based on tools,
@@ -132,8 +138,10 @@ func Run(version string) error {
 		WithSampling(NewDefaultSamplingHandler(config, version)).
 		WithTools(tools...).
 		WithToolsWithConfig(toolsWithConfig...).
-		WithResources(createResources()...).
-		WithPrompts(createPrompts()...).
+		WithResources(resources...).
+		WithEmbeddedResources(resourcesWithEmbed...).
+		WithPrompts(prompts...).
+		WithEmbeddedPrompts(promptsWithEmbed...).
 		WithInstructions(instructions).
 		WithPopulate().
 		Build()

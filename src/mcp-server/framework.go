@@ -147,6 +147,20 @@ type ToolHandlerWithConfig = func(ctx context.Context, request mcp.CallToolReque
 // Resource handlers can return multiple content items for complex resources.
 type ResourceHandler = func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error)
 
+// ResourceHandlerWithEmbed defines resource handlers that require access to the embedded filesystem.
+// It extends ResourceHandler to include an EmbedFS parameter for accessing embedded templates.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: The MCP resource read request containing the resource URI
+//   - embed: The embedded filesystem interface for accessing templates and documentation
+//
+// Returns:
+//   - A slice of resource contents or an error if the resource cannot be read
+//
+// This type is used for resources that need to access embedded templates like documentation.
+type ResourceHandlerWithEmbed = func(ctx context.Context, request mcp.ReadResourceRequest, embed templates.EmbedFS) ([]mcp.ResourceContents, error)
+
 // PromptHandler defines the signature for prompt handlers that provide predefined prompts.
 // It processes prompt requests and returns prompt content with optional arguments.
 //
@@ -159,6 +173,20 @@ type ResourceHandler = func(ctx context.Context, request mcp.ReadResourceRequest
 //
 // Prompt handlers are used for guided workflows like certificate analysis or security audits.
 type PromptHandler = func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error)
+
+// PromptHandlerWithEmbed defines prompt handlers that require access to the embedded filesystem.
+// It extends PromptHandler to include an EmbedFS parameter for accessing embedded templates.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: The MCP prompt request containing the prompt name and arguments
+//   - embed: The embedded filesystem interface for accessing templates and documentation
+//
+// Returns:
+//   - The prompt result containing messages and description, or an error if the prompt is not found
+//
+// This type is used for prompts that need to access embedded templates for dynamic content generation.
+type PromptHandlerWithEmbed = func(ctx context.Context, request mcp.GetPromptRequest, embed templates.EmbedFS) (*mcp.GetPromptResult, error)
 
 // ToolDefinition holds a tool definition that doesn't require configuration access.
 // It pairs an MCP tool specification with its implementation function.
@@ -197,6 +225,66 @@ type ToolDefinitionWithConfig struct {
 	Role string
 }
 
+// ServerResource holds a resource definition that doesn't require embedded filesystem access.
+// It pairs an MCP resource specification with its implementation function.
+//
+// Fields:
+//   - Resource: The MCP resource definition containing URI, name, description, and MIME type
+//   - Handler: The function that implements the resource's logic
+//
+// This struct is used when registering resources that don't need access to embedded templates.
+type ServerResource struct {
+	// Resource: The MCP resource definition containing URI, name, description, and MIME type
+	Resource mcp.Resource
+	// Handler: The function that implements the resource's logic
+	Handler ResourceHandler
+}
+
+// ServerResourceWithEmbed holds a resource definition that requires embedded filesystem access.
+// It pairs an MCP resource specification with a handler that receives the embedded filesystem.
+//
+// Fields:
+//   - Resource: The MCP resource definition containing URI, name, description, and MIME type
+//   - Handler: The function that implements the resource's logic with embed access
+//
+// This struct is used for resources that need to access embedded templates like documentation.
+type ServerResourceWithEmbed struct {
+	// Resource: The MCP resource definition containing URI, name, description, and MIME type
+	Resource mcp.Resource
+	// Handler: The function that implements the resource's logic with embed access
+	Handler ResourceHandlerWithEmbed
+}
+
+// ServerPrompt holds a prompt definition that doesn't require embedded filesystem access.
+// It pairs an MCP prompt specification with its implementation function.
+//
+// Fields:
+//   - Prompt: The MCP prompt definition containing name, description, and arguments
+//   - Handler: The function that implements the prompt's logic
+//
+// This struct is used when registering prompts that don't need access to embedded templates.
+type ServerPrompt struct {
+	// Prompt: The MCP prompt definition containing name, description, and arguments
+	Prompt mcp.Prompt
+	// Handler: The function that implements the prompt's logic
+	Handler PromptHandler
+}
+
+// ServerPromptWithEmbed holds a prompt definition that requires embedded filesystem access.
+// It pairs an MCP prompt specification with a handler that receives the embedded filesystem.
+//
+// Fields:
+//   - Prompt: The MCP prompt definition containing name, description, and arguments
+//   - Handler: The function that implements the prompt's logic with embed access
+//
+// This struct is used for prompts that need to access embedded templates for dynamic content generation.
+type ServerPromptWithEmbed struct {
+	// Prompt: The MCP prompt definition containing name, description, and arguments
+	Prompt mcp.Prompt
+	// Handler: The function that implements the prompt's logic with embed access
+	Handler PromptHandlerWithEmbed
+}
+
 // ServerDependencies holds all dependencies needed to create the MCP server.
 // It consolidates all required components for server initialization using the builder pattern.
 //
@@ -231,9 +319,13 @@ type ServerDependencies struct {
 	// ToolsWithConfig: List of tool definitions that need configuration access
 	ToolsWithConfig []ToolDefinitionWithConfig
 	// Resources: List of static and dynamic resources provided by the server
-	Resources []server.ServerResource
+	Resources []ServerResource
+	// ResourcesWithEmbed: List of resources that require embedded filesystem access
+	ResourcesWithEmbed []ServerResourceWithEmbed
 	// Prompts: List of predefined prompts for guided workflows
-	Prompts []server.ServerPrompt
+	Prompts []ServerPrompt
+	// PromptsWithEmbed: List of prompts that require embedded filesystem access
+	PromptsWithEmbed []ServerPromptWithEmbed
 	// SamplingHandler: Handler for bidirectional AI communication and streaming responses
 	SamplingHandler client.SamplingHandler // Added for bidirectional AI communication
 	// Instructions: Server instructions for MCP clients describing capabilities and behavior
@@ -386,15 +478,31 @@ func (b *ServerBuilder) WithToolsWithConfig(tools ...ToolDefinitionWithConfig) *
 // It registers resources that can be read by MCP clients using resource URIs.
 //
 // Parameters:
-//   - resources: Variable number of server.ServerResource structs containing resource specs and handlers
+//   - resources: Variable number of ServerResource structs containing resource specs and handlers
 //
 // Returns:
 //   - The ServerBuilder instance for method chaining
 //
 // Resources can provide static content (like documentation) or dynamic content
 // (like server status). Clients access resources using URIs like "info://version".
-func (b *ServerBuilder) WithResources(resources ...server.ServerResource) *ServerBuilder {
+func (b *ServerBuilder) WithResources(resources ...ServerResource) *ServerBuilder {
 	b.deps.Resources = append(b.deps.Resources, resources...)
+	return b
+}
+
+// WithEmbeddedResources adds resources that require embedded filesystem access to the MCP server.
+// It registers resources that need access to embedded templates or files.
+//
+// Parameters:
+//   - resources: Variable number of ServerResourceWithEmbed structs containing resource specs and handlers
+//
+// Returns:
+//   - The ServerBuilder instance for method chaining
+//
+// Resources added with this method receive access to the embedded filesystem
+// for accessing templates, documentation, or other embedded content.
+func (b *ServerBuilder) WithEmbeddedResources(resources ...ServerResourceWithEmbed) *ServerBuilder {
+	b.deps.ResourcesWithEmbed = append(b.deps.ResourcesWithEmbed, resources...)
 	return b
 }
 
@@ -402,15 +510,31 @@ func (b *ServerBuilder) WithResources(resources ...server.ServerResource) *Serve
 // It registers prompts that provide structured interactions for common tasks.
 //
 // Parameters:
-//   - prompts: Variable number of server.ServerPrompt structs containing prompt specs and handlers
+//   - prompts: Variable number of ServerPrompt structs containing prompt specs and handlers
 //
 // Returns:
 //   - The ServerBuilder instance for method chaining
 //
 // Prompts are used for workflows like certificate analysis or security audits,
 // providing clients with predefined conversation starters and argument schemas.
-func (b *ServerBuilder) WithPrompts(prompts ...server.ServerPrompt) *ServerBuilder {
+func (b *ServerBuilder) WithPrompts(prompts ...ServerPrompt) *ServerBuilder {
 	b.deps.Prompts = append(b.deps.Prompts, prompts...)
+	return b
+}
+
+// WithEmbeddedPrompts adds prompts that require embedded filesystem access to the MCP server.
+// It registers prompts that need access to embedded templates for dynamic content generation.
+//
+// Parameters:
+//   - prompts: Variable number of ServerPromptWithEmbed structs containing prompt specs and handlers
+//
+// Returns:
+//   - The ServerBuilder instance for method chaining
+//
+// Prompts added with this method receive access to the embedded filesystem
+// for loading templates and generating dynamic content.
+func (b *ServerBuilder) WithEmbeddedPrompts(prompts ...ServerPromptWithEmbed) *ServerBuilder {
+	b.deps.PromptsWithEmbed = append(b.deps.PromptsWithEmbed, prompts...)
 	return b
 }
 
@@ -522,12 +646,30 @@ func (b *ServerBuilder) Build() (*server.MCPServer, error) {
 
 	// Add resources
 	for _, resource := range b.deps.Resources {
-		s.AddResource(resource.Resource, resource.Handler)
+		s.AddResource(resource.Resource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+			return resource.Handler(ctx, request)
+		})
+	}
+
+	// Add resources that need embed access (dependency injection passing Magic embedded filesystem)
+	for _, resource := range b.deps.ResourcesWithEmbed {
+		s.AddResource(resource.Resource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+			return resource.Handler(ctx, request, b.deps.Embed)
+		})
 	}
 
 	// Add prompts
 	for _, prompt := range b.deps.Prompts {
-		s.AddPrompt(prompt.Prompt, prompt.Handler)
+		s.AddPrompt(prompt.Prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+			return prompt.Handler(ctx, request)
+		})
+	}
+
+	// Add prompts that need embed access (dependency injection passing Magic embedded filesystem)
+	for _, prompt := range b.deps.PromptsWithEmbed {
+		s.AddPrompt(prompt.Prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+			return prompt.Handler(ctx, request, b.deps.Embed)
+		})
 	}
 
 	// Populate metadata cache for resource handlers if requested

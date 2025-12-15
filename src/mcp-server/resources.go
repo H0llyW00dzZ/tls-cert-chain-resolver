@@ -10,21 +10,19 @@ package mcpserver
 
 import (
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
 )
 
 // createResources creates and returns all MCP resources without adding them to a server.
+// It organizes resources into two categories: those that don't require embedded filesystem
+// access and those that need access to embedded templates or static files.
 //
-// This function generates MCP-compliant resource definitions that provide access to
-// static content, configuration templates, and metadata. Resources are created
-// independently of server initialization to enable testing and validation.
-//
-// Resource definitions include URI patterns, MIME types, audience restrictions,
-// and handler functions that provide the actual content. This separation allows
-// for flexible resource management and testing scenarios.
+// This function generates MCP-compliant resource definitions with proper URI patterns,
+// MIME types, audience restrictions, and handler bindings. Resources are categorized based on
+// their embedded filesystem requirements to enable flexible server initialization.
 //
 // Returns:
-//   - []server.ServerResource: Slice of server resource definitions with their handlers
+//   - []ServerResource: Slice of server resource definitions without embed access
+//   - []ServerResourceWithEmbed: Slice of server resource definitions with embed access
 //
 // The function defines the following resources:
 //   - config://template: Example configuration file for the MCP server
@@ -39,8 +37,9 @@ import (
 //   - Audience restrictions and priority settings for access control
 //   - Metadata tags for categorization and discovery
 //   - Handler functions that generate or serve the resource content
-func createResources() []server.ServerResource {
-	resources := []server.ServerResource{
+func createResources() ([]ServerResource, []ServerResourceWithEmbed) {
+	// Resources that don't need embed access
+	resources := []ServerResource{
 		{
 			Resource: func() mcp.Resource {
 				res := mcp.NewResource(
@@ -80,24 +79,6 @@ func createResources() []server.ServerResource {
 		{
 			Resource: func() mcp.Resource {
 				res := mcp.NewResource(
-					"docs://certificate-formats",
-					"Certificate Format Documentation",
-					mcp.WithResourceDescription("Documentation on supported certificate formats and usage"),
-					mcp.WithMIMEType("text/markdown"),
-					mcp.WithAnnotations(
-						[]mcp.Role{
-							mcp.RoleUser,
-							mcp.RoleAssistant,
-						}, 0.9),
-				)
-				res.Meta = mcp.NewMetaFromMap(map[string]any{"category": "documentation", "readOnly": true})
-				return res
-			}(),
-			Handler: handleCertificateFormatsResource,
-		},
-		{
-			Resource: func() mcp.Resource {
-				res := mcp.NewResource(
 					"status://server-status",
 					"Server Status Information",
 					mcp.WithResourceDescription("Current status and health information for the MCP server"),
@@ -115,5 +96,27 @@ func createResources() []server.ServerResource {
 		},
 	}
 
-	return resources
+	// Resources that need embed access
+	resourcesWithEmbed := []ServerResourceWithEmbed{
+		{
+			Resource: func() mcp.Resource {
+				res := mcp.NewResource(
+					"docs://certificate-formats",
+					"Certificate Format Documentation",
+					mcp.WithResourceDescription("Documentation on supported certificate formats and usage"),
+					mcp.WithMIMEType("text/markdown"),
+					mcp.WithAnnotations(
+						[]mcp.Role{
+							mcp.RoleUser,
+							mcp.RoleAssistant,
+						}, 0.9),
+				)
+				res.Meta = mcp.NewMetaFromMap(map[string]any{"category": "documentation", "readOnly": true})
+				return res
+			}(),
+			Handler: handleCertificateFormatsResource,
+		},
+	}
+
+	return resources, resourcesWithEmbed
 }

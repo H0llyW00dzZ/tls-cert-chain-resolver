@@ -42,9 +42,10 @@ type ResourceDefinition struct {
 	Description string         `json:"description"`
 	MIMEType    string         `json:"mimeType"`
 	Handler     string         `json:"handler"`
-	Audience    []string       `json:"audience,omitempty"` // MCP annotation audience roles
-	Priority    *float64       `json:"priority,omitempty"` // MCP annotation priority
-	Meta        map[string]any `json:"meta,omitempty"`     // Additional metadata fields
+	WithEmbed   bool           `json:"withEmbed,omitempty"` // Whether resource needs embed access
+	Audience    []string       `json:"audience,omitempty"`  // MCP annotation audience roles
+	Priority    *float64       `json:"priority,omitempty"`  // MCP annotation priority
+	Meta        map[string]any `json:"meta,omitempty"`      // Additional metadata fields
 }
 
 // ToolDefinition represents a tool to be generated
@@ -92,6 +93,7 @@ type PromptDefinition struct {
 	Name        string           `json:"name"`
 	Description string           `json:"description"`
 	Handler     string           `json:"handler"`
+	WithEmbed   bool             `json:"withEmbed,omitempty"` // Whether prompt needs embed access
 	Arguments   []PromptArgument `json:"arguments"`
 	Audience    []string         `json:"audience,omitempty"` // MCP annotation audience roles
 	Priority    *float64         `json:"priority,omitempty"` // MCP annotation priority
@@ -626,12 +628,7 @@ func generateFile(templatePath, outputPath string, config *Config, fileType stri
 	// Package and imports
 	code.WriteString("package mcpserver\n\n")
 	code.WriteString("import (\n")
-	if fileType == "resources" || fileType == "prompts" {
-		code.WriteString("\t\"github.com/mark3labs/mcp-go/mcp\"\n")
-		code.WriteString("\t\"github.com/mark3labs/mcp-go/server\"\n")
-	} else {
-		code.WriteString("\t\"github.com/mark3labs/mcp-go/mcp\"\n")
-	}
+	code.WriteString("\t\"github.com/mark3labs/mcp-go/mcp\"\n")
 	code.WriteString(")\n\n")
 
 	// Execute template

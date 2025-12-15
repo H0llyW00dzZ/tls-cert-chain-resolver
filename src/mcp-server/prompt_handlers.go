@@ -92,11 +92,12 @@ func detectRoleMarker(line string) mcp.Role {
 //
 // Parameters:
 //   - templateName: Name of the template file (without .md extension)
+//   - embed: Embedded filesystem interface for accessing templates
 //
 // Returns:
 //   - *template.Template: Parsed and validated template ready for execution
 //   - error: Any error during reading, validation, or parsing
-func getOrCreateTemplate(templateName string) (*template.Template, error) {
+func getOrCreateTemplate(templateName string, embed templates.EmbedFS) (*template.Template, error) {
 	// Try to get cached template first
 	cachedTmpl, found := templateCache.Load(templateName)
 	if found {
@@ -110,7 +111,7 @@ func getOrCreateTemplate(templateName string) (*template.Template, error) {
 	}
 
 	// Read and parse template, then cache it
-	templateContent, err := templates.MagicEmbed.ReadFile(templateName + ".md")
+	templateContent, err := embed.ReadFile(templateName + ".md")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template %s: %w", templateName, err)
 	}
@@ -250,19 +251,17 @@ func parseMessagesFromContent(content, templateName string) ([]mcp.PromptMessage
 // The template-based approach enables dynamic content generation instead of hardcoded values,
 // making prompts more maintainable and flexible.
 //
-// Templates are cached for performance and thread safety. Each execution uses a cloned
-// template to avoid sharing state between concurrent calls.
-//
 // Parameters:
 //   - templateName: Name of the template file (without .md extension)
 //   - data: Template data to populate placeholders (map[string]any)
+//   - embed: Embedded filesystem interface for accessing templates
 //
 // Returns:
 //   - []mcp.PromptMessage: Parsed MCP messages
 //   - error: Any error during template execution or parsing
-func parsePromptTemplate(templateName string, data promptTemplateData) ([]mcp.PromptMessage, error) {
+func parsePromptTemplate(templateName string, data promptTemplateData, embed templates.EmbedFS) ([]mcp.PromptMessage, error) {
 	// Get or create the template
-	tmpl, err := getOrCreateTemplate(templateName)
+	tmpl, err := getOrCreateTemplate(templateName, embed)
 	if err != nil {
 		return nil, err
 	}
@@ -292,6 +291,7 @@ func parsePromptTemplate(templateName string, data promptTemplateData) ([]mcp.Pr
 // Parameters:
 //   - ctx: Context for the request, used for cancellation and timeouts
 //   - request: The MCP get prompt request containing arguments
+//   - embed: Embedded filesystem interface for accessing templates
 //
 // Returns:
 //   - *mcp.GetPromptResult: The prompt result with workflow messages
@@ -305,12 +305,12 @@ func parsePromptTemplate(templateName string, data promptTemplateData) ([]mcp.Pr
 //
 // Expected arguments in request.Params.Arguments:
 //   - certificate_path: Path to certificate file or base64-encoded certificate data
-func handleCertificateAnalysisPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+func handleCertificateAnalysisPrompt(ctx context.Context, request mcp.GetPromptRequest, embed templates.EmbedFS) (*mcp.GetPromptResult, error) {
 	certPath := request.Params.Arguments["certificate_path"]
 
 	messages, err := parsePromptTemplate("certificate-analysis-prompt", promptTemplateData{
 		"CertificatePath": certPath,
-	})
+	}, embed)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse certificate analysis template: %w", err)
 	}
@@ -330,6 +330,7 @@ func handleCertificateAnalysisPrompt(ctx context.Context, request mcp.GetPromptR
 // Parameters:
 //   - ctx: Context for the request, used for cancellation and timeouts
 //   - request: The MCP get prompt request containing arguments
+//   - embed: Embedded filesystem interface for accessing templates
 //
 // Returns:
 //   - *mcp.GetPromptResult: The prompt result with monitoring guidance
@@ -343,7 +344,7 @@ func handleCertificateAnalysisPrompt(ctx context.Context, request mcp.GetPromptR
 // Expected arguments in request.Params.Arguments:
 //   - certificate_path: Path to certificate file or base64-encoded certificate data
 //   - alert_days: Number of days before expiry to alert (default: 30)
-func handleExpiryMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+func handleExpiryMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequest, embed templates.EmbedFS) (*mcp.GetPromptResult, error) {
 	certPath := request.Params.Arguments["certificate_path"]
 	alertDaysStr := request.Params.Arguments["alert_days"]
 
@@ -358,7 +359,7 @@ func handleExpiryMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequ
 	messages, err := parsePromptTemplate("expiry-monitoring-prompt", promptTemplateData{
 		"CertificatePath": certPath,
 		"AlertDays":       alertDays, // Now passing int instead of string
-	})
+	}, embed)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse expiry monitoring template: %w", err)
 	}
@@ -379,6 +380,7 @@ func handleExpiryMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequ
 // Parameters:
 //   - ctx: Context for the request, used for cancellation and timeouts
 //   - request: The MCP get prompt request containing arguments
+//   - embed: Embedded filesystem interface for accessing templates
 //
 // Returns:
 //   - *mcp.GetPromptResult: The prompt result with audit workflow
@@ -395,7 +397,7 @@ func handleExpiryMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequ
 // Expected arguments in request.Params.Arguments:
 //   - hostname: Target hostname to audit
 //   - port: Port number (default: 443)
-func handleSecurityAuditPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+func handleSecurityAuditPrompt(ctx context.Context, request mcp.GetPromptRequest, embed templates.EmbedFS) (*mcp.GetPromptResult, error) {
 	hostname := request.Params.Arguments["hostname"]
 	portStr := request.Params.Arguments["port"]
 
@@ -410,7 +412,7 @@ func handleSecurityAuditPrompt(ctx context.Context, request mcp.GetPromptRequest
 	messages, err := parsePromptTemplate("security-audit-prompt", promptTemplateData{
 		"Hostname": hostname,
 		"Port":     port, // Now passing int instead of string
-	})
+	}, embed)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse security audit template: %w", err)
 	}
@@ -431,6 +433,7 @@ func handleSecurityAuditPrompt(ctx context.Context, request mcp.GetPromptRequest
 // Parameters:
 //   - ctx: Context for the request, used for cancellation and timeouts
 //   - request: The MCP get prompt request containing arguments
+//   - embed: Embedded filesystem interface for accessing templates
 //
 // Returns:
 //   - *mcp.GetPromptResult: The prompt result with troubleshooting guidance
@@ -446,7 +449,7 @@ func handleSecurityAuditPrompt(ctx context.Context, request mcp.GetPromptRequest
 //   - issue_type: Type of issue ('chain', 'validation', 'expiry', 'connection')
 //   - certificate_path: Path to certificate file (for chain/validation/expiry issues)
 //   - hostname: Target hostname (for connection issues)
-func handleTroubleshootingPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+func handleTroubleshootingPrompt(ctx context.Context, request mcp.GetPromptRequest, embed templates.EmbedFS) (*mcp.GetPromptResult, error) {
 	issueType := request.Params.Arguments["issue_type"]
 	certPath := request.Params.Arguments["certificate_path"]
 	hostname := request.Params.Arguments["hostname"]
@@ -455,7 +458,7 @@ func handleTroubleshootingPrompt(ctx context.Context, request mcp.GetPromptReque
 		"IssueType":       issueType,
 		"CertificatePath": certPath,
 		"Hostname":        hostname,
-	})
+	}, embed)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse troubleshooting template: %w", err)
 	}
@@ -476,6 +479,7 @@ func handleTroubleshootingPrompt(ctx context.Context, request mcp.GetPromptReque
 // Parameters:
 //   - ctx: Context for the request, used for cancellation and timeouts
 //   - request: The MCP get prompt request containing arguments
+//   - embed: Embedded filesystem interface for accessing templates
 //
 // Returns:
 //   - *mcp.GetPromptResult: The prompt result with resource monitoring guidance
@@ -490,7 +494,7 @@ func handleTroubleshootingPrompt(ctx context.Context, request mcp.GetPromptReque
 // Expected arguments in request.Params.Arguments:
 //   - monitoring_context: Context for monitoring ('debugging', 'optimization', 'routine', 'troubleshooting')
 //   - format_preference: Preferred output format ('json' or 'markdown', default: json)
-func handleResourceMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+func handleResourceMonitoringPrompt(ctx context.Context, request mcp.GetPromptRequest, embed templates.EmbedFS) (*mcp.GetPromptResult, error) {
 	monitoringContext := request.Params.Arguments["monitoring_context"]
 	formatPreference := request.Params.Arguments["format_preference"]
 	if formatPreference == "" {
@@ -500,7 +504,7 @@ func handleResourceMonitoringPrompt(ctx context.Context, request mcp.GetPromptRe
 	messages, err := parsePromptTemplate("resource-monitoring-prompt", promptTemplateData{
 		"MonitoringContext": monitoringContext, // Clear field name
 		"FormatPreference":  formatPreference,  // Clear field name
-	})
+	}, embed)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse resource monitoring template: %w", err)
 	}

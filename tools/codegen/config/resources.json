@@ -6,6 +6,7 @@
       "description": "Example configuration file for the MCP server",
       "mimeType": "application/json",
       "handler": "handleConfigResource",
+      "withEmbed": false,
       "audience": ["user", "assistant"],
       "priority": 1.0,
       "meta": {
@@ -19,6 +20,7 @@
       "description": "Version and build information for the MCP server",
       "mimeType": "application/json",
       "handler": "handleVersionResource",
+      "withEmbed": false,
       "audience": ["user", "assistant"],
       "priority": 0.8,
       "meta": {
@@ -32,6 +34,7 @@
       "description": "Documentation on supported certificate formats and usage",
       "mimeType": "text/markdown",
       "handler": "handleCertificateFormatsResource",
+      "withEmbed": true,
       "audience": ["user", "assistant"],
       "priority": 0.9,
       "meta": {
@@ -45,6 +48,7 @@
       "description": "Current status and health information for the MCP server",
       "mimeType": "application/json",
       "handler": "handleStatusResource",
+      "withEmbed": false,
       "audience": ["user", "assistant"],
       "priority": 0.7,
       "meta": {
