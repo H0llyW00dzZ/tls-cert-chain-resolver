@@ -19,7 +19,15 @@ import (
 	"golang.org/x/crypto/ocsp"
 )
 
-// RevocationStatus represents revocation status of a certificate.
+// RevocationStatus represents the revocation status of a certificate.
+//
+// It contains the results from both OCSP and CRL revocation checking,
+// providing a consolidated view of the certificate's revocation state.
+//
+// Fields:
+//   - OCSPStatus: Status from OCSP check ("Good", "Revoked", "Unknown")
+//   - CRLStatus: Status from CRL check ("Good", "Revoked", "Unknown")
+//   - SerialNumber: Certificate serial number as a string
 type RevocationStatus struct {
 	OCSPStatus   string
 	CRLStatus    string
