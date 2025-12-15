@@ -26,7 +26,16 @@ import (
 
 // readCertificateData reads certificate data from either a file path or base64-encoded string.
 // It first attempts to read as a file, then falls back to base64 decoding.
-// Returns the certificate data bytes or an error if both attempts fail.
+//
+// Parameters:
+//   - input: Certificate data as either a file path or base64-encoded string
+//
+// Returns:
+//   - []byte: The certificate data bytes
+//   - error: Error if both file reading and base64 decoding fail
+//
+// The function provides flexible input handling for certificate data in multiple formats.
+// It prioritizes file reading for security and falls back to base64 for programmatic use.
 func readCertificateData(input string) ([]byte, error) {
 	// Try to read as file first
 	if fileData, err := os.ReadFile(input); err == nil {
