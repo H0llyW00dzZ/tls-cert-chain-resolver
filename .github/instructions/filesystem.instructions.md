@@ -650,8 +650,9 @@ grep("ADKTransportBuilder\\|NewADKTransportBuilder\\|WithInMemoryTransport\\|Bui
 # Find MCP server status resource
 grep("handleStatusResource\\|status://server-status", include="*.go")
 
-# Find embedded templates
+# Find embedded templates and FS
 grep("MagicEmbed\\|templates/.*prompt.*\\.md\\|templates/X509.*\\.md", include="*.go")
+grep("embed\\.FS\\|EmbedFS\\|embeddedFS", include="*.go")
 
 
 
@@ -678,6 +679,11 @@ grep("handleCertificateAnalysisPrompt\\|handleExpiryMonitoringPrompt\\|handleSec
 
 # Find template caching patterns
 grep("templateCache\\|sync\\.Map", include="*.go")
+
+# Find embedded FS configuration patterns
+grep("WithEmbed\\|WithEmbeddedPrompts\\|WithEmbeddedResources\\|PromptDefinition\\.WithEmbed\\|ResourceDefinition\\.WithEmbed", include="*.go")
+grep("ServerPromptWithEmbed\\|ServerResourceWithEmbed\\|PromptHandlerWithEmbed\\|ResourceHandlerWithEmbed", include="*.go")
+grep("ServerDependencies\\.PromptsWithEmbed\\|ServerDependencies\\.ResourcesWithEmbed", include="*.go")
 
 # Find template validation and execution patterns
 grep("getOrCreateTemplate\\|validateTemplateStructure\\|executeTemplate\\|parseMessagesFromContent", include="*.go")
