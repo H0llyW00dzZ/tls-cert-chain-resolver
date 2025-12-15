@@ -20,22 +20,45 @@ import (
 	mcptransport "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// jsonRPCError represents a [JSON-RPC] 2.0 error object
+// jsonRPCError represents a [JSON-RPC] 2.0 error object.
+//
+// This struct is used internally for constructing error responses
+// that comply with the JSON-RPC 2.0 specification for error handling.
+//
+// Fields:
+//   - Code: Error code following JSON-RPC conventions (e.g., -32600 for invalid request)
+//   - Message: Human-readable error description
 //
 // [JSON-RPC]: https://grokipedia.com/page/JSON-RPC
 type jsonRPCError struct {
-	Code    int    `json:"code"`
+	// Code: JSON-RPC error code (standard codes like -32600, -32601, etc.)
+	Code int `json:"code"`
+	// Message: Human-readable error description
 	Message string `json:"message"`
 }
 
-// jsonRPCResponse represents a [JSON-RPC] 2.0 response object
+// jsonRPCResponse represents a [JSON-RPC] 2.0 response object.
+//
+// This struct encapsulates the complete response format for JSON-RPC 2.0,
+// supporting both successful results and error responses. It ensures
+// proper protocol compliance for MCP communication.
+//
+// Fields:
+//   - JSONRPC: Protocol version string (always "2.0")
+//   - ID: Request identifier for response correlation
+//   - Result: Response data for successful requests (omitted for errors)
+//   - Error: Error details for failed requests (omitted for success)
 //
 // [JSON-RPC]: https://grokipedia.com/page/JSON-RPC
 type jsonRPCResponse struct {
-	JSONRPC string        `json:"jsonrpc"`
-	ID      any           `json:"id"`
-	Result  any           `json:"result,omitempty"`
-	Error   *jsonRPCError `json:"error,omitempty"`
+	// JSONRPC: JSON-RPC protocol version (always "2.0")
+	JSONRPC string `json:"jsonrpc"`
+	// ID: Request identifier matching the originating request
+	ID any `json:"id"`
+	// Result: Successful response data (omitted when Error is present)
+	Result any `json:"result,omitempty"`
+	// Error: Error details for failed requests (omitted when Result is present)
+	Error *jsonRPCError `json:"error,omitempty"`
 }
 
 // InMemoryTransport implements the ADK SDK mcp.Transport interface.
@@ -52,32 +75,61 @@ type jsonRPCResponse struct {
 // [Official MCP SDK]: https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk
 // [JSON-RPC]: https://grokipedia.com/page/JSON-RPC
 type InMemoryTransport struct {
-	started         bool
-	mu              sync.Mutex
-	recvCh          chan []byte // channel for receiving messages (ReadMessage)
-	sendCh          chan []byte // channel for sending messages (WriteMessage)
-	internalRespCh  chan []byte // channel for internal responses (e.g. sampling)
-	ctx             context.Context
-	cancel          context.CancelFunc
+	// started: Indicates if the transport has been connected to a server
+	started bool
+	// mu: Mutex for thread-safe access to transport state
+	mu sync.Mutex
+	// recvCh: Channel for receiving messages from the server (ReadMessage)
+	recvCh chan []byte
+	// sendCh: Channel for sending messages to the server (WriteMessage)
+	sendCh chan []byte
+	// internalRespCh: Channel for internal responses (sampling, notifications)
+	internalRespCh chan []byte
+	// ctx: Context for cancellation and lifecycle management
+	ctx context.Context
+	// cancel: Function to cancel the transport context
+	cancel context.CancelFunc
+	// samplingHandler: Handler for AI model sampling requests
 	samplingHandler client.SamplingHandler
-	shutdownWg      sync.WaitGroup // WaitGroup for graceful shutdown
-	processWg       sync.WaitGroup // WaitGroup for message processing loop
+	// shutdownWg: WaitGroup for graceful shutdown of active goroutines
+	shutdownWg sync.WaitGroup
+	// processWg: WaitGroup for the message processing loop
+	processWg sync.WaitGroup
 }
 
-// SetSamplingHandler sets the sampling handler for the transport.
-// The sampling handler processes AI model requests (e.g., CreateMessage calls)
-// that originate from the MCP server. This is thread-safe and can be called
-// concurrently with other transport operations.
+// SetSamplingHandler sets the sampling handler for AI model interactions.
+//
+// The sampling handler is responsible for processing AI model requests
+// (such as CreateMessage calls) that originate from the MCP server.
+// This enables bidirectional communication for certificate analysis
+// and other AI-powered features.
+//
+// This method is thread-safe and can be called concurrently with
+// other transport operations without requiring explicit synchronization.
+//
+// Parameters:
+//   - handler: The sampling handler implementation for AI requests
 func (t *InMemoryTransport) SetSamplingHandler(handler client.SamplingHandler) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.samplingHandler = handler
 }
 
-// SendJSONRPCNotification sends a [JSON-RPC] notification to the receive channel.
-// This is useful for streaming progress updates, sampling tokens, or other
-// server-initiated events. The notification is sent asynchronously and does not
-// block if the receive channel is full (it will be dropped).
+// SendJSONRPCNotification sends a JSON-RPC notification asynchronously.
+//
+// This method sends server-initiated notifications such as streaming progress
+// updates, sampling tokens, or other events that don't require a response.
+// The notification is sent asynchronously and will not block if the receive
+// channel is full (the notification will be dropped in that case).
+//
+// Common use cases:
+// - Streaming AI token responses during certificate analysis
+// - Progress updates for long-running certificate operations
+// - Status notifications for certificate validation results
+//
+// Parameters:
+//   - method: The JSON-RPC method name for the notification
+//   - params: The notification parameters (can be any serializable type)
 //
 // [JSON-RPC]: https://grokipedia.com/page/JSON-RPC
 func (t *InMemoryTransport) SendJSONRPCNotification(method string, params any) {
@@ -89,10 +141,23 @@ func (t *InMemoryTransport) SendJSONRPCNotification(method string, params any) {
 	t.sendResponse(notification)
 }
 
-// NewInMemoryTransport creates a new in-memory transport that implements mcp.Transport.
-// This is designed to work with ADK's [mcptoolset.New] expectations.
-// The transport uses buffered channels for message passing and supports
-// context cancellation for graceful shutdown.
+// NewInMemoryTransport creates a new in-memory transport for MCP communication.
+//
+// This constructor creates an InMemoryTransport that implements the official
+// MCP SDK's Transport interface. It's designed for seamless integration with
+// ADK's mcptoolset.New expectations and provides channel-based message passing
+// with full context cancellation support for graceful shutdown.
+//
+// The transport uses buffered channels to prevent blocking and supports:
+// - Thread-safe message passing between client and server
+// - Context-aware cancellation for clean shutdown
+// - Sampling handler integration for AI-powered features
+//
+// Parameters:
+//   - ctx: Parent context for lifecycle management and cancellation
+//
+// Returns:
+//   - *InMemoryTransport: Initialized transport ready for server connection
 //
 // Example usage:
 //
@@ -149,10 +214,20 @@ func (t *InMemoryTransport) WriteMessage(data []byte) error {
 	}
 }
 
-// Close implements mcp.Transport.Close().
-// Cancels the transport context and waits for all goroutines to finish.
-// This ensures graceful shutdown without leaking goroutines.
-// Channels are not explicitly closed to avoid panics in concurrent operations.
+// Close implements graceful shutdown of the in-memory transport.
+//
+// It performs a coordinated shutdown by:
+//  1. Canceling the transport context to signal all operations to stop
+//  2. Waiting for the message processing loop to terminate (processWg)
+//  3. Waiting for all active goroutines to complete (shutdownWg)
+//
+// Channels are intentionally not closed to prevent panics in concurrent
+// operations. It ensures all goroutines exit cleanly without race conditions.
+//
+// Returns:
+//   - error: Always nil (shutdown is synchronous)
+//
+// Thread Safety: Safe to call concurrently, but typically called once during shutdown.
 func (t *InMemoryTransport) Close() error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -334,11 +409,17 @@ func (t *InMemoryTransport) sendResponse(resp any) {
 }
 
 // ADKTransportConnection wraps InMemoryTransport for ADK SDK compatibility.
-// It implements the mcptransport.Connection interface, providing
-// [JSON-RPC] message encoding/decoding and session management.
+//
+// This struct implements the official MCP SDK's Connection interface,
+// providing JSON-RPC message encoding/decoding and session management
+// for seamless ADK integration.
+//
+// Fields:
+//   - transport: The underlying InMemoryTransport instance
 //
 // [JSON-RPC]: https://grokipedia.com/page/JSON-RPC
 type ADKTransportConnection struct {
+	// transport: The underlying InMemoryTransport for message passing
 	transport *InMemoryTransport
 }
 
@@ -394,9 +475,16 @@ func (c *ADKTransportConnection) SessionID() string {
 }
 
 // TransportBuilder helps construct MCP transports for different integration scenarios.
-// This builder provides transport creation utilities that can be used by different
-// integration layers (ADK, CLI, etc.) to create appropriate transport mechanisms.
-// For in-memory scenarios, it returns the built MCP server for direct integration.
+//
+// This builder pattern implementation provides transport creation utilities
+// for various integration layers (ADK, CLI, etc.). It wraps a ServerBuilder
+// to create appropriate transport mechanisms for different use cases.
+//
+// For in-memory scenarios, it builds the complete MCP server and returns
+// a transport that can communicate with it directly.
+//
+// Fields:
+//   - serverBuilder: The underlying ServerBuilder for MCP server construction
 //
 // Example usage:
 //
@@ -406,6 +494,7 @@ func (c *ADKTransportConnection) SessionID() string {
 //		WithDefaultTools()
 //	transport, err := builder.BuildInMemoryTransport(ctx)
 type TransportBuilder struct {
+	// serverBuilder: The underlying ServerBuilder for MCP server construction
 	serverBuilder *ServerBuilder
 }
 

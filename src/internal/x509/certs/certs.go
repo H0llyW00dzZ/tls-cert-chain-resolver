@@ -28,10 +28,13 @@ var (
 )
 
 // Certificate provides methods to decode and encode [X.509] certificates.
-// It maintains internal configuration such as the certificate block type.
+//
+// It maintains internal configuration such as the certificate block type
+// and provides a unified interface for handling different certificate formats.
 //
 // [X.509]: https://grokipedia.com/page/X.509
 type Certificate struct {
+	// certBlockType: PEM block type identifier (defaults to "CERTIFICATE")
 	certBlockType string
 }
 

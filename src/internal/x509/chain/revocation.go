@@ -29,8 +29,11 @@ import (
 //   - CRLStatus: Status from CRL check ("Good", "Revoked", "Unknown")
 //   - SerialNumber: Certificate serial number as a string
 type RevocationStatus struct {
-	OCSPStatus   string
-	CRLStatus    string
+	// OCSPStatus: Status from OCSP check with certificate serial for identification
+	OCSPStatus string
+	// CRLStatus: Status from CRL check with certificate serial for identification
+	CRLStatus string
+	// SerialNumber: Certificate serial number as a string for correlation
 	SerialNumber string
 }
 

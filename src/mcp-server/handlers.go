@@ -17,29 +17,59 @@ import (
 )
 
 // instructionData holds the data used to populate the MCP server instructions template.
+//
+// It is used internally by loadInstructions to prepare data for the
+// embedded X509_instructions.md template. It contains processed tool information
+// and role mappings that help generate comprehensive server capability descriptions.
+//
+// Fields:
+//   - Tools: Processed list of tool information extracted from tool definitions
+//   - ToolRoles: Mapping of semantic tool roles to their actual tool names for template rendering
 type instructionData struct {
-	Tools     []toolInfo
-	ToolRoles map[string]string // Maps tool roles to tool names for template use
+	// Tools: Processed list of tool information for template rendering
+	Tools []toolInfo
+	// ToolRoles: Mapping of tool roles to tool names for template use
+	ToolRoles map[string]string
 }
 
 // toolInfo represents information about an MCP tool for template rendering.
+//
+// It is a lightweight struct used to pass tool metadata to the instructions template.
+// It contains only the essential information needed for generating human-readable
+// server capability descriptions.
+//
+// Fields:
+//   - Name: The human-readable tool name for display in instructions
+//   - Description: Brief description of what the tool does for user guidance
 type toolInfo struct {
-	Name        string
+	// Name: Human-readable tool name for template rendering
+	Name string
+	// Description: Tool description for user guidance in instructions
 	Description string
 }
 
-// loadInstructions parses the template with dynamic data from the provided tools and returns the rendered instructions as a string for MCP client initialization.
+// loadInstructions parses the embedded instructions template with dynamic tool data.
+//
+// It is critical for MCP server initialization as it generates the
+// instructions that clients receive during the handshake. It processes tool
+// definitions, extracts metadata, and renders a comprehensive capability guide.
+//
+// The process involves:
+//  1. Loading the embedded X509_instructions.md template
+//  2. Processing tool definitions to extract names, descriptions, and roles
+//  3. Building role mappings for template rendering
+//  4. Executing the template with structured data
 //
 // Parameters:
-//   - tools: Slice of tool definitions without config requirements
-//   - toolsWithConfig: Slice of tool definitions that require configuration access
+//   - tools: Tool definitions without configuration requirements
+//   - toolsWithConfig: Tool definitions that need configuration access
 //
 // Returns:
-//   - string: The rendered instruction text describing server capabilities and tool usage
-//   - error: If the embedded file cannot be read or template parsing fails
+//   - string: Rendered instructions describing all server capabilities
+//   - error: Template loading, parsing, or execution failures
 //
-// The instructions provide MCP clients with comprehensive guidance on using
-// all available certificate analysis tools and workflows.
+// The generated instructions help MCP clients understand available tools,
+// their purposes, and how to interact with the certificate analysis server.
 func loadInstructions(tools []ToolDefinition, toolsWithConfig []ToolDefinitionWithConfig) (string, error) {
 	// Read the template file
 	templateBytes, err := templates.MagicEmbed.ReadFile("X509_instructions.md")
@@ -100,12 +130,29 @@ func loadInstructions(tools []ToolDefinition, toolsWithConfig []ToolDefinitionWi
 	return buf.String(), nil
 }
 
-// Cache structure for server capabilities
+// serverCache provides thread-safe metadata caching for MCP server capabilities.
+//
+// It caches processed metadata for tools, prompts, and resources to avoid
+// repeated computation during resource handler requests. It is populated once during
+// server initialization and accessed read-only thereafter.
+//
+// The cache improves performance for resource handlers that need to expose server
+// capabilities metadata, reducing computation overhead on each request.
+//
+// Fields:
+//   - prompts: Cached prompt metadata with names, descriptions, and argument schemas
+//   - tools: Cached metadata for regular tools (no config requirements)
+//   - toolsWithConfig: Cached metadata for tools requiring configuration access
+//   - resources: Cached resource metadata with URIs, names, and descriptions
 type serverCache struct {
-	prompts         []map[string]any
-	tools           []map[string]any
+	// prompts: Cached metadata for MCP prompts with argument schemas
+	prompts []map[string]any
+	// tools: Cached metadata for regular tools (without config requirements)
+	tools []map[string]any
+	// toolsWithConfig: Cached metadata for tools requiring configuration access
 	toolsWithConfig []map[string]any
-	resources       []map[string]any
+	// resources: Cached metadata for MCP resources with URIs and descriptions
+	resources []map[string]any
 }
 
 // Global cache instance with sync.Once for thread-safe lazy initialization
@@ -114,8 +161,19 @@ var (
 	cacheOnce sync.Once
 )
 
-// getServerCache returns the lazily initialized server cache.
-// Uses sync.Once to ensure initialization happens exactly once, even with concurrent access.
+// getServerCache returns the lazily initialized server cache singleton.
+//
+// It implements the singleton pattern using sync.Once to ensure
+// thread-safe initialization of the server cache. The cache is populated
+// during server initialization via the populate*MetadataCache functions.
+//
+// The lazy initialization ensures the cache is only created when first accessed,
+// which happens during resource handler requests when WithPopulate() is used.
+//
+// Returns:
+//   - *serverCache: The initialized server cache instance
+//
+// Thread Safety: Safe for concurrent access from multiple goroutines.
 func getServerCache() *serverCache {
 	cacheOnce.Do(func() {
 		cache = &serverCache{
@@ -126,24 +184,64 @@ func getServerCache() *serverCache {
 	return cache
 }
 
-// loadPromptsConfig loads the prompts configuration from the cache.
-// Returns the prompts array with user-facing information only (filters out internal fields).
+// loadPromptsConfig loads the prompts configuration from the server cache.
+//
+// It provides access to cached prompt metadata for resource handlers.
+// The returned data includes prompt names, descriptions, arguments, and metadata
+// that resource handlers can expose to clients.
+//
+// The prompts configuration is populated once during server initialization
+// and remains static throughout the server lifecycle.
+//
+// Returns:
+//   - []map[string]any: Array of prompt metadata for resource handlers
+//   - error: Always nil (cache access doesn't fail)
+//
+// The metadata includes:
+// - Prompt names and descriptions
+// - Argument schemas with names, descriptions, and required flags
+// - Additional metadata fields from the prompt definitions
 func loadPromptsConfig() ([]map[string]any, error) {
 	cache := getServerCache()
 	return cache.prompts, nil
 }
 
 // toolsConfig holds the structured configuration for tools and tools with config.
-// This provides separate access to regular tools and tools requiring configuration.
+//
+// It provides organized access to different categories of tools for resource
+// handlers. It separates regular tools from those requiring configuration, while
+// also providing a merged view for backward compatibility.
+//
+// Fields:
+//   - Tools: Regular tools that don't require configuration access
+//   - ToolsWithConfig: Tools that receive server configuration parameters
+//   - AllTools: Merged list of all tools for unified access when needed
 type toolsConfig struct {
-	Tools           []map[string]any // Regular tools not requiring config
-	ToolsWithConfig []map[string]any // Tools that require configuration access
-	AllTools        []map[string]any // Merged list for backward compatibility
+	// Tools: Regular tools not requiring configuration access
+	Tools []map[string]any
+	// ToolsWithConfig: Tools that require configuration access
+	ToolsWithConfig []map[string]any
+	// AllTools: Merged list of all tools for backward compatibility
+	AllTools []map[string]any
 }
 
-// loadToolsConfig loads the tools configuration from the cache.
-// Returns structured tool configuration with separate access to regular tools,
-// tools with config, and merged list for backward compatibility.
+// loadToolsConfig loads the tools configuration from the server cache.
+//
+// This function creates a structured toolsConfig instance that separates regular
+// tools from those requiring configuration access. It provides multiple access
+// patterns for different use cases in resource handlers.
+//
+// The function splits the cached tools array to separate regular tools from
+// tools-with-config based on the original registration order during server build.
+//
+// Returns:
+//   - *toolsConfig: Structured tool configuration with categorized access
+//   - error: Always nil (cache access doesn't fail)
+//
+// The returned config provides:
+// - Tools: Regular tools (first N items from cache)
+// - ToolsWithConfig: Tools requiring config (remaining items)
+// - AllTools: Complete merged list for unified access
 func loadToolsConfig() (*toolsConfig, error) {
 	cache := getServerCache()
 	return &toolsConfig{
@@ -153,16 +251,50 @@ func loadToolsConfig() (*toolsConfig, error) {
 	}, nil
 }
 
-// loadResourcesConfig loads the resources configuration from the cache.
-// Returns the resources with user-facing information only (filters out internal fields).
+// loadResourcesConfig loads the resources configuration from the server cache.
+//
+// It provides access to cached resource metadata for resource handlers.
+// The returned data includes resource URIs, names, descriptions, MIME types,
+// and metadata that resource handlers can expose to clients.
+//
+// The resources configuration is populated once during server initialization
+// and remains static throughout the server lifecycle.
+//
+// Returns:
+//   - []map[string]any: Array of resource metadata for resource handlers
+//   - error: Always nil (cache access doesn't fail)
+//
+// The metadata includes:
+// - Resource URIs for client access
+// - Human-readable names and descriptions
+// - MIME types for content type indication
+// - Additional metadata fields from resource definitions
 func loadResourcesConfig() ([]map[string]any, error) {
 	cache := getServerCache()
 	return cache.resources, nil
 }
 
 // populateToolMetadataCache extracts metadata from created tools and caches it for resource handlers.
-// This function is called once during server initialization via the ServerBuilder's Build() method
-// when WithPopulate() is used. It processes tools created by the builder's tool registration methods.
+//
+// It is called once during server initialization when WithPopulate() is used
+// on the ServerBuilder. It processes all registered tools and creates a flattened
+// metadata representation suitable for resource handlers to expose server capabilities.
+//
+// The function separates regular tools from tools-with-config to maintain the
+// distinction needed by loadToolsConfig() for proper categorization.
+//
+// Parameters:
+//   - serverCache: The server cache instance to populate with tool metadata
+//   - tools: Regular tool definitions without configuration requirements
+//   - toolsWithConfig: Tool definitions that require configuration access
+//
+// Processing:
+//  1. Extract metadata from regular tools (name, description)
+//  2. Extract metadata from config-requiring tools
+//  3. Merge both lists into a single AllTools array
+//
+// The resulting cache enables resource handlers to dynamically expose tool
+// capabilities without hardcoding tool lists.
 func populateToolMetadataCache(serverCache *serverCache, tools []ToolDefinition, toolsWithConfig []ToolDefinitionWithConfig) {
 	serverCache.tools = make([]map[string]any, 0, len(tools))
 	serverCache.toolsWithConfig = make([]map[string]any, 0, len(toolsWithConfig))
@@ -196,8 +328,23 @@ func populateToolMetadataCache(serverCache *serverCache, tools []ToolDefinition,
 }
 
 // populatePromptMetadataCache extracts metadata from created prompts and caches it for resource handlers.
-// This function is called once during server initialization via the ServerBuilder's Build() method
-// when WithPopulate() is used. It processes prompts created by the builder's prompt registration methods.
+//
+// It processes MCP prompt definitions during server initialization
+// to create a cache of prompt metadata. It extracts names, descriptions,
+// argument schemas, and additional metadata for resource handler access.
+//
+// The function handles complex prompt structures including:
+// - Basic prompt information (name, description)
+// - Argument definitions with names, descriptions, and required flags
+// - Additional metadata fields from the prompt definitions
+// - Proper handling of optional meta fields and progress tokens
+//
+// Parameters:
+//   - serverCache: The server cache instance to populate with prompt metadata
+//   - prompts: Array of MCP prompt definitions from server registration
+//
+// The cached metadata enables resource handlers to expose prompt capabilities
+// dynamically, supporting discovery and documentation of available prompts.
 func populatePromptMetadataCache(serverCache *serverCache, prompts []server.ServerPrompt) {
 	serverCache.prompts = make([]map[string]any, 0, len(prompts))
 
@@ -243,8 +390,27 @@ func populatePromptMetadataCache(serverCache *serverCache, prompts []server.Serv
 }
 
 // populateResourceMetadataCache extracts metadata from created resources and caches it for resource handlers.
-// This function is called once during server initialization via the ServerBuilder's Build() method
-// when WithPopulate() is used. It processes resources created by the builder's resource registration methods.
+//
+// It processes MCP resource definitions during server initialization
+// to create a cache of resource metadata. It extracts URIs, names, descriptions,
+// MIME types, and additional metadata for resource handler access.
+//
+// The function handles resource meta fields carefully, filtering out
+// implementation-specific fields like progress tokens that shouldn't be
+// exposed to clients.
+//
+// Parameters:
+//   - serverCache: The server cache instance to populate with resource metadata
+//   - resources: Array of MCP resource definitions from server registration
+//
+// The cached metadata enables resource handlers to expose resource capabilities
+// dynamically, supporting discovery and documentation of available resources.
+//
+// Processed metadata includes:
+// - Resource URIs for client access
+// - Human-readable names and descriptions
+// - MIME types for content negotiation
+// - Filtered metadata fields (excluding internal fields)
 func populateResourceMetadataCache(serverCache *serverCache, resources []server.ServerResource) {
 	serverCache.resources = make([]map[string]any, 0, len(resources))
 

@@ -17,20 +17,30 @@ import (
 // The configuration can be loaded from a JSON file specified by the MCP_X509_CONFIG_FILE
 // environment variable, with defaults applied for any missing values.
 type Config struct {
+	// Defaults: Default settings for certificate chain operations
 	Defaults struct {
-		Format            string `json:"format"`
-		IncludeSystemRoot bool   `json:"includeSystemRoot"`
-		IntermediateOnly  bool   `json:"intermediateOnly"`
-		WarnDays          int    `json:"warnDays"`
-		Timeout           int    `json:"timeoutSeconds"`
+		// Format: Default output format for certificates ("pem", "der", "json")
+		Format string `json:"format"`
+		// IncludeSystemRoot: Whether to include system root CAs in chain operations
+		IncludeSystemRoot bool `json:"includeSystemRoot"`
+		// IntermediateOnly: Whether to return only intermediate certificates
+		IntermediateOnly bool `json:"intermediateOnly"`
+		// WarnDays: Number of days before expiry to show warnings
+		WarnDays int `json:"warnDays"`
+		// Timeout: Default timeout in seconds for operations
+		Timeout int `json:"timeoutSeconds"`
 	} `json:"defaults"`
 
-	// AI configuration for sampling/LLM integration
+	// AI: Configuration for sampling/LLM integration
 	AI struct {
-		APIKey   string `json:"apiKey,omitempty"`   // API key (can also be set via X509_AI_APIKEY env var)
-		Endpoint string `json:"endpoint,omitempty"` // API endpoint URL (defaults to xAI)
-		Model    string `json:"model,omitempty"`    // Default model to use
-		Timeout  int    `json:"timeout,omitempty"`  // API timeout in seconds
+		// APIKey: API key for AI service authentication (can also be set via X509_AI_APIKEY env var)
+		APIKey string `json:"apiKey,omitempty"`
+		// Endpoint: API endpoint URL for AI service (defaults to xAI)
+		Endpoint string `json:"endpoint,omitempty"`
+		// Model: Default AI model to use for certificate analysis
+		Model string `json:"model,omitempty"`
+		// Timeout: API timeout in seconds for AI requests
+		Timeout int `json:"timeout,omitempty"`
 	} `json:"ai"`
 }
 

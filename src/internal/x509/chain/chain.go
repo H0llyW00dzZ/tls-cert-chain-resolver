@@ -21,11 +21,16 @@ import (
 
 // HTTPConfig holds HTTP client configuration for certificate operations
 type HTTPConfig struct {
-	Timeout   time.Duration // HTTP request timeout
-	Version   string        // Application version for User-Agent
-	UserAgent string        // Custom User-Agent string, if empty will be constructed from Version
+	// Timeout: HTTP request timeout duration
+	Timeout time.Duration
+	// Version: Application version string for User-Agent construction
+	Version string
+	// UserAgent: Custom User-Agent string, if empty will be constructed from Version
+	UserAgent string
 
-	mu     sync.Mutex
+	// mu: Mutex for thread-safe HTTP client access
+	mu sync.Mutex
+	// client: Reusable HTTP client instance
 	client *http.Client
 }
 
@@ -87,14 +92,23 @@ func (c *HTTPConfig) Client() *http.Client {
 
 // Chain manages [X.509] certificates.
 //
+// It provides thread-safe operations for certificate chain resolution,
+// validation, and revocation checking with efficient memory management.
+//
 // [X.509]: https://grokipedia.com/page/X.509
 type Chain struct {
-	mu    sync.RWMutex
+	// mu: Read-write mutex for thread-safe access to chain data
+	mu sync.RWMutex
+	// Certs: Ordered slice of certificates in the chain (leaf first)
 	Certs []*x509.Certificate
+	// Certificate: Embedded certificate manager for encoding/decoding operations
 	*x509certs.Certificate
-	Roots         *x509.CertPool
+	// Roots: Certificate pool containing trusted root CAs
+	Roots *x509.CertPool
+	// Intermediates: Certificate pool containing intermediate CAs
 	Intermediates *x509.CertPool
-	HTTPConfig    *HTTPConfig // HTTP client configuration
+	// HTTPConfig: HTTP client configuration for certificate fetching
+	HTTPConfig *HTTPConfig
 }
 
 // New creates a new Chain.

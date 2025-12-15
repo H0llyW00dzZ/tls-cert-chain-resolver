@@ -136,10 +136,18 @@ type jsonOutput struct {
 	Certificates []certificateInfo `json:"listCertificates"`
 }
 
-// execCli processes the command-line input to read, decode, and resolve the TLS certificate chain.
-// It reads the input certificate file, decodes it, fetches the entire certificate chain, and optionally
-// adds the root CA. The output is then prepared in either DER or PEM format and written to the specified
-// output file or printed to stdout if no output file is specified.
+// execCli executes the main certificate chain resolution logic.
+//
+// It reads the input certificate file, decodes it, fetches the complete certificate
+// chain, optionally adds the system root CA, and outputs the results in the
+// requested format (DER, PEM, JSON, tree, or table visualization).
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - cmd: Cobra command instance containing version and flag information
+//
+// Returns:
+//   - error: Any error that occurs during certificate processing or output
 func execCli(ctx context.Context, cmd *cobra.Command) error {
 	// Read the input certificate file
 	certData, err := readCertificateFile(inputFile)
@@ -196,7 +204,17 @@ func execCli(ctx context.Context, cmd *cobra.Command) error {
 	return outputCertificates(certsToOutput, certManager)
 }
 
-// readCertificateFile reads the certificate from the specified file.
+// readCertificateFile reads certificate data from the specified file.
+//
+// It reads the entire file contents into memory and returns the raw certificate
+// data. This data can then be parsed as either PEM or DER format.
+//
+// Parameters:
+//   - inputFile: Path to the certificate file to read
+//
+// Returns:
+//   - []byte: Raw certificate data from the file
+//   - error: File reading error if the file cannot be accessed or read
 func readCertificateFile(inputFile string) ([]byte, error) {
 	certData, err := os.ReadFile(inputFile)
 	if err != nil {
@@ -205,7 +223,19 @@ func readCertificateFile(inputFile string) ([]byte, error) {
 	return certData, nil
 }
 
-// decodeCertificate decodes the certificate data into an x509.Certificate.
+// decodeCertificate decodes raw certificate data into an X.509 certificate.
+//
+// It uses the provided certificate manager to parse the certificate data,
+// which can be in either PEM or DER format. The manager automatically
+// detects the format and parses accordingly.
+//
+// Parameters:
+//   - certData: Raw certificate data (PEM or DER format)
+//   - certManager: Certificate manager instance for parsing operations
+//
+// Returns:
+//   - *x509.Certificate: Parsed X.509 certificate
+//   - error: Parsing error if the certificate data is invalid or malformed
 func decodeCertificate(certData []byte, certManager *x509certs.Certificate) (*x509.Certificate, error) {
 	cert, err := certManager.Decode(certData)
 	if err != nil {
@@ -214,7 +244,20 @@ func decodeCertificate(certData []byte, certManager *x509certs.Certificate) (*x5
 	return cert, nil
 }
 
-// fetchCertificateChain retrieves the certificate chain starting from the given certificate.
+// fetchCertificateChain retrieves the complete certificate chain for the given certificate.
+//
+// It creates a new certificate chain manager, fetches all intermediate certificates
+// using AIA (Authority Information Access) URLs, and returns the fully resolved chain.
+// The operation is performed asynchronously with proper context cancellation support.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling during chain fetching
+//   - cert: Starting certificate (typically the leaf/end-entity certificate)
+//   - version: Application version string for HTTP User-Agent headers
+//
+// Returns:
+//   - *x509chain.Chain: Fully resolved certificate chain with intermediates
+//   - error: Any error that occurs during chain fetching or verification
 func fetchCertificateChain(ctx context.Context, cert *x509.Certificate, version string) (*x509chain.Chain, error) {
 	// Create a chain manager
 	chain := x509chain.New(cert, version)
@@ -239,7 +282,16 @@ func fetchCertificateChain(ctx context.Context, cert *x509.Certificate, version 
 	return chain, nil
 }
 
-// filterCertificates filters the certificates based on the intermediateOnly flag.
+// filterCertificates filters the certificate chain based on command-line flags.
+//
+// It returns either all certificates in the chain or only the intermediate
+// certificates, depending on the intermediateOnly flag setting.
+//
+// Parameters:
+//   - chain: The resolved certificate chain to filter
+//
+// Returns:
+//   - []*x509.Certificate: Filtered certificate slice
 func filterCertificates(chain *x509chain.Chain) []*x509.Certificate {
 	if intermediateOnly {
 		return chain.FilterIntermediates()
@@ -247,7 +299,18 @@ func filterCertificates(chain *x509chain.Chain) []*x509.Certificate {
 	return chain.Certs
 }
 
-// outputJSON outputs the certificates in JSON format.
+// outputJSON outputs the certificates in structured JSON format.
+//
+// It creates a JSON array containing detailed certificate information
+// including subject, issuer, validity dates, and PEM-encoded data.
+// The JSON output is written to stdout.
+//
+// Parameters:
+//   - certsToOutput: Certificates to include in the JSON output
+//   - certManager: Certificate manager for PEM encoding operations
+//
+// Returns:
+//   - error: JSON marshaling or output error
 func outputJSON(certsToOutput []*x509.Certificate, certManager *x509certs.Certificate) error {
 	certInfos := make([]certificateInfo, len(certsToOutput))
 	for i, cert := range certsToOutput {
@@ -276,7 +339,17 @@ func outputJSON(certsToOutput []*x509.Certificate, certManager *x509certs.Certif
 	return writeOutput(outputData)
 }
 
-// outputCertificates outputs the certificates in DER or PEM format.
+// outputCertificates outputs the certificates in the requested format (DER or PEM).
+//
+// It encodes all certificates in the chain using either DER or PEM format
+// based on the derFormat flag, then writes the output to file or stdout.
+//
+// Parameters:
+//   - certsToOutput: Certificates to encode and output
+//   - certManager: Certificate manager for encoding operations
+//
+// Returns:
+//   - error: Encoding or output error
 func outputCertificates(certsToOutput []*x509.Certificate, certManager *x509certs.Certificate) error {
 	// Prepare output
 	var outputData []byte
@@ -290,7 +363,17 @@ func outputCertificates(certsToOutput []*x509.Certificate, certManager *x509cert
 	return writeOutput(outputData)
 }
 
-// writeOutput writes the output data to the specified file or stdout.
+// writeOutput writes the certificate data to the specified output file or stdout.
+//
+// If an output file is specified via the outputFile flag, it writes the data
+// to that file with appropriate permissions. Otherwise, it writes to stdout
+// for console output or piping.
+//
+// Parameters:
+//   - data: Certificate data to write (DER, PEM, JSON, etc.)
+//
+// Returns:
+//   - error: File writing error if output file cannot be created or written
 func writeOutput(data []byte) error {
 	if outputFile != "" {
 		if err := os.WriteFile(outputFile, data, 0644); err != nil {
