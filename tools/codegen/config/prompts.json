@@ -4,6 +4,7 @@
       "name": "certificate-analysis",
       "description": "Comprehensive certificate chain analysis workflow",
       "handler": "handleCertificateAnalysisPrompt",
+      "withEmbed": true,
       "arguments": [
         {
           "name": "certificate_path",
@@ -22,6 +23,7 @@
       "name": "expiry-monitoring",
       "description": "Monitor certificate expiration dates and generate renewal alerts",
       "handler": "handleExpiryMonitoringPrompt",
+      "withEmbed": true,
       "arguments": [
         {
           "name": "certificate_path",
@@ -45,6 +47,7 @@
       "name": "security-audit",
       "description": "Perform comprehensive SSL/TLS security audit on a server",
       "handler": "handleSecurityAuditPrompt",
+      "withEmbed": true,
       "arguments": [
         {
           "name": "hostname",
@@ -68,6 +71,7 @@
       "name": "troubleshooting",
       "description": "Troubleshoot common certificate and TLS issues",
       "handler": "handleTroubleshootingPrompt",
+      "withEmbed": true,
       "arguments": [
         {
           "name": "issue_type",
@@ -96,6 +100,7 @@
       "name": "resource-monitoring",
       "description": "Monitor server resource usage and performance metrics for certificate operations",
       "handler": "handleResourceMonitoringPrompt",
+      "withEmbed": true,
       "arguments": [
         {
           "name": "monitoring_context",

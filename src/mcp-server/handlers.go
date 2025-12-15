@@ -13,7 +13,6 @@ import (
 	"text/template"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
-	"github.com/mark3labs/mcp-go/server"
 )
 
 // instructionData holds the data used to populate the MCP server instructions template.
@@ -345,7 +344,7 @@ func populateToolMetadataCache(serverCache *serverCache, tools []ToolDefinition,
 //
 // The cached metadata enables resource handlers to expose prompt capabilities
 // dynamically, supporting discovery and documentation of available prompts.
-func populatePromptMetadataCache(serverCache *serverCache, prompts []server.ServerPrompt) {
+func populatePromptMetadataCache(serverCache *serverCache, prompts []ServerPrompt) {
 	serverCache.prompts = make([]map[string]any, 0, len(prompts))
 
 	for _, promptDef := range prompts {
@@ -411,7 +410,7 @@ func populatePromptMetadataCache(serverCache *serverCache, prompts []server.Serv
 // - Human-readable names and descriptions
 // - MIME types for content negotiation
 // - Filtered metadata fields (excluding internal fields)
-func populateResourceMetadataCache(serverCache *serverCache, resources []server.ServerResource) {
+func populateResourceMetadataCache(serverCache *serverCache, resources []ServerResource) {
 	serverCache.resources = make([]map[string]any, 0, len(resources))
 
 	for _, resourceDef := range resources {

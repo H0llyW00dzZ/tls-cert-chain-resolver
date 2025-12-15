@@ -1,47 +1,66 @@
+{{/*
+	promptArgs helper template for generating MCP prompt argument definitions.
+
+	This template encapsulates the logic for creating MCP-compliant prompt argument
+	specifications with proper validation rules and descriptions. It handles all
+	supported MCP argument types with required/optional constraints.
+
+	The template processes argument configuration data and generates appropriate
+	MCP argument builder calls with descriptions and requirement flags.
+
+	Template Parameters:
+	- .Name: Argument name identifier
+	- .Description: Human-readable argument description
+	- .Required: Boolean indicating if argument is mandatory
+
+	The generated code includes proper MCP builder method calls with all
+	applicable validation and type-specific configuration.
+*/}}
+{{define "promptArgs"}}
+{{- range .}}
+				mcp.WithArgument(
+					"{{.Name}}",
+					mcp.ArgumentDescription("{{.Description}}"),
+{{- if .Required}}
+					mcp.RequiredArgument(),
+{{- end}}
+				),
+{{- end}}
+{{end}}
+
 // createPrompts creates and returns all MCP prompt definitions with their handlers.
+// It organizes prompts into two categories: those that don't require embedded filesystem
+// access and those that need access to embedded templates for dynamic content generation.
 //
-// This function generates MCP-compliant prompt definitions that provide structured
-// workflows for certificate analysis and management tasks. Each prompt encapsulates
-// a specific use case with predefined arguments and execution logic.
-//
-// Prompts serve as guided workflows that combine multiple MCP tools in logical
-// sequences, making complex certificate operations accessible through simple,
-// high-level interfaces. They include argument validation, metadata for categorization,
-// and handler functions that orchestrate tool execution.
+// This function generates MCP-compliant prompt definitions with proper argument validation,
+// metadata for categorization, and handler bindings. Prompts are categorized based on their
+// embedded filesystem requirements to enable flexible server initialization.
 //
 // Returns:
-//   - []server.ServerPrompt: Slice of server prompt definitions with their handlers
+//   - []ServerPrompt: Slice of server prompt definitions without embed access
+//   - []ServerPromptWithEmbed: Slice of server prompt definitions with embed access
 //
-// The defined prompts are:
+// The function defines the following prompts:
 {{- range .Prompts}}
 //   - {{.Name}}: {{.Description}}
 {{- end}}
 //
-// Prompt Features:
-//   - Structured argument definitions with validation and descriptions
-//   - Metadata tags for categorization and filtering
-//   - Handler functions that implement workflow logic
-//   - Integration with MCP tool ecosystem for comprehensive certificate operations
-//
-// These prompts enable users to perform complex certificate management tasks
-// through guided, context-aware workflows rather than individual tool invocations.
-func createPrompts() []server.ServerPrompt {
-	prompts := []server.ServerPrompt{
+// Each prompt definition includes:
+//   - MCP argument specifications with validation and descriptions
+//   - Comprehensive descriptions for user interface display
+//   - Metadata tags for categorization and discovery
+//   - Proper handler function bindings for prompt execution
+func createPrompts() ([]ServerPrompt, []ServerPromptWithEmbed) {
+	// Prompts that don't need embed access
+	prompts := []ServerPrompt{
 {{- range .Prompts}}
+{{- if not .WithEmbed}}
 		{
 			Prompt: func() mcp.Prompt {
 				prompt := mcp.NewPrompt(
 					"{{.Name}}",
 					mcp.WithPromptDescription("{{.Description}}"),
-{{- range .Arguments}}
-					mcp.WithArgument(
-						"{{.Name}}",
-						mcp.ArgumentDescription("{{.Description}}"),
-{{- if .Required}}
-						mcp.RequiredArgument(),
-{{- end}}
-					),
-{{- end}}
+{{- template "promptArgs" .Arguments}}
 				)
 {{- if .Meta}}
 				prompt.Meta = mcp.NewMetaFromMap({{.Meta | toGoMap}})
@@ -51,7 +70,30 @@ func createPrompts() []server.ServerPrompt {
 			Handler: {{.Handler}},
 		},
 {{- end}}
+{{- end}}
 	}
 
-	return prompts
+	// Prompts that need embed access
+	promptsWithEmbed := []ServerPromptWithEmbed{
+{{- range .Prompts}}
+{{- if .WithEmbed}}
+		{
+			Prompt: func() mcp.Prompt {
+				prompt := mcp.NewPrompt(
+					"{{.Name}}",
+					mcp.WithPromptDescription("{{.Description}}"),
+{{- template "promptArgs" .Arguments}}
+				)
+{{- if .Meta}}
+				prompt.Meta = mcp.NewMetaFromMap({{.Meta | toGoMap}})
+{{- end}}
+				return prompt
+			}(),
+			Handler: {{.Handler}},
+		},
+{{- end}}
+{{- end}}
+	}
+
+	return prompts, promptsWithEmbed
 }

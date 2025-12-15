@@ -33,6 +33,7 @@ import (
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 )
 
@@ -985,12 +986,60 @@ func contains(s, substr string) bool {
 }
 
 func TestResourceHandlers(t *testing.T) {
-	// Use the real createResources function to test actual handlers
-	resources := createResources()
+	// Get the generated resources
+	resources, resourcesWithEmbed := createResources()
 
-	// Create test server and add the real resources
+	// Verify counts
+	if len(resources) != 3 {
+		t.Errorf("Expected 3 regular resources, got %d", len(resources))
+	}
+	if len(resourcesWithEmbed) != 1 {
+		t.Errorf("Expected 1 embed resource, got %d", len(resourcesWithEmbed))
+	}
+
+	// Create MCP resources that call the real handlers with embed where needed
+	mcpResources := []server.ServerResource{
+		{
+			Resource: mcp.Resource{
+				URI:  "config://template",
+				Name: "Configuration Template",
+			},
+			Handler: func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+				return handleConfigResource(ctx, req)
+			},
+		},
+		{
+			Resource: mcp.Resource{
+				URI:  "info://version",
+				Name: "Version Information",
+			},
+			Handler: func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+				return handleVersionResource(ctx, req)
+			},
+		},
+		{
+			Resource: mcp.Resource{
+				URI:  "docs://certificate-formats",
+				Name: "Certificate Formats Documentation",
+			},
+			Handler: func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+				return handleCertificateFormatsResource(ctx, req, templates.MagicEmbed)
+			},
+		},
+		{
+			Resource: mcp.Resource{
+				URI:  "status://server-status",
+				Name: "Server Status",
+			},
+			Handler: func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+				return handleStatusResource(ctx, req)
+			},
+		},
+	}
+
+	// Create test server and add the resources
 	srv := mcptest.NewUnstartedServer(t)
-	srv.AddResources(resources...)
+	srv.AddResources(mcpResources...)
 
 	// Start the server
 	if err := srv.Start(t.Context()); err != nil {
@@ -1556,14 +1605,17 @@ func TestCreateTools(t *testing.T) {
 }
 
 func TestCreatePrompts(t *testing.T) {
-	prompts := createPrompts()
+	prompts, promptsWithEmbed := createPrompts()
 
 	// Verify we get the expected number of prompts
-	if len(prompts) != 5 {
-		t.Errorf("Expected 5 prompts, got %d", len(prompts))
+	if len(prompts) != 0 {
+		t.Errorf("Expected 0 regular prompts, got %d", len(prompts))
+	}
+	if len(promptsWithEmbed) != 5 {
+		t.Errorf("Expected 5 embed prompts, got %d", len(promptsWithEmbed))
 	}
 
-	// Verify prompt names
+	// Verify prompt names for embed prompts
 	expectedPromptNames := []string{
 		"certificate-analysis",
 		"expiry-monitoring",
@@ -1572,14 +1624,14 @@ func TestCreatePrompts(t *testing.T) {
 		"resource-monitoring",
 	}
 
-	foundPrompts := make(map[string]bool)
-	for _, prompt := range prompts {
-		foundPrompts[string(prompt.Prompt.Name)] = true
+	foundEmbedPrompts := make(map[string]bool)
+	for _, prompt := range promptsWithEmbed {
+		foundEmbedPrompts[string(prompt.Prompt.Name)] = true
 	}
 
 	for _, expectedName := range expectedPromptNames {
-		if !foundPrompts[expectedName] {
-			t.Errorf("Expected prompt %s not found", expectedName)
+		if !foundEmbedPrompts[expectedName] {
+			t.Errorf("Expected prompt %s not found in embed prompts", expectedName)
 		}
 	}
 }
@@ -1674,7 +1726,7 @@ func TestHandleFormatsResource(t *testing.T) {
 		},
 	}
 
-	result, err := handleCertificateFormatsResource(t.Context(), req)
+	result, err := handleCertificateFormatsResource(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleCertificateFormatsResource failed: %v", err)
 	}
@@ -1759,7 +1811,7 @@ func TestHandleCertificateAnalysisPrompt(t *testing.T) {
 		},
 	}
 
-	result, err := handleCertificateAnalysisPrompt(t.Context(), req)
+	result, err := handleCertificateAnalysisPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleCertificateAnalysisPrompt failed: %v", err)
 	}
@@ -1788,7 +1840,7 @@ func TestHandleExpiryMonitoringPrompt(t *testing.T) {
 		},
 	}
 
-	result, err := handleExpiryMonitoringPrompt(t.Context(), req)
+	result, err := handleExpiryMonitoringPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleExpiryMonitoringPrompt failed: %v", err)
 	}
@@ -1817,7 +1869,7 @@ func TestHandleSecurityAuditPrompt(t *testing.T) {
 		},
 	}
 
-	result, err := handleSecurityAuditPrompt(t.Context(), req)
+	result, err := handleSecurityAuditPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleSecurityAuditPrompt failed: %v", err)
 	}
@@ -1846,7 +1898,7 @@ func TestHandleTroubleshootingPrompt_ChainIssue(t *testing.T) {
 		},
 	}
 
-	result, err := handleTroubleshootingPrompt(t.Context(), req)
+	result, err := handleTroubleshootingPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
@@ -1875,7 +1927,7 @@ func TestHandleTroubleshootingPrompt_ValidationIssue(t *testing.T) {
 		},
 	}
 
-	result, err := handleTroubleshootingPrompt(t.Context(), req)
+	result, err := handleTroubleshootingPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
@@ -1904,7 +1956,7 @@ func TestHandleTroubleshootingPrompt_ExpiryIssue(t *testing.T) {
 		},
 	}
 
-	result, err := handleTroubleshootingPrompt(t.Context(), req)
+	result, err := handleTroubleshootingPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
@@ -1933,7 +1985,7 @@ func TestHandleTroubleshootingPrompt_ConnectionIssue(t *testing.T) {
 		},
 	}
 
-	result, err := handleTroubleshootingPrompt(t.Context(), req)
+	result, err := handleTroubleshootingPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
@@ -1961,7 +2013,7 @@ func TestHandleTroubleshootingPrompt_InvalidIssueType(t *testing.T) {
 		},
 	}
 
-	result, err := handleTroubleshootingPrompt(t.Context(), req)
+	result, err := handleTroubleshootingPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
 	}
@@ -1990,7 +2042,7 @@ func TestHandleResourceMonitoringPrompt_Debugging(t *testing.T) {
 		},
 	}
 
-	result, err := handleResourceMonitoringPrompt(t.Context(), req)
+	result, err := handleResourceMonitoringPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
 	}
@@ -2018,7 +2070,7 @@ func TestHandleResourceMonitoringPrompt_Optimization(t *testing.T) {
 		},
 	}
 
-	result, err := handleResourceMonitoringPrompt(t.Context(), req)
+	result, err := handleResourceMonitoringPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
 	}
@@ -2047,7 +2099,7 @@ func TestHandleResourceMonitoringPrompt_Routine(t *testing.T) {
 		},
 	}
 
-	result, err := handleResourceMonitoringPrompt(t.Context(), req)
+	result, err := handleResourceMonitoringPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
 	}
@@ -2073,7 +2125,7 @@ func TestHandleResourceMonitoringPrompt_Defaults(t *testing.T) {
 		},
 	}
 
-	result, err := handleResourceMonitoringPrompt(t.Context(), req)
+	result, err := handleResourceMonitoringPrompt(t.Context(), req, templates.MagicEmbed)
 	if err != nil {
 		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
 	}

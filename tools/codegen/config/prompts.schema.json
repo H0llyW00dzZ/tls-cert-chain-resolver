@@ -15,10 +15,13 @@
             "type": "string",
             "minLength": 1
           },
-          "handler": {
-            "type": "string",
-            "minLength": 1
-          },
+           "handler": {
+             "type": "string",
+             "minLength": 1
+           },
+           "withEmbed": {
+             "type": "boolean"
+           },
           "arguments": {
             "type": "array",
             "items": {

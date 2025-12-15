@@ -1,39 +1,21 @@
-// createResources creates and returns all MCP resources without adding them to a server.
-//
-// This function generates MCP-compliant resource definitions that provide access to
-// static content, configuration templates, and metadata. Resources are created
-// independently of server initialization to enable testing and validation.
-//
-// Resource definitions include URI patterns, MIME types, audience restrictions,
-// and handler functions that provide the actual content. This separation allows
-// for flexible resource management and testing scenarios.
-//
-// Returns:
-//   - []server.ServerResource: Slice of server resource definitions with their handlers
-//
-// The function defines the following resources:
-{{- range .Resources}}
-//   - {{.URI}}: {{.Description}}
-{{- end}}
-//
-//
-// Each resource definition includes:
-//   - Unique URI identifier following MCP resource naming conventions
-//   - Human-readable name and description for user interfaces
-//   - MIME type specification for proper content handling
-//   - Audience restrictions and priority settings for access control
-//   - Metadata tags for categorization and discovery
-//   - Handler functions that generate or serve the resource content
-func createResources() []server.ServerResource {
-	resources := []server.ServerResource{
-{{- range .Resources}}
-		{
-			Resource: func() mcp.Resource {
-				res := mcp.NewResource(
-					"{{.URI}}",
-					"{{.Name}}",
-					mcp.WithResourceDescription("{{.Description}}"),
-					mcp.WithMIMEType("{{.MIMEType}}"),
+{{/*
+	resourceAnnotations helper template for generating MCP resource annotation definitions.
+
+	This template encapsulates the logic for creating MCP-compliant resource annotation
+	specifications with proper audience restrictions and priority settings. It handles
+	role-based access control and priority ordering for resource discovery.
+
+	The template processes audience and priority configuration data and generates
+	appropriate MCP annotation builder calls with role mappings and priority values.
+
+	Template Parameters:
+	- .Audience: Slice of role strings (e.g., ["user", "assistant"])
+	- .Priority: Numeric priority value for resource ordering
+
+	The generated code includes proper MCP annotation builder calls with all
+	applicable role mappings and priority settings for resource access control.
+*/}}
+{{define "resourceAnnotations"}}
 {{- if .Audience}}
 					mcp.WithAnnotations(
 						[]mcp.Role{
@@ -42,6 +24,45 @@ func createResources() []server.ServerResource {
 {{- end}}
 					}, {{if .Priority}}{{.Priority}}{{else}}0.0{{end}}),
 {{- end}}
+{{end}}
+
+// createResources creates and returns all MCP resources without adding them to a server.
+// It organizes resources into two categories: those that don't require embedded filesystem
+// access and those that need access to embedded templates or static files.
+//
+// This function generates MCP-compliant resource definitions with proper URI patterns,
+// MIME types, audience restrictions, and handler bindings. Resources are categorized based on
+// their embedded filesystem requirements to enable flexible server initialization.
+//
+// Returns:
+//   - []ServerResource: Slice of server resource definitions without embed access
+//   - []ServerResourceWithEmbed: Slice of server resource definitions with embed access
+//
+// The function defines the following resources:
+{{- range .Resources}}
+//   - {{.URI}}: {{.Description}}
+{{- end}}
+//
+// Each resource definition includes:
+//   - Unique URI identifier following MCP resource naming conventions
+//   - Human-readable name and description for user interfaces
+//   - MIME type specification for proper content handling
+//   - Audience restrictions and priority settings for access control
+//   - Metadata tags for categorization and discovery
+//   - Handler functions that generate or serve the resource content
+func createResources() ([]ServerResource, []ServerResourceWithEmbed) {
+	// Resources that don't need embed access
+	resources := []ServerResource{
+{{- range .Resources}}
+{{- if not .WithEmbed}}
+		{
+			Resource: func() mcp.Resource {
+				res := mcp.NewResource(
+					"{{.URI}}",
+					"{{.Name}}",
+					mcp.WithResourceDescription("{{.Description}}"),
+					mcp.WithMIMEType("{{.MIMEType}}"),
+{{- template "resourceAnnotations" .}}
 				)
 {{- if .Meta}}
 				res.Meta = mcp.NewMetaFromMap({{.Meta | toGoMap}})
@@ -51,7 +72,32 @@ func createResources() []server.ServerResource {
 			Handler: {{.Handler}},
 		},
 {{- end}}
+{{- end}}
 	}
 
-	return resources
+	// Resources that need embed access
+	resourcesWithEmbed := []ServerResourceWithEmbed{
+{{- range .Resources}}
+{{- if .WithEmbed}}
+		{
+			Resource: func() mcp.Resource {
+				res := mcp.NewResource(
+					"{{.URI}}",
+					"{{.Name}}",
+					mcp.WithResourceDescription("{{.Description}}"),
+					mcp.WithMIMEType("{{.MIMEType}}"),
+{{- template "resourceAnnotations" .}}
+				)
+{{- if .Meta}}
+				res.Meta = mcp.NewMetaFromMap({{.Meta | toGoMap}})
+{{- end}}
+				return res
+			}(),
+			Handler: {{.Handler}},
+		},
+{{- end}}
+{{- end}}
+	}
+
+	return resources, resourcesWithEmbed
 }

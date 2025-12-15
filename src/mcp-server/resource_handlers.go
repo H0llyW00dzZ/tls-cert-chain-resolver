@@ -115,6 +115,7 @@ func handleVersionResource(ctx context.Context, request mcp.ReadResourceRequest)
 // Parameters:
 //   - ctx: Context for cancellation and timeout handling
 //   - request: MCP resource read request for certificate format documentation
+//   - embed: Embedded filesystem interface for accessing templates
 //
 // Returns:
 //   - A slice containing the certificate formats documentation as markdown content
@@ -122,8 +123,8 @@ func handleVersionResource(ctx context.Context, request mcp.ReadResourceRequest)
 //
 // The documentation is stored in templates/certificate-formats.md and provides
 // detailed information about certificate encoding formats and usage.
-func handleCertificateFormatsResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	content, err := templates.MagicEmbed.ReadFile("certificate-formats.md")
+func handleCertificateFormatsResource(ctx context.Context, request mcp.ReadResourceRequest, embed templates.EmbedFS) ([]mcp.ResourceContents, error) {
+	content, err := embed.ReadFile("certificate-formats.md")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read certificate formats template: %w", err)
 	}
