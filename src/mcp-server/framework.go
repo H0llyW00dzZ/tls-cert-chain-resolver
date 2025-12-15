@@ -651,7 +651,7 @@ func (b *ServerBuilder) Build() (*server.MCPServer, error) {
 		})
 	}
 
-	// Add resources that need embed access
+	// Add resources that need embed access (dependency injection passing Magic embedded filesystem)
 	for _, resource := range b.deps.ResourcesWithEmbed {
 		s.AddResource(resource.Resource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 			return resource.Handler(ctx, request, b.deps.Embed)
@@ -665,7 +665,7 @@ func (b *ServerBuilder) Build() (*server.MCPServer, error) {
 		})
 	}
 
-	// Add prompts that need embed access
+	// Add prompts that need embed access (dependency injection passing Magic embedded filesystem)
 	for _, prompt := range b.deps.PromptsWithEmbed {
 		s.AddPrompt(prompt.Prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 			return prompt.Handler(ctx, request, b.deps.Embed)
