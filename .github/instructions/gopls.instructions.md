@@ -86,7 +86,7 @@ gopls_go_search("WithPopulate") → Find opt-in metadata cache population method
 gopls_go_search("createResources") → Find resource creation functions
 gopls_go_search("createPrompts") → Find prompt creation functions
 gopls_go_search("handleStatusResource") → Find status resource handler
-gopls_go_search("analyze_certificate_with_ai") → Find AI certificate analysis tools
+gopls_go_search("ToolAnalyzeCertificateWithAI") → Find AI certificate analysis tool constant
 gopls_go_search("DefaultSamplingHandler") → Find AI sampling implementation
 gopls_go_search("WithInMemoryTransport") → Find ADK in-memory transport configuration
 gopls_go_search("BuildTransport") → Find ADK transport building methods
