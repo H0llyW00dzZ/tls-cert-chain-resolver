@@ -95,7 +95,8 @@ const (
 //   - []ToolDefinitionWithConfig: Slice of tool definitions for tools that require server configuration
 //
 // Tool Categories:
-//   - Standard tools ([]ToolDefinition): resolve_cert_chain, validate_cert_chain, batch_resolve_cert_chain, get_resource_usage, visualize_cert_chain
+//   - Standard tools ([]ToolDefinition): resolve_cert_chain, validate_cert_chain, batch_resolve_cert_chain,
+//     get_resource_usage, visualize_cert_chain
 //   - Config-dependent tools ([]ToolDefinitionWithConfig): check_cert_expiry, fetch_remote_cert, analyze_certificate_with_ai
 //
 // The function defines the following tools:

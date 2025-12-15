@@ -589,6 +589,30 @@ func generateFile(templatePath, outputPath string, config *Config, fileType stri
 			}
 			return strings.Join(names, ", ")
 		},
+		"formatToolList": func(toolList string) string {
+			if toolList == "" {
+				return ""
+			}
+
+			tools := strings.Split(toolList, ", ")
+			if len(tools) < 4 {
+				return toolList
+			}
+
+			// Format with line breaks for readability when 4+ tools
+			var result strings.Builder
+			for i, tool := range tools {
+				if i > 0 {
+					if i%3 == 0 { // Break line every 3 tools
+						result.WriteString(",\n//      ")
+					} else {
+						result.WriteString(", ")
+					}
+				}
+				result.WriteString(tool)
+			}
+			return result.String()
+		},
 	}).ParseFiles(templatePath)
 	if err != nil {
 		return fmt.Errorf("parsing template from %s: %w", templatePath, err)
