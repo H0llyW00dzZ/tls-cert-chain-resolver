@@ -39,8 +39,8 @@ See [README.md](./README.md) for repository overview. This MCP server focuses on
 
 - **`src/internal/x509/certs/`** — Certificate encoding/decoding operations
 - **`src/internal/x509/chain/`** — Certificate chain resolution logic with OCSP/CRL revocation checking
-- **`src/mcp-server/`** — MCP server implementation with certificate tools
-- **`src/mcp-server/templates/X509_instructions.md`** — Server instructions for MCP client initialization
+- **`src/mcp-server/`** — MCP server implementation with certificate tools and embedded FS support
+- **`src/mcp-server/templates/`** — Embedded templates for prompts, resources, and documentation using Go's embed.FS
 
 ## Available Tools
 

@@ -153,6 +153,19 @@ gopls_go_search("MaxMessagesPerTemplate") → Find template message limits
 gopls_go_search("parseSSELine") → Find SSE line parsing functions
 gopls_go_search("parseJSONChunk") → Find JSON chunk parsing functions
 gopls_go_search("parseStreamingResponse") → Find streaming response parsing functions
+gopls_go_search("WithEmbed") → Find embedded FS configuration methods
+gopls_go_search("EmbedFS") → Find embedded filesystem interface
+gopls_go_search("ServerConfig.Embed") → Find embedded FS in server configuration
+gopls_go_search("ServerPromptWithEmbed") → Find embedded prompt structures
+gopls_go_search("ServerResourceWithEmbed") → Find embedded resource structures
+gopls_go_search("WithEmbeddedPrompts") → Find embedded prompts configuration
+gopls_go_search("WithEmbeddedResources") → Find embedded resources configuration
+gopls_go_search("PromptDefinition.WithEmbed") → Find embed flag in prompt definitions
+gopls_go_search("ResourceDefinition.WithEmbed") → Find embed flag in resource definitions
+gopls_go_search("PromptHandlerWithEmbed") → Find embedded prompt handlers
+gopls_go_search("ResourceHandlerWithEmbed") → Find embedded resource handlers
+gopls_go_search("ServerDependencies.PromptsWithEmbed") → Find embedded prompts in server dependencies
+gopls_go_search("ServerDependencies.ResourcesWithEmbed") → Find embedded resources in server dependencies
 ```
 
 ### gopls_go_file_context(file)
