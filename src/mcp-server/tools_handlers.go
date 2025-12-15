@@ -214,6 +214,111 @@ func handleValidateCertChain(ctx context.Context, request mcp.CallToolRequest) (
 	return mcp.NewToolResultText(result.String()), nil
 }
 
+// batchResolveOptions contains configuration options for batch certificate resolution operations.
+// It groups related parameters to reduce function complexity and improve maintainability.
+//
+// Fields:
+//   - format: Output format ("pem", "der", or "json")
+//   - includeSystemRoot: Whether to include system root CA in the chain
+//   - intermediateOnly: Whether to return only intermediate certificates
+type batchResolveOptions struct {
+	// format: Output format ("pem", "der", or "json")
+	format string
+	// includeSystemRoot: Whether to include system root CA in the chain
+	includeSystemRoot bool
+	// intermediateOnly: Whether to return only intermediate certificates
+	intermediateOnly bool
+}
+
+// processSingleCertificate processes a single certificate input and returns formatted result.
+// It handles the complete certificate processing workflow including reading, decoding, chain resolution,
+// and formatting for a single certificate in a batch operation.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling during certificate fetching
+//   - certInput: Certificate input as file path or base64-encoded data
+//   - index: Certificate index in the batch (0-based) for display purposes
+//   - opts: Batch resolution options controlling output format and processing behavior
+//
+// Returns:
+//   - A formatted string containing the certificate processing result or error message
+//
+// The function performs all certificate operations (read, decode, fetch chain, format) for a single
+// certificate and returns a consistent result format suitable for batch processing.
+func processSingleCertificate(ctx context.Context, certInput string, index int, opts batchResolveOptions) string {
+	result := fmt.Sprintf("Certificate %d:\n", index+1)
+
+	// Read certificate data
+	certData, err := readCertificateData(certInput)
+	if err != nil {
+		result += fmt.Sprintf("  Error: failed to read certificate: %v\n", err)
+		return result
+	}
+
+	// Decode certificate
+	certManager := x509certs.New()
+	cert, err := certManager.Decode(certData)
+	if err != nil {
+		result += fmt.Sprintf("  Error: failed to decode certificate: %v\n", err)
+		return result
+	}
+
+	// Fetch certificate chain
+	chain := x509chain.New(cert, version.Version)
+	if err := chain.FetchCertificate(ctx); err != nil {
+		result += fmt.Sprintf("  Error: failed to fetch certificate chain: %v\n", err)
+		return result
+	}
+
+	// Optionally add system root CA
+	if opts.includeSystemRoot {
+		if err := chain.AddRootCA(); err != nil {
+			result += fmt.Sprintf("  Warning: failed to add root CA: %v\n", err)
+		}
+	}
+
+	// Filter certificates if needed
+	certs := chain.Certs
+	if opts.intermediateOnly {
+		certs = chain.FilterIntermediates()
+	}
+
+	// Format output
+	switch opts.format {
+	case "der":
+		derData := certManager.EncodeMultipleDER(certs)
+		result += fmt.Sprintf("  Format: DER (%d bytes)\n", len(derData))
+	case "json":
+		result += "  Format: JSON\n" + formatJSON(certs, certManager)
+	default: // pem
+		pemData := certManager.EncodeMultiplePEM(certs)
+		result += fmt.Sprintf("  Format: PEM\n%s", string(pemData))
+	}
+
+	result += fmt.Sprintf("  Chain: %d certificate(s)\n", len(certs))
+	return result
+}
+
+// formatBatchResults combines individual certificate results into final batch output.
+// It creates a structured summary showing the total number of certificates processed
+// and concatenates all individual results with proper formatting.
+//
+// Parameters:
+//   - results: Slice of individual certificate processing results (one per certificate)
+//   - totalProcessed: Total number of certificates that were processed (including failures)
+//
+// Returns:
+//   - A formatted string containing the complete batch results summary
+//
+// The function provides consistent batch output formatting that matches the expected
+// user interface for batch certificate operations.
+func formatBatchResults(results []string, totalProcessed int) string {
+	finalResult := "Batch Certificate Chain Resolution Results:\n"
+	finalResult += fmt.Sprintf("Processed %d certificate(s)\n\n", totalProcessed)
+	finalResult += strings.Join(results, "\n")
+	return finalResult
+}
+
 // handleBatchResolveCertChain processes multiple certificate chains in batch from comma-separated inputs.
 // It resolves each certificate chain independently and formats the results for comparison.
 //
@@ -235,9 +340,11 @@ func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolReques
 		return mcp.NewToolResultError(fmt.Sprintf("certificates parameter required: %v", err)), nil
 	}
 
-	format := request.GetString("format", "pem")
-	includeSystemRoot := request.GetBool("include_system_root", false)
-	intermediateOnly := request.GetBool("intermediate_only", false)
+	opts := batchResolveOptions{
+		format:            request.GetString("format", "pem"),
+		includeSystemRoot: request.GetBool("include_system_root", false),
+		intermediateOnly:  request.GetBool("intermediate_only", false),
+	}
 
 	// Parse comma-separated certificate inputs
 	certInputs := strings.Split(certInput, ",")
@@ -253,66 +360,12 @@ func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolReques
 			continue
 		}
 
-		result := fmt.Sprintf("Certificate %d:\n", i+1)
-
-		// Read certificate data
-		certData, err := readCertificateData(certInput)
-		if err != nil {
-			result += fmt.Sprintf("  Error: failed to read certificate: %v\n", err)
-			results = append(results, result)
-			continue
-		}
-
-		// Decode certificate
-		certManager := x509certs.New()
-		cert, err := certManager.Decode(certData)
-		if err != nil {
-			result += fmt.Sprintf("  Error: failed to decode certificate: %v\n", err)
-			results = append(results, result)
-			continue
-		}
-
-		// Fetch certificate chain
-		chain := x509chain.New(cert, version.Version)
-		if err := chain.FetchCertificate(ctx); err != nil {
-			result += fmt.Sprintf("  Error: failed to fetch certificate chain: %v\n", err)
-			results = append(results, result)
-			continue
-		}
-
-		// Optionally add system root CA
-		if includeSystemRoot {
-			if err := chain.AddRootCA(); err != nil {
-				result += fmt.Sprintf("  Warning: failed to add root CA: %v\n", err)
-			}
-		}
-
-		// Filter certificates if needed
-		certs := chain.Certs
-		if intermediateOnly {
-			certs = chain.FilterIntermediates()
-		}
-
-		// Format output
-		switch format {
-		case "der":
-			derData := certManager.EncodeMultipleDER(certs)
-			result += fmt.Sprintf("  Format: DER (%d bytes)\n", len(derData))
-		case "json":
-			result += "  Format: JSON\n" + formatJSON(certs, certManager)
-		default: // pem
-			pemData := certManager.EncodeMultiplePEM(certs)
-			result += fmt.Sprintf("  Format: PEM\n%s", string(pemData))
-		}
-
-		result += fmt.Sprintf("  Chain: %d certificate(s)\n", len(certs))
+		result := processSingleCertificate(ctx, certInput, i, opts)
 		results = append(results, result)
 	}
 
 	// Combine all results
-	finalResult := "Batch Certificate Chain Resolution Results:\n"
-	finalResult += fmt.Sprintf("Processed %d certificate(s)\n\n", len(certInputs))
-	finalResult += strings.Join(results, "\n")
+	finalResult := formatBatchResults(results, len(certInputs))
 
 	return mcp.NewToolResultText(finalResult), nil
 }
