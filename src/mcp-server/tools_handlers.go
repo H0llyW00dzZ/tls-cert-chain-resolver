@@ -24,6 +24,23 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
+// readCertificateData reads certificate data from either a file path or base64-encoded string.
+// It first attempts to read as a file, then falls back to base64 decoding.
+// Returns the certificate data bytes or an error if both attempts fail.
+func readCertificateData(input string) ([]byte, error) {
+	// Try to read as file first
+	if fileData, err := os.ReadFile(input); err == nil {
+		return fileData, nil
+	}
+
+	// Try to decode as base64
+	if decoded, err := base64.StdEncoding.DecodeString(input); err == nil {
+		return decoded, nil
+	}
+
+	return nil, fmt.Errorf("not a valid file path or base64 data")
+}
+
 // handleResolveCertChain resolves a certificate chain from a file path or base64-encoded certificate data.
 // It fetches the complete certificate chain, optionally adds system root CA, and formats the output.
 //
@@ -49,18 +66,9 @@ func handleResolveCertChain(ctx context.Context, request mcp.CallToolRequest) (*
 	intermediateOnly := request.GetBool("intermediate_only", false)
 
 	// Read certificate data
-	var certData []byte
-
-	// Try to read as file first
-	if fileData, err := os.ReadFile(certInput); err == nil {
-		certData = fileData
-	} else {
-		// Try to decode as base64
-		if decoded, err := base64.StdEncoding.DecodeString(certInput); err == nil {
-			certData = decoded
-		} else {
-			return mcp.NewToolResultError("failed to read certificate: not a valid file path or base64 data"), nil
-		}
+	certData, err := readCertificateData(certInput)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to read certificate: %v", err)), nil
 	}
 
 	// Decode certificate
@@ -138,18 +146,9 @@ func handleValidateCertChain(ctx context.Context, request mcp.CallToolRequest) (
 	includeSystemRoot := request.GetBool("include_system_root", true)
 
 	// Read certificate data
-	var certData []byte
-
-	// Try to read as file first
-	if fileData, err := os.ReadFile(certInput); err == nil {
-		certData = fileData
-	} else {
-		// Try to decode as base64
-		if decoded, err := base64.StdEncoding.DecodeString(certInput); err == nil {
-			certData = decoded
-		} else {
-			return mcp.NewToolResultError("failed to read certificate: not a valid file path or base64 data"), nil
-		}
+	certData, err := readCertificateData(certInput)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to read certificate: %v", err)), nil
 	}
 
 	// Decode certificate
@@ -248,20 +247,11 @@ func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolReques
 		result := fmt.Sprintf("Certificate %d:\n", i+1)
 
 		// Read certificate data
-		var certData []byte
-
-		// Try to read as file first
-		if fileData, err := os.ReadFile(certInput); err == nil {
-			certData = fileData
-		} else {
-			// Try to decode as base64
-			if decoded, err := base64.StdEncoding.DecodeString(certInput); err == nil {
-				certData = decoded
-			} else {
-				result += "  Error: failed to read certificate: not a valid file path or base64 data\n"
-				results = append(results, result)
-				continue
-			}
+		certData, err := readCertificateData(certInput)
+		if err != nil {
+			result += fmt.Sprintf("  Error: failed to read certificate: %v\n", err)
+			results = append(results, result)
+			continue
 		}
 
 		// Decode certificate
@@ -427,18 +417,9 @@ func handleCheckCertExpiry(ctx context.Context, request mcp.CallToolRequest, con
 	}
 
 	// Read certificate data
-	var certData []byte
-
-	// Try to read as file first
-	if fileData, err := os.ReadFile(certInput); err == nil {
-		certData = fileData
-	} else {
-		// Try to decode as base64
-		if decoded, err := base64.StdEncoding.DecodeString(certInput); err == nil {
-			certData = decoded
-		} else {
-			return mcp.NewToolResultError("failed to read certificate: not a valid file path or base64 data"), nil
-		}
+	certData, err := readCertificateData(certInput)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to read certificate: %v", err)), nil
 	}
 
 	// Decode certificate(s) - could be a bundle
@@ -525,16 +506,9 @@ func handleAnalyzeCertificateWithAI(ctx context.Context, request mcp.CallToolReq
 	analysisType := request.GetString("analysis_type", "general")
 
 	// Read certificate data
-	var certData []byte
-	if fileData, err := os.ReadFile(certInput); err == nil {
-		certData = fileData
-	} else {
-		// Try to decode as base64
-		if decoded, err := base64.StdEncoding.DecodeString(certInput); err == nil {
-			certData = decoded
-		} else {
-			return mcp.NewToolResultError("failed to read certificate: not a valid file path or base64 data"), nil
-		}
+	certData, err := readCertificateData(certInput)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to read certificate: %v", err)), nil
 	}
 
 	// Create certificate manager
@@ -1174,19 +1148,9 @@ func handleVisualizeCertChain(ctx context.Context, request mcp.CallToolRequest) 
 	format := request.GetString("format", "ascii")
 
 	// Parse certificate input (file path or base64)
-	var certData []byte
-	if _, err := os.Stat(certInput); err == nil {
-		// It's a file path
-		certData, err = os.ReadFile(certInput)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("failed to read certificate file: %v", err)), nil
-		}
-	} else {
-		// Try as base64
-		certData, err = base64.StdEncoding.DecodeString(certInput)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("invalid certificate input (not a file path or base64): %v", err)), nil
-		}
+	certData, err := readCertificateData(certInput)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to read certificate: %v", err)), nil
 	}
 
 	// Decode certificate
