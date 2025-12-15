@@ -2,6 +2,9 @@
 
 Generates MCP server resources, tools, and prompts from configuration files. Refactored from a monolithic file into a maintainable, configuration-driven system using Go templates and JSON configuration.
 
+> [!NOTE]
+> This codegen tool leverages Go's powerful features because it's literally possible to write code generators in any language and convert them to fully functional Go code - similar to how gRPC code generators work. By using Go templates and JSON configuration, we get type safety, excellent performance, and seamless integration with the Go ecosystem, while maintaining the flexibility to generate complex, production-ready code from simple declarative configurations.
+
 ## Structure
 
 ```
