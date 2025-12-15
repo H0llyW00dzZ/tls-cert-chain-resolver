@@ -105,8 +105,14 @@ const (
 //   - []ToolDefinitionWithConfig: Slice of tool definitions for tools that require server configuration
 //
 // Tool Categories:
-//   - Standard tools: Certificate chain resolution, validation, expiry checking
-//   - Config-dependent tools: Remote fetching, AI analysis, resource monitoring
+{{- $standardTools := joinTools .Tools false}}
+{{- $configTools := joinTools .Tools true}}
+{{- if $standardTools}}
+//   - Standard tools ([]ToolDefinition): {{formatToolList $standardTools}}
+{{- end}}
+{{- if $configTools}}
+//   - Config-dependent tools ([]ToolDefinitionWithConfig): {{formatToolList $configTools}}
+{{- end}}
 //
 // The function defines the following tools:
 {{- range .Tools}}
