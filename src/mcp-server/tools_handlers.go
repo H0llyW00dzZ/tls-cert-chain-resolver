@@ -38,7 +38,7 @@ func readCertificateData(input string) ([]byte, error) {
 		return decoded, nil
 	}
 
-	return nil, fmt.Errorf("failed to read certificate: not a valid file path or base64 data")
+	return nil, fmt.Errorf("not a valid file path or base64 data")
 }
 
 // handleResolveCertChain resolves a certificate chain from a file path or base64-encoded certificate data.
