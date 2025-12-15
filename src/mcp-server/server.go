@@ -133,7 +133,9 @@ func Run(version string) error {
 		WithConfig(config).
 		WithEmbed(templates.MagicEmbed).
 		WithVersion(version).
+		// Currently unused; will be implemented later. It's fine to keep as-is due to the framework's dependency injection design.
 		WithCertManager(x509certs.New()).
+		// Currently unused; will be implemented later. It's fine to keep as-is due to the framework's dependency injection design.
 		WithChainResolver(DefaultChainResolver{}).
 		WithSampling(NewDefaultSamplingHandler(config, version)).
 		WithTools(tools...).
