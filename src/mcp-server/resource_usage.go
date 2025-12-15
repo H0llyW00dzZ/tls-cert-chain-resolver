@@ -37,7 +37,7 @@ import (
 // This struct is used by the get_resource_usage MCP tool to provide
 // comprehensive monitoring data for performance analysis and debugging.
 //
-// [RFC3339]: https://www.rfc-editor.org/rfc/RFC3339.html
+// [RFC3339]: https://www.rfc-editor.org/rfc/rfc3339.html
 type ResourceUsageData struct {
 	Timestamp      string         `json:"timestamp"`
 	MemoryUsage    map[string]any `json:"memory_usage"`
@@ -68,7 +68,7 @@ type ResourceUsageData struct {
 // Memory values are converted to MB for readability, and timestamps
 // are formatted as [RFC3339]. CRL cache hit rate is calculated as a percentage.
 //
-// [RFC3339]: https://www.rfc-editor.org/rfc/RFC3339.html
+// [RFC3339]: https://www.rfc-editor.org/rfc/rfc3339.html
 func CollectResourceUsage(detailed bool) *ResourceUsageData {
 	// Get memory statistics
 	var memStats runtime.MemStats
@@ -171,7 +171,7 @@ func CollectResourceUsage(detailed bool) *ResourceUsageData {
 //
 // JSON is formatted with 2-space indentation for readability.
 //
-// [RFC3339]: https://www.rfc-editor.org/rfc/RFC3339.html
+// [RFC3339]: https://www.rfc-editor.org/rfc/rfc3339.html
 func FormatResourceUsageAsJSON(data *ResourceUsageData) (string, error) {
 	response := map[string]any{
 		"timestamp":    data.Timestamp,
@@ -255,7 +255,7 @@ func FormatResourceUsageAsMarkdown(data *ResourceUsageData) string {
 //   - Human-readable timestamp (e.g., "January 2, 2006 at 3:04 PM MST")
 //   - Fallback to original timestamp if parsing fails
 //
-// [RFC3339]: https://www.rfc-editor.org/rfc/RFC3339.html
+// [RFC3339]: https://www.rfc-editor.org/rfc/rfc3339.html
 func formatMarkdownHeader(buf *strings.Builder, timestamp string) {
 	fmt.Fprintf(buf, "# %s Resource Usage Report (v%s)\n\n", "X.509 Certificate Chain Resolver", version.Version)
 
