@@ -18,7 +18,7 @@ import (
 // Logger defines the interface for logging operations.
 // It provides methods for different log levels and formatted output.
 //
-// This interface supports both CLI and [MCP] server modes, allowing seamless
+// It supports both CLI and [MCP] server modes, allowing seamless
 // switching between human-readable output and structured logging.
 //
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
@@ -33,10 +33,13 @@ type Logger interface {
 
 // CLILogger implements Logger using the standard log package.
 // It's designed for command-line interface output with human-readable formatting.
-type CLILogger struct{ logger *log.Logger }
+type CLILogger struct {
+	// logger: Standard Go log.Logger instance for output operations
+	logger *log.Logger
+}
 
 // NewCLILogger creates a new CLI logger with timestamps disabled.
-// This is suitable for user-facing CLI output.
+// It is suitable for user-facing CLI output.
 func NewCLILogger() *CLILogger {
 	l := log.New(os.Stdout, "", 0)
 	return &CLILogger{logger: l}
@@ -61,9 +64,13 @@ func (c *CLILogger) SetOutput(w io.Writer) { c.logger.SetOutput(w) }
 //
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 type MCPLogger struct {
-	mu      sync.Mutex
-	writer  io.Writer
-	silent  bool
+	// mu: Mutex for thread-safe access to logger state
+	mu sync.Mutex
+	// writer: Output destination for log messages (when not silent)
+	writer io.Writer
+	// silent: When true, suppresses all output to avoid interfering with MCP stdio
+	silent bool
+	// bufPool: Buffer pool for efficient memory usage during logging operations
 	bufPool gc.Pool
 }
 

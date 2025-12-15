@@ -36,9 +36,12 @@ import (
 //
 // [MCP]: https://modelcontextprotocol.io/docs/getting-started/intro
 type ServerConfig struct {
+	// Version: The server version string (e.g., "1.0.0")
 	Version string
-	Config  *Config
-	Embed   templates.EmbedFS
+	// Config: Pointer to the server configuration containing AI and other settings
+	Config *Config
+	// Embed: Embedded filesystem for static resources like templates and documentation
+	Embed templates.EmbedFS
 }
 
 // CertificateManager defines the interface for certificate operations.
@@ -167,9 +170,12 @@ type PromptHandler = func(ctx context.Context, request mcp.GetPromptRequest) (*m
 //
 // This struct is used when registering tools that don't require configuration access.
 type ToolDefinition struct {
-	Tool    mcp.Tool
+	// Tool: The MCP tool definition containing name, description, and input schema
+	Tool mcp.Tool
+	// Handler: The function that implements the tool's logic
 	Handler ToolHandler
-	Role    string
+	// Role: Semantic role identifier for template generation (e.g., "chainResolver")
+	Role string
 }
 
 // ToolDefinitionWithConfig holds a tool definition that requires configuration access.
@@ -183,9 +189,12 @@ type ToolDefinition struct {
 // This struct is used for tools that need configuration like AI API keys or timeouts.
 // The handler receives a Config parameter in addition to the standard context and request.
 type ToolDefinitionWithConfig struct {
-	Tool    mcp.Tool
+	// Tool: The MCP tool definition containing name, description, and input schema
+	Tool mcp.Tool
+	// Handler: The function that implements the tool's logic with config access
 	Handler ToolHandlerWithConfig
-	Role    string
+	// Role: Semantic role identifier for template generation (e.g., "expiryChecker")
+	Role string
 }
 
 // ServerDependencies holds all dependencies needed to create the MCP server.
@@ -207,18 +216,30 @@ type ToolDefinitionWithConfig struct {
 //
 // This struct is used internally by ServerBuilder and should not be instantiated directly.
 type ServerDependencies struct {
-	Config          *Config
-	Embed           templates.EmbedFS
-	Version         string
-	CertManager     CertificateManager
-	ChainResolver   ChainResolver
-	Tools           []ToolDefinition
+	// Config: Server configuration containing AI settings and other options
+	Config *Config
+	// Embed: Embedded filesystem for static resources like templates and documentation
+	Embed templates.EmbedFS
+	// Version: Server version string for User-Agent headers and identification
+	Version string
+	// CertManager: Interface for certificate encoding/decoding operations
+	CertManager CertificateManager
+	// ChainResolver: Interface for creating certificate chains
+	ChainResolver ChainResolver
+	// Tools: List of tool definitions without configuration requirements
+	Tools []ToolDefinition
+	// ToolsWithConfig: List of tool definitions that need configuration access
 	ToolsWithConfig []ToolDefinitionWithConfig
-	Resources       []server.ServerResource
-	Prompts         []server.ServerPrompt
+	// Resources: List of static and dynamic resources provided by the server
+	Resources []server.ServerResource
+	// Prompts: List of predefined prompts for guided workflows
+	Prompts []server.ServerPrompt
+	// SamplingHandler: Handler for bidirectional AI communication and streaming responses
 	SamplingHandler client.SamplingHandler // Added for bidirectional AI communication
-	Instructions    string                 // Server instructions for MCP clients
-	PopulateCache   bool                   // Whether to populate metadata cache
+	// Instructions: Server instructions for MCP clients describing capabilities and behavior
+	Instructions string
+	// PopulateCache: Whether to populate metadata cache for resource handlers
+	PopulateCache bool
 }
 
 // ServerBuilder helps construct the [MCP] server with proper dependencies using a fluent interface.
@@ -522,16 +543,34 @@ func (b *ServerBuilder) Build() (*server.MCPServer, error) {
 
 // DefaultSamplingHandler provides configurable AI API integration for bidirectional communication
 type DefaultSamplingHandler struct {
-	apiKey        string
-	endpoint      string
-	model         string
-	timeout       time.Duration
-	client        *http.Client
-	version       string
+	// apiKey: API key for authentication with the AI service
+	apiKey string
+	// endpoint: Base URL for the AI API (e.g., "https://api.openai.com")
+	endpoint string
+	// model: Default AI model to use for requests (can be overridden by client preferences)
+	model string
+	// timeout: HTTP client timeout for AI API requests
+	timeout time.Duration
+	// client: HTTP client configured with the timeout for making API requests
+	client *http.Client
+	// version: Application version included in User-Agent headers
+	version string
+	// TokenCallback: Optional callback function called for each streaming token (enables real-time updates)
 	TokenCallback func(string) // Callback for streaming tokens
 }
 
-// NewDefaultSamplingHandler creates a new sampling handler with configurable AI settings
+// NewDefaultSamplingHandler creates a new sampling handler with configurable AI settings.
+//
+// It initializes a DefaultSamplingHandler with AI API configuration, including
+// API key, endpoint, model, and timeout settings from the provided config.
+// The handler is used for bidirectional AI communication in MCP sampling.
+//
+// Parameters:
+//   - config: Server configuration containing AI API settings
+//   - version: Application version string for user-agent headers
+//
+// Returns:
+//   - *DefaultSamplingHandler: New initialized sampling handler
 func NewDefaultSamplingHandler(config *Config, version string) *DefaultSamplingHandler {
 	return &DefaultSamplingHandler{
 		apiKey:   config.AI.APIKey,
@@ -543,7 +582,22 @@ func NewDefaultSamplingHandler(config *Config, version string) *DefaultSamplingH
 	}
 }
 
-// CreateMessage handles sampling requests by calling the configured AI API
+// CreateMessage handles sampling requests by calling the configured AI API.
+//
+// It processes an MCP CreateMessageRequest, converts messages to OpenAI format,
+// sends them to the configured AI API, and streams the response back.
+// Handles both successful streaming responses and error cases.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout handling
+//   - request: MCP create message request with messages, parameters, and preferences
+//
+// Returns:
+//   - *mcp.CreateMessageResult: Response containing generated message and metadata
+//   - error: API call errors, parsing errors, or configuration issues
+//
+// The method uses buffer pooling for efficient memory usage and supports
+// real-time token streaming via the TokenCallback if configured.
 func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
 	// Get buffer from pool for efficient memory usage
 	// Note: Buffer is primarily used for error response reading.
@@ -588,7 +642,14 @@ func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.
 	return h.buildSamplingResult(content, modelName, stopReason), nil
 }
 
-// handleNoAPIKey returns a helpful message when no API key is configured
+// handleNoAPIKey returns a helpful message when no API key is configured.
+//
+// It creates a static response explaining how to configure AI integration
+// when the API key is missing from the configuration.
+//
+// Returns:
+//   - *mcp.CreateMessageResult: Static guidance message for API key configuration
+//   - error: Always nil for this static response
 func (h *DefaultSamplingHandler) handleNoAPIKey() (*mcp.CreateMessageResult, error) {
 	response := "AI API key not configured. Set X509_AI_APIKEY or configure the ai.apiKey field in config.json to enable certificate analysis. " +
 		"Until then, the server will return static information only."
@@ -603,7 +664,16 @@ func (h *DefaultSamplingHandler) handleNoAPIKey() (*mcp.CreateMessageResult, err
 	}, nil
 }
 
-// convertMessages converts MCP messages to OpenAI-compatible format
+// convertMessages converts MCP messages to OpenAI-compatible format.
+//
+// It transforms MCP SamplingMessage objects into the format expected by
+// OpenAI-compatible APIs, handling different content types appropriately.
+//
+// Parameters:
+//   - mcpMessages: Array of MCP sampling messages to convert
+//
+// Returns:
+//   - []map[string]any: Messages in OpenAI API format with role and content fields
 func (h *DefaultSamplingHandler) convertMessages(mcpMessages []mcp.SamplingMessage) []map[string]any {
 	var messages []map[string]any
 	for _, msg := range mcpMessages {
@@ -624,7 +694,16 @@ func (h *DefaultSamplingHandler) convertMessages(mcpMessages []mcp.SamplingMessa
 	return messages
 }
 
-// selectModel chooses the appropriate model based on preferences
+// selectModel chooses the appropriate model based on preferences.
+//
+// It uses the configured default model unless model hints are provided
+// in the preferences, in which case it uses the first hint.
+//
+// Parameters:
+//   - preferences: Optional model preferences containing hints
+//
+// Returns:
+//   - string: Selected model name for AI API request
 func (h *DefaultSamplingHandler) selectModel(preferences *mcp.ModelPreferences) string {
 	model := h.model // Use configured default model
 	if preferences != nil && len(preferences.Hints) > 0 {
@@ -634,7 +713,17 @@ func (h *DefaultSamplingHandler) selectModel(preferences *mcp.ModelPreferences) 
 	return model
 }
 
-// prepareMessages adds system prompt if provided
+// prepareMessages adds system prompt if provided.
+//
+// It prepends a system message to the conversation if a system prompt
+// is specified, otherwise returns the messages unchanged.
+//
+// Parameters:
+//   - messages: Array of message maps in OpenAI format
+//   - systemPrompt: Optional system prompt to add (empty string if none)
+//
+// Returns:
+//   - []map[string]any: Messages with system prompt prepended if provided
 func (h *DefaultSamplingHandler) prepareMessages(messages []map[string]any, systemPrompt string) []map[string]any {
 	if systemPrompt == "" {
 		return messages
@@ -647,7 +736,18 @@ func (h *DefaultSamplingHandler) prepareMessages(messages []map[string]any, syst
 	return append([]map[string]any{systemMessage}, messages...)
 }
 
-// buildAPIRequest creates the API request payload
+// buildAPIRequest creates the API request payload for AI API call.
+//
+// It constructs the complete request payload including model, messages,
+// streaming settings, and optional stop sequences.
+//
+// Parameters:
+//   - model: Model name to use for generation
+//   - messages: Formatted messages for the conversation
+//   - request: Original MCP create message request with parameters
+//
+// Returns:
+//   - map[string]any: Complete API request payload for HTTP call
 func (h *DefaultSamplingHandler) buildAPIRequest(model string, messages []map[string]any, request mcp.CreateMessageRequest) map[string]any {
 	apiRequest := map[string]any{
 		"model":       model,
@@ -665,7 +765,19 @@ func (h *DefaultSamplingHandler) buildAPIRequest(model string, messages []map[st
 	return apiRequest
 }
 
-// sendAPIRequest creates and sends the HTTP request
+// sendAPIRequest creates and sends the HTTP request to AI API.
+//
+// It marshals the API request to JSON, creates an HTTP POST request
+// with proper headers and authentication, and executes the call.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeouts
+//   - apiRequest: Request payload to send to AI API
+//   - _: Buffer parameter (unused, kept for interface compatibility)
+//
+// Returns:
+//   - *http.Response: HTTP response from AI API
+//   - error: Network or request creation error
 func (h *DefaultSamplingHandler) sendAPIRequest(ctx context.Context, apiRequest map[string]any, _ gc.Buffer) (*http.Response, error) {
 	// Marshal request to JSON
 	reqBody, err := json.Marshal(apiRequest)
@@ -693,7 +805,17 @@ func (h *DefaultSamplingHandler) sendAPIRequest(ctx context.Context, apiRequest 
 	return resp, nil
 }
 
-// handleAPIError processes API error responses
+// handleAPIError processes API error responses from AI service.
+//
+// It reads the error response body using the provided buffer and
+// returns a formatted error with status code and message.
+//
+// Parameters:
+//   - resp: HTTP response containing error details
+//   - buf: Buffer for reading response body content
+//
+// Returns:
+//   - error: Formatted error with status code and response message
 func (h *DefaultSamplingHandler) handleAPIError(resp *http.Response, buf gc.Buffer) error {
 	// Read error response body using buffer pool
 	if _, err := buf.ReadFrom(resp.Body); err != nil {
@@ -702,7 +824,17 @@ func (h *DefaultSamplingHandler) handleAPIError(resp *http.Response, buf gc.Buff
 	return fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, string(buf.Bytes()))
 }
 
-// parseSSELine parses a single Server-Sent Events line
+// parseSSELine parses a single Server-Sent Events line.
+//
+// It extracts the data payload from SSE format lines, skipping empty lines
+// and comments. Returns the data content and true if a data line was found.
+//
+// Parameters:
+//   - line: Raw SSE line to parse
+//
+// Returns:
+//   - string: Extracted data content (empty if not a data line)
+//   - bool: True if this was a valid data line
 func parseSSELine(line string) (string, bool) {
 	// Skip empty lines and comments
 	if line == "" || strings.HasPrefix(line, ":") {
@@ -717,7 +849,17 @@ func parseSSELine(line string) (string, bool) {
 	return "", false
 }
 
-// parseJSONChunk parses a JSON chunk from the streaming response
+// parseJSONChunk parses a JSON chunk from the streaming response.
+//
+// It unmarshals the JSON data into a map structure for further processing
+// in the AI streaming pipeline.
+//
+// Parameters:
+//   - data: JSON string to parse
+//
+// Returns:
+//   - map[string]any: Parsed JSON data
+//   - error: Parsing error if JSON is malformed
 func parseJSONChunk(data string) (map[string]any, error) {
 	var chunk map[string]any
 	if err := json.Unmarshal([]byte(data), &chunk); err != nil {
@@ -726,7 +868,18 @@ func parseJSONChunk(data string) (map[string]any, error) {
 	return chunk, nil
 }
 
-// extractModelName extracts model name from a JSON chunk
+// extractModelName extracts model name from a JSON chunk.
+//
+// It checks if the chunk contains a model field and returns it if the current
+// model is still the default, otherwise returns the current model.
+//
+// Parameters:
+//   - chunk: Parsed JSON chunk from AI response
+//   - currentModel: Currently configured model name
+//   - defaultModel: Default model name to compare against
+//
+// Returns:
+//   - string: Model name to use (from chunk or current)
 func extractModelName(chunk map[string]any, currentModel, defaultModel string) string {
 	if modelFromChunk, ok := chunk["model"].(string); ok && currentModel == defaultModel {
 		return modelFromChunk
@@ -734,7 +887,18 @@ func extractModelName(chunk map[string]any, currentModel, defaultModel string) s
 	return currentModel
 }
 
-// extractContent extracts content from a choice's delta and handles token streaming
+// extractContent extracts content from a choice's delta and handles token streaming.
+//
+// It processes the delta field from an AI API choice, extracts text content,
+// appends it to the content builder, and triggers token callbacks for streaming.
+// Returns the extracted content token.
+//
+// Parameters:
+//   - choice: Choice object from AI API response containing delta field
+//   - contentBuilder: String builder accumulating the full response content
+//
+// Returns:
+//   - string: The extracted content token (empty if no content found)
 func (h *DefaultSamplingHandler) extractContent(choice map[string]any, contentBuilder *strings.Builder) string {
 	if delta, ok := choice["delta"].(map[string]any); ok {
 		if content, ok := delta["content"].(string); ok {
@@ -749,7 +913,16 @@ func (h *DefaultSamplingHandler) extractContent(choice map[string]any, contentBu
 	return ""
 }
 
-// extractFinishReason extracts finish reason from a choice
+// extractFinishReason extracts finish reason from a choice.
+//
+// It retrieves the finish_reason field from the choice map if present,
+// indicating why the AI response generation stopped.
+//
+// Parameters:
+//   - choice: Choice object from AI response
+//
+// Returns:
+//   - string: Finish reason (e.g., "stop", "length") or empty string
 func extractFinishReason(choice map[string]any) string {
 	if finishReason, ok := choice["finish_reason"].(string); ok && finishReason != "" {
 		return finishReason
@@ -757,7 +930,17 @@ func extractFinishReason(choice map[string]any) string {
 	return ""
 }
 
-// processChoices processes the choices array from a JSON chunk
+// processChoices processes the choices array from a JSON chunk.
+//
+// It extracts content from the first choice in the array and checks for
+// finish reasons indicating the end of generation.
+//
+// Parameters:
+//   - choices: Array of choice objects from AI API response
+//   - contentBuilder: String builder accumulating the full response content
+//
+// Returns:
+//   - string: Finish reason if found (e.g., "stop", "length"), empty otherwise
 func (h *DefaultSamplingHandler) processChoices(choices []any, contentBuilder *strings.Builder) string {
 	if len(choices) == 0 {
 		return ""
@@ -771,7 +954,21 @@ func (h *DefaultSamplingHandler) processChoices(choices []any, contentBuilder *s
 	return ""
 }
 
-// parseStreamingResponse handles the streaming response parsing
+// parseStreamingResponse handles the streaming response parsing from AI API.
+//
+// It processes Server-Sent Events from the AI API response, extracting content,
+// model information, and finish reasons. Handles malformed chunks gracefully
+// by skipping them to ensure robust streaming.
+//
+// Parameters:
+//   - body: HTTP response body reader for streaming SSE data
+//   - defaultModel: Default model name to use if not specified in response
+//
+// Returns:
+//   - string: Complete accumulated content from the streaming response
+//   - string: Model name used (from response or default)
+//   - string: Stop reason indicating why generation ended
+//   - error: Parsing error if stream reading fails
 func (h *DefaultSamplingHandler) parseStreamingResponse(body io.Reader, defaultModel string) (string, string, string, error) {
 	var fullContent strings.Builder
 	modelName := defaultModel
@@ -815,7 +1012,18 @@ func (h *DefaultSamplingHandler) parseStreamingResponse(body io.Reader, defaultM
 	return fullContent.String(), modelName, stopReason, nil
 }
 
-// buildSamplingResult creates the final sampling result
+// buildSamplingResult creates the final sampling result for MCP protocol.
+//
+// It constructs a CreateMessageResult with the accumulated content,
+// model information, and stop reason from the AI API response.
+//
+// Parameters:
+//   - content: Complete text content from AI response
+//   - modelName: Name of the model that generated the response
+//   - stopReason: Reason why generation stopped (e.g., "stop", "length")
+//
+// Returns:
+//   - *mcp.CreateMessageResult: Properly formatted result for MCP protocol
 func (h *DefaultSamplingHandler) buildSamplingResult(content, modelName, stopReason string) *mcp.CreateMessageResult {
 	return &mcp.CreateMessageResult{
 		SamplingMessage: mcp.SamplingMessage{
@@ -827,12 +1035,25 @@ func (h *DefaultSamplingHandler) buildSamplingResult(content, modelName, stopRea
 	}
 }
 
-// SamplingRequestMarker is a special result that indicates a sampling request should be made
+// SamplingRequestMarker is a special result that indicates a sampling request should be made.
+//
+// It wraps a SamplingRequest to distinguish it from regular message results
+// in the AI processing pipeline.
 type SamplingRequestMarker struct {
+	// Request: The sampling request containing messages and parameters
 	Request SamplingRequest
 }
 
-// SamplingRequest represents a request for AI sampling from a handler
+// SamplingRequest represents a request for AI sampling from a handler.
+//
+// It contains all the parameters needed to make an AI API call,
+// including messages, system prompt, and generation parameters.
+//
+// Fields:
+//   - Messages: Array of MCP sampling messages for the conversation
+//   - SystemPrompt: Optional system prompt to set context
+//   - MaxTokens: Maximum number of tokens to generate
+//   - Temperature: Sampling temperature (0.0 to 2.0, higher = more random)
 type SamplingRequest struct {
 	Messages     []mcp.SamplingMessage
 	SystemPrompt string
