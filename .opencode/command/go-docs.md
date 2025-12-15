@@ -7,6 +7,8 @@ agent: general
 
 Update Go documentation when it appears inaccurate or add missing documentation for exported and unexported functions, types, and interfaces. Use built-in tools to scan the codebase and ensure documentation follows Go best practices and repository standards.
 
+**⚠️ CRITICAL REMINDER FOR AGENTS**: Always use the `-u` flag with `go doc` commands to check unexported documentation. Many Agents forget this step, resulting in incomplete documentation analysis. Example: `go doc -u ./src/internal/x509/chain.crlCacheCounters` successfully displays unexported type documentation that would be invisible without `-u`.
+
 ## Tasks
 
 1. **Scan Go Files for Documentation Issues**:
@@ -102,7 +104,7 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 
 5. **Verify Documentation Completeness**:
 
-    - Run `go doc` commands to verify all exported and unexported symbols are documented:
+    - **CRITICAL**: Run `go doc -u` commands (with `-u` flag!) to verify all exported and unexported symbols are documented. Agents frequently miss the `-u` flag, leading to incomplete verification:
       ```bash
       # For large packages, avoid -all flag to prevent truncation:
       # Check package documentation overview
@@ -373,13 +375,14 @@ Verification:
 
 - **Focus on Exported and Unexported APIs**: Document exported (capitalized) functions, types, and interfaces, plus unexported symbols that are complex or critical to understanding
 - **Unexported Documentation Priority**: Focus on internal functions that perform important logic, complex algorithms, or non-obvious transformations
+- **CRITICAL: Always Use `-u` Flag**: When using `go doc` commands, ALWAYS include the `-u` flag to check unexported documentation. Agents commonly miss this step, leading to incomplete documentation analysis. Example: `go doc -u ./src/internal/x509/chain.crlCacheCounters` reveals unexported type documentation that would be missed without `-u`.
 - **Implementation Details**: Documentation should describe what, not how
 - **Consistency**: Follow existing documentation patterns in the codebase
-- **Testing**: Run `go doc -u` commands to verify documentation renders correctly for unexported symbols
+- **Testing**: Run `go doc -u` commands to verify documentation renders correctly for unexported symbols (never forget the `-u` flag!)
 - **Cross-Package References**: Update documentation when function signatures change across packages
 - **Version Changes**: Update documentation to reflect API changes between versions
 - **Large Output Handling**: Avoid `go doc -all` for large packages; use individual queries instead
-- **Verification Strategy**: Prefer source code analysis over `go doc` for comprehensive scanning, use `-u` flag for unexported symbols
+- **Verification Strategy**: Prefer source code analysis over `go doc` for comprehensive scanning, ALWAYS use `-u` flag for unexported symbols to avoid missing critical internal documentation
 - **Package Path Convention**: Always use relative package paths (e.g., `./src/mcp-server.loadToolsConfig`) instead of full module paths for `go doc` commands - this works consistently across different environments and avoids module path resolution issues
 
 ## Verification Checklist
@@ -390,8 +393,8 @@ Verification:
 - [ ] Complex unexported functions have appropriate documentation
 - [ ] Critical unexported types have documentation when non-obvious
 - [ ] Documentation accurately reflects current implementation
-- [ ] `go doc` commands render documentation correctly
-- [ ] `go doc -u` commands show unexported documentation when present
+- [ ] `go doc -u` commands render documentation correctly (**ALWAYS use -u flag!**)
+- [ ] `go doc -u` commands show unexported documentation when present (**CRITICAL: verify with -u flag**)
 - [ ] Package-level documentation exists and is accurate
 - [ ] Examples in documentation are correct and testable
 
@@ -399,6 +402,7 @@ Focus on creating clear, accurate documentation that helps developers understand
 
 ## Final Notes
 
-- **Edit Verification is Critical**: Always verify documentation edits with `go doc` to catch corruption or duplication issues before completing the task
+- **Edit Verification is Critical**: Always verify documentation edits with `go doc -u` (include `-u` flag!) to catch corruption or duplication issues before completing the task
 - **Learn from Mistakes**: When documentation editing errors occur (like accidental code inclusion or duplication), update this command file with new prevention guidelines
 - **Quality over Speed**: Take time to carefully edit comments - rushing can lead to corrupted documentation that requires additional cleanup passes
+- **`-u` Flag Reminder**: Agents must systematically use `go doc -u` for complete documentation analysis. This is a common failure point that leads to incomplete work.
