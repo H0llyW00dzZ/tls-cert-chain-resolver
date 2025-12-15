@@ -559,7 +559,7 @@ func formatGoValue(v any) string {
 }
 
 // generateFile generates a file using a template
-func generateFile(templatePath, outputPath string, config *Config, fileType string) error {
+func generateFile(templatePath, outputPath string, config *Config, _ string) error {
 	tmpl, err := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
 		"toJSON": func(v any) string {
 			data, _ := json.Marshal(v)
