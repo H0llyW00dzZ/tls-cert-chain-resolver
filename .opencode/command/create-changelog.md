@@ -11,17 +11,27 @@ Generate a comprehensive changelog by comparing the latest tag against master/ma
 
 1. **Identify Target Tag and Branch**:
 
-   - List available tags: `git tag --list --sort=-version:refname`
-   - Identify the most recent tag (usually the first one)
-   - Determine the main branch name (`main` or `master`): `git branch --show-current`
-   - Get the comparison range: `[latest_tag]..[main_branch]`
+    - List available tags: `git tag --list --sort=-version:refname`
+    - Identify the most recent tag (usually the first one)
+    - Determine the main branch name: `git branch --show-current` (typically `main` or `master`)
+    - Get the comparison range: `[latest_tag]..[main_branch]`
+
+    **Branch Name Verification**:
+    - Common branch names: `main`, `master`, `develop`
+    - Always verify with `git branch --show-current` before using in commands
 
 2. **Get Commit Information**:
 
-   - Get commits between tag and main: `git log [latest_tag]..[main_branch] --oneline`
-   - Get detailed commit messages with bodies: `git log [latest_tag]..[main_branch] --pretty=format:"[SHA - %h]: %s%n%n%b%n"`
-   - Get files changed: `git diff [latest_tag]..[main_branch] --name-only`
-   - Get commit statistics: `git diff [latest_tag]..[main_branch] --stat`
+    - Get commits between tag and main branch: `git log [latest_tag]..[main_branch] --oneline`
+    - Get detailed commit messages with bodies: `git log [latest_tag]..[main_branch] --pretty=format:"[SHA - %h]: %s%n%n%b%n"`
+    - Get files changed: `git diff [latest_tag]..[main_branch] --name-only`
+    - Get commit statistics: `git diff [latest_tag]..[main_branch] --stat`
+
+    **Large Output Handling**:
+    - Check commit count first: `git rev-list --count [latest_tag]..[main_branch]`
+    - For >50 commits, process in batches: `git log --oneline --max-count=50 [latest_tag]..[main_branch]`
+    - Use summary format first: `git shortlog --numbered --summary [latest_tag]..[main_branch]`
+    - Get overview stats before detailed analysis: `git diff --stat --summary [latest_tag]..[main_branch]`
 
 3. **Analyze and Categorize Commits**:
 
@@ -86,10 +96,15 @@ Generate a comprehensive changelog by comparing the latest tag against master/ma
    - Note any dependency updates
 
 7. **Verify Completeness**:
-   - Ensure all significant commits are included
-   - Check for any missed breaking changes
-   - Verify file changes match commit descriptions
-   - Cross-reference with GitHub issues if mentioned
+    - Ensure all significant commits are included
+    - Check for any missed breaking changes
+    - Verify file changes match commit descriptions
+    - Cross-reference with GitHub issues if mentioned
+
+8. **Handle Large Outputs**:
+    - If output exceeds 30,000 characters, use batch processing
+    - Generate summary changelog first, then detailed sections separately
+    - Use `git shortlog` for author statistics when full log is too large
 
 ## Output Format
 
@@ -101,7 +116,58 @@ The changelog should follow Keep a Changelog format with:
 - Statistics summary
 - Prominent display of breaking changes
 
+## Alternative Approaches for Large Changesets
+
+When dealing with very large releases (>100 commits), consider these approaches:
+
+### Summary-First Approach
+
+1. Generate high-level summary first:
+   ```bash
+   git shortlog --numbered --summary v0.5.1..[main_branch]
+   git diff --stat v0.5.1..[main_branch]
+   ```
+
+2. Create categorized summaries without full commit details
+
+3. Add detailed commit lists only for critical changes
+
+### Filtered Analysis
+
+1. Focus on merge commits only: `git log --merges v0.5.1..[main_branch]`
+2. Analyze by author: `git shortlog -sn v0.5.1..[main_branch]`
+3. Get file change patterns: `git diff --name-status v0.5.1..[main_branch] | sort | uniq -c | sort -nr`
+
 ## Error Handling
+
+### Output Truncation Issues
+
+**Bash Tool Limitation**: The bash tool truncates output exceeding 30,000 characters with metadata notification.
+
+**Detection**: Look for `<bash_metadata>bash tool truncated output as it exceeded 30000 char limit</bash_metadata>` at end of output.
+
+**Mitigation Strategies**:
+
+1. **Process in Batches**: Break large ranges into smaller commit chunks
+2. **Use Summary First**: Get overview before detailed analysis
+3. **Filter Output**: Reduce verbosity for large ranges
+4. **Save Intermediate Results**: Write partial results to files
+
+**Example Batch Processing**:
+
+```bash
+# Get commit count first (replace 'main' with actual branch name)
+git rev-list --count v0.5.1..master
+
+# Process in batches of 50 commits
+git log --oneline v0.5.1..master | head -50
+git log --oneline v0.5.1..master | sed -n '51,100p'
+git log --oneline v0.5.1..master | sed -n '101,150p'
+
+# Get statistics without full details
+git shortlog --numbered --summary v0.5.1..master
+git diff --stat v0.5.1..master
+```
 
 ### Tool Abort Errors
 
@@ -115,13 +181,16 @@ When tools are aborted during execution:
 **Examples**:
 
 ```bash
-# Git command aborted
-git log --oneline v0.3.0..main  # ❌ Aborted
-git log --oneline v0.3.0..main  # ✅ Retry
+# Git command aborted (replace 'main' with actual branch name)
+git log --oneline v0.3.0..master  # ❌ Aborted (if branch is master)
+git log --oneline v0.3.0..master  # ✅ Retry
 
 # If retry fails, use smaller chunks
 git log --oneline v0.3.0..HEAD | head -20
 git log --oneline v0.3.0~20..HEAD | head -20
+
+# For truncated output, use pagination (replace 'main' with actual branch)
+git log --oneline --skip=100 --max-count=50 v0.3.0..master
 ```
 
 ### No Tags Available
@@ -144,6 +213,7 @@ If no commits between tag and main:
 
 - **File Output**: Changelog is saved to `changelog.md` in repository root for human use
 - **Temporary Nature**: File is intended as temporary artifact for release process
+- **Branch Name Verification**: Always verify branch name with `git branch --show-current` before using in commands (common names: `main`, `master`, `develop`)
 - **Commit Analysis**: Use both commit subject and body for accurate categorization
 - **Link Format**: Use full GitHub URLs for commit links
 - **Version Format**: Follow semantic versioning (x.y.z)
@@ -151,6 +221,8 @@ If no commits between tag and main:
 - **Breaking Changes**: Always include migration instructions
 - **Statistics**: Provide meaningful metrics about the release
 - **Verification**: Cross-check that all file changes are represented in the changelog
+- **Output Size Awareness**: Monitor for bash tool 30,000 character limit - use batch processing for large changesets
+- **Fallback Strategy**: Have backup approaches ready (summary-only, filtered output) for when full analysis is truncated
 
 ## Example Output
 
