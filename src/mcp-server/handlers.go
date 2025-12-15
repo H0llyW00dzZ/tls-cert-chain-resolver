@@ -28,7 +28,7 @@ type toolInfo struct {
 	Description string
 }
 
-// It parses the template with dynamic data from the provided tools and returns the rendered instructions as a string for MCP client initialization.
+// loadInstructions parses the template with dynamic data from the provided tools and returns the rendered instructions as a string for MCP client initialization.
 //
 // Parameters:
 //   - tools: Slice of tool definitions without config requirements

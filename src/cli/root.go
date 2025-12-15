@@ -43,7 +43,38 @@ var (
 	ErrInputFileRequired = errors.New("input file must be specified with -f or --file")
 )
 
-// Execute runs the root command, handling any errors that occur during execution.
+// Execute sets up and runs the TLS certificate chain resolver command-line interface.
+//
+// Execute initializes the root cobra command with all flags, validation, and
+// execution logic for the certificate chain resolver. It configures the CLI
+// with multiple output formats, validation options, and proper error handling.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout control (passed to certificate operations)
+//   - version: Version string to display in the CLI
+//   - log: Logger instance for output (supports both CLI and MCP modes)
+//
+// Returns:
+//   - error: Command execution error or nil on success
+//
+// Command Features:
+//   - Input file validation (required -f/--file flag)
+//   - Multiple output formats: PEM, DER, JSON, ASCII tree, table
+//   - Certificate filtering: intermediate-only, include-system roots
+//   - Context-aware cancellation support
+//   - Comprehensive logging with version information
+//
+// The command structure includes:
+//   - Argument validation ensuring input file is specified
+//   - Pre-execution logging with version and cancellation instructions
+//   - Post-execution success tracking
+//   - Flag configuration for all supported options
+//
+// Example usage handled by this function:
+//
+//	tls-cert-chain-resolver -f cert.pem -o output.pem
+//	tls-cert-chain-resolver -f cert.pem -t  # tree format
+//	tls-cert-chain-resolver -f cert.pem -j  # JSON format
 func Execute(ctx context.Context, version string, log logger.Logger) error {
 	globalLogger = log
 	rootCmd := &cobra.Command{
