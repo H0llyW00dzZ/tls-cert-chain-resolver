@@ -18,7 +18,7 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 2. **Identify Missing Documentation**:
 
     - Use `grep` patterns to find exported and unexported functions, types, and interfaces without proper documentation:
-      ```go
+      ```bash
       # Find exported functions and methods (handles both regular functions and receiver methods)
       grep -E "^func\s+(\([^)]+\)\s+)?[A-Z]", include="*.go"
 
