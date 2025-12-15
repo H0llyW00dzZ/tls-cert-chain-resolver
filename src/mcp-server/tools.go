@@ -86,9 +86,17 @@ const (
 // It organizes tools into two categories: those that don't require configuration
 // and those that need access to the server configuration (e.g., for AI integration or timeouts).
 //
+// This function generates MCP-compliant tool definitions with proper parameter validation,
+// type constraints, and handler bindings. Tools are categorized based on their
+// configuration requirements to enable flexible server initialization.
+//
 // Returns:
-//   - A slice of ToolDefinition for tools without config dependencies
-//   - A slice of ToolDefinitionWithConfig for tools that require server configuration
+//   - []ToolDefinition: Slice of tool definitions for tools without config dependencies
+//   - []ToolDefinitionWithConfig: Slice of tool definitions for tools that require server configuration
+//
+// Tool Categories:
+//   - Standard tools: Certificate chain resolution, validation, expiry checking
+//   - Config-dependent tools: Remote fetching, AI analysis, resource monitoring
 //
 // The function defines the following tools:
 //   - resolve_cert_chain: Resolve X509 certificate chain from a certificate file or base64-encoded certificate data
@@ -100,8 +108,11 @@ const (
 //   - get_resource_usage: Get current resource usage statistics including memory, GC, and CPU information
 //   - visualize_cert_chain: Visualize certificate chain in multiple formats (ASCII tree, table, JSON)
 //
-// Each tool includes proper parameter definitions, descriptions, default values,
-// and MCP annotations as required by the MCP specification.
+// Each tool definition includes:
+//   - MCP parameter specifications with type validation and constraints
+//   - Comprehensive descriptions for user interface display
+//   - MCP annotations for tool behavior hints (read-only, destructive, etc.)
+//   - Proper handler function bindings for tool execution
 func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 	// Tools that don't need config
 	tools := []ToolDefinition{

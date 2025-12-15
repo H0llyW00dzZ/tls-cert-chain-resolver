@@ -15,9 +15,14 @@ import (
 
 // createPrompts creates and returns all MCP prompt definitions with their handlers.
 //
-// This function defines the available MCP prompts for certificate analysis workflows.
-// Each prompt provides a structured approach to common certificate-related tasks,
-// including analysis, monitoring, auditing, and troubleshooting.
+// This function generates MCP-compliant prompt definitions that provide structured
+// workflows for certificate analysis and management tasks. Each prompt encapsulates
+// a specific use case with predefined arguments and execution logic.
+//
+// Prompts serve as guided workflows that combine multiple MCP tools in logical
+// sequences, making complex certificate operations accessible through simple,
+// high-level interfaces. They include argument validation, metadata for categorization,
+// and handler functions that orchestrate tool execution.
 //
 // Returns:
 //   - []server.ServerPrompt: Slice of server prompt definitions with their handlers
@@ -29,8 +34,14 @@ import (
 //   - troubleshooting: Troubleshoot common certificate and TLS issues
 //   - resource-monitoring: Monitor server resource usage and performance metrics for certificate operations
 //
-// These prompts guide users through systematic approaches to certificate management
-// and provide context-specific instructions for using MCP tools effectively.
+// Prompt Features:
+//   - Structured argument definitions with validation and descriptions
+//   - Metadata tags for categorization and filtering
+//   - Handler functions that implement workflow logic
+//   - Integration with MCP tool ecosystem for comprehensive certificate operations
+//
+// These prompts enable users to perform complex certificate management tasks
+// through guided, context-aware workflows rather than individual tool invocations.
 func createPrompts() []server.ServerPrompt {
 	prompts := []server.ServerPrompt{
 		{
