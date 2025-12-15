@@ -17,53 +17,66 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 
 2. **Identify Missing Documentation**:
 
-   - Use `grep` patterns to find exported and unexported functions, types, and interfaces without proper documentation:
-     ```go
-     // Find exported functions without comments
-     grep("^func [A-Z]", include="*.go")
+    - Use `grep` patterns to find exported and unexported functions, types, and interfaces without proper documentation:
+      ```go
+      # Find exported functions and methods (handles both regular functions and receiver methods)
+      grep -E "^func\s+(\([^)]+\)\s+)?[A-Z]", include="*.go"
 
-     // Find unexported functions without comments
-     grep("^func [a-z]", include="*.go")
+      # Find unexported functions and methods
+      grep -E "^func\s+(\([^)]+\)\s+)?[a-z]", include="*.go"
 
-     // Find exported types without comments
-     grep("^type [A-Z]", include="*.go")
+      # Alternative simpler patterns (may miss some edge cases):
+      # Find exported functions without comments (regular functions only)
+      grep "^func [A-Z]", include="*.go"
 
-     // Find unexported types without comments
-     grep("^type [a-z]", include="*.go")
+      # Find exported methods without comments (methods with receivers)
+      grep -E "^func \(\w+ \*?\w+\) [A-Z]", include="*.go"
 
-     // Find exported interfaces without comments
-     grep("^type [A-Z].*interface", include="*.go")
+      # Find unexported functions without comments
+      grep "^func [a-z]", include="*.go"
 
-     // Find unexported interfaces without comments
-     grep("^type [a-z].*interface", include="*.go")
-     ```
+      # Find unexported methods without comments
+      grep -E "^func \(\w+ \*?\w+\) [a-z]", include="*.go"
 
-    - Cross-reference with `go doc` output to verify completeness:
-      ```bash
-      # For large packages, process individually to avoid truncation:
-      # Get all exported symbols from a package (process one package at a time)
-      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [A-Z]"
+      # Find exported types without comments
+      grep "^type [A-Z]", include="*.go"
 
-      # Get unexported symbols (requires -u flag and grep for lowercase)
-      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [a-z]"
+      # Find unexported types without comments
+      grep "^type [a-z]", include="*.go"
 
-      # Alternative: Use grep directly on source files for comparison
-      grep "^func [A-Z]" src/internal/x509/chain/*.go  # exported
-      grep "^func [a-z]" src/internal/x509/chain/*.go  # unexported
+      # Find exported interfaces without comments
+      grep "^type [A-Z].*interface", include="*.go"
 
-      # For comprehensive analysis without truncation:
-      # 1. Get package overview
-      go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain
-
-      # 2. Get specific exported functions
-      go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain
-
-      # 3. Get unexported functions (use -u flag to show unexported)
-      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [a-z]"
-
-      # 4. Get exported and unexported types
-      go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^type [A-Za-z]"
+      # Find unexported interfaces without comments
+      grep "^type [a-z].*interface", include="*.go")
       ```
+
+     - Cross-reference with `go doc` output to verify completeness:
+       ```bash
+       # For large packages, process individually to avoid truncation:
+       # Get all exported symbols from a package (process one package at a time)
+       go doc -u ./src/internal/x509/chain | grep "^func [A-Z]"
+
+       # Get unexported symbols (requires -u flag and grep for lowercase)
+       go doc -u ./src/internal/x509/chain | grep "^func [a-z]"
+
+       # Alternative: Use grep directly on source files for comparison
+       grep "^func [A-Z]" src/internal/x509/chain/*.go  # exported
+       grep "^func [a-z]" src/internal/x509/chain/*.go  # unexported
+
+       # For comprehensive analysis without truncation:
+       # 1. Get package overview
+       go doc ./src/internal/x509/chain
+
+       # 2. Get specific exported functions
+       go doc ./src/internal/x509/chain.FetchRemoteChain
+
+       # 3. Get unexported functions (use -u flag to show unexported)
+       go doc -u ./src/internal/x509/chain | grep "^func [a-z]"
+
+       # 4. Get exported and unexported types
+       go doc -u ./src/internal/x509/chain | grep "^type [A-Za-z]"
+       ```
 
 3. **Analyze Existing Documentation Quality**:
 
@@ -89,22 +102,22 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 
 5. **Verify Documentation Completeness**:
 
-   - Run `go doc` commands to verify all exported and unexported symbols are documented:
-     ```bash
-     # For large packages, avoid -all flag to prevent truncation:
-     # Check package documentation overview
-     go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain
+    - Run `go doc` commands to verify all exported and unexported symbols are documented:
+      ```bash
+      # For large packages, avoid -all flag to prevent truncation:
+      # Check package documentation overview
+      go doc ./src/internal/x509/chain
 
-     # Verify specific exported functions are documented (one at a time)
-     go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.FetchRemoteChain
-     go doc github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain.VerifyChain
+      # Verify specific exported functions are documented (one at a time)
+      go doc ./src/internal/x509/chain.FetchRemoteChain
+      go doc ./src/internal/x509/chain.VerifyChain
 
-     # Verify unexported functions using -u flag (one at a time)
-     go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep "^func [a-z]" | head -5
+      # Verify unexported functions using -u flag (one at a time)
+      go doc -u ./src/internal/x509/chain | grep "^func [a-z]" | head -5
 
-     # Alternative: Check specific exported and unexported symbols without -all flag
-     go doc -u github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain | grep -E "^(func|type) [A-Za-z]"
-     ```
+      # Alternative: Check specific exported and unexported symbols without -all flag
+      go doc -u ./src/internal/x509/chain | grep -E "^(func|type) [A-Za-z]"
+      ```
 
    - Ensure documentation renders correctly with `go doc`
 
@@ -285,25 +298,25 @@ When `go doc -all` output exceeds tool limits (30,000+ characters), use these st
 1. **Process One Package at a Time**:
    ```bash
    # Instead of: go doc -u -all ./...
-   # Use: go doc -u github.com/your/package/path
+   # Use: go doc -u ./src/your/package/path
    ```
 
 2. **Query Specific Symbols**:
    ```bash
    # Get specific function documentation
-   go doc github.com/your/package/path.FunctionName
+   go doc ./src/your/package/path.FunctionName
 
    # Get specific type documentation
-   go doc github.com/your/package/path.TypeName
+   go doc ./src/your/package/path.TypeName
    ```
 
 3. **Use Filtered Queries**:
    ```bash
    # Get only exported functions
-   go doc -u github.com/your/package/path | grep "^func [A-Z]"
+   go doc -u ./src/your/package/path | grep "^func [A-Z]"
 
    # Get only exported types
-   go doc -u github.com/your/package/path | grep "^type [A-Z]"
+   go doc -u ./src/your/package/path | grep "^type [A-Z]"
    ```
 
 4. **Combine with Source Code Analysis**:
@@ -318,7 +331,7 @@ When `go doc -all` output exceeds tool limits (30,000+ characters), use these st
    # Check documentation for specific functions in batches
    FUNCTIONS=("FetchRemoteChain" "VerifyChain" "CheckRevocationStatus")
    for func in "${FUNCTIONS[@]}"; do
-     go doc "github.com/your/package/path.$func" || echo "$func: NOT DOCUMENTED"
+     go doc "./src/your/package/path.$func" || echo "$func: NOT DOCUMENTED"
    done
    ```
 
@@ -347,6 +360,10 @@ Updates Applied:
 - Updated FetchRemoteChain parameter description
 - Fixed Certificate struct field descriptions
 
+Edit Verification:
+✅ go doc ./src/internal/x509/chain.ValidateChain - documentation renders correctly
+✅ go doc ./src/internal/x509/certs.Certificate - documentation renders correctly
+
 Verification:
 ✅ All exported functions in x509/chain package are documented
 ✅ All exported types in x509/certs package are documented
@@ -363,6 +380,7 @@ Verification:
 - **Version Changes**: Update documentation to reflect API changes between versions
 - **Large Output Handling**: Avoid `go doc -all` for large packages; use individual queries instead
 - **Verification Strategy**: Prefer source code analysis over `go doc` for comprehensive scanning, use `-u` flag for unexported symbols
+- **Package Path Convention**: Always use relative package paths (e.g., `./src/mcp-server.loadToolsConfig`) instead of full module paths for `go doc` commands - this works consistently across different environments and avoids module path resolution issues
 
 ## Verification Checklist
 
