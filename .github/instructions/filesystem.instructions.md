@@ -574,7 +574,13 @@ grep("createOCSPRequest|ParseOCSPResponse|ParseCRLResponse", include="*.go")
 grep("readCertificateData", include="*.go")
 
 # Find batch processing helpers
-grep("processSingleCertificate|formatBatchResults", include="*.go")
+grep("processSingleCertificate|formatBatchResults|processBatchCertificates", include="*.go")
+
+# Find certificate resolution helpers
+grep("validateResolveParams|resolveCertChain|formatChainOutput|buildResolveResult", include="*.go")
+
+# Find visualization helpers
+grep("initializeStatusMap|extractCertificateIndex|findFinalStatus", include="*.go")
 
 # Find AI context building helpers
 grep("buildCertificateContextWithRevocation|appendSubjectInfo|appendIssuerInfo|appendValidityInfo|appendCryptoInfo|appendCertProperties|appendCertExtensions|appendCAInfo|appendChainValidationContext|appendSecurityContext|formatKeyUsage|formatExtKeyUsage|getAnalysisInstruction", include="*.go")
