@@ -291,13 +291,18 @@ func (ch *Chain) FilterIntermediates() []*x509.Certificate {
 	return ch.Certs[1 : len(ch.Certs)-1] // Skip the first (leaf) and last (root)
 }
 
-// VerifyChain checks that each certificate in the chain is validly signed by its predecessor.
+// VerifyChain validates the certificate chain against cryptographic and policy requirements.
 //
 // It builds separate pools for roots and intermediates from the chain itself
-// and attempts to verify the leaf certificate.
+// and performs comprehensive validation of the leaf certificate including:
+//
+//   - Certificate validity periods (not before/after dates)
+//   - Signature chain integrity from leaf to root
+//   - Basic constraints and key usage compliance
+//   - Extended key usage validation
 //
 // Returns:
-//   - error: Error if verification fails
+//   - error: Error if verification fails (nil if chain is valid)
 //
 // Thread Safety: Safe for concurrent use.
 func (ch *Chain) VerifyChain() error {
