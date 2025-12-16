@@ -168,6 +168,15 @@ gopls_go_search("ServerDependencies.PromptsWithEmbed") → Find embedded prompts
 gopls_go_search("ServerDependencies.ResourcesWithEmbed") → Find embedded resources in server dependencies
 gopls_go_search("readCertificateData") → Find certificate data reading helper
 gopls_go_search("processSingleCertificate") → Find single certificate processing helper
+gopls_go_search("validateResolveParams") → Find certificate resolution parameter validation
+gopls_go_search("resolveCertChain") → Find certificate chain resolution logic
+gopls_go_search("formatChainOutput") → Find certificate chain output formatting
+gopls_go_search("buildResolveResult") → Find resolution result building
+gopls_go_search("processBatchCertificates") → Find batch certificate processing
+gopls_go_search("initializeStatusMap") → Find revocation status map initialization
+gopls_go_search("extractCertificateIndex") → Find certificate index extraction for visualization
+gopls_go_search("findFinalStatus") → Find final revocation status parsing
+gopls_go_search("TestHandleVisualizeCertChain") → Find visualize certificate chain test
 gopls_go_search("formatBatchResults") → Find batch result formatting helper
 gopls_go_search("appendSubjectInfo") → Find AI context subject info builder
 gopls_go_search("appendIssuerInfo") → Find AI context issuer info builder
