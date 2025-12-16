@@ -559,7 +559,7 @@ grep("create-changelog", include="*.md")
 glob(".opencode/command/*.md")
 
 # Find chain methods
-grep("func (c \\*Chain)", include="*.go")
+grep("func \(.* \*Chain\)", include="*.go")
 
 # Find remote chain fetching
 grep("FetchRemoteChain", include="*.go")
@@ -569,6 +569,15 @@ grep("CheckRevocationStatus\\|RevocationStatus", include="*.go")
 
 # Find OCSP/CRL functions
 grep("createOCSPRequest\\|ParseOCSPResponse\\|ParseCRLResponse", include="*.go")
+
+# Find certificate data reading helpers
+grep("readCertificateData", include="*.go")
+
+# Find batch processing helpers
+grep("processSingleCertificate\\|formatBatchResults", include="*.go")
+
+# Find AI context building helpers
+grep("buildCertificateContextWithRevocation\\|appendSubjectInfo\\|appendIssuerInfo\\|appendValidityInfo\\|appendCryptoInfo\\|appendCertProperties\\|appendCertExtensions\\|appendCAInfo\\|appendChainValidationContext\\|appendSecurityContext\\|formatKeyUsage\\|formatExtKeyUsage\\|getAnalysisInstruction", include="*.go")
 
 # Find logger usage
 grep("logger\\.Logger", include="*.go")
