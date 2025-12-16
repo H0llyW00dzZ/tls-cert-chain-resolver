@@ -498,8 +498,27 @@ type TransportBuilder struct {
 	serverBuilder *ServerBuilder
 }
 
-// NewTransportBuilder creates a new transport builder.
-// Returns a builder with default settings that can be configured fluently.
+// NewTransportBuilder creates a new transport builder for MCP server construction.
+//
+// It initializes a TransportBuilder with a new ServerBuilder instance, providing
+// a fluent interface for configuring and building MCP transports. The builder
+// pattern allows for flexible configuration of server settings, tools, and
+// transport options before creating the final transport.
+//
+// The builder supports fluent configuration methods like WithConfig(),
+// WithVersion(), WithDefaultTools(), and finally BuildInMemoryTransport()
+// to create an in-memory transport for ADK integration.
+//
+// Returns:
+//   - *TransportBuilder: New builder instance ready for configuration
+//
+// Example usage:
+//
+//	builder := NewTransportBuilder().
+//		WithConfig(config).
+//		WithVersion("1.0.0").
+//		WithDefaultTools()
+//	transport, err := builder.BuildInMemoryTransport(ctx)
 func NewTransportBuilder() *TransportBuilder {
 	return &TransportBuilder{
 		serverBuilder: NewServerBuilder(),
