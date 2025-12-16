@@ -69,6 +69,11 @@ uugY3q/5At03UHw=
 -----END CERTIFICATE-----
 `
 
+// pemToBase64 converts a PEM certificate string to base64 encoding for testing
+func pemToBase64(pem string) string {
+	return base64.StdEncoding.EncodeToString([]byte(pem))
+}
+
 func TestMCPTools(t *testing.T) {
 	if runtime.GOOS == "darwin" {
 		t.Skip("Skipping TestMCPTools on macOS due to certificate validation differences")
@@ -79,7 +84,7 @@ func TestMCPTools(t *testing.T) {
 	}
 
 	// Encode test certificate as base64
-	certData := base64.StdEncoding.EncodeToString([]byte(testCertPEM))
+	certData := pemToBase64(testCertPEM)
 
 	// Create MCP server
 	s := server.NewMCPServer(
@@ -3605,7 +3610,7 @@ func TestAppendSecurityContext(t *testing.T) {
 // TestHandleAnalyzeCertificateWithAI tests the handleAnalyzeCertificateWithAI function
 func TestHandleAnalyzeCertificateWithAI(t *testing.T) {
 	// Create test request
-	certData := base64.StdEncoding.EncodeToString([]byte(testCertPEM))
+	certData := pemToBase64(testCertPEM)
 
 	request := mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
@@ -3700,7 +3705,7 @@ func TestBufferPoolIntegration(t *testing.T) {
 // TestConcurrentCertificateAnalysis tests concurrent certificate analysis
 func TestConcurrentCertificateAnalysis(t *testing.T) {
 	// Create test request
-	certData := base64.StdEncoding.EncodeToString([]byte(testCertPEM))
+	certData := pemToBase64(testCertPEM)
 
 	config := &Config{
 		Defaults: struct {
@@ -4246,9 +4251,6 @@ func TestGetVersion(t *testing.T) {
 }
 
 func TestHandleVisualizeCertChain(t *testing.T) {
-	// This test is complex and requires a real certificate file
-	// For now, we'll test the error cases
-
 	ctx := t.Context()
 
 	// Test missing certificate parameter
@@ -4303,7 +4305,7 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 			Params: mcp.CallToolParams{
 				Name: "visualize_cert_chain",
 				Arguments: map[string]any{
-					"certificate": "invalid-cert-data",
+					"certificate": pemToBase64(testCertPEM),
 					"format":      "unsupported",
 				},
 			},
@@ -4319,6 +4321,218 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 		// Should be an error result due to unsupported format
 		if len(result.Content) == 0 {
 			t.Error("Expected error content in result")
+		}
+	})
+
+	// Test successful ASCII visualization
+	t.Run("successful ascii visualization", func(t *testing.T) {
+		request := mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "visualize_cert_chain",
+				Arguments: map[string]any{
+					"certificate": pemToBase64(testCertPEM),
+					"format":      "ascii",
+				},
+			},
+		}
+
+		result, err := handleVisualizeCertChain(ctx, request)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result == nil {
+			t.Fatal("Expected result, got nil")
+		}
+
+		// Should contain visualization content
+		if len(result.Content) == 0 {
+			t.Error("Expected visualization content in result")
+		}
+
+		// Check that it contains text content
+		content := result.Content[0]
+		textContent, ok := content.(mcp.TextContent)
+		if !ok {
+			t.Errorf("Expected TextContent, got %T", content)
+		}
+
+		// Verify ASCII tree structure contains tree characters
+		if !strings.Contains(textContent.Text, "├──") && !strings.Contains(textContent.Text, "└──") {
+			t.Error("Expected ASCII tree to contain tree structure characters")
+		}
+
+		// Should contain certificate information
+		if !strings.Contains(textContent.Text, "www.google.com") {
+			t.Error("Expected visualization to contain certificate subject")
+		}
+	})
+
+	// Test successful table visualization
+	t.Run("successful table visualization", func(t *testing.T) {
+		request := mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "visualize_cert_chain",
+				Arguments: map[string]any{
+					"certificate": pemToBase64(testCertPEM),
+					"format":      "table",
+				},
+			},
+		}
+
+		result, err := handleVisualizeCertChain(ctx, request)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result == nil {
+			t.Fatal("Expected result, got nil")
+		}
+
+		// Should contain visualization content
+		if len(result.Content) == 0 {
+			t.Error("Expected visualization content in result")
+		}
+
+		// Check that it contains text content
+		content := result.Content[0]
+		textContent, ok := content.(mcp.TextContent)
+		if !ok {
+			t.Errorf("Expected TextContent, got %T", content)
+		}
+
+		// Verify table structure (should contain | characters for markdown table format)
+		if !strings.Contains(textContent.Text, "|") {
+			t.Error("Expected table visualization to contain table separators")
+		}
+
+		// Should contain certificate data (more reliable than headers)
+		if !strings.Contains(textContent.Text, "www.google.com") {
+			t.Error("Expected table to contain certificate data")
+		}
+	})
+
+	// Test successful JSON visualization
+	t.Run("successful json visualization", func(t *testing.T) {
+		request := mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "visualize_cert_chain",
+				Arguments: map[string]any{
+					"certificate": pemToBase64(testCertPEM),
+					"format":      "json",
+				},
+			},
+		}
+
+		result, err := handleVisualizeCertChain(ctx, request)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result == nil {
+			t.Fatal("Expected result, got nil")
+		}
+
+		// Should contain visualization content
+		if len(result.Content) == 0 {
+			t.Error("Expected visualization content in result")
+		}
+
+		// Check that it contains text content
+		content := result.Content[0]
+		textContent, ok := content.(mcp.TextContent)
+		if !ok {
+			t.Errorf("Expected TextContent, got %T", content)
+		}
+
+		// Should be valid JSON - try to find JSON content
+		jsonStr := textContent.Text
+		// Find the first '{' character
+		startIdx := strings.Index(jsonStr, "{")
+		if startIdx == -1 {
+			t.Error("Expected JSON visualization to contain JSON object")
+		} else {
+			jsonStr = jsonStr[startIdx:]
+			// Find the last '}' character
+			endIdx := strings.LastIndex(jsonStr, "}")
+			if endIdx != -1 {
+				jsonStr = jsonStr[:endIdx+1]
+			}
+
+			// Should be valid JSON
+			var jsonData map[string]any
+			if err := json.Unmarshal([]byte(jsonStr), &jsonData); err != nil {
+				t.Errorf("Expected valid JSON, got parse error: %v", err)
+			} else {
+				// Should contain certificates array
+				if _, ok := jsonData["certificates"]; !ok {
+					t.Error("Expected JSON to contain 'certificates' field")
+				}
+			}
+		}
+	})
+
+	// Test default format (ascii)
+	t.Run("default format ascii", func(t *testing.T) {
+		request := mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "visualize_cert_chain",
+				Arguments: map[string]any{
+					"certificate": pemToBase64(testCertPEM),
+					// No format specified, should default to ascii
+				},
+			},
+		}
+
+		result, err := handleVisualizeCertChain(ctx, request)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result == nil {
+			t.Fatal("Expected result, got nil")
+		}
+
+		// Should contain visualization content
+		if len(result.Content) == 0 {
+			t.Error("Expected visualization content in result")
+		}
+
+		// Check that it contains text content
+		content := result.Content[0]
+		textContent, ok := content.(mcp.TextContent)
+		if !ok {
+			t.Errorf("Expected TextContent, got %T", content)
+		}
+
+		// Should default to ASCII format with tree structure
+		if !strings.Contains(textContent.Text, "├──") || !strings.Contains(textContent.Text, "└──") {
+			t.Error("Expected default format to be ASCII tree with structure characters")
+		}
+	})
+
+	// Test base64 encoded certificate input
+	t.Run("base64 certificate input", func(t *testing.T) {
+		// Encode the PEM certificate as base64
+		base64Cert := pemToBase64(testCertPEM)
+
+		request := mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "visualize_cert_chain",
+				Arguments: map[string]any{
+					"certificate": base64Cert,
+					"format":      "ascii",
+				},
+			},
+		}
+
+		result, err := handleVisualizeCertChain(ctx, request)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result == nil {
+			t.Fatal("Expected result, got nil")
+		}
+
+		// Should successfully process base64 input
+		if len(result.Content) == 0 {
+			t.Error("Expected visualization content in result")
 		}
 	})
 }
