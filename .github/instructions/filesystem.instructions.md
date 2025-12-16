@@ -538,19 +538,19 @@ grep("fmt\\.Errorf", include="*.go")
 grep("Encode.*PEM", include="*.go")
 
 # Find CRL cache patterns
-grep("CRLCacheEntry\\|CRLCacheConfig\\|CRLCacheMetrics", include="*.go")
+grep("CRLCacheEntry|CRLCacheConfig|CRLCacheMetrics", include="*.go")
 
 # Find O(1) LRU cache patterns
-grep("LRUNode\\|updateCacheOrder\\|removeFromCacheOrder\\|pruneCRLCache", include="*.go")
+grep("LRUNode|updateCacheOrder|removeFromCacheOrder|pruneCRLCache", include="*.go")
 
 # Find CRL cache lifecycle patterns
-grep("StartCRLCacheCleanup\\|StopCRLCacheCleanup\\|cleanupExpiredCRLs", include="*.go")
+grep("StartCRLCacheCleanup|StopCRLCacheCleanup|cleanupExpiredCRLs", include="*.go")
 
 # Find CRL freshness and expiration patterns
-grep("isFresh\\|isExpired", include="*.go")
+grep("isFresh|isExpired", include="*.go")
 
 # Find resource usage monitoring patterns
-grep("ResourceUsageData\\|CollectResourceUsage\\|FormatResourceUsage", include="*.go")
+grep("ResourceUsageData|CollectResourceUsage|FormatResourceUsage", include="*.go")
 
 # Find changelog creation commands
 grep("create-changelog", include="*.md")
@@ -565,49 +565,49 @@ grep("func \(.* \*Chain\)", include="*.go")
 grep("FetchRemoteChain", include="*.go")
 
 # Find revocation status checking
-grep("CheckRevocationStatus\\|RevocationStatus", include="*.go")
+grep("CheckRevocationStatus|RevocationStatus", include="*.go")
 
 # Find OCSP/CRL functions
-grep("createOCSPRequest\\|ParseOCSPResponse\\|ParseCRLResponse", include="*.go")
+grep("createOCSPRequest|ParseOCSPResponse|ParseCRLResponse", include="*.go")
 
 # Find certificate data reading helpers
 grep("readCertificateData", include="*.go")
 
 # Find batch processing helpers
-grep("processSingleCertificate\\|formatBatchResults", include="*.go")
+grep("processSingleCertificate|formatBatchResults", include="*.go")
 
 # Find AI context building helpers
-grep("buildCertificateContextWithRevocation\\|appendSubjectInfo\\|appendIssuerInfo\\|appendValidityInfo\\|appendCryptoInfo\\|appendCertProperties\\|appendCertExtensions\\|appendCAInfo\\|appendChainValidationContext\\|appendSecurityContext\\|formatKeyUsage\\|formatExtKeyUsage\\|getAnalysisInstruction", include="*.go")
+grep("buildCertificateContextWithRevocation|appendSubjectInfo|appendIssuerInfo|appendValidityInfo|appendCryptoInfo|appendCertProperties|appendCertExtensions|appendCAInfo|appendChainValidationContext|appendSecurityContext|formatKeyUsage|formatExtKeyUsage|getAnalysisInstruction", include="*.go")
 
 # Find logger usage
 grep("logger\\.Logger", include="*.go")
 
 # Find logger implementations
-grep("NewCLILogger\\|NewMCPLogger", include="*.go")
+grep("NewCLILogger|NewMCPLogger", include="*.go")
 
 # Find thread-safety patterns
 grep("sync\\.Mutex", include="*.go")
 
 # Find logger tests
-grep("TestMCPLogger\\|TestCLILogger", include="*_test.go")
+grep("TestMCPLogger|TestCLILogger", include="*_test.go")
 
 # Find logger benchmarks
-grep("BenchmarkMCPLogger\\|BenchmarkCLILogger", include="*_test.go")
+grep("BenchmarkMCPLogger|BenchmarkCLILogger", include="*_test.go")
 
 # Find buffer pooling usage
-grep("gc\\.Pool\\|gc\\.Default", include="*.go")
+grep("gc\\.Pool|gc\\.Default", include="*.go")
 
 # Find buffer pool tests
-grep("TestBuffer\\|TestPool", include="*_test.go")
+grep("TestBuffer|TestPool", include="*_test.go")
 
 # Find buffer interface methods
-grep("WriteString\\|WriteByte\\|ReadFrom\\|WriteTo", include="*.go")
+grep("WriteString|WriteByte|ReadFrom|WriteTo", include="*.go")
 
 # Find buffer Set methods
-grep("buf\\.Set\\|buf\\.SetString", include="*.go")
+grep("buf\\.Set|buf\\.SetString", include="*.go")
 
 # Find context cancellation tests
-grep("context\\.WithCancel\\|ctx\\.Done", include="*_test.go")
+grep("context\\.WithCancel|ctx\\.Done", include="*_test.go")
 
 # Find table-driven tests
 grep("tests := \\[\\]struct", include="*_test.go")
@@ -616,99 +616,99 @@ grep("tests := \\[\\]struct", include="*_test.go")
 grep("runtime\\.GOOS", include="*_test.go")
 
 # Find test cleanup patterns
-grep("t\\.TempDir\\|t\\.Cleanup", include="*_test.go")
+grep("t\\.TempDir|t\\.Cleanup", include="*_test.go")
 
 # Find JSON escaping tests
-grep("JSONEscaping\\|json\\.Unmarshal", include="*_test.go")
+grep("JSONEscaping|json\\.Unmarshal", include="*_test.go")
 
 # Find JSON-RPC normalization patterns
-grep("jsonrpc\\.Marshal\\|jsonrpc\\.Map\\|normalizeIDValue\\|UnmarshalFromMap", include="*.go")
-grep("getParams\\|getStringParam\\|getOptionalStringParam\\|getMapParam", include="*.go")
-grep("pipeReader\\|pipeWriter\\|internalRespCh", include="*.go")
+grep("jsonrpc\\.Marshal|jsonrpc\\.Map|normalizeIDValue|UnmarshalFromMap", include="*.go")
+grep("getParams|getStringParam|getOptionalStringParam|getMapParam", include="*.go")
+grep("pipeReader|pipeWriter|internalRespCh", include="*.go")
 
 # Find concurrent test patterns
-grep("sync\\.WaitGroup\\|numGoroutines", include="*_test.go")
+grep("sync\\.WaitGroup|numGoroutines", include="*_test.go")
 
 # Find benchmark tests
-grep("Benchmark.*Chain\\|Benchmark.*Revocation\\|Benchmark.*Certificate", include="*_test.go")
+grep("Benchmark.*Chain|Benchmark.*Revocation|Benchmark.*Certificate", include="*_test.go")
 
 # Find CRL cache benchmarks
 grep("BenchmarkCRLCacheOperations", include="*_test.go")
 
 # Find MCP server tools
-grep("resolve_cert_chain\\|validate_cert_chain\\|check_cert_expiry\\|batch_resolve_cert_chain\\|fetch_remote_cert\\|analyze_certificate_with_ai\\|get_resource_usage", include="*.go")
+grep("resolve_cert_chain|validate_cert_chain|check_cert_expiry|batch_resolve_cert_chain|fetch_remote_cert|analyze_certificate_with_ai|get_resource_usage", include="*.go")
 
 # Find MCP server configuration
-grep("MCP_X509_CONFIG_FILE\\|config\\.Defaults\\|AI.*API", include="*.go")
+grep("MCP_X509_CONFIG_FILE|config\\.Defaults|AI.*API", include="*.go")
 
 # Find MCP tool handlers
-grep("handleResolveCertChain\\|handleValidateCertChain\\|handleCheckCertExpiry\\|handleBatchResolveCertChain\\|handleFetchRemoteCert\\|handleAnalyzeCertificateWithAI\\|handleGetResourceUsage", include="*.go")
+grep("handleResolveCertChain|handleValidateCertChain|handleCheckCertExpiry|handleBatchResolveCertChain|handleFetchRemoteCert|handleAnalyzeCertificateWithAI|handleGetResourceUsage", include="*.go")
 
 # Find MCP resources and prompts
-grep("addResources\\|addPrompts\\|certificate-analysis\\|expiry-monitoring\\|security-audit\\|troubleshooting\\|config://template\\|info://version\\|docs://certificate-formats\\|status://server-status", include="*.go")
+grep("addResources|addPrompts|certificate-analysis|expiry-monitoring|security-audit|troubleshooting|config://template|info://version|docs://certificate-formats|status://server-status", include="*.go")
 
 # Find AI integration patterns
-grep("DefaultSamplingHandler\\|CreateMessage\\|SamplingRequest\\|streaming\\|MaxTokens\\|handleNoAPIKey\\|convertMessages\\|selectModel\\|prepareMessages\\|buildAPIRequest\\|sendAPIRequest\\|handleAPIError\\|parseStreamingResponse\\|buildSamplingResult\\|TokenCallback", include="*.go")
+grep("DefaultSamplingHandler|CreateMessage|SamplingRequest|streaming|MaxTokens|handleNoAPIKey|convertMessages|selectModel|prepareMessages|buildAPIRequest|sendAPIRequest|handleAPIError|parseStreamingResponse|buildSamplingResult|TokenCallback", include="*.go")
 
 # Find MCP server builder pattern
-grep("ServerBuilder\\|NewServerBuilder\\|WithConfig\\|WithDefaultTools\\|createResources\\|createPrompts", include="*.go")
+grep("ServerBuilder|NewServerBuilder|WithConfig|WithDefaultTools|createResources|createPrompts", include="*.go")
 
 # Find ADK integration patterns
-grep("ADKTransportBuilder\\|NewADKTransportBuilder\\|WithInMemoryTransport\\|BuildTransport\\|ADKTransportConfig\\|InMemoryTransport\\|NewInMemoryTransport\\|ConnectServer\\|TransportBuilder\\|NewTransportBuilder\\|BuildInMemoryTransport", include="*.go")
+grep("ADKTransportBuilder|NewADKTransportBuilder|WithInMemoryTransport|BuildTransport|ADKTransportConfig|InMemoryTransport|NewInMemoryTransport|ConnectServer|TransportBuilder|NewTransportBuilder|BuildInMemoryTransport", include="*.go")
 
 # Find MCP server status resource
-grep("handleStatusResource\\|status://server-status", include="*.go")
+grep("handleStatusResource|status://server-status", include="*.go")
 
 # Find embedded templates and FS
-grep("MagicEmbed\\|templates/.*prompt.*\\.md\\|templates/X509.*\\.md", include="*.go")
-grep("embed\\.FS\\|EmbedFS\\|embeddedFS", include="*.go")
+grep("MagicEmbed|templates/.*prompt.*\\.md|templates/X509.*\\.md", include="*.go")
+grep("embed\\.FS|EmbedFS|embeddedFS", include="*.go")
 
 
 
 # Find tool name constants
-grep("ToolResolveCertChain\\|ToolValidateCertChain\\|ToolBatchResolveCertChain\\|ToolCheckCertExpiry\\|ToolFetchRemoteCert\\|ToolAnalyzeCertificateWithAI\\|ToolGetResourceUsage", include="*.go")
+grep("ToolResolveCertChain|ToolValidateCertChain|ToolBatchResolveCertChain|ToolCheckCertExpiry|ToolFetchRemoteCert|ToolAnalyzeCertificateWithAI|ToolGetResourceUsage", include="*.go")
 
 # Find tool role constants
-grep("RoleChainResolver\\|RoleChainValidator\\|RoleBatchResolver\\|RoleExpiryChecker\\|RoleRemoteFetcher\\|RoleAIAnalyzer\\|RoleResourceMonitor", include="*.go")
+grep("RoleChainResolver|RoleChainValidator|RoleBatchResolver|RoleExpiryChecker|RoleRemoteFetcher|RoleAIAnalyzer|RoleResourceMonitor", include="*.go")
 
 # Find instruction template patterns
-grep("loadInstructions\\|instructionData\\|toolInfo\\|WithInstructions", include="*.go")
+grep("loadInstructions|instructionData|toolInfo|WithInstructions", include="*.go")
 
 # Find certificate visualization patterns
-grep("RenderASCIITree\\|RenderTable\\|ToVisualizationJSON", include="*.go")
+grep("RenderASCIITree|RenderTable|ToVisualizationJSON", include="*.go")
 
 # Find revocation status parsing for visualization
 grep("parseRevocationStatusForVisualization", include="*.go")
 
 # Find prompt template parsing patterns
-grep("parsePromptTemplate\\|detectRoleMarker\\|promptTemplateData", include="*.go")
+grep("parsePromptTemplate|detectRoleMarker|promptTemplateData", include="*.go")
 
 # Find MCP prompt handlers
-grep("handleCertificateAnalysisPrompt\\|handleExpiryMonitoringPrompt\\|handleSecurityAuditPrompt\\|handleTroubleshootingPrompt\\|handleResourceMonitoringPrompt", include="*.go")
+grep("handleCertificateAnalysisPrompt|handleExpiryMonitoringPrompt|handleSecurityAuditPrompt|handleTroubleshootingPrompt|handleResourceMonitoringPrompt", include="*.go")
 
 # Find template caching patterns
-grep("templateCache\\|sync\\.Map", include="*.go")
+grep("templateCache|sync\\.Map", include="*.go")
 
 # Find embedded FS configuration patterns
-grep("WithEmbed\\|WithEmbeddedPrompts\\|WithEmbeddedResources\\|PromptDefinition\\.WithEmbed\\|ResourceDefinition\\.WithEmbed", include="*.go")
-grep("ServerPromptWithEmbed\\|ServerResourceWithEmbed\\|PromptHandlerWithEmbed\\|ResourceHandlerWithEmbed", include="*.go")
-grep("ServerDependencies\\.PromptsWithEmbed\\|ServerDependencies\\.ResourcesWithEmbed", include="*.go")
+grep("WithEmbed|WithEmbeddedPrompts|WithEmbeddedResources|PromptDefinition\\.WithEmbed|ResourceDefinition\\.WithEmbed", include="*.go")
+grep("ServerPromptWithEmbed|ServerResourceWithEmbed|PromptHandlerWithEmbed|ResourceHandlerWithEmbed", include="*.go")
+grep("ServerDependencies\\.PromptsWithEmbed|ServerDependencies\\.ResourcesWithEmbed", include="*.go")
 
 # Find template validation and execution patterns
-grep("getOrCreateTemplate\\|validateTemplateStructure\\|executeTemplate\\|parseMessagesFromContent", include="*.go")
+grep("getOrCreateTemplate|validateTemplateStructure|executeTemplate|parseMessagesFromContent", include="*.go")
 
 # Find template size limit constants
-grep("MaxTemplateSize\\|MaxMessageContentSize\\|MaxMessagesPerTemplate", include="*.go")
+grep("MaxTemplateSize|MaxMessageContentSize|MaxMessagesPerTemplate", include="*.go")
 
 
 # Find graceful shutdown tests
-grep("run_graceful_test\\.go\\|syscall\\.Kill", include="*_test.go")
+grep("run_graceful_test\\.go|syscall\\.Kill", include="*_test.go")
 
 # Find platform-specific test skips
 grep("runtime\.GOOS.*darwin\|t\.Skip.*macOS", include="*_test.go")
 
 # Find visualize certificate chain handlers
-grep("handleVisualizeCertChain\\|TestHandleVisualizeCertChain", include="*.go")
+grep("handleVisualizeCertChain|TestHandleVisualizeCertChain", include="*.go")
 
 # Find CRL cache counters
 grep("crlCacheCounters", include="*.go")
