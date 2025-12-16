@@ -706,6 +706,12 @@ grep("run_graceful_test\\.go\\|syscall\\.Kill", include="*_test.go")
 
 # Find platform-specific test skips
 grep("runtime\.GOOS.*darwin\|t\.Skip.*macOS", include="*_test.go")
+
+# Find visualize certificate chain handlers
+grep("handleVisualizeCertChain\\|TestHandleVisualizeCertChain", include="*.go")
+
+# Find CRL cache counters
+grep("crlCacheCounters", include="*.go")
 ```
 
 ### Common Edit Patterns
