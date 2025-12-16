@@ -218,6 +218,42 @@ func TestDecodeCertificate_Invalid(t *testing.T) {
 	}
 }
 
+func TestCertificate_DecodeDER(t *testing.T) {
+	decoder := x509certs.New()
+
+	// Parse test certificate to get DER data
+	block, _ := pem.Decode([]byte(testCertPEM))
+	if block == nil {
+		t.Fatal("failed to parse certificate PEM")
+	}
+
+	testCert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("failed to parse test certificate: %v", err)
+	}
+
+	// Test decoding DER data directly
+	t.Run("Valid DER Certificate", func(t *testing.T) {
+		cert, err := decoder.Decode(testCert.Raw)
+		if err != nil {
+			t.Fatalf("Decode() error = %v", err)
+		}
+
+		if !cert.Equal(testCert) {
+			t.Error("decoded certificate does not match original")
+		}
+	})
+
+	// Test invalid DER data
+	t.Run("Invalid DER Data", func(t *testing.T) {
+		invalidDER := []byte("not a certificate")
+		_, err := decoder.Decode(invalidDER)
+		if err != x509certs.ErrParseCertificate {
+			t.Errorf("expected ErrParseCertificate, got %v", err)
+		}
+	})
+}
+
 func TestCertificate_IsPEM(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -237,6 +273,16 @@ func TestCertificate_IsPEM(t *testing.T) {
 		{
 			name:     "Empty Input",
 			input:    []byte(""),
+			expected: false,
+		},
+		{
+			name:     "PEM-like but invalid base64",
+			input:    []byte("-----BEGIN CERTIFICATE-----\ninvalid-base64\n-----END CERTIFICATE-----"),
+			expected: false, // pem.Decode fails on invalid base64
+		},
+		{
+			name:     "DER format (binary)",
+			input:    []byte{0x30, 0x82, 0x01, 0x23}, // DER sequence
 			expected: false,
 		},
 	}

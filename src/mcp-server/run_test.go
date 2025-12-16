@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -979,6 +980,37 @@ func TestEdgeCases(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestServerBuilder_BuildWithPrompts(t *testing.T) {
+	// Test that building a server with prompts exercises populatePromptMetadataCache
+	builder := NewServerBuilder().
+		WithVersion("1.0.0").
+		WithPrompts(ServerPrompt{
+			Prompt: mcp.Prompt{
+				Name:        "test_prompt",
+				Description: "A test prompt",
+				Arguments: []mcp.PromptArgument{
+					{
+						Name:        "arg1",
+						Description: "First argument",
+						Required:    true,
+					},
+				},
+			},
+		})
+
+	server, err := builder.Build()
+	if err != nil {
+		t.Fatalf("Failed to build server with prompts: %v", err)
+	}
+
+	if server == nil {
+		t.Fatal("Expected server to be created")
+	}
+
+	// The important thing is that Build succeeded, which means populatePromptMetadataCache was called
+	// during the build process without panicking
 }
 
 func contains(s, substr string) bool {
@@ -4102,4 +4134,191 @@ func TestLoadInstructions(t *testing.T) {
 	t.Logf("✓ All expected content sections present")
 	t.Logf("✓ Tool variables properly substituted (%d tool references found)", toolCount)
 	t.Logf("✓ All workflow sections included")
+}
+
+func TestGetMapParam(t *testing.T) {
+	tests := []struct {
+		name        string
+		params      map[string]any
+		method      string
+		key         string
+		expectError bool
+		expectValue map[string]any
+	}{
+		{
+			name: "valid map parameter",
+			params: map[string]any{
+				"certificate": map[string]any{"type": "pem", "data": "test"},
+			},
+			method:      "resolve_cert_chain",
+			key:         "certificate",
+			expectError: false,
+			expectValue: map[string]any{"type": "pem", "data": "test"},
+		},
+		{
+			name: "missing parameter",
+			params: map[string]any{
+				"other": "value",
+			},
+			method:      "resolve_cert_chain",
+			key:         "certificate",
+			expectError: true,
+		},
+		{
+			name: "wrong type parameter",
+			params: map[string]any{
+				"certificate": "not-a-map",
+			},
+			method:      "resolve_cert_chain",
+			key:         "certificate",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := getMapParam(tt.params, tt.method, tt.key)
+
+			if tt.expectError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+
+			if !tt.expectError && !reflect.DeepEqual(result, tt.expectValue) {
+				t.Errorf("Expected %v, got %v", tt.expectValue, result)
+			}
+		})
+	}
+}
+
+func TestFormatDefaultValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected string
+	}{
+		{
+			name:     "string value",
+			input:    "test string",
+			expected: "test string",
+		},
+		{
+			name:     "integer value",
+			input:    42,
+			expected: "42",
+		},
+		{
+			name:     "float value",
+			input:    3.14,
+			expected: "3.14",
+		},
+		{
+			name:     "boolean value",
+			input:    true,
+			expected: "true",
+		},
+		{
+			name:     "nil value",
+			input:    nil,
+			expected: "<nil>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatDefaultValue(tt.input)
+			if result != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestGetVersion(t *testing.T) {
+	version := GetVersion()
+	if version == "" {
+		t.Error("Expected non-empty version string")
+	}
+	// Version should match the appVersion variable, but we can't easily test the exact value
+	// without exposing it, so we just check it's not empty
+}
+
+func TestHandleVisualizeCertChain(t *testing.T) {
+	// This test is complex and requires a real certificate file
+	// For now, we'll test the error cases
+
+	ctx := t.Context()
+
+	// Test missing certificate parameter
+	t.Run("missing certificate parameter", func(t *testing.T) {
+		request := mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name:      "visualize_cert_chain",
+				Arguments: map[string]any{},
+			},
+		}
+
+		result, err := handleVisualizeCertChain(ctx, request)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result == nil {
+			t.Error("Expected result, got nil")
+		}
+		// Should be an error result due to missing certificate
+		if len(result.Content) == 0 {
+			t.Error("Expected error content in result")
+		}
+	})
+
+	// Test invalid certificate format
+	t.Run("invalid certificate format", func(t *testing.T) {
+		request := mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "visualize_cert_chain",
+				Arguments: map[string]any{
+					"certificate": "invalid-cert-data",
+				},
+			},
+		}
+
+		result, err := handleVisualizeCertChain(ctx, request)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result == nil {
+			t.Error("Expected result, got nil")
+		}
+		// Should be an error result due to invalid certificate
+		if len(result.Content) == 0 {
+			t.Error("Expected error content in result")
+		}
+	})
+
+	// Test unsupported format
+	t.Run("unsupported format", func(t *testing.T) {
+		request := mcp.CallToolRequest{
+			Params: mcp.CallToolParams{
+				Name: "visualize_cert_chain",
+				Arguments: map[string]any{
+					"certificate": "invalid-cert-data",
+					"format":      "unsupported",
+				},
+			},
+		}
+
+		result, err := handleVisualizeCertChain(ctx, request)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if result == nil {
+			t.Error("Expected result, got nil")
+		}
+		// Should be an error result due to unsupported format
+		if len(result.Content) == 0 {
+			t.Error("Expected error content in result")
+		}
+	})
 }
