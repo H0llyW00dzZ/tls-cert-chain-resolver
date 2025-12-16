@@ -166,6 +166,22 @@ gopls_go_search("PromptHandlerWithEmbed") → Find embedded prompt handlers
 gopls_go_search("ResourceHandlerWithEmbed") → Find embedded resource handlers
 gopls_go_search("ServerDependencies.PromptsWithEmbed") → Find embedded prompts in server dependencies
 gopls_go_search("ServerDependencies.ResourcesWithEmbed") → Find embedded resources in server dependencies
+gopls_go_search("readCertificateData") → Find certificate data reading helper
+gopls_go_search("processSingleCertificate") → Find single certificate processing helper
+gopls_go_search("formatBatchResults") → Find batch result formatting helper
+gopls_go_search("appendSubjectInfo") → Find AI context subject info builder
+gopls_go_search("appendIssuerInfo") → Find AI context issuer info builder
+gopls_go_search("appendValidityInfo") → Find AI context validity info builder
+gopls_go_search("appendCryptoInfo") → Find AI context crypto info builder
+gopls_go_search("appendCertProperties") → Find AI context certificate properties builder
+gopls_go_search("appendCertExtensions") → Find AI context certificate extensions builder
+gopls_go_search("appendCAInfo") → Find AI context CA info builder
+gopls_go_search("appendChainValidationContext") → Find AI context chain validation builder
+gopls_go_search("appendSecurityContext") → Find AI context security recommendations builder
+gopls_go_search("formatKeyUsage") → Find key usage formatting helper
+gopls_go_search("formatExtKeyUsage") → Find extended key usage formatting helper
+gopls_go_search("getAnalysisInstruction") → Find AI analysis instruction selector
+gopls_go_search("crlCacheCounters") → Find CRL cache counters (documented unexported type)
 ```
 
 ### gopls_go_file_context(file)
