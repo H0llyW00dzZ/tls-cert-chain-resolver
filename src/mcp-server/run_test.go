@@ -4249,7 +4249,7 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 	// This test is complex and requires a real certificate file
 	// For now, we'll test the error cases
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test missing certificate parameter
 	t.Run("missing certificate parameter", func(t *testing.T) {
