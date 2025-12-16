@@ -558,9 +558,9 @@ func formatGoValue(v any) string {
 	}
 }
 
-// generateFile generates a file using a template
-func generateFile(templatePath, outputPath string, config *Config, _ string) error {
-	tmpl, err := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
+// getTemplateFuncMap returns the template functions used for code generation
+func getTemplateFuncMap() template.FuncMap {
+	return template.FuncMap{
 		"toJSON": func(v any) string {
 			data, _ := json.Marshal(v)
 			return string(data)
@@ -591,31 +591,39 @@ func generateFile(templatePath, outputPath string, config *Config, _ string) err
 			}
 			return strings.Join(names, ", ")
 		},
-		"formatToolList": func(toolList string) string {
-			if toolList == "" {
-				return ""
-			}
+		"formatToolList": formatToolListForTemplate,
+	}
+}
 
-			tools := strings.Split(toolList, ", ")
-			if len(tools) < 4 {
-				return toolList
-			}
+// formatToolListForTemplate formats a comma-separated tool list with line breaks for readability
+func formatToolListForTemplate(toolList string) string {
+	if toolList == "" {
+		return ""
+	}
 
-			// Format with line breaks for readability when 4+ tools
-			var result strings.Builder
-			for i, tool := range tools {
-				if i > 0 {
-					if i%3 == 0 { // Break line every 3 tools
-						result.WriteString(",\n//      ")
-					} else {
-						result.WriteString(", ")
-					}
-				}
-				result.WriteString(tool)
+	tools := strings.Split(toolList, ", ")
+	if len(tools) < 4 {
+		return toolList
+	}
+
+	// Format with line breaks for readability when 4+ tools
+	var result strings.Builder
+	for i, tool := range tools {
+		if i > 0 {
+			if i%3 == 0 { // Break line every 3 tools
+				result.WriteString(",\n//      ")
+			} else {
+				result.WriteString(", ")
 			}
-			return result.String()
-		},
-	}).ParseFiles(templatePath)
+		}
+		result.WriteString(tool)
+	}
+	return result.String()
+}
+
+// generateFile generates a file using a template
+func generateFile(templatePath, outputPath string, config *Config, _ string) error {
+	tmpl, err := template.New(filepath.Base(templatePath)).Funcs(getTemplateFuncMap()).ParseFiles(templatePath)
 	if err != nil {
 		return fmt.Errorf("parsing template from %s: %w", templatePath, err)
 	}
