@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -34,44 +35,89 @@ import (
 //
 // Thread Safety: Safe for concurrent use (no state modification).
 func parseRevocationStatusForVisualization(revocationReport string, chain *Chain) map[string]string {
-	statusMap := make(map[string]string)
-
-	// Default all certificates to "unknown"
-	for _, cert := range chain.Certs {
-		statusMap[cert.SerialNumber.String()] = "unknown"
-	}
+	statusMap := initializeStatusMap(chain)
 
 	// Parse the revocation report to extract actual statuses
 	lines := strings.Split(revocationReport, "\n")
 	for i, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "Certificate ") && strings.Contains(line, ":") {
-			// Extract certificate index
-			parts := strings.Split(line, ":")
-			if len(parts) >= 1 {
-				certIndexStr := strings.TrimPrefix(parts[0], "Certificate ")
-				var certIndex int
-				if _, err := fmt.Sscanf(certIndexStr, "%d", &certIndex); err == nil {
-					certIndex-- // Convert to 0-based index
-
-					// Look for the final status in subsequent lines
-					for j := i + 1; j < len(lines) && j < i+10; j++ {
-						nextLine := strings.TrimSpace(lines[j])
-						if after, ok := strings.CutPrefix(nextLine, "Final Status:"); ok {
-							status := strings.TrimSpace(after)
-							// Update status for this certificate
-							if certIndex >= 0 && certIndex < len(chain.Certs) {
-								statusMap[chain.Certs[certIndex].SerialNumber.String()] = status
-							}
-							break
-						}
-					}
+		if certIndex := extractCertificateIndex(line); certIndex >= 0 {
+			if status := findFinalStatus(lines, i); status != "" {
+				// Update status for this certificate (certIndex is already 0-based)
+				if certIndex < len(chain.Certs) {
+					statusMap[chain.Certs[certIndex].SerialNumber.String()] = status
 				}
 			}
 		}
 	}
 
 	return statusMap
+}
+
+// initializeStatusMap creates a status map with all certificates defaulting to "unknown"
+func initializeStatusMap(chain *Chain) map[string]string {
+	statusMap := make(map[string]string)
+	for _, cert := range chain.Certs {
+		statusMap[cert.SerialNumber.String()] = "unknown"
+	}
+	return statusMap
+}
+
+// extractCertificateIndex extracts the 0-based certificate index from a "Certificate X:" line
+func extractCertificateIndex(line string) int {
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, "Certificate ") || !strings.Contains(line, ":") {
+		return -1
+	}
+
+	parts := strings.Split(line, ":")
+	if len(parts) < 1 {
+		return -1
+	}
+
+	certIndexStr := strings.TrimPrefix(parts[0], "Certificate ")
+	var certIndex int
+	if _, err := fmt.Sscanf(certIndexStr, "%d", &certIndex); err != nil {
+		return -1
+	}
+
+	return certIndex - 1 // Convert to 0-based index
+}
+
+// findFinalStatus searches for the "Final Status:" line within the next few lines after a certificate index
+func findFinalStatus(lines []string, startIndex int) string {
+	for j := startIndex + 1; j < len(lines) && j < startIndex+10; j++ {
+		nextLine := strings.TrimSpace(lines[j])
+		if after, ok := strings.CutPrefix(nextLine, "Final Status:"); ok {
+			return strings.TrimSpace(after)
+		}
+	}
+	return ""
+}
+
+// getCertificateStatusIcon determines the appropriate status icon for a certificate based on revocation status
+func getCertificateStatusIcon(cert *x509.Certificate, certIndex int, revocationMap map[string]string, chain *Chain) string {
+	// Default to warning for unknown/error states
+	statusIcon := "⚠"
+
+	if status, exists := revocationMap[cert.SerialNumber.String()]; exists {
+		switch {
+		case strings.Contains(status, "Good"):
+			statusIcon = "✓"
+		case strings.Contains(status, "Revoked"):
+			statusIcon = "✗"
+		case strings.Contains(status, "Unknown"):
+			statusIcon = "⚠"
+		default:
+			// For root CA certificates, assume good status if revocation check failed
+			if chain.GetCertificateRole(certIndex) == "Root CA Certificate" {
+				statusIcon = "✓"
+			} else {
+				statusIcon = "⚠"
+			}
+		}
+	}
+
+	return statusIcon
 }
 
 // RenderASCIITree renders the certificate chain as an ASCII tree diagram.
@@ -118,23 +164,7 @@ func (ch *Chain) RenderASCIITree(ctx context.Context) string {
 		}
 
 		// Status indicator - check revocation status for this certificate
-		statusIcon := "⚠" // Default to warning for unknown/error states
-		if status, exists := revocationMap[cert.SerialNumber.String()]; exists {
-			switch {
-			case strings.Contains(status, "Good"):
-				statusIcon = "✓"
-			case strings.Contains(status, "Revoked"):
-				statusIcon = "✗"
-			case strings.Contains(status, "Unknown"):
-				statusIcon = "⚠"
-			default:
-				if ch.GetCertificateRole(i) == "Root CA Certificate" {
-					statusIcon = "✓"
-				} else {
-					statusIcon = "⚠"
-				}
-			}
-		}
+		statusIcon := getCertificateStatusIcon(cert, i, revocationMap, ch)
 
 		// Certificate info
 		role := ch.GetCertificateRole(i)
