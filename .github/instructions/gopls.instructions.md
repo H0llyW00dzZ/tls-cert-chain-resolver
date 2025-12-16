@@ -182,6 +182,7 @@ gopls_go_search("formatKeyUsage") → Find key usage formatting helper
 gopls_go_search("formatExtKeyUsage") → Find extended key usage formatting helper
 gopls_go_search("getAnalysisInstruction") → Find AI analysis instruction selector
 gopls_go_search("crlCacheCounters") → Find CRL cache counters (documented unexported type)
+gopls_go_search("handleVisualizeCertChain") → Find visualize certificate chain tool handler
 ```
 
 ### gopls_go_file_context(file)
