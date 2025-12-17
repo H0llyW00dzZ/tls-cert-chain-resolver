@@ -82,7 +82,7 @@ Generate a comprehensive changelog by comparing the latest tag against master/ma
 5. **Save Changelog to File**:
 
    - Save generated changelog to `changelog.md` in repository root
-   - Use absolute path: `/home/h0llyw00dzz/Workspace/git/tls-cert-chain-resolver/changelog.md`
+   - Use relative path: `changelog.md` (creates file in current working directory)
    - Ensure file is writable and properly formatted
    - Include a header note about temporary nature for human use
    - Use `write()` tool to create the file with complete changelog content
@@ -256,7 +256,14 @@ If no commits between tag and main:
 
 ```bash
 # File will be created at:
-/home/h0llyw00dzz/Workspace/git/tls-cert-chain-resolver/changelog.md
+tls-cert-chain-resolver/changelog.md
+
+# In project tree structure:
+tls-cert-chain-resolver/
+├── changelog.md    # Generated changelog file
+├── README.md
+├── LICENSE
+├── ...
 ```
 
 Focus on creating actionable, informative changelogs that help users understand what changed and why.
