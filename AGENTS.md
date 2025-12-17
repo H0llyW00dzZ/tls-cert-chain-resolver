@@ -420,8 +420,8 @@ task("Research certificate validation patterns", "Find existing validation imple
 
 **Project Knowledge**:
 
-- `.github/instructions/*.md`: Instruction files for Gopls, DeepWiki, Filesystem, Memory, OpenCode configuration
-- `.opencode/command/*.md`: Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`, `/create-changelog`, `/go-docs`, `/gocyclo`, `/vulncheck`)
+- **`.github/instructions/*.md`**: Instruction files for Gopls, DeepWiki, Filesystem, Memory, OpenCode configuration
+- **`.opencode/command/*.md`**: Custom commands for common workflows (`/update-knowledge`, `/test`, `/test-capabilities`, `/create-changelog`, `/go-docs`, `/gocyclo`, `/vulncheck`)
 - **MCP Server**: X509 certificate chain resolver featuring:
   - **Tools**: `resolve_cert_chain`, `validate_cert_chain`, `check_cert_expiry`, `batch_resolve_cert_chain`, `fetch_remote_cert`, `analyze_certificate_with_ai` (analysis types: general, security, compliance), `get_resource_usage`
   - **Resources**: `config://template`, `info://version`, `docs://certificate-formats`, `status://server-status`
