@@ -53,7 +53,18 @@ func parseRevocationStatusForVisualization(revocationReport string, chain *Chain
 	return statusMap
 }
 
-// initializeStatusMap creates a status map with all certificates defaulting to "unknown"
+// initializeStatusMap creates a status map with all certificates defaulting to "unknown".
+//
+// It initializes a map where each certificate's serial number is mapped to "unknown"
+// status, providing a baseline for revocation status tracking.
+//
+// Parameters:
+//   - chain: The certificate chain to extract serial numbers from
+//
+// Returns:
+//   - map[string]string: Map of serial number to revocation status, all initialized to "unknown"
+//
+// Thread Safety: Safe for concurrent use (no state modification).
 func initializeStatusMap(chain *Chain) map[string]string {
 	statusMap := make(map[string]string)
 	for _, cert := range chain.Certs {
@@ -62,7 +73,19 @@ func initializeStatusMap(chain *Chain) map[string]string {
 	return statusMap
 }
 
-// extractCertificateIndex extracts the 0-based certificate index from a "Certificate X:" line
+// extractCertificateIndex extracts the 0-based certificate index from a "Certificate X:" line.
+//
+// It parses lines from revocation status reports that follow the format "Certificate X:"
+// where X is a 1-based certificate index. The function converts this to a 0-based index
+// for array access.
+//
+// Parameters:
+//   - line: The line of text to parse (expected format: "Certificate X:")
+//
+// Returns:
+//   - int: 0-based certificate index if found and valid, -1 if parsing fails
+//
+// Thread Safety: Safe for concurrent use (no state modification).
 func extractCertificateIndex(line string) int {
 	line = strings.TrimSpace(line)
 	if !strings.HasPrefix(line, "Certificate ") || !strings.Contains(line, ":") {
@@ -83,7 +106,20 @@ func extractCertificateIndex(line string) int {
 	return certIndex - 1 // Convert to 0-based index
 }
 
-// findFinalStatus searches for the "Final Status:" line within the next few lines after a certificate index
+// findFinalStatus searches for the "Final Status:" line within the next few lines after a certificate index.
+//
+// It scans the revocation report lines starting from the given index to find a line
+// containing "Final Status:" followed by the revocation status. The search is limited
+// to the next 10 lines to prevent excessive scanning.
+//
+// Parameters:
+//   - lines: The array of revocation report lines to search
+//   - startIndex: The index in the lines array to start searching from
+//
+// Returns:
+//   - string: The final status string if found (e.g., "Good", "Revoked"), empty string if not found
+//
+// Thread Safety: Safe for concurrent use (no state modification).
 func findFinalStatus(lines []string, startIndex int) string {
 	for j := startIndex + 1; j < len(lines) && j < startIndex+10; j++ {
 		nextLine := strings.TrimSpace(lines[j])
@@ -94,7 +130,22 @@ func findFinalStatus(lines []string, startIndex int) string {
 	return ""
 }
 
-// getCertificateStatusIcon determines the appropriate status icon for a certificate based on revocation status
+// getCertificateStatusIcon determines the appropriate status icon for a certificate based on revocation status.
+//
+// It maps revocation status strings to visual indicators for display in certificate
+// visualizations. The function prioritizes explicit revocation status from the map,
+// with fallback logic for root CAs when status is unknown.
+//
+// Parameters:
+//   - cert: The certificate to determine status icon for
+//   - certIndex: The 0-based index of the certificate in the chain
+//   - revocationMap: Map of serial numbers to revocation statuses
+//   - chain: The certificate chain for role determination
+//
+// Returns:
+//   - string: Status icon ("✓" for good, "✗" for revoked, "⚠" for unknown/error)
+//
+// Thread Safety: Safe for concurrent use (no state modification).
 func getCertificateStatusIcon(cert *x509.Certificate, certIndex int, revocationMap map[string]string, chain *Chain) string {
 	// Default to warning for unknown/error states
 	statusIcon := "⚠"
