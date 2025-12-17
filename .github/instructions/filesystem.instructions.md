@@ -580,7 +580,7 @@ grep("processSingleCertificate|formatBatchResults|processBatchCertificates", inc
 grep("validateResolveParams|resolveCertChain|formatChainOutput|buildResolveResult", include="*.go")
 
 # Find visualization helpers
-grep("initializeStatusMap|extractCertificateIndex|findFinalStatus", include="*.go")
+grep("initializeStatusMap|extractCertificateIndex|findFinalStatus|getCertificateStatusIcon", include="*.go")
 
 # Find AI context building helpers
 grep("buildCertificateContextWithRevocation|appendSubjectInfo|appendIssuerInfo|appendValidityInfo|appendCryptoInfo|appendCertProperties|appendCertExtensions|appendCAInfo|appendChainValidationContext|appendSecurityContext|formatKeyUsage|formatExtKeyUsage|getAnalysisInstruction", include="*.go")

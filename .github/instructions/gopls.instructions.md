@@ -141,6 +141,7 @@ gopls_go_search("writeHeader") → Find generated file header writing functions
 gopls_go_search("RenderASCIITree") → Find ASCII tree rendering for certificate chains
 gopls_go_search("RenderTable") → Find table rendering for certificate chains
 gopls_go_search("ToVisualizationJSON") → Find JSON visualization for certificate chains
+gopls_go_search("getCertificateStatusIcon") → Find certificate status icon determination function
 gopls_go_search("templateCache") → Find template caching implementation
 gopls_go_search("handleResourceMonitoringPrompt") → Find resource monitoring prompt handler
 gopls_go_search("getOrCreateTemplate") → Find template caching and cloning functions
