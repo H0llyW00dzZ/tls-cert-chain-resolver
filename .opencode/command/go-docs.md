@@ -125,7 +125,7 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 
 6. **Update Package-Level Documentation**:
 
-   - Check for missing package comments in `doc.go` files
+   - Check for missing package comments in `docs.go` files
    - Verify package comments accurately describe the package's purpose
    - Update package documentation if functionality has changed
 
@@ -237,7 +237,7 @@ func parseStreamingResponse(data []byte) (*CreateMessageResult, error) {
 ```
 
 **Package Documentation**:
-- Package comments should be in `doc.go` files
+- Package comments should be in `docs.go` files
 - Explain the package's purpose and main types
 - Include usage examples when appropriate
 
