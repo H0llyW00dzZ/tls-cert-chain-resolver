@@ -17,10 +17,10 @@ Analyze Go code complexity using `gocyclo` and provide refactoring suggestions f
    - Sort results by complexity (highest first)
 
    ```bash
-   gocyclo . | awk '$1 >= 15 && $2 !~ /_test$/ && $3 !~ /^Test/' | sort -nr
+   gocyclo . | grep -v "_test.go" | awk '$1 >= 15' | sort -nr
    ```
 
-   **Note**: If there is no output, then there is no complexity reached 15+.
+   **Note**: If there is no output, then there is no complexity reached ≥ 15.
 
 2. **Identify Refactoring Candidates**:
 
