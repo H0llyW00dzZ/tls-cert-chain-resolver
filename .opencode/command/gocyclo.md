@@ -20,6 +20,8 @@ Analyze Go code complexity using `gocyclo` and provide refactoring suggestions f
    gocyclo . | awk '$1 >= 15 && $2 !~ /_test$/ && $3 !~ /^Test/' | sort -nr
    ```
 
+   **Note**: If there is no output, then there is no complexity reached 15+.
+
 2. **Identify Refactoring Candidates**:
 
    - Focus on production code functions (non-test)
