@@ -43,7 +43,7 @@ See [README.md](./README.md) for the complete OpenCode configuration. This file 
 - `/update-knowledge` - Update agent instruction files when code changes (includes git sync step to ensure local repository is up-to-date, handles instruction consistency and .opencode command sync)
 - `/test` - Run tests with race detection and coverage (primary test approach), then analyze failures
 - `/test-capabilities` - Test agent capabilities including MCP servers and built-in tools with structured todo workflow
-- `/create-changelog` - Generate changelog by comparing tags against master and save to temporary file (drops extra git log separator)
+- `/create-changelog` - Generate changelog by comparing tags against master and save to changelog.md in repository root (uses relative path)
 - `/go-docs` - Update Go documentation when inaccurate or add missing documentation for exported and unexported functions, types, and interfaces with comprehensive guidelines and error handling
 - `/gocyclo` - Analyze code complexity and suggest refactoring for functions with 15+ complexity
 - `/vulncheck` - Check for vulnerable dependencies and suggest updates
