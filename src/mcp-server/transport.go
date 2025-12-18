@@ -357,6 +357,14 @@ func (t *InMemoryTransport) handleSampling(req map[string]any) {
 	t.sendInternalResponse(resp)
 }
 
+// sendInternalResponse sends an internal response through the transport's response channel.
+// It marshals the response to JSON and sends it via the internal response channel.
+// If the context is cancelled during sending, the response is dropped.
+//
+// Parameters:
+//   - resp: Response object to send (will be JSON marshaled)
+//
+// Thread Safety: Safe for concurrent use.
 func (t *InMemoryTransport) sendInternalResponse(resp any) {
 	data, err := json.Marshal(resp)
 	if err != nil {
@@ -369,6 +377,15 @@ func (t *InMemoryTransport) sendInternalResponse(resp any) {
 	}
 }
 
+// sendInternalErrorResponse sends an internal JSON-RPC error response.
+// It constructs a proper JSON-RPC error response and sends it via the internal response channel.
+//
+// Parameters:
+//   - id: Request ID for the error response
+//   - code: JSON-RPC error code
+//   - msg: Error message
+//
+// Thread Safety: Safe for concurrent use.
 func (t *InMemoryTransport) sendInternalErrorResponse(id any, code int, msg string) {
 	resp := jsonRPCResponse{
 		JSONRPC: mcp.JSONRPC_VERSION,
@@ -381,6 +398,15 @@ func (t *InMemoryTransport) sendInternalErrorResponse(id any, code int, msg stri
 	t.sendInternalResponse(resp)
 }
 
+// sendErrorResponse sends a JSON-RPC error response through the transport.
+// It constructs a proper JSON-RPC error response and sends it via the main response channel.
+//
+// Parameters:
+//   - id: Request ID for the error response
+//   - code: JSON-RPC error code
+//   - msg: Error message
+//
+// Thread Safety: Safe for concurrent use.
 func (t *InMemoryTransport) sendErrorResponse(id any, code int, msg string) {
 	resp := jsonRPCResponse{
 		JSONRPC: mcp.JSONRPC_VERSION,
