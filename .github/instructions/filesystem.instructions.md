@@ -660,7 +660,7 @@ grep("DefaultSamplingHandler|CreateMessage|SamplingRequest|streaming|MaxTokens|h
 grep("ServerBuilder|NewServerBuilder|WithConfig|WithDefaultTools|createResources|createPrompts", include="*.go")
 
 # Find ADK integration patterns
-grep("ADKTransportBuilder|NewADKTransportBuilder|WithInMemoryTransport|BuildTransport|ADKTransportConfig|InMemoryTransport|NewInMemoryTransport|ConnectServer|TransportBuilder|NewTransportBuilder|BuildInMemoryTransport", include="*.go")
+grep("ADKTransportBuilder|NewADKTransportBuilder|WithInMemoryTransport|BuildTransport|ADKTransportConfig|InMemoryTransport|NewInMemoryTransport|ConnectServer|TransportBuilder|NewTransportBuilder|BuildInMemoryTransport|sendInternalResponse|sendInternalErrorResponse|sendErrorResponse", include="*.go")
 
 # Find MCP server status resource
 grep("handleStatusResource|status://server-status", include="*.go")
