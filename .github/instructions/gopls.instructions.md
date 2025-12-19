@@ -97,6 +97,9 @@ gopls_go_search("TransportBuilder") → Find transport builder pattern
 gopls_go_search("NewTransportBuilder") → Find transport builder constructor
 gopls_go_search("BuildInMemoryTransport") → Find in-memory transport building
 gopls_go_search("ADKTransportConnection") → Find ADK transport bridge implementation
+gopls_go_search("sendInternalResponse") → Find internal response sending methods
+gopls_go_search("sendInternalErrorResponse") → Find internal error response methods
+gopls_go_search("sendErrorResponse") → Find JSON-RPC error response methods
 gopls_go_search("FetchRemoteChain") → Find remote TLS chain retrieval helper (`src/internal/x509/chain/remote.go`)
 gopls_go_search("CheckRevocationStatus") → Find OCSP/CRL revocation checking (`src/internal/x509/chain/revocation.go`)
 gopls_go_search("RevocationStatus") → Find revocation status structures
