@@ -6,10 +6,7 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"
+	mcpserver "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"
 )
 
 var version string // set by ldflags or defaults to imported version
@@ -20,9 +17,7 @@ func init() {
 	}
 }
 
+// Keep main simple, no bloating with lots of dependencies even with Dependency Injection 🤪
 func main() {
-	if err := mcpserver.Run(version); err != nil {
-		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
-		os.Exit(1)
-	}
+	mcpserver.Run(version, "")
 }

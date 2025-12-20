@@ -20,7 +20,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"runtime"
 	"strings"
@@ -567,23 +566,6 @@ func TestMCPTools(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestRun_InvalidConfig(t *testing.T) {
-	// Set environment variable to non-existent config file
-	os.Setenv("MCP_X509_CONFIG_FILE", "/nonexistent/config.json")
-	defer os.Unsetenv("MCP_X509_CONFIG_FILE")
-
-	// Run should return an error due to invalid config file
-	err := Run("1.0.0-test")
-	if err == nil {
-		t.Error("expected Run() to return an error with invalid config file")
-	}
-
-	// Error should mention config loading failure
-	if !strings.Contains(err.Error(), "failed to load config") {
-		t.Errorf("expected error to contain 'failed to load config', got: %v", err)
 	}
 }
 

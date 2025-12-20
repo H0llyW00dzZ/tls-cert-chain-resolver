@@ -177,11 +177,46 @@ All prompts include metadata for categorization and workflow identification, wit
 
 The remote fetcher sets `InsecureSkipVerify` on its TLS dialer so it can capture every handshake certificate without relying on the sandbox trust store. No verification is performed during that session; always validate the returned chain (for example with `VerifyChain`) before treating the endpoint as trusted, since a [man-in-the-middle](https://grokipedia.com/page/Man-in-the-middle_attack) could present an arbitrary certificate set.
 
-Enable the MCP server in `opencode.json` or run manually:
+Enable the MCP server by building and running the binary:
 
 ```bash
 make build-mcp-linux
+./bin/linux/x509-cert-chain-resolver --help
+```
+
+### MCP Server CLI
+
+The MCP server binary provides a CLI interface similar to `gopls` with additional flags:
+
+```bash
+./bin/linux/x509-cert-chain-resolver [FLAGS]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--config` | Path to MCP server configuration JSON file |
+| `--instructions` | Display certificate operation workflows and MCP server usage |
+| `--help` | Show help information |
+| `--version` | Show version information |
+
+**Environment Variables**:
+- `MCP_X509_CONFIG_FILE`: Path to configuration file (alternative to `--config` flag)
+
+**Examples**:
+
+Start MCP server with default configuration:
+```bash
 ./bin/linux/x509-cert-chain-resolver
+```
+
+Load custom configuration:
+```bash
+./bin/linux/x509-cert-chain-resolver --config /path/to/custom-config.json
+```
+
+Show certificate operation workflows:
+```bash
+./bin/linux/x509-cert-chain-resolver --instructions
 ```
 
 ### AI-Assisted Analysis
@@ -330,7 +365,7 @@ tls-cert-chain-resolver/
 - [ ] Document differences and use cases for each library
 - [ ] Add metrics for template cache hits/misses and performance monitoring (template caching implemented, metrics pending)
 - [ ] Implement template internationalization support for multiple languages
-- [ ] Implement model instructions for X.509 MCP server similar to [gopls MCP](https://tip.golang.org/gopls/features/mcp#instructions-to-the-model) (add -instructions flag to print usage workflows for certificate operations)
+- [X] Implement model instructions for X.509 MCP server similar to [gopls MCP](https://tip.golang.org/gopls/features/mcp#instructions-to-the-model) (add -instructions flag to print usage workflows for certificate operations)
 
 ##### [X.509](https://grokipedia.com/page/X.509) Operations Roadmap
 
