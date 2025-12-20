@@ -293,7 +293,7 @@ Custom Commands (WORKFLOWS)
 ├── .opencode/command/test-capabilities.md
 │   └── Test agent capabilities including MCP servers and built-in tools with structured todo workflow
 ├── .opencode/command/create-changelog.md
-│   └── Generate changelog by comparing tags against master and save to temporary file
+│   └── Generate changelog by comparing tags against master and save to changelog.md in repository root (uses relative path)
 ├── .opencode/command/go-docs.md
 │   └── Update Go documentation when inaccurate or add missing documentation for exported functions and types
 ├── .opencode/command/gocyclo.md
