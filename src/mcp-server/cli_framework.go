@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
@@ -183,12 +182,6 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 	// Use dynamic executable name instead of hardcoded name for better UX
 	// This matches professional tools that adapt to deployment scenarios
 	exeName := filepath.Base(os.Args[0])
-
-	// For go run, os.Args[0] might be a path like "./cmd/mcp-server"
-	// Extract just the command name for cleaner display
-	if strings.Contains(exeName, "mcp-server") {
-		exeName = "mcp-server"
-	}
 
 	rootCmd := &cobra.Command{
 		Use:     exeName,
