@@ -184,8 +184,8 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 
 	rootCmd := &cobra.Command{
 		Use:   exeName,
-		Short: "TLS certificate chain resolver with MCP server integration",
-		Long: `A comprehensive TLS certificate chain resolver that provides both
+		Short: "X.509 certificate chain resolver with MCP server integration",
+		Long: `A comprehensive X.509 certificate chain resolver that provides both
 command-line interface and MCP server capabilities for certificate analysis,
 validation, and management.
 
