@@ -184,28 +184,8 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 	exeName := filepath.Base(os.Args[0])
 
 	rootCmd := &cobra.Command{
-		Use:   exeName,
-		Short: "X.509 certificate chain resolver with MCP server integration",
-		Long: `A comprehensive X.509 certificate chain resolver that provides both
-command-line interface and MCP server capabilities for certificate analysis,
-validation, and management.
-
-The binary supports both traditional CLI usage and modern MCP protocol integration,
-enabling seamless certificate operations across different environments and use cases.
-
-When run without arguments, the binary starts an MCP server that provides certificate
-analysis tools. Use --instructions to see available certificate operation workflows.`,
-		Example: `# Start MCP server (default behavior)
-` + exeName + `
-
-# Start MCP server with custom config
-` + exeName + ` --config /path/to/config.json
-
-# Display certificate operation workflows
-` + exeName + ` --instructions
-
-# Show help and available options
-` + exeName + ` --help`,
+		Use:     exeName,
+		Short:   "X.509 certificate chain resolver with MCP server integration",
 		Version: cf.version,
 	}
 
@@ -217,6 +197,50 @@ analysis tools. Use --instructions to see available certificate operation workfl
 	// Add config file flag with persistent behavior for subcommands
 	// Allows configuration override via CLI flag while supporting environment variables
 	rootCmd.PersistentFlags().StringVar(&cf.configFile, "config", cf.configFile, "path to MCP server configuration file")
+
+	// Get flag names for dynamic text generation
+	instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
+	instructionsFlagName := "--instructions"
+	if instructionsFlag != nil {
+		instructionsFlagName = "--" + instructionsFlag.Name
+	}
+
+	rootCmd.Long = `A comprehensive X.509 certificate chain resolver that provides both
+command-line interface and MCP server capabilities for certificate analysis,
+validation, and management.
+
+The binary supports both traditional CLI usage and modern MCP protocol integration,
+enabling seamless certificate operations across different environments and use cases.
+
+When run without arguments, the binary starts an MCP server that provides certificate
+analysis tools. Use ` + instructionsFlagName + ` to see available certificate operation workflows.`
+
+	// Build examples dynamically based on registered flags
+	// This ensures examples stay in sync with actual flag names
+	configFlag := rootCmd.PersistentFlags().Lookup("config")
+	helpFlag := rootCmd.Flags().Lookup("help")
+
+	configFlagName := "--config"
+	if configFlag != nil {
+		configFlagName = "--" + configFlag.Name
+	}
+
+	helpFlagName := "--help"
+	if helpFlag != nil {
+		helpFlagName = "--" + helpFlag.Name
+	}
+
+	rootCmd.Example = `# Start MCP server (default behavior)
+` + exeName + `
+
+# Start MCP server with custom config
+` + exeName + ` ` + configFlagName + ` /path/to/config.json
+
+# Display certificate operation workflows
+` + exeName + ` ` + instructionsFlagName + `
+
+# Show help and available options
+` + exeName + ` ` + helpFlagName
 
 	// Override root command run to handle instructions flag and default server behavior
 	// This custom run logic enables the dual CLI/MCP functionality
