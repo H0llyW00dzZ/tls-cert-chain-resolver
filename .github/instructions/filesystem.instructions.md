@@ -718,6 +718,9 @@ grep("handleVisualizeCertChain|TestHandleVisualizeCertChain", include="*.go")
 
 # Find CRL cache counters
 grep("crlCacheCounters", include="*.go")
+
+# Find CLI framework patterns
+grep("NewCLIFramework|BuildRootCommand|printInstructions|startMCPServer", include="*.go")
 ```
 
 ### Common Edit Patterns

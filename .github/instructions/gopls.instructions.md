@@ -196,6 +196,10 @@ gopls_go_search("formatExtKeyUsage") → Find extended key usage formatting help
 gopls_go_search("getAnalysisInstruction") → Find AI analysis instruction selector
 gopls_go_search("crlCacheCounters") → Find CRL cache counters (documented unexported type)
 gopls_go_search("handleVisualizeCertChain") → Find visualize certificate chain tool handler
+gopls_go_search("NewCLIFramework") → Find CLI framework constructor (`src/mcp-server/cli_framework.go`)
+gopls_go_search("BuildRootCommand") → Find CLI root command builder
+gopls_go_search("printInstructions") → Find CLI instructions display function
+gopls_go_search("startMCPServer") → Find MCP server startup function
 ```
 
 ### gopls_go_file_context(file)
