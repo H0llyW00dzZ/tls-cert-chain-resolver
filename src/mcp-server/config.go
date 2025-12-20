@@ -54,6 +54,12 @@ type Config struct {
 //   - A pointer to the loaded Config struct with defaults applied
 //   - An error if the configuration file cannot be read or parsed
 //
+// Configuration Priority:
+//  1. Default values are set
+//  2. MCP_X509_CONFIG_FILE environment variable is checked if configPath is empty
+//  3. Config file values override defaults (if file exists and is valid)
+//  4. Environment variables override config file values (X509_AI_APIKEY)
+//
 // The function first applies hardcoded defaults, then attempts to load and merge
 // configuration from the specified file. Environment variables can override
 // certain settings like the AI API key.
@@ -72,7 +78,12 @@ func loadConfig(configPath string) (*Config, error) {
 	config.AI.Model = "grok-beta"
 	config.AI.Timeout = 30
 
-	// Try to load from file if provided
+	// Check environment variable for config file path if not provided
+	if configPath == "" {
+		configPath = os.Getenv("MCP_X509_CONFIG_FILE")
+	}
+
+	// Try to load from file if path is provided
 	if configPath != "" {
 		data, err := os.ReadFile(configPath)
 		if err != nil {
