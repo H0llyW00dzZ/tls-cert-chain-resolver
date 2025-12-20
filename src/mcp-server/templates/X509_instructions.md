@@ -117,12 +117,48 @@ Choose the appropriate tool based on the task requirements:
 
 ## Configuration requirements
 
-The server requires these configurations for full functionality:
+The server supports multiple configuration methods for full functionality:
 
-- **Basic operation**: No configuration required
-- **AI features**: Set `X509_AI_APIKEY` environment variable
-- **Custom settings**: Set `MCP_X509_CONFIG_FILE` environment variable
+- **Basic operation**: No configuration required - runs with sensible defaults
+- **Configuration file**: 
+  - CLI flag: `--config /path/to/config.json`
+  - Environment variable: `MCP_X509_CONFIG_FILE=/path/to/config.json`
+  - Priority: CLI flag takes precedence over environment variable
+- **AI features**: Set `X509_AI_APIKEY` environment variable for AI-powered certificate analysis
 - **CRL caching**: Automatically configured for optimal performance
+
+### Configuration File Example
+
+```json
+{
+  "defaults": {
+    "format": "pem",
+    "includeSystemRoot": false,
+    "intermediateOnly": false,
+    "warnDays": 30,
+    "port": 443,
+    "timeoutSeconds": 10
+  }
+}
+```
+
+### CLI Usage Examples
+
+```bash
+# Start with default configuration
+{{.BinaryName}}
+
+# Start with custom config file
+{{.BinaryName}} --config /path/to/config.json
+
+# Start with environment variable
+export MCP_X509_CONFIG_FILE=/path/to/config.json
+{{.BinaryName}}
+
+# Enable AI features
+export X509_AI_APIKEY=your_api_key_here
+{{.BinaryName}} --config /path/to/config.json
+```
 
 ## Response formatting
 
