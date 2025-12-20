@@ -92,6 +92,12 @@ func Run(version string, configFile string) error {
 	resources, resourcesWithEmbed := createResources()
 	prompts, promptsWithEmbed := createPrompts()
 
+	// Generate instructions dynamically
+	instructions, err := loadInstructions(tools, toolsWithConfig)
+	if err != nil {
+		return fmt.Errorf("failed to load instructions: %w", err)
+	}
+
 	// Create server dependencies with tools
 	deps := ServerDependencies{
 		Version: version,
@@ -108,7 +114,7 @@ func Run(version string, configFile string) error {
 		Prompts:            prompts,
 		PromptsWithEmbed:   promptsWithEmbed,
 		SamplingHandler:    NewDefaultSamplingHandler(config, version),
-		Instructions:       "",
+		Instructions:       instructions,
 		PopulateCache:      true,
 	}
 

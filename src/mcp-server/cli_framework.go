@@ -339,40 +339,18 @@ func (cf *CLIFramework) startMCPServer() error {
 }
 
 // printInstructions displays usage workflows for certificate operations.
-// It loads and renders the instruction template with dynamic tool data.
+// It uses the pre-generated instructions from server initialization.
 //
-// The function uses the same instruction loading logic as the MCP server initialization,
-// ensuring consistency between CLI and MCP server instruction display. It dynamically
-// generates instructions based on available tools, providing users with accurate
-// guidance on certificate operations.
+// The function provides the same instruction display capability as the MCP server
+// but accessible through the CLI --instructions flag, similar to gopls. It uses
+// pre-generated instructions to ensure consistency between CLI and server.
 //
 // Returns:
-//   - error: Template loading or rendering errors.
-//
-// This function provides the same instruction display capability as the MCP server
-// but accessible through the CLI --instructions flag, similar to gopls. It serves
-// as a user-friendly way to discover available certificate operations without starting
-// the full MCP server.
+//   - error: None (instructions are pre-generated and validated).
 func (cf *CLIFramework) printInstructions() error {
-	// Ensure tools are available for instruction generation
-	tools := cf.tools
-	toolsWithConfig := cf.toolsWithConfig
-
-	// If tools are not populated (e.g., when CLI is used directly), create them
-	if len(tools) == 0 && len(toolsWithConfig) == 0 {
-		tools, toolsWithConfig = createTools()
-	}
-
-	// Load instructions using the same logic as MCP server initialization
-	// This ensures consistency between CLI and server instruction display
-	instructions, err := loadInstructions(tools, toolsWithConfig)
-	if err != nil {
-		return fmt.Errorf("failed to load instructions: %w", err)
-	}
-
-	// Print formatted instructions to stdout
-	// This provides immediate user feedback without requiring MCP protocol
-	fmt.Print(instructions)
+	// Use pre-generated instructions from server initialization
+	// This ensures consistency between CLI and MCP server instruction display
+	fmt.Print(cf.instructions)
 
 	return nil
 }
