@@ -330,6 +330,7 @@ tls-cert-chain-resolver/
 - [ ] Document differences and use cases for each library
 - [ ] Add metrics for template cache hits/misses and performance monitoring (template caching implemented, metrics pending)
 - [ ] Implement template internationalization support for multiple languages
+- [ ] Implement model instructions for X.509 MCP server similar to [gopls MCP](https://tip.golang.org/gopls/features/mcp#instructions-to-the-model) (add -instructions flag to print usage workflows for certificate operations)
 
 ##### [X.509](https://grokipedia.com/page/X.509) Operations Roadmap
 
