@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/server"
@@ -191,7 +191,21 @@ command-line interface and MCP server capabilities for certificate analysis,
 validation, and management.
 
 The binary supports both traditional CLI usage and modern MCP protocol integration,
-enabling seamless certificate operations across different environments and use cases.`,
+enabling seamless certificate operations across different environments and use cases.
+
+When run without arguments, the binary starts an MCP server that provides certificate
+analysis tools. Use --instructions to see available certificate operation workflows.`,
+		Example: `# Start MCP server (default behavior)
+` + exeName + `
+
+# Start MCP server with custom config
+` + exeName + ` --config /path/to/config.json
+
+# Display certificate operation workflows
+` + exeName + ` --instructions
+
+# Show help and available options
+` + exeName + ` --help`,
 		Version: cf.version,
 	}
 
@@ -335,7 +349,17 @@ func (cf *CLIFramework) startMCPServer() error {
 	// Start the server - this will block until context is cancelled
 	// The server listens for MCP protocol messages on stdin and responds on stdout
 	// All MCP tool calls, resource requests, and sampling operations are handled here
-	return stdioServer.Listen(ctx, os.Stdin, os.Stdout)
+	err = stdioServer.Listen(ctx, os.Stdin, os.Stdout)
+
+	// Check if the error is due to context cancellation (graceful shutdown)
+	// In this case, we don't want to return an error to avoid showing usage help
+	//
+	// TODO: We may need to improve this later; currently, I don't have any ideas for combining a CLI framework with MCP
+	if err != nil && err == context.Canceled {
+		return nil
+	}
+
+	return err
 }
 
 // printInstructions displays usage workflows for certificate operations.
