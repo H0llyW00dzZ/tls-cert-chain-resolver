@@ -4034,7 +4034,7 @@ func TestLoadInstructions(t *testing.T) {
 	}
 
 	// Call loadInstructions with mock data
-	instructions, err := loadInstructions(mockTools, mockToolsWithConfig)
+	instructions, err := loadInstructions(mockTools, mockToolsWithConfig, "mcp-server")
 	if err != nil {
 		t.Fatalf("loadInstructions failed: %v", err)
 	}

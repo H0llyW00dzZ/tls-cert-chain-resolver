@@ -290,14 +290,16 @@ type ServerPromptWithEmbed struct {
 //
 // Fields:
 //   - Config: Server configuration containing AI settings and other options
-//   - Embed: Embedded filesystem for static resources and templates
+//   - Embed: Embedded filesystem for static resources like templates and documentation
 //   - Version: Server version string for User-Agent headers and identification
 //   - CertManager: Interface for certificate encoding/decoding operations
 //   - ChainResolver: Interface for creating certificate chains
 //   - Tools: List of tool definitions without configuration requirements
 //   - ToolsWithConfig: List of tool definitions that need configuration access
 //   - Resources: List of static and dynamic resources provided by the server
+//   - ResourcesWithEmbed: List of resources that require embedded filesystem access
 //   - Prompts: List of predefined prompts for guided workflows
+//   - PromptsWithEmbed: List of prompts that require embedded filesystem access
 //   - SamplingHandler: Handler for bidirectional AI communication and streaming responses
 //   - Instructions: Server instructions for MCP clients describing capabilities and behavior
 //   - PopulateCache: Whether to populate metadata cache for resource handlers

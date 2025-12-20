@@ -303,6 +303,9 @@ analysis tools. Use ` + instructionsFlagName + ` to see available certificate op
 // The server runs indefinitely until interrupted, communicating via stdio
 // for MCP protocol messages. This enables integration with MCP clients and AI assistants.
 //
+// Parameters:
+//   - exeName: The name of the binary executable for dynamic template rendering
+//
 // Returns:
 //   - error: Configuration loading, server building, or runtime errors.
 //

@@ -18,17 +18,20 @@ import (
 // instructionData holds the data used to populate the MCP server instructions template.
 //
 // It is used internally by loadInstructions to prepare data for the
-// embedded X509_instructions.md template. It contains processed tool information
-// and role mappings that help generate comprehensive server capability descriptions.
+// embedded X509_instructions.md template. It contains processed tool information,
+// role mappings, and binary name that help generate comprehensive server capability descriptions.
 //
 // Fields:
 //   - Tools: Processed list of tool information extracted from tool definitions
 //   - ToolRoles: Mapping of semantic tool roles to their actual tool names for template rendering
+//   - BinaryName: The name of the binary executable for dynamic command examples
 type instructionData struct {
 	// Tools: Processed list of tool information for template rendering
 	Tools []toolInfo
 	// ToolRoles: Mapping of tool roles to tool names for template use
 	ToolRoles map[string]string
+	// BinaryName: Dynamic binary name for command examples in instructions
+	BinaryName string
 }
 
 // toolInfo represents information about an MCP tool for template rendering.
@@ -57,11 +60,12 @@ type toolInfo struct {
 //  1. Loading the embedded X509_instructions.md template
 //  2. Processing tool definitions to extract names, descriptions, and roles
 //  3. Building role mappings for template rendering
-//  4. Executing the template with structured data
+//  4. Executing the template with structured data including dynamic binary name
 //
 // Parameters:
 //   - tools: Tool definitions without configuration requirements
 //   - toolsWithConfig: Tool definitions that need configuration access
+//   - binaryName: The name of the binary executable for dynamic command examples
 //
 // Returns:
 //   - string: Rendered instructions describing all server capabilities
@@ -69,7 +73,7 @@ type toolInfo struct {
 //
 // The generated instructions help MCP clients understand available tools,
 // their purposes, and how to interact with the certificate analysis server.
-func loadInstructions(tools []ToolDefinition, toolsWithConfig []ToolDefinitionWithConfig) (string, error) {
+func loadInstructions(tools []ToolDefinition, toolsWithConfig []ToolDefinitionWithConfig, binaryName string) (string, error) {
 	// Read the template file
 	templateBytes, err := templates.MagicEmbed.ReadFile("X509_instructions.md")
 	if err != nil {
@@ -108,8 +112,9 @@ func loadInstructions(tools []ToolDefinition, toolsWithConfig []ToolDefinitionWi
 
 	// Prepare data for template
 	data := instructionData{
-		Tools:     toolInfos,
-		ToolRoles: toolRoles,
+		Tools:      toolInfos,
+		ToolRoles:  toolRoles,
+		BinaryName: binaryName,
 	}
 
 	// Parse the template
