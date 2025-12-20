@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/server"
@@ -317,6 +318,9 @@ func (cf *CLIFramework) startMCPServer() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Start CRL cache cleanup with cancellable context
+	x509chain.StartCRLCacheCleanup(ctx)
+
 	// Handle SIGINT/SIGTERM signals for graceful shutdown
 	// Creates a goroutine that waits for termination signals
 	go func() {
@@ -350,9 +354,18 @@ func (cf *CLIFramework) startMCPServer() error {
 // as a user-friendly way to discover available certificate operations without starting
 // the full MCP server.
 func (cf *CLIFramework) printInstructions() error {
+	// Ensure tools are available for instruction generation
+	tools := cf.tools
+	toolsWithConfig := cf.toolsWithConfig
+
+	// If tools are not populated (e.g., when CLI is used directly), create them
+	if len(tools) == 0 && len(toolsWithConfig) == 0 {
+		tools, toolsWithConfig = createTools()
+	}
+
 	// Load instructions using the same logic as MCP server initialization
 	// This ensures consistency between CLI and server instruction display
-	instructions, err := loadInstructions(cf.tools, cf.toolsWithConfig)
+	instructions, err := loadInstructions(tools, toolsWithConfig)
 	if err != nil {
 		return fmt.Errorf("failed to load instructions: %w", err)
 	}

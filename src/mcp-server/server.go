@@ -8,6 +8,7 @@ package mcpserver
 import (
 	"fmt"
 
+	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	verpkg "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 )
@@ -86,19 +87,33 @@ func Run(version string, configFile string) error {
 		return fmt.Errorf("failed to load default config: %w", err)
 	}
 
-	// Create CLI framework with MCP server integration using default config
-	cliFramework, err := NewServerBuilder().
-		WithConfig(config).
-		WithEmbed(templates.MagicEmbed).
-		WithVersion(version).
-		WithDefaultTools().
-		WithSampling(NewDefaultSamplingHandler(config, version)).
-		WithInstructions("").
-		WithPopulate().
-		BuildCLI()
-	if err != nil {
-		return fmt.Errorf("failed to build CLI framework: %w", err)
+	// Create tools for CLI framework
+	tools, toolsWithConfig := createTools()
+	resources, resourcesWithEmbed := createResources()
+	prompts, promptsWithEmbed := createPrompts()
+
+	// Create server dependencies with tools
+	deps := ServerDependencies{
+		Version: version,
+		// Currently unused; will be implemented later. It's fine to keep as-is due to the framework's dependency injection design.
+		CertManager: x509certs.New(),
+		Config:      config,
+		Embed:       templates.MagicEmbed,
+		// Currently unused; will be implemented later. It's fine to keep as-is due to the framework's dependency injection design.
+		ChainResolver:      DefaultChainResolver{},
+		Tools:              tools,
+		ToolsWithConfig:    toolsWithConfig,
+		Resources:          resources,
+		ResourcesWithEmbed: resourcesWithEmbed,
+		Prompts:            prompts,
+		PromptsWithEmbed:   promptsWithEmbed,
+		SamplingHandler:    NewDefaultSamplingHandler(config, version),
+		Instructions:       "",
+		PopulateCache:      true,
 	}
+
+	// Create CLI framework with all dependencies
+	cliFramework := NewCLIFramework("", deps)
 
 	// Get the root command from CLI framework
 	rootCmd := cliFramework.BuildRootCommand()
