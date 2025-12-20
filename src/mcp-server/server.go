@@ -6,20 +6,13 @@
 package mcpserver
 
 import (
-	"context"
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 
-	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
-	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
-	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
-	"github.com/mark3labs/mcp-go/server"
+	verpkg "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
 )
 
-var appVersion = version.Version // default version
+var appVersion = verpkg.Version // default version
 
 // GetVersion returns the current version of the MCP server.
 //
@@ -46,13 +39,14 @@ func GetVersion() string {
 //
 // Parameters:
 //   - version: Version string to set for the server (e.g., "0.4.9")
+//   - configFile: Path to the configuration file (overrides environment variable)
 //
 // Returns:
 //   - error: Server startup or runtime error, or graceful shutdown signal
 //
 // Configuration:
-//   - Loads config from MCP_X509_CONFIG_FILE environment variable
-//   - Falls back to default config if environment variable not set
+//   - Loads config from configFile parameter if provided, otherwise from MCP_X509_CONFIG_FILE environment variable
+//   - Falls back to default config if no configuration file is specified
 //
 // Features:
 //   - Certificate chain resolution and validation
@@ -65,7 +59,7 @@ func GetVersion() string {
 //   - Guided prompts for certificate workflows
 //
 // Server Lifecycle:
-//  1. Load configuration from environment
+//  1. Load configuration from file or defaults
 //  2. Initialize CRL cache cleanup with context
 //  3. Set up signal handling for graceful shutdown
 //  4. Build MCP server using ServerBuilder pattern
@@ -82,89 +76,33 @@ func GetVersion() string {
 //   - Configuration errors: Wrapped with "config error" prefix
 //   - Server build errors: Wrapped with "failed to build server" prefix
 //   - Shutdown errors: Wrapped with "server shutdown" prefix
-func Run(version string) error {
+func Run(version string, configFile string) error {
 	// Set the version for GetVersion
 	appVersion = version
 
-	// Load configuration
-	config, err := loadConfig(os.Getenv("MCP_X509_CONFIG_FILE"))
+	// Load default configuration for CLI framework initialization
+	config, err := loadConfig("")
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		return fmt.Errorf("failed to load default config: %w", err)
 	}
 
-	// Create tools (called once and reused)
-	tools, toolsWithConfig := createTools()
-
-	// Create resources (called once and reused)
-	resources, resourcesWithEmbed := createResources()
-
-	// Create prompts (called once and reused)
-	prompts, promptsWithEmbed := createPrompts()
-
-	// Load server instructions with tool information
-	//
-	// This approach is better as it uses dynamic content generation based on tools,
-	// instead of hardcoded values
-	instructions, err := loadInstructions(tools, toolsWithConfig)
-	if err != nil {
-		return fmt.Errorf("failed to load instructions: %w", err)
-	}
-
-	// Create cancellable context for graceful shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Start CRL cache cleanup with cancellable context
-	x509chain.StartCRLCacheCleanup(ctx)
-
-	// Set up signal handling for graceful shutdown
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigChan
-		cancel()
-	}()
-
-	// Create MCP server using ServerBuilder for better testability and maintainability.
-	// The mcpserver implementation follows a framework-style design, allowing flexible
-	// server construction with dependency injection, making the codebase more modular
-	// and easier to extend with new features.
-	s, err := NewServerBuilder().
+	// Create CLI framework with MCP server integration using default config
+	cliFramework, err := NewServerBuilder().
 		WithConfig(config).
 		WithEmbed(templates.MagicEmbed).
 		WithVersion(version).
-		// Currently unused; will be implemented later. It's fine to keep as-is due to the framework's dependency injection design.
-		WithCertManager(x509certs.New()).
-		// Currently unused; will be implemented later. It's fine to keep as-is due to the framework's dependency injection design.
-		WithChainResolver(DefaultChainResolver{}).
+		WithDefaultTools().
 		WithSampling(NewDefaultSamplingHandler(config, version)).
-		WithTools(tools...).
-		WithToolsWithConfig(toolsWithConfig...).
-		WithResources(resources...).
-		WithEmbeddedResources(resourcesWithEmbed...).
-		WithPrompts(prompts...).
-		WithEmbeddedPrompts(promptsWithEmbed...).
-		WithInstructions(instructions).
+		WithInstructions("").
 		WithPopulate().
-		Build()
+		BuildCLI()
 	if err != nil {
-		return fmt.Errorf("failed to build server: %w", err)
+		return fmt.Errorf("failed to build CLI framework: %w", err)
 	}
 
-	// Create stdio server to connect with our context
-	stdioServer := server.NewStdioServer(s)
+	// Get the root command from CLI framework
+	rootCmd := cliFramework.BuildRootCommand()
 
-	// Start server with graceful shutdown support
-	errChan := make(chan error, 1)
-	go func() {
-		errChan <- stdioServer.Listen(ctx, os.Stdin, os.Stdout)
-	}()
-
-	select {
-	case err := <-errChan:
-		return err
-	case <-ctx.Done():
-		// Graceful shutdown triggered by signal
-		return fmt.Errorf("server shutdown: %w", ctx.Err())
-	}
+	// Execute the command
+	return rootCmd.Execute()
 }

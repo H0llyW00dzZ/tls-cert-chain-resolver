@@ -602,6 +602,29 @@ func (b *ServerBuilder) WithPopulate() *ServerBuilder {
 	return b
 }
 
+// BuildCLI creates a CLI framework with integrated MCP server capabilities.
+// It constructs a CLIFramework instance that provides both command-line interface
+// and MCP server functionality, allowing unified access to certificate operations.
+//
+// Returns:
+//   - *CLIFramework: CLI framework with MCP server integration
+//   - error: Configuration or initialization errors
+//
+// The CLI framework enables running certificate operations through both CLI commands
+// and MCP server protocols, with the --instructions flag providing usage workflows
+// similar to gopls.
+func (b *ServerBuilder) BuildCLI() (*CLIFramework, error) {
+	// Validate required dependencies
+	if b.deps.Version == "" {
+		return nil, fmt.Errorf("version is required for CLI framework")
+	}
+
+	// Create CLI framework with all dependencies
+	cliFramework := NewCLIFramework("", b.deps)
+
+	return cliFramework, nil
+}
+
 // Build creates the [MCP] server with all configured dependencies.
 // It validates the configuration and constructs a fully configured MCP server instance.
 //
