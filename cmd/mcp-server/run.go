@@ -6,7 +6,7 @@
 package main
 
 import (
-	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"
+	mcpserver "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server"
 )
 
 var version string // set by ldflags or defaults to imported version
@@ -17,6 +17,7 @@ func init() {
 	}
 }
 
+// Keep main simple, no bloating with lots of dependencies even with Dependency Injection 🤪
 func main() {
 	mcpserver.Run(version, "")
 }
