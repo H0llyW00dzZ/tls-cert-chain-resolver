@@ -275,7 +275,7 @@ Read resource: info://version
 # Returns the following server information:
 {
   "name": "X.509 Certificate Chain Resolver",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "type": "MCP Server",
   "capabilities": {
     "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai", "get_resource_usage", "visualize_cert_chain"],
@@ -319,7 +319,7 @@ Read resource: status://server-status
   "status": "healthy",
   "timestamp": "2025-11-02T12:00:00Z",
   "server": "X.509 Certificate Chain Resolver MCP Server",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "capabilities": {
     "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai", "get_resource_usage", "visualize_cert_chain"],
     "resources": ["config://template", "info://version", "docs://certificate-formats", "status://server-status"],
@@ -426,7 +426,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 
 ### 2. Configuration
 
-**Environment Variable**: Set `MCP_X509_CONFIG_FILE` to specify configuration file
+**CLI Flag**: Use `--config` flag to specify configuration file path
 **Default Config**: `./src/mcp-server/config.example.json`
 
 ### 3. Error Handling
@@ -638,7 +638,7 @@ for i, chain := range chains {
 ### Configuration Issues
 
 **Problem**: "Configuration file not found"
-**Solution**: Set `MCP_X509_CONFIG_FILE` environment variable to valid config file path
+**Solution**: Use `--config` flag to specify valid config file path
 
 ## Summary
 
@@ -650,7 +650,7 @@ for i, chain := range chains {
 6. **Use [`x509_resolver_analyze_certificate_with_ai`](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type)** for AI-powered security analysis (requires sampling handler and AI API key)
 7. **Use [`x509_resolver_get_resource_usage`](#x509_resolver_get_resource_usagedetailed-format---monitoring)** for monitoring server performance, memory usage, and CRL cache efficiency
 8. **Use [`x509_resolver_visualize_cert_chain`](#x509_resolver_visualize_cert_chaincertificate-format)** for certificate chain visualization in multiple formats
-9. **Configure [`MCP_X509_CONFIG_FILE`](#2-configuration)** environment variable for server configuration
+9. **Configure [`--config`](#2-configuration)** flag for server configuration
 10. **Access [MCP resources](#mcp-resources)** for configuration templates, version info, and documentation
 11. **Use [MCP prompts](#mcp-prompts)** for guided certificate analysis workflows
 12. **Handle errors appropriately** - check return values and handle common certificate issues
