@@ -614,7 +614,9 @@ func (b *ServerBuilder) WithPopulate() *ServerBuilder {
 //
 // The CLI framework enables running certificate operations through both CLI commands
 // and MCP server protocols, with the --instructions flag providing usage workflows
-// similar to gopls.
+// similar to [gopls].
+//
+// [gopls]: https://tip.golang.org/gopls/features/mcp#instructions-to-the-model
 func (b *ServerBuilder) BuildCLI() (*CLIFramework, error) {
 	// Validate required dependencies
 	if b.deps.Version == "" {
