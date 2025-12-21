@@ -616,6 +616,9 @@ func (b *ServerBuilder) WithPopulate() *ServerBuilder {
 // and MCP server protocols, with the --instructions flag providing usage workflows
 // similar to [gopls].
 //
+// TODO: Extend BuildCLI() with comprehensive integration capabilities beyond dual CLI+MCP architecture.
+// This would enable advanced features and integrations for enhanced certificate management.
+//
 // [gopls]: https://tip.golang.org/gopls/features/mcp#instructions-to-the-model
 func (b *ServerBuilder) BuildCLI() (*CLIFramework, error) {
 	// Validate required dependencies
