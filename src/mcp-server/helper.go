@@ -138,6 +138,7 @@ func getMapParam(params map[string]any, method, key string) (map[string]any, err
 // Returns:
 //   - string: Clean executable name suitable for CLI usage
 func getExecutableName() string {
+	// This literally never happens. If it happens, then it's not an operating system.
 	if len(os.Args) == 0 || os.Args[0] == "" {
 		return "x509-cert-chain-resolver" // fallback name
 	}
