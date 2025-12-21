@@ -720,7 +720,19 @@ grep("handleVisualizeCertChain|TestHandleVisualizeCertChain", include="*.go")
 grep("crlCacheCounters", include="*.go")
 
 # Find CLI framework patterns
-grep("NewCLIFramework|BuildRootCommand|printInstructions|startMCPServer", include="*.go")
+grep("NewCLIFramework|BuildRootCommand|printInstructions|startMCPServer|getExecutableName", include="*.go")
+
+# Find MCP configuration patterns
+grep("MCP_X509_CONFIG_FILE", include="*.go")
+
+# Find instruction flag patterns
+grep("--instructions|instructions.*flag", include="*.go")
+
+# Find dynamic binary naming patterns
+grep("dynamic.*binary|getExecutableName", include="*.go")
+
+# Find context cancellation patterns in MCP server
+grep("context.*cancel|ctx.*cancel", include="*.go")
 ```
 
 ### Common Edit Patterns
