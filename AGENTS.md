@@ -291,7 +291,7 @@ deepwiki_read_wiki_contents("microsoft/typescript")
 - Supports both PEM and DER formats
 - Provides batch processing for multiple certificates
 - Includes remote certificate fetching capabilities
-- Use configuration file via `MCP_X509_CONFIG_FILE` environment variable
+- Use configuration file via `--config` CLI flag
 
 **Example Usage**:
 
@@ -432,7 +432,7 @@ task("Research certificate validation patterns", "Find existing validation imple
   - **Dynamic Rendering**: Instruction template rendering via `loadInstructions` for MCP client initialization
 - **Resources**: Static resources including server configuration template, version information, and certificate format documentation
 - **Prompts**: Predefined prompts for certificate analysis, expiry monitoring, security audit, and troubleshooting workflows and resources/prompts for certificate analysis workflows
-- **Configuration**: Set `MCP_X509_CONFIG_FILE` environment variable for MCP server config
+- **Configuration**: Use `--config` CLI flag for MCP server config
 
 ### MCP Connection Patterns
 
