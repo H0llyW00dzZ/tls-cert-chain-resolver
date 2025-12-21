@@ -486,7 +486,7 @@ for each chain in results:
 
 **Type**: Local (Long-lived)
 **Behavior**: Runs as local binary, maintains persistent connection
-**Configuration**: Requires `MCP_X509_CONFIG_FILE` environment variable
+**Configuration**: Uses `--config` CLI flag to specify configuration file path
 **Recovery**: N/A (no connection closure issues)
 
 ## Best Practices
