@@ -29,7 +29,7 @@ import (
 //
 // Key features:
 //   - Dynamic executable naming based on actual binary path (not hardcoded)
-//   - Gopls-style --instructions flag for displaying certificate operation workflows
+//   - [Gopls-style] --instructions flag for displaying certificate operation workflows
 //   - Configuration file support via --config flag or MCP_X509_CONFIG_FILE environment variable
 //   - Default MCP server startup when no arguments are provided
 //   - Graceful shutdown handling with signal interception
@@ -68,6 +68,8 @@ import (
 //
 // This struct enables seamless integration between CLI and MCP server operations,
 // providing both traditional command-line usage and modern MCP protocol support.
+//
+// [Gopls-style]: https://tip.golang.org/gopls/features/mcp#instructions-to-the-model
 type CLIFramework struct {
 	configFile         string
 	config             *Config
@@ -148,7 +150,7 @@ func NewCLIFramework(configFile string, deps ServerDependencies) *CLIFramework {
 //
 // The command is designed to be flexible and user-friendly:
 //   - Uses dynamic executable naming based on os.Args[0] to match the actual binary name
-//   - Provides gopls-style --instructions flag for displaying certificate operation workflows
+//   - Provides [gopls-style] --instructions flag for displaying certificate operation workflows
 //   - Includes --config flag for specifying MCP server configuration file
 //   - Defaults to starting MCP server when no arguments are provided (no server subcommand needed)
 //   - Supports --help and --version flags automatically via Cobra
@@ -178,6 +180,8 @@ func NewCLIFramework(configFile string, deps ServerDependencies) *CLIFramework {
 //
 // This method encapsulates the CLI-MCP integration logic, making it easy to create
 // professional command-line applications that also serve as MCP servers.
+//
+// [gopls-style]: https://tip.golang.org/gopls/features/mcp#instructions-to-the-model
 func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 	// Use dynamic executable name instead of hardcoded name for better UX
 	// This matches professional tools that adapt to deployment scenarios
@@ -393,11 +397,13 @@ func (cf *CLIFramework) startMCPServer() error {
 // It uses the pre-generated instructions from server initialization.
 //
 // The function provides the same instruction display capability as the MCP server
-// but accessible through the CLI --instructions flag, similar to gopls. It uses
+// but accessible through the CLI --instructions flag, similar to [gopls]. It uses
 // pre-generated instructions to ensure consistency between CLI and server.
 //
 // Returns:
 //   - error: None (instructions are pre-generated and validated).
+//
+// [gopls]: https://tip.golang.org/gopls/features/mcp#instructions-to-the-model
 func (cf *CLIFramework) printInstructions() error {
 	// Use pre-generated instructions from server initialization
 	// This ensures consistency between CLI and MCP server instruction display
