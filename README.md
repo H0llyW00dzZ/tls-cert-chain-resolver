@@ -17,7 +17,8 @@ TLS Cert Chain Resolver is a Go toolkit for building, validating, and inspecting
   - [MCP Tooling](#mcp-tooling)
   - [Security considerations](#security-considerations)
   - [AI-Assisted Analysis](#ai-assisted-analysis)
-  - [Google ADK Integration](#google-adk-integration)
+   - [Google ADK Integration](#google-adk-integration)
+   - [Instructions for MCP Clients](#instructions-for-mcp-clients)
 - [Configuration](#configuration)
   - [Environment Variables](#environment-variables)
   - [Config File](#config-file)
@@ -234,6 +235,16 @@ This project supports [`adk-go`](https://github.com/google/adk-go) integration, 
 
 > [!NOTE]
 > The [`adk-go`](https://github.com/google/adk-go) integration is a powerful AI framework with minimal vendor lock-in. It enables the creation of AI agents capable of performing human-like tasks (e.g., playing games), offering greater flexibility compared to other frameworks (e.g., Claude Code/Claude Desktop) that often enforce stricter vendor lock-in, limiting provider choices.
+
+## Instructions for MCP Clients
+
+For MCP clients that don't have a built-in instruction mechanism to automatically pass server instructions into the system prompt, you can manually copy the instructions:
+
+```bash
+./bin/linux/x509-cert-chain-resolver --instructions > X509_instructions.md
+```
+
+Then, include the contents of `X509_instructions.md` in your AI agent's or agentic AI framework's instruction field. This will be passed into the system prompt, making the AI more powerful and aware of the certificate operations available through the MCP server.
 
 ## Configuration
 
