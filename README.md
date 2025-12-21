@@ -238,6 +238,23 @@ This project supports [`adk-go`](https://github.com/google/adk-go) integration, 
 
 ## Instructions for MCP Clients
 
+> [!NOTE]
+> **Choose the right model for MCP** (e.g., models with built-in agentic tool use, trained for real-world tasks) to enable AI integration with external tools, APIs, and real-world systems, unlike pure LLMs that rely solely on static training data.
+>
+> **Why MCP matters for certificate operations:**
+> - **Static embedding limitations**:
+>   - **Fixed training cutoff**: Models trained up to a specific date (e.g., 2023) lack knowledge of recent developments, new technologies, or current events.
+>   - **No private/real-time data access**: Cannot access proprietary systems (internal APIs, databases) or fetch live information.
+>   - **Increased hallucination risk**: Higher likelihood on niche, rapidly evolving, or post-cutoff topics.
+>
+> - **MCP advantages**:
+>   - **Real-time data access**: Query live APIs, databases, and tools (e.g., certificate chain resolution, OCSP/CRL checks).
+>   - **Private system integration**: Access organization-specific data via configured MCP servers.
+>   - **Actionable workflows**: Perform tasks like certificate validation, expiry monitoring, and compliance audits beyond text generation.
+>   - **Enhanced accuracy**: Combine LLM reasoning with external validation to reduce hallucinations.
+>
+> This makes MCP essential for production certificate management, ensuring timely and accurate operations.
+
 For MCP clients that don't have a built-in instruction mechanism to automatically pass server instructions into the system prompt, you can manually copy the instructions:
 
 ```bash
