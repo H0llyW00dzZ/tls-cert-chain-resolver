@@ -4522,26 +4522,19 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 
 // TestGetExecutableName tests the getExecutableName function for cross-platform compatibility.
 func TestGetExecutableName(t *testing.T) {
-	tests := []struct {
+	// Build test cases based on the current OS
+	var tests []struct {
+		name     string
+		args     []string
+		expected string
+	}
+
+	// Common test cases for all OS
+	commonTests := []struct {
 		name     string
 		args     []string
 		expected string
 	}{
-		{
-			name:     "Linux/macOS path",
-			args:     []string{"/usr/local/bin/myapp"},
-			expected: "myapp",
-		},
-		{
-			name:     "Windows path with .exe",
-			args:     []string{"C:\\bin\\myapp.exe"},
-			expected: "myapp",
-		},
-		{
-			name:     "Windows path without .exe",
-			args:     []string{"C:\\bin\\myapp"},
-			expected: "myapp",
-		},
 		{
 			name:     "Relative path",
 			args:     []string{"./myapp"},
@@ -4563,6 +4556,72 @@ func TestGetExecutableName(t *testing.T) {
 			expected: "x509-cert-chain-resolver",
 		},
 	}
+
+	tests = append(tests, commonTests...)
+
+	// OS-specific test cases
+	switch runtime.GOOS {
+	case "windows":
+		windowsTests := []struct {
+			name     string
+			args     []string
+			expected string
+		}{
+			{
+				name:     "Windows absolute path with .exe",
+				args:     []string{"C:\\Program Files\\myapp.exe"},
+				expected: "myapp",
+			},
+			{
+				name:     "Windows absolute path without .exe",
+				args:     []string{"C:\\Program Files\\myapp"},
+				expected: "myapp",
+			},
+			{
+				name:     "Windows path with backslashes",
+				args:     []string{"C:\\Users\\user\\bin\\myapp.exe"},
+				expected: "myapp",
+			},
+		}
+		tests = append(tests, windowsTests...)
+
+	default: // Unix-like systems (linux, darwin, etc.)
+		unixTests := []struct {
+			name     string
+			args     []string
+			expected string
+		}{
+			{
+				name:     "Unix absolute path",
+				args:     []string{"/usr/local/bin/myapp"},
+				expected: "myapp",
+			},
+			{
+				name:     "Unix system path",
+				args:     []string{"/bin/ls"},
+				expected: "ls",
+			},
+			{
+				name:     "Unix home path",
+				args:     []string{"/home/user/bin/myapp"},
+				expected: "myapp",
+			},
+		}
+		tests = append(tests, unixTests...)
+	}
+
+	// Add cross-platform test that should work regardless of OS
+	// This tests the fallback logic for paths that filepath.Base can't handle
+	crossPlatformTest := struct {
+		name     string
+		args     []string
+		expected string
+	}{
+		name:     "Cross-platform test with foreign path separators",
+		args:     []string{"C:\\windows\\style\\path\\on\\unix\\system.exe"},
+		expected: "system",
+	}
+	tests = append(tests, crossPlatformTest)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
