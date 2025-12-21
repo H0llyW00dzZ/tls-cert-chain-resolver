@@ -21,12 +21,13 @@ GOARCH_DETECTED := $(shell go env GOARCH)
 # Default target
 all: build-linux build-macos build-windows build-mcp-linux build-mcp-macos build-mcp-windows
 
-# Checkout the latest tag or commit (skip if uncommitted changes exist)
+# Checkout the latest tag or commit (fail if uncommitted changes exist)
 checkout:
 	@if git diff --quiet && git diff --staged --quiet; then \
 		git checkout -q $$( [ "$(GIT_TAG)" != "v0.0.0" ] && echo "$(GIT_TAG)" || echo "$(LAST_COMMIT)" ) 2>/dev/null; \
 	else \
-		echo "Skipping checkout due to uncommitted changes."; \
+		echo "Error: Uncommitted changes detected. Please commit or stash changes before building."; \
+		exit 1; \
 	fi
 
 # Return to the previous branch or commit (only if checkout was performed)
