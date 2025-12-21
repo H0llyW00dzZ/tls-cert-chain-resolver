@@ -7,8 +7,6 @@ package mcpserver
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
@@ -95,7 +93,7 @@ func Run(version string, configFile string) error {
 	prompts, promptsWithEmbed := createPrompts()
 
 	// Generate instructions dynamically
-	exeName := filepath.Base(os.Args[0])
+	exeName := getExecutableName()
 	instructions, err := loadInstructions(tools, toolsWithConfig, exeName)
 	if err != nil {
 		return fmt.Errorf("failed to load instructions: %w", err)

@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"runtime"
 	"strings"
@@ -4517,4 +4518,70 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 			t.Error("Expected visualization content in result")
 		}
 	})
+}
+
+// TestGetExecutableName tests the getExecutableName function for cross-platform compatibility.
+func TestGetExecutableName(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		expected string
+	}{
+		{
+			name:     "Linux/macOS path",
+			args:     []string{"/usr/local/bin/myapp"},
+			expected: "myapp",
+		},
+		{
+			name:     "Windows path with .exe",
+			args:     []string{"C:\\bin\\myapp.exe"},
+			expected: "myapp",
+		},
+		{
+			name:     "Windows path without .exe",
+			args:     []string{"C:\\bin\\myapp"},
+			expected: "myapp",
+		},
+		{
+			name:     "Relative path",
+			args:     []string{"./myapp"},
+			expected: "myapp",
+		},
+		{
+			name:     "Just filename",
+			args:     []string{"myapp"},
+			expected: "myapp",
+		},
+		{
+			name:     "Empty args",
+			args:     []string{},
+			expected: "x509-cert-chain-resolver",
+		},
+		{
+			name:     "Empty first arg",
+			args:     []string{""},
+			expected: "x509-cert-chain-resolver",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Save original args
+			origArgs := os.Args
+
+			// Set test args
+			os.Args = tt.args
+
+			// Restore args after test
+			defer func() {
+				os.Args = origArgs
+			}()
+
+			result := getExecutableName()
+			t.Logf("Input: %q → Output: %q (Expected: %q)", tt.args, result, tt.expected)
+			if result != tt.expected {
+				t.Errorf("getExecutableName() = %q, want %q", result, tt.expected)
+			}
+		})
+	}
 }

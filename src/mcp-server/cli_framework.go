@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
@@ -156,7 +155,7 @@ func NewCLIFramework(configFile string, deps ServerDependencies) *CLIFramework {
 //   - Supports --help and --version flags automatically via Cobra
 //
 // Command behavior:
-//   - With --instructions: Displays formatted usage workflows and exits
+//   - With --instructions: Displays formatted workflows and exits
 //   - With arguments: Executes the specified subcommand (if any)
 //   - Without arguments: Starts MCP server directly (default behavior)
 //
@@ -183,9 +182,9 @@ func NewCLIFramework(configFile string, deps ServerDependencies) *CLIFramework {
 //
 // [gopls-style]: https://tip.golang.org/gopls/features/mcp#instructions-to-the-model
 func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
-	// Use dynamic executable name instead of hardcoded name for better UX
-	// This matches professional tools that adapt to deployment scenarios
-	exeName := filepath.Base(os.Args[0])
+	// Use cross-platform executable name extraction for consistent UX
+	// This handles .exe extensions on Windows and provides fallback for edge cases
+	exeName := getExecutableName()
 
 	rootCmd := &cobra.Command{
 		Use:     exeName,
