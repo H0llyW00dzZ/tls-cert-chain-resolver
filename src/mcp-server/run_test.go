@@ -4582,6 +4582,22 @@ func TestGetExecutableName(t *testing.T) {
 				args:     []string{"C:\\Users\\user\\bin\\myapp.exe"},
 				expected: "myapp",
 			},
+			// This is how getExecutableName is robust.
+			{
+				name:     "Test with foreign windows path separators",
+				args:     []string{"C:\\windows\\style\\path\\on\\unix\\system.exe"},
+				expected: "system",
+			},
+			{
+				name:     "Very long Windows path with 100+ characters",
+				args:     []string{"C:\\Program Files\\Microsoft Office\\root\\Office16\\ADDINS\\Microsoft PowerPoint\\Presentation Extensions\\PowerPoint.Presentation.8\\powerpoint.exe"},
+				expected: "powerpoint",
+			},
+			{
+				name:     "Extremely long Windows path with nested directories",
+				args:     []string{"C:\\Users\\VeryLongUserNameThatExceedsNormalLimits\\AppData\\Local\\Microsoft\\WindowsApps\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\WindowsTerminal.exe"},
+				expected: "WindowsTerminal",
+			},
 		}
 		tests = append(tests, windowsTests...)
 
@@ -4609,19 +4625,6 @@ func TestGetExecutableName(t *testing.T) {
 		}
 		tests = append(tests, unixTests...)
 	}
-
-	// Add cross-platform test that should work regardless of OS
-	// This tests the fallback logic for paths that filepath.Base can't handle
-	crossPlatformTest := struct {
-		name     string
-		args     []string
-		expected string
-	}{
-		name:     "Cross-platform test with foreign path separators",
-		args:     []string{"C:\\windows\\style\\path\\on\\unix\\system.exe"},
-		expected: "system",
-	}
-	tests = append(tests, crossPlatformTest)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
