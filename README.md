@@ -234,7 +234,7 @@ Set `X509_AI_APIKEY` or configure the `ai` section of the MCP config to allow th
 This project supports [`adk-go`](https://github.com/google/adk-go) integration, which leverages AI to perform tasks with human-like capabilities. For example, it is possible to let AI play games or execute complex autonomous workflows using the provided tools.
 
 > [!NOTE]
- > The [`adk-go`](https://github.com/google/adk-go) integration is a powerful AI framework with minimal vendor lock-in. It enables the creation of AI agents capable of performing human-like tasks (e.g., playing games), offering greater flexibility compared to other frameworks (e.g., Claude Code/Claude Desktop) that often enforce stricter vendor lock-in, limiting provider choices.
+> The [`adk-go`](https://github.com/google/adk-go) integration is a powerful AI framework with minimal vendor lock-in. It enables the creation of AI agents capable of performing human-like tasks (e.g., playing games), offering greater flexibility compared to other frameworks (e.g., Claude Code/Claude Desktop) that often enforce stricter vendor lock-in, limiting provider choices.
 
 ## Instructions for MCP Clients
 
