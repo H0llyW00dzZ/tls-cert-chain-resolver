@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
@@ -263,9 +264,14 @@ analysis tools. Use ` + instructionsFlagName + ` to see available certificate op
 		if len(args) == 0 && !showInstructions {
 			return cf.startMCPServer()
 		}
-		// Allow original run logic for subcommands (if any are added later)
+		// TODO: Allow original run logic for subcommands (if any are added later)
 		if originalRunE != nil {
 			return originalRunE(cmd, args)
+		}
+		// If we reach here with arguments, it means an invalid command was provided
+		// Return an error to indicate the command is not recognized
+		if len(args) > 0 {
+			return fmt.Errorf("unexpected arguments: %s for %q", strings.Join(args, " "), exeName)
 		}
 		return nil
 	}

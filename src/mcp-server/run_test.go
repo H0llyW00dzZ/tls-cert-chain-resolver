@@ -4711,8 +4711,8 @@ func TestCLIFramework_BuildRootCommand_Coverage(t *testing.T) {
 				return instructionsFlag.Value.Set("false")
 			},
 			args:        []string{"some", "args"},
-			expectError: false,
-			description: "Should execute if originalRunE != nil check when args provided and instructions false",
+			expectError: true, // Changed to true: invalid commands should now return an error
+			description: "Should return error for unrecognized commands when args provided and instructions false",
 		},
 	}
 
