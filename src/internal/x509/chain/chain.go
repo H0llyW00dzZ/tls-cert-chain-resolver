@@ -155,6 +155,13 @@ func New(cert *x509.Certificate, version string) *Chain {
 // [Rust]: https://www.rust-lang.org/
 func (ch *Chain) FetchCertificate(ctx context.Context) error {
 	for {
+		// Check context cancellation before each iteration
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("certificate fetching cancelled: %w", ctx.Err())
+		default:
+		}
+
 		ch.mu.RLock()
 		last := ch.Certs[len(ch.Certs)-1]
 		if last.IssuingCertificateURL == nil {
@@ -166,7 +173,7 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, parentURL, nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create HTTP request: %w", err)
 		}
 
 		// Set the User-Agent header with version information and GitHub link
@@ -175,7 +182,7 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 		// Use custom HTTP client with configured timeout
 		resp, err := ch.HTTPConfig.Client().Do(req)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to fetch certificate from %s: %w", parentURL, err)
 		}
 
 		// Get a buffer from the pool
@@ -184,7 +191,7 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 			resp.Body.Close()
 			buf.Reset()
 			gc.Default.Put(buf)
-			return err
+			return fmt.Errorf("failed to read response body: %w", err)
 		}
 		resp.Body.Close()
 
@@ -194,7 +201,7 @@ func (ch *Chain) FetchCertificate(ctx context.Context) error {
 
 		cert, err := ch.Certificate.Decode(data)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to decode certificate from %s: %w", parentURL, err)
 		}
 
 		ch.mu.Lock()

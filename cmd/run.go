@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/cli"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
@@ -32,41 +33,42 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Set up signal handling
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	// Set up signal handling using signal.NotifyContext for cleaner cancellation
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	// Channel to signal completion with buffer size 1
+	// Channel to signal completion
 	done := make(chan error, 1)
 
 	// Run the CLI in a separate goroutine
 	go func() {
-		err := cli.Execute(ctx, version, log)
-		// Use a select to prevent blocking if context is cancelled
-		select {
-		case done <- err:
-			// Successfully sent the error
-		case <-ctx.Done():
-			// Context was cancelled, don't try to send on done channel
-			log.Println("Operation cancelled, cleaning up...")
-		}
+		done <- cli.Execute(ctx, version, log)
 	}()
 
-	// Wait for either a signal or completion
+	// Wait for either completion or context cancellation
 	select {
-	case <-sigs:
-		log.Println("\nReceived termination signal. Exiting...")
-		cancel()
-		// We don't need to wait for the goroutine to finish
-		// The buffered channel and select in the goroutine prevent blocking
 	case err := <-done:
-		// Only log successful completion, not errors (Cobra already logs them)
-		if err == nil && cli.OperationPerformed {
+		if err != nil {
+			log.Printf("CLI execution failed: %v", err)
+			os.Exit(1)
+		}
+		// CLI completed successfully
+		if cli.OperationPerformed {
 			log.Println("Certificate chain resolution completed successfully.")
 		}
+	case <-ctx.Done():
+		log.Println("Operation cancelled by signal. Exiting...")
+		// Give the CLI a moment to clean up
+		select {
+		case <-done:
+			// CLI finished cleaning up
+		case <-time.After(100 * time.Millisecond):
+			// Timeout waiting for cleanup
+		}
+		os.Exit(130) // Standard exit code for SIGINT
 	}
 
-	// Log stop only if an operation was performed successfully
+	// Log successful completion
 	if cli.OperationPerformedSuccessfully {
 		log.Println("TLS certificate chain resolver stopped.")
 	}
