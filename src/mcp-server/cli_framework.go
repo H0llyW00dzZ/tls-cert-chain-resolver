@@ -260,6 +260,29 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 // loadAndExecuteCLIHelpTemplate loads the CLI help template from embedded filesystem,
 // executes it with dynamic data, and parses the result to extract Long description and Examples.
 // This function handles the complex template processing logic separately from command building.
+//
+// The template processing involves several critical steps:
+//  1. Loading the embedded CLI help template from the filesystem
+//  2. Preparing dynamic data including executable name and flag names
+//  3. Parsing and executing the Go template with provided variables
+//  4. Parsing the rendered output to separate Long description from Examples
+//
+// This separation allows for clean testing of template logic and improves
+// maintainability by isolating template processing concerns.
+//
+// Parameters:
+//   - exeName: The name of the executable binary for command examples
+//   - instructionsFlagName: The formatted instructions flag name (e.g., "--instructions")
+//   - configFlagName: The formatted config flag name (e.g., "--config")
+//   - helpFlagName: The formatted help flag name (e.g., "--help")
+//
+// Returns:
+//   - longDesc: The processed Long description text for the CLI command
+//   - examples: The processed Examples section text for the CLI command
+//   - err: Template loading, parsing, execution, or result parsing errors
+//
+// The function ensures that CLI help text remains consistent and up-to-date
+// while allowing dynamic content based on runtime flag configurations.
 func (cf *CLIFramework) loadAndExecuteCLIHelpTemplate(exeName, instructionsFlagName, configFlagName, helpFlagName string) (longDesc, examples string, err error) {
 	// Load CLI help template from embedded filesystem
 	templateBytes, err := cf.embed.ReadFile("cli_help.md")
@@ -299,6 +322,28 @@ func (cf *CLIFramework) loadAndExecuteCLIHelpTemplate(exeName, instructionsFlagN
 
 // parseTemplateResult parses the template execution result to extract Long description and Examples.
 // It looks for the "## Examples" marker and splits the content accordingly.
+//
+// The parsing is robust and handles different line ending conventions (Unix \n vs Windows \r\n)
+// to ensure cross-platform compatibility. The function performs the following operations:
+//  1. Locates the "## Examples" section marker in the template output
+//  2. Determines the exact boundaries of the Examples section
+//  3. Extracts the Long description (content before Examples section)
+//  4. Extracts the Examples section (content after Examples marker)
+//  5. Trims whitespace from both sections for clean output
+//
+// This approach allows the CLI help template to have a clear structure while
+// enabling dynamic content generation with proper separation of concerns.
+//
+// Parameters:
+//   - templateResult: The rendered template output as a string
+//
+// Returns:
+//   - longDesc: The Long description text (everything before "## Examples")
+//   - examples: The Examples section text (everything after "## Examples")
+//   - err: Parsing errors if the template format is invalid
+//
+// The function validates that the required "## Examples" section marker exists,
+// ensuring the template follows the expected format for proper CLI help generation.
 func (cf *CLIFramework) parseTemplateResult(templateResult string) (longDesc, examples string, err error) {
 	// Look for "## Examples" section marker
 	examplesMarker := "## Examples"
@@ -334,6 +379,27 @@ func (cf *CLIFramework) parseTemplateResult(templateResult string) (longDesc, ex
 
 // extractFlagNames extracts formatted flag names from the root command.
 // It looks up the actual flag objects and formats them with the "--" prefix.
+//
+// This function ensures that CLI help text always reflects the actual flag names
+// used in the command, preventing inconsistencies between code and documentation.
+// It handles cases where flags might not be found (returning sensible defaults)
+// and provides consistent formatting for template substitution.
+//
+// The function performs lookups for three key flags:
+//   - instructions: Flag to display certificate operation workflows
+//   - config: Flag to specify MCP server configuration file path
+//   - help: Standard help flag (usually "h" with "--help" format)
+//
+// Parameters:
+//   - rootCmd: The root Cobra command from which to extract flag information
+//
+// Returns:
+//   - instructionsFlagName: Formatted instructions flag (e.g., "--instructions")
+//   - configFlagName: Formatted config flag (e.g., "--config")
+//   - helpFlagName: Formatted help flag (e.g., "--help")
+//
+// All returned flag names include the "--" prefix for consistent CLI documentation.
+// If a flag lookup fails, sensible default names are returned to maintain functionality.
 func extractFlagNames(rootCmd *cobra.Command) (instructionsFlagName, configFlagName, helpFlagName string) {
 	// Get flag names for dynamic text generation
 	instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
@@ -513,6 +579,32 @@ func (cf *CLIFramework) printInstructions() error {
 
 // createRootCommandRunE creates the RunE function for the root command.
 // It handles the instructions flag display and default server startup behavior.
+//
+// This function encapsulates the command execution logic that determines what action
+// to take when the CLI application is run. It implements the following behavior:
+//  1. If --instructions flag is provided, display usage workflows and exit
+//  2. If no arguments and no special flags, start MCP server directly
+//  3. If arguments provided, attempt to execute subcommands or return error
+//
+// The logic prioritizes user experience by making the default behavior (server startup)
+// seamless while providing clear feedback for invalid usage patterns.
+//
+// Parameters:
+//   - showInstructions: Whether the --instructions flag was provided by the user
+//   - exeName: The executable name for error messages and identification
+//   - originalRunE: The original RunE function (if any) from Cobra command setup
+//
+// Returns:
+//   - func(*cobra.Command, []string) error: The RunE function that handles command execution
+//
+// The returned function integrates with Cobra's command execution flow and provides
+// appropriate error handling for different usage scenarios. It ensures that the CLI
+// application behaves predictably whether used interactively or in automated scripts.
+//
+// Error Handling:
+//   - Invalid arguments result in clear error messages with executable name
+//   - Instructions display uses pre-generated content for consistency
+//   - Server startup delegates to the full MCP server initialization process
 func (cf *CLIFramework) createRootCommandRunE(showInstructions bool, exeName string, originalRunE func(*cobra.Command, []string) error) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		// Handle instructions flag by displaying formatted workflows
