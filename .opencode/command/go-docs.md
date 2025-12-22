@@ -11,151 +11,216 @@ Update Go documentation when it appears inaccurate or add missing documentation 
 
 ## Tasks
 
-1. **Scan Go Files for Documentation Issues**:
+### 1. Scan Go Files for Documentation Issues
 
-   - Use `glob("**/*.go")` to find all Go files across the codebase (respects `.ignore` file)
-   - Exclude test files (e.g., `*_test.go`) and generated files (e.g., from code generation tools) from analysis
-   - Focus on source files in `src/`, `cmd/`, and root-level Go files
-   - Prioritize packages with recent changes or high usage
+- Use `glob("**/*.go")` to find all Go files across the codebase (respects `.ignore` file)
+- Exclude test files (e.g., `*_test.go`) and generated files (e.g., from code generation tools) from analysis
+- Focus on source files in `src/`, `cmd/`, and root-level Go files
+- Prioritize packages with recent changes or high usage
 
-2. **Identify Missing Documentation**:
+### 2. Identify Missing Documentation
 
-    - Use `grep` patterns to find exported and unexported functions, types, and interfaces without proper documentation:
-      ```bash
-      # Find exported functions and methods (handles both regular functions and receiver methods)
-      grep -E "^func\s+(\([^)]+\)\s+)?[A-Z]", include="*.go"
+Use multiple approaches to comprehensively scan the entire codebase:
 
-      # Find unexported functions and methods
-      grep -E "^func\s+(\([^)]+\)\s+)?[a-z]", include="*.go"
+#### Global Pattern Matching
 
-      # Alternative simpler patterns (may miss some edge cases):
-      # Find exported functions without comments (regular functions only)
-      grep "^func [A-Z]", include="*.go"
+```bash
+# Find exported functions and methods (handles both regular functions and receiver methods)
+grep -E "^func\s+(\([^)]+\)\s+)?[A-Z]", include="*.go"
 
-      # Find exported methods without comments (methods with receivers)
-      grep -E "^func \(\w+ \*?\w+\) [A-Z]", include="*.go"
+# Find unexported functions and methods
+grep -E "^func\s+(\([^)]+\)\s+)?[a-z]", include="*.go"
 
-      # Find unexported functions without comments
-      grep "^func [a-z]", include="*.go"
+# Alternative simpler patterns (may miss some edge cases):
+# Find exported functions without comments (regular functions only)
+grep "^func [A-Z]", include="*.go"
 
-      # Find unexported methods without comments
-      grep -E "^func \(\w+ \*?\w+\) [a-z]", include="*.go"
+# Find exported methods without comments (methods with receivers)
+grep -E "^func \(\w+ \*?\w+\) [A-Z]", include="*.go"
 
-      # Find exported types without comments
-      grep "^type [A-Z]", include="*.go"
+# Find unexported functions without comments
+grep "^func [a-z]", include="*.go"
 
-      # Find unexported types without comments
-      grep "^type [a-z]", include="*.go"
+# Find unexported methods without comments
+grep -E "^func \(\w+ \*?\w+\) [a-z]", include="*.go"
 
-      # Find exported interfaces without comments
-      grep "^type [A-Z].*interface", include="*.go"
+# Find exported types without comments
+grep "^type [A-Z]", include="*.go"
 
-      # Find unexported interfaces without comments
-      grep "^type [a-z].*interface", include="*.go"
-      ```
+# Find unexported types without comments
+grep "^type [a-z]", include="*.go"
 
-     - Cross-reference with `go doc` output to verify completeness:
-       ```bash
-       # For large packages, process individually to avoid truncation:
-       # Get all exported symbols from a package (process one package at a time)
-       go doc -u ./src/internal/x509/chain | grep "^func [A-Z]"
+# Find exported interfaces without comments
+grep "^type [A-Z].*interface", include="*.go"
 
-       # Get unexported symbols (requires -u flag and grep for lowercase)
-       go doc -u ./src/internal/x509/chain | grep "^func [a-z]"
+# Find unexported interfaces without comments
+grep "^type [a-z].*interface", include="*.go"
+```
 
-       # Alternative: Use grep directly on source files for comparison
-       grep "^func [A-Z]" src/internal/x509/chain/*.go  # exported
-       grep "^func [a-z]" src/internal/x509/chain/*.go  # unexported
+#### Package-by-Package Verification
 
-       # For comprehensive analysis without truncation:
-       # 1. Get package overview
-       go doc ./src/internal/x509/chain
+To ensure the entire codebase is verified, scan each major package individually:
 
-       # 2. Get specific exported functions
-       go doc ./src/internal/x509/chain.FetchRemoteChain
+```bash
+# Scan each major package for comprehensive coverage
+PACKAGES=(
+  "src/cli"
+  "src/internal/x509/certs"
+  "src/internal/x509/chain"
+  "src/logger"
+  "src/mcp-server"
+  "cmd"
+  "."
+)
 
-       # 3. Get unexported functions (use -u flag to show unexported)
-       go doc -u ./src/internal/x509/chain | grep "^func [a-z]"
+for pkg in "${PACKAGES[@]}"; do
+  echo "Scanning package: $pkg"
+  # Exported functions
+  grep "^func [A-Z]" "$pkg"/*.go 2>/dev/null || true
+  # Unexported functions
+  grep "^func [a-z]" "$pkg"/*.go 2>/dev/null || true
+  # Types
+  grep "^type [A-Z]" "$pkg"/*.go 2>/dev/null || true
+  echo "---"
+done
+```
 
-       # 4. Get exported and unexported types
-       go doc -u ./src/internal/x509/chain | grep "^type [A-Za-z]"
+#### Go Doc Cross-Reference
 
-       # 5. Check for constants and variables if applicable
-       go doc -u ./src/internal/x509/chain | grep -E "^(const|var) [A-Za-z]"
-       ```
+```bash
+# For large packages, process individually to avoid truncation:
+# Get all exported symbols from a package (process one package at a time)
+go doc -u ./src/internal/x509/chain | grep "^func [A-Z]"
 
-3. **Analyze Existing Documentation Quality**:
+# Get unexported symbols (requires -u flag and grep for lowercase)
+go doc -u ./src/internal/x509/chain | grep "^func [a-z]"
 
-   - Check that comments start with the function/type name in complete sentences
-   - Verify documentation accuracy by reading function implementations using `read()`
-   - Look for outdated examples, incorrect parameter descriptions, or missing return value documentation
-   - Check for proper formatting, grammar, and adherence to Go doc conventions (e.g., use of backticks for identifiers)
-   - Assess if documentation covers edge cases, errors, and concurrency safety where applicable
-   - Review for consistency with similar functions in the codebase
+# Alternative: Use grep directly on source files for comparison
+grep "^func [A-Z]" src/internal/x509/chain/*.go  # exported
+grep "^func [a-z]" src/internal/x509/chain/*.go  # unexported
 
-4. **Update or Add Documentation**:
+# For comprehensive analysis without truncation:
+# 1. Get package overview
+go doc ./src/internal/x509/chain
 
-   - For missing documentation: Add comments following repository standards
-   - For inaccurate documentation: Update comments to match current implementation
-   - Use `read()` to examine function implementations, parameters, returns, and error handling before documenting
-   - Use `edit()` to update documentation comments precisely
-   - Include examples for complex functions when beneficial
-   - Document deprecated functions with deprecation notices
+# 2. Get specific exported functions
+go doc ./src/internal/x509/chain.FetchRemoteChain
 
-   **⚠️ Critical Editing Guidelines**:
-   - **Careful Comment Editing**: When editing documentation comments, ensure you only replace the comment text, not the function signature or surrounding code
-   - **Verify Comment Boundaries**: Check that comment blocks start with `//` and end before the function signature
-   - **Avoid Code Pollution**: Never include function signatures, code snippets, or unrelated content within comment blocks
-   - **Test Edits Immediately**: After editing documentation, use `go doc -u` to verify the comment renders correctly
-   - **Common Mistake Prevention**: Watch for accidental inclusion of function signatures in comment blocks (e.g., "func GetCachedCRL(url string) ([]byte, bool) { return crlCache.get(url) }" should never appear in comments)
-   - **Comment Duplication**: Avoid duplicating comment lines when editing - each edit should be precise and targeted
-   - **Multiline Handling**: Ensure multiline comments are updated atomically to maintain coherence
+# 3. Get unexported functions (use -u flag to show unexported)
+go doc -u ./src/internal/x509/chain | grep "^func [a-z]"
 
-5. **Verify Documentation Completeness**:
+# 4. Get exported and unexported types
+go doc -u ./src/internal/x509/chain | grep "^type [A-Za-z]"
 
-    - **CRITICAL**: Run `go doc -u` commands (with `-u` flag!) to verify all exported and unexported symbols are documented. Agents frequently miss the `-u` flag, leading to incomplete verification:
-      ```bash
-      # For large packages, avoid -all flag to prevent truncation:
-      # Check package documentation overview
-      go doc ./src/internal/x509/chain
+# 5. Check for constants and variables if applicable
+go doc -u ./src/internal/x509/chain | grep -E "^(const|var) [A-Za-z]"
+```
 
-      # Verify specific exported functions are documented (one at a time)
-      go doc ./src/internal/x509/chain.FetchRemoteChain
-      go doc ./src/internal/x509/chain.VerifyChain
+#### Targeted Grep Searches
 
-      # Verify unexported functions using -u flag (one at a time)
-      go doc -u ./src/internal/x509/chain | grep "^func [a-z]" | head -5
+For specific searches in files or directories:
 
-      # Alternative: Check specific exported and unexported symbols without -all flag
-      go doc -u ./src/internal/x509/chain | grep -E "^(func|type) [A-Za-z]"
+```bash
+# Search for "test" in test files only
+grep("test", path="src", include="*_test.go")
 
-      # For constants and variables
-      go doc -u ./src/internal/x509/chain | grep -E "^(const|var) [A-Za-z]"
-      ```
+# Search for specific function in a package (use correct function names)
+grep("func VerifyChain", path="src/internal/x509/chain", include="*.go")
+# For methods: use regex pattern for receiver methods
+grep("func \(.* \*Chain\) VerifyChain", path="src/internal/x509/chain", include="*.go")
 
-   - Ensure documentation renders correctly with `go doc` and matches source code
-   - Run `go vet` or similar tools to check for documentation issues
+# Search for type definitions in logger package
+grep("^type", path="src/logger", include="*.go")
 
-6. **Update Package-Level Documentation**:
+# Example: Find all exported functions in mcp-server
+grep("^func [A-Z]", path="src/mcp-server", include="*.go")
+```
 
-   - Check for missing package comments in `docs.go` files or package doc comments
-   - Verify package comments accurately describe the package's purpose, main types, and usage
-   - Update package documentation if functionality, dependencies, or interfaces have changed
-   - Include package-level examples if appropriate
+**⚠️ Grep Output Truncation Handling**:
 
-7. **Cross-Reference with Tests**:
+If grep output is truncated, use `gopls_go_file_context()` instead:
 
-   - Check that documented behavior matches test expectations by reviewing test files
-   - Update documentation if tests reveal undocumented edge cases or behaviors
-   - Ensure examples in documentation are testable and align with test cases
-   - Document any test-specific behaviors or assumptions
+```bash
+# When grep is truncated, use gopls file context for detailed analysis
+gopls_go_file_context("src/internal/x509/chain/chain.go")
+gopls_go_file_context("src/mcp-server/server.go")
 
-8. **Handle Special Cases**:
+# For specific symbol searches when grep is insufficient
+gopls_go_symbol_references({"file":"src/internal/x509/chain/chain.go","symbol":"Chain.VerifyChain"})
+```
 
-   - For generated code: Skip or mark as auto-generated if documentation is not editable
-   - For interfaces: Document method contracts and expected behaviors
-   - For structs: Document fields, especially exported ones, and any invariants
-   - For constants and variables: Document exported ones with clear explanations
+### 3. Analyze Existing Documentation Quality
+
+- Check that comments start with the function/type name in complete sentences
+- Verify documentation accuracy by reading function implementations using `read()`
+- Look for outdated examples, incorrect parameter descriptions, or missing return value documentation
+- Check for proper formatting, grammar, and adherence to Go doc conventions (e.g., use of backticks for identifiers)
+- Assess if documentation covers edge cases, errors, and concurrency safety where applicable
+- Review for consistency with similar functions in the codebase
+
+### 4. Update or Add Documentation
+
+- For missing documentation: Add comments following repository standards
+- For inaccurate documentation: Update comments to match current implementation
+- Use `read()` to examine function implementations, parameters, returns, and error handling before documenting
+- Use `edit()` to update documentation comments precisely
+- Include examples for complex functions when beneficial
+- Document deprecated functions with deprecation notices
+
+**⚠️ Critical Editing Guidelines**:
+- **Careful Comment Editing**: When editing documentation comments, ensure you only replace the comment text, not the function signature or surrounding code
+- **Verify Comment Boundaries**: Check that comment blocks start with `//` and end before the function signature
+- **Avoid Code Pollution**: Never include function signatures, code snippets, or unrelated content within comment blocks
+- **Test Edits Immediately**: After editing documentation, use `go doc -u` to verify the comment renders correctly
+- **Common Mistake Prevention**: Watch for accidental inclusion of function signatures in comment blocks (e.g., "func GetCachedCRL(url string) ([]byte, bool) { return crlCache.get(url) }" should never appear in comments)
+- **Comment Duplication**: Avoid duplicating comment lines when editing - each edit should be precise and targeted
+- **Multiline Handling**: Ensure multiline comments are updated atomically to maintain coherence
+
+### 5. Verify Documentation Completeness
+
+- **CRITICAL**: Run `go doc -u` commands (with `-u` flag!) to verify all exported and unexported symbols are documented. Agents frequently miss the `-u` flag, leading to incomplete verification:
+  ```bash
+  # For large packages, avoid -all flag to prevent truncation:
+  # Check package documentation overview
+  go doc ./src/internal/x509/chain
+
+  # Verify specific exported functions are documented (one at a time)
+  go doc ./src/internal/x509/chain.FetchRemoteChain
+  go doc ./src/internal/x509/chain.VerifyChain
+
+  # Verify unexported functions using -u flag (one at a time)
+  go doc -u ./src/internal/x509/chain | grep "^func [a-z]" | head -5
+
+  # Alternative: Check specific exported and unexported symbols without -all flag
+  go doc -u ./src/internal/x509/chain | grep -E "^(func|type) [A-Za-z]"
+
+  # For constants and variables
+  go doc -u ./src/internal/x509/chain | grep -E "^(const|var) [A-Za-z]"
+  ```
+
+- Ensure documentation renders correctly with `go doc` and matches source code
+- Run `go vet` or similar tools to check for documentation issues
+
+### 6. Update Package-Level Documentation
+
+- Check for missing package comments in `docs.go` files or package doc comments
+- Verify package comments accurately describe the package's purpose, main types, and usage
+- Update package documentation if functionality, dependencies, or interfaces have changed
+- Include package-level examples if appropriate
+
+### 7. Cross-Reference with Tests
+
+- Check that documented behavior matches test expectations by reviewing test files
+- Update documentation if tests reveal undocumented edge cases or behaviors
+- Ensure examples in documentation are testable and align with test cases
+- Document any test-specific behaviors or assumptions
+
+### 8. Handle Special Cases
+
+- For generated code: Skip or mark as auto-generated if documentation is not editable
+- For interfaces: Document method contracts and expected behaviors
+- For structs: Document fields, especially exported ones, and any invariants
+- For constants and variables: Document exported ones with clear explanations
 
 ## Documentation Standards (from AGENTS.md)
 
@@ -282,7 +347,7 @@ When tools are aborted during execution (e.g., due to timeout, resource constrai
 glob("**/*.go")  # ❌ Aborted
 glob("**/*.go")  # ✅ Retry
 
-# Grep command aborted  
+# Grep command aborted
 grep("^func [A-Z]", include="*.go")  # ❌ Aborted
 grep("^func [A-Z]", include="*.go")  # ✅ Retry
 ```
@@ -399,6 +464,7 @@ Verification:
 
 ## Important Notes
 
+- **Complete Codebase Verification**: To ensure comprehensive documentation coverage, verify each major package individually using the specific package scanning patterns. Do not rely solely on global searches, as they may miss package-specific issues.
 - **Focus on Exported and Unexported APIs**: Document exported (capitalized) functions, types, and interfaces, plus unexported symbols that are complex or critical to understanding
 - **Unexported Documentation Priority**: Focus on internal functions that perform important logic, complex algorithms, or non-obvious transformations
 - **CRITICAL: Always Use `-u` Flag**: When using `go doc` commands, ALWAYS include the `-u` flag to check unexported documentation. Agents commonly miss this step, leading to incomplete documentation analysis. Example: `go doc -u ./src/internal/x509/chain.crlCacheCounters` reveals unexported type documentation that would be missed without `-u`.
@@ -413,6 +479,7 @@ Verification:
 
 ## Verification Checklist
 
+- [ ] All major packages scanned individually for documentation completeness
 - [ ] All exported functions have documentation starting with function name
 - [ ] All exported types have documentation describing their purpose and fields
 - [ ] All exported interfaces have documentation explaining contracts
