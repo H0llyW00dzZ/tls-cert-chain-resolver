@@ -334,7 +334,8 @@ tls-cert-chain-resolver/
 │   ├── internal/
 │   │   ├── helper/
 │   │   │   ├── gc/       # Buffer pooling utilities
-│   │   │   └── jsonrpc/  # JSON-RPC 2.0 normalization utilities
+│   │   │   ├── jsonrpc/  # JSON-RPC 2.0 normalization utilities
+│   │   │   └── posix/    # POSIX-compliant helper functions for cross-platform compatibility
 │   │   └── x509/
 │   │       ├── certs/    # Certificate encoding/decoding helpers
 │   │       └── chain/    # Chain resolution, revocation logic, and visualization

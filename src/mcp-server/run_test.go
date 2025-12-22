@@ -33,6 +33,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/posix"
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
@@ -4521,7 +4522,7 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 	})
 }
 
-// TestGetExecutableName tests the getExecutableName function for cross-platform compatibility.
+// TestGetExecutableName tests the posix.GetExecutableName function for cross-platform compatibility.
 func TestGetExecutableName(t *testing.T) {
 	// Build test cases based on the current OS
 	var tests []struct {
@@ -4640,10 +4641,10 @@ func TestGetExecutableName(t *testing.T) {
 				os.Args = origArgs
 			}()
 
-			result := getExecutableName()
+			result := posix.GetExecutableName()
 			t.Logf("Input: %q → Output: %q (Expected: %q)", tt.args, result, tt.expected)
 			if result != tt.expected {
-				t.Errorf("getExecutableName() = %q, want %q", result, tt.expected)
+				t.Errorf("posix.GetExecutableName() = %q, want %q", result, tt.expected)
 			}
 		})
 	}
