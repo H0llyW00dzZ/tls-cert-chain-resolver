@@ -52,21 +52,49 @@ func createTransport(ctx context.Context) (*InMemoryTransport, error) {
 **Pattern**: Use context for graceful shutdown
 
 ```go
-// Main function pattern in cmd/run.go
+// Modern pattern using signal.NotifyContext for cleaner cancellation (recommended)
+func main() {
+    // Create context that gets cancelled on OS signals
+    ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+    defer stop()  // Stop signal notification
+
+    // Create channel for completion signaling
+    done := make(chan error, 1)
+
+    // Run the main operation
+    go func() {
+        done <- cli.Execute(ctx, version)
+    }()
+
+    // Wait for either completion or context cancellation
+    select {
+    case err := <-done:
+        // Handle completion
+        if err != nil {
+            log.Fatal(err)
+        }
+    case <-ctx.Done():
+        // Context was cancelled (signal received)
+        log.Println("Shutdown signal received")
+        return
+    }
+}
+
+// Legacy pattern (still works but less clean)
 func main() {
     // Create cancellable context
     ctx, cancel := context.WithCancel(context.Background())
     defer cancel()
-    
+
     // Set up signal handling
     sigs := make(chan os.Signal, 1)
     signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-    
+
     // Run with context
     go func() {
         done <- cli.Execute(ctx, version)
     }()
-    
+
     // Wait for signal or completion
     select {
     case <-sigs:
@@ -147,12 +175,35 @@ func (r *pipeReader) Read(p []byte) (n int, err error) {
         }
         return n, nil
     }
-    
+
     // 2. Wait for new message...
     // 3. Get new buffer from pool
     r.activeBuf = gc.Default.Get()
     r.activeBuf.Write(msg)
     // ...
+}
+
+// ✅ Good - AI sampling handler using buffer pooling for error handling (see src/mcp-server/framework.go)
+func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
+    // Get buffer from pool for efficient memory usage
+    // Note: Buffer is primarily used for error response reading.
+    // During successful streaming, it remains allocated but unused until the function returns.
+    buf := gc.Default.Get()
+    defer func() {
+        buf.Reset()         // Reset buffer to prevent data leaks
+        gc.Default.Put(buf) // Return buffer to pool for reuse
+    }()
+
+    // Use buffer for error response reading if API call fails
+    if resp.StatusCode != http.StatusOK {
+        if _, err := buf.ReadFrom(resp.Body); err != nil {
+            return nil, fmt.Errorf("AI API error (status %d): failed to read error response: %w", resp.StatusCode, err)
+        }
+        return nil, fmt.Errorf("AI API error (status %d): %s", resp.StatusCode, buf.String())
+    }
+
+    // Buffer remains pooled even during successful streaming operations
+    // Content building uses strings.Builder for efficiency
 }
 ```
 
