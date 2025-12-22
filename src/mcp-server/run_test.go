@@ -4653,85 +4653,143 @@ func TestCLIFramework_BuildRootCommand_Coverage(t *testing.T) {
 	// Test for uncovered lines in CLIFramework.BuildRootCommand
 	// Specifically: return cf.printInstructions(), the if originalRunE != nil check, and help flag lookup
 
-	// Create minimal dependencies for CLIFramework
-	deps := ServerDependencies{
-		Version:      "1.0.0",
-		Instructions: "Test instructions",
-		Config:       &Config{}, // minimal config
-		// Other fields can be nil/zero for this test since we only test BuildRootCommand
-	}
-
-	framework := NewCLIFramework("", deps)
-	rootCmd := framework.BuildRootCommand()
-
-	// Verify that BuildRootCommand looked up the help flag and built the example
-	// This covers: helpFlagName := "--help" and if helpFlag != nil { helpFlagName = "--" + helpFlag.Name }
-	helpFlag := rootCmd.Flags().Lookup("help")
-	if helpFlag == nil {
-		t.Error("Expected help flag to be found")
-	} else {
-		// Verify the flag name is used in the example construction
-		expectedFlagName := "--" + helpFlag.Name
-		if !strings.Contains(rootCmd.Example, expectedFlagName) {
-			t.Errorf("Expected Example to contain flag name %q", expectedFlagName)
-		}
-	}
-
-	if rootCmd.Example == "" {
-		t.Error("Expected Example to be set")
-	}
-
-	tests := []struct {
+	panicTests := []struct {
 		name        string
-		setup       func() error // Function to set up flags before test
-		args        []string
-		expectError bool
+		setupDeps   func() ServerDependencies
+		expectPanic bool
 		description string
 	}{
 		{
-			name: "printInstructions return path",
-			setup: func() error {
-				instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
-				if instructionsFlag == nil {
-					return fmt.Errorf("instructions flag not found")
+			name: "normal operation with valid dependencies",
+			setupDeps: func() ServerDependencies {
+				return ServerDependencies{
+					Version:      "1.0.0",
+					Instructions: "Test instructions",
+					Config:       &Config{},
+					Embed:        templates.MagicEmbed,
 				}
-				return instructionsFlag.Value.Set("true")
 			},
-			args:        []string{},
-			expectError: false,
-			description: "Should call cf.printInstructions() when --instructions flag is true",
+			expectPanic: false,
+			description: "Should work normally with valid embedded filesystem",
 		},
 		{
-			name: "originalRunE check path",
-			setup: func() error {
-				instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
-				if instructionsFlag == nil {
-					return fmt.Errorf("instructions flag not found")
+			name: "panic when embed dependency is nil",
+			setupDeps: func() ServerDependencies {
+				return ServerDependencies{
+					Version:      "1.0.0",
+					Instructions: "Test instructions",
+					Config:       &Config{},
+					Embed:        nil, // nil embed should cause panic
 				}
-				return instructionsFlag.Value.Set("false")
 			},
-			args:        []string{"some", "args"},
-			expectError: true, // Changed to true: invalid commands should now return an error
-			description: "Should return error for unrecognized commands when args provided and instructions false",
+			expectPanic: true,
+			description: "Should panic when embed dependency is nil",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Setup flags for this test case
-			if err := tt.setup(); err != nil {
-				t.Fatalf("Setup failed: %v", err)
+	for _, pt := range panicTests {
+		t.Run(pt.name, func(t *testing.T) {
+			deps := pt.setupDeps()
+			framework := NewCLIFramework("", deps)
+
+			if pt.expectPanic {
+				// Test that BuildRootCommand panics
+				defer func() {
+					if r := recover(); r == nil {
+						t.Errorf("Expected panic for %s, but no panic occurred", pt.description)
+					} else {
+						// Verify the panic message contains expected content
+						panicMsg := fmt.Sprintf("%v", r)
+						if !strings.Contains(panicMsg, "CLIFramework embed filesystem not initialized") {
+							t.Errorf("Expected panic message to contain 'CLIFramework embed filesystem not initialized', got: %s", panicMsg)
+						}
+					}
+				}()
 			}
 
-			// Call RunE with the specified args
-			err := rootCmd.RunE(rootCmd, tt.args)
-			if tt.expectError {
-				if err == nil {
-					t.Errorf("Expected error for %s, but got none", tt.description)
+			rootCmd := framework.BuildRootCommand()
+
+			if !pt.expectPanic {
+				// Verify that BuildRootCommand looked up the help flag and built the example
+				// This covers: helpFlagName := "--help" and if helpFlag != nil { helpFlagName = "--" + helpFlag.Name }
+				helpFlag := rootCmd.Flags().Lookup("help")
+				if helpFlag == nil {
+					t.Error("Expected help flag to be found")
+				} else {
+					// Verify the flag name is used in the example construction
+					expectedFlagName := "--" + helpFlag.Name
+					if !strings.Contains(rootCmd.Example, expectedFlagName) {
+						t.Errorf("Expected Example to contain flag name %q", expectedFlagName)
+					}
 				}
-			} else {
-				if err != nil {
-					t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
+
+				if rootCmd.Example == "" {
+					t.Error("Expected Example to be set")
+				}
+
+				// Test normal operation - embedded templates should always work
+				if rootCmd.Long == "" {
+					t.Error("Expected Long description to be set from template")
+				}
+
+				if !strings.Contains(rootCmd.Long, "certificate chain resolver") {
+					t.Error("Expected Long description to contain expected content")
+				}
+
+				tests := []struct {
+					name        string
+					setup       func() error // Function to set up flags before test
+					args        []string
+					expectError bool
+					description string
+				}{
+					{
+						name: "printInstructions return path",
+						setup: func() error {
+							instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
+							if instructionsFlag == nil {
+								return fmt.Errorf("instructions flag not found")
+							}
+							return instructionsFlag.Value.Set("true")
+						},
+						args:        []string{},
+						expectError: false,
+						description: "Should call cf.printInstructions() when --instructions flag is true",
+					},
+					{
+						name: "originalRunE check path",
+						setup: func() error {
+							instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
+							if instructionsFlag == nil {
+								return fmt.Errorf("instructions flag not found")
+							}
+							return instructionsFlag.Value.Set("false")
+						},
+						args:        []string{"some", "args"},
+						expectError: true, // Changed to true: invalid commands should now return an error
+						description: "Should return error for unrecognized commands when args provided and instructions false",
+					},
+				}
+
+				for _, tt := range tests {
+					t.Run(tt.name, func(t *testing.T) {
+						// Setup flags for this test case
+						if err := tt.setup(); err != nil {
+							t.Fatalf("Setup failed: %v", err)
+						}
+
+						// Call RunE with the specified args
+						err := rootCmd.RunE(rootCmd, tt.args)
+						if tt.expectError {
+							if err == nil {
+								t.Errorf("Expected error for %s, but got none", tt.description)
+							}
+						} else {
+							if err != nil {
+								t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
+							}
+						}
+					})
 				}
 			}
 		})
