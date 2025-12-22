@@ -285,14 +285,38 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 	}
 
 	// Parse the template result to extract Long and Example sections
+	// Use a more robust parsing that handles different line endings (Windows \r\n vs Unix \n)
 	templateResult := result.String()
-	if longEnd := strings.Index(templateResult, "\n## Examples\n"); longEnd != -1 {
-		rootCmd.Long = strings.TrimSpace(templateResult[:longEnd])
-		rootCmd.Example = strings.TrimSpace(templateResult[longEnd+14:]) // Skip "## Examples\n"
-	} else {
+
+	// Look for "## Examples" section marker, handling different line endings
+	examplesMarker := "## Examples"
+	markerIndex := strings.Index(templateResult, examplesMarker)
+	if markerIndex == -1 {
 		// Template format error - this indicates a malformed template
 		panic("CLI help template has invalid format - missing '## Examples' section")
 	}
+
+	// Find the start of the line containing "## Examples"
+	lineStart := strings.LastIndex(templateResult[:markerIndex], "\n")
+	if lineStart == -1 {
+		lineStart = 0 // No preceding newline, start from beginning
+	} else {
+		lineStart++ // Skip the newline character
+	}
+
+	// Find the end of the line containing "## Examples"
+	lineEnd := strings.Index(templateResult[markerIndex:], "\n")
+	if lineEnd == -1 {
+		lineEnd = len(templateResult) - markerIndex // No following newline
+	} else {
+		lineEnd += markerIndex
+	}
+
+	// Extract Long description (everything before "## Examples" line)
+	rootCmd.Long = strings.TrimSpace(templateResult[:lineStart])
+
+	// Extract Examples section (everything after "## Examples" line)
+	rootCmd.Example = strings.TrimSpace(templateResult[lineEnd:])
 
 	// Override root command run to handle instructions flag and default server behavior
 	// This custom run logic enables the dual CLI/MCP functionality
