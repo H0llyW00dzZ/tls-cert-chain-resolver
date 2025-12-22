@@ -125,6 +125,8 @@ gopls_go_search("createPrompts") → Find prompt creation functions
 gopls_go_search("handleStatusResource") → Find status resource handler
 gopls_go_search("ToolAnalyzeCertificateWithAI") → Find AI certificate analysis tool constant
 gopls_go_search("DefaultSamplingHandler") → Find AI sampling implementation
+gopls_go_search("CreateMessage") → Find AI message creation methods
+gopls_go_search("TokenCallback") → Find AI token streaming callbacks
 gopls_go_search("WithInMemoryTransport") → Find ADK in-memory transport configuration
 gopls_go_search("BuildTransport") → Find ADK transport building methods
 gopls_go_search("InMemoryTransport") → Find in-memory transport implementation
