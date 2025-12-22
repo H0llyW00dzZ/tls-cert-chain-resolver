@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"text/template"
 
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/posix"
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
@@ -209,7 +210,7 @@ func NewCLIFramework(configFile string, deps ServerDependencies) *CLIFramework {
 func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 	// Use cross-platform executable name extraction for consistent UX
 	// This handles .exe extensions on Windows and provides fallback for edge cases
-	exeName := getExecutableName()
+	exeName := posix.GetExecutableName()
 
 	rootCmd := &cobra.Command{
 		Use:     exeName,
