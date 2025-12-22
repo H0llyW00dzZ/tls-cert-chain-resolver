@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"text/template"
 
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
@@ -20,6 +21,28 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
 )
+
+// cliHelpData holds the data used to populate the CLI help template.
+//
+// It is used internally by BuildRootCommand to prepare data for the
+// embedded cli_help.md template. It contains the dynamic values that
+// need to be substituted into the CLI help text.
+//
+// Fields:
+//   - ExeName: The name of the executable binary for command examples
+//   - InstructionsFlagName: The formatted instructions flag name (e.g., "--instructions")
+//   - ConfigFlagName: The formatted config flag name (e.g., "--config")
+//   - HelpFlagName: The formatted help flag name (e.g., "--help")
+type cliHelpData struct {
+	// ExeName: Executable name for command examples
+	ExeName string
+	// InstructionsFlagName: Dynamic instructions flag name
+	InstructionsFlagName string
+	// ConfigFlagName: Dynamic config flag name
+	ConfigFlagName string
+	// HelpFlagName: Dynamic help flag name
+	HelpFlagName string
+}
 
 // CLIFramework integrates Cobra CLI with MCP server capabilities.
 // It provides a unified interface for both CLI operations and MCP server functionality.
@@ -214,15 +237,17 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 		instructionsFlagName = "--" + instructionsFlag.Name
 	}
 
-	rootCmd.Long = `A comprehensive X.509 certificate chain resolver that provides both
-command-line interface and MCP server capabilities for certificate analysis,
-validation, and management.
+	// Load CLI help template and populate with dynamic data
+	// This enables easy editing of help text in the templates/cli_help.md file
+	if cf.embed == nil {
+		panic("CLIFramework embed filesystem not initialized - required for template loading")
+	}
 
-The binary supports both traditional CLI usage and modern MCP protocol integration,
-enabling seamless certificate operations across different environments and use cases.
-
-When run without arguments, the binary starts an MCP server that provides certificate
-analysis tools. Use ` + instructionsFlagName + ` to see available certificate operation workflows.`
+	templateBytes, err := cf.embed.ReadFile("cli_help.md")
+	if err != nil {
+		// Embedded files should never fail - this is a critical error
+		panic(fmt.Sprintf("failed to load CLI help template: %v", err))
+	}
 
 	// Build examples dynamically based on registered flags
 	// This ensures examples stay in sync with actual flag names
@@ -239,17 +264,35 @@ analysis tools. Use ` + instructionsFlagName + ` to see available certificate op
 		helpFlagName = "--" + helpFlag.Name
 	}
 
-	rootCmd.Example = `# Start MCP server (default behavior)
-` + exeName + `
+	// Prepare data for template
+	data := cliHelpData{
+		ExeName:              exeName,
+		InstructionsFlagName: instructionsFlagName,
+		ConfigFlagName:       configFlagName,
+		HelpFlagName:         helpFlagName,
+	}
 
-# Start MCP server with custom config
-` + exeName + ` ` + configFlagName + ` /path/to/config.json
+	// Parse and execute template
+	tmpl, err := template.New("cli_help").Parse(string(templateBytes))
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse CLI help template: %v", err))
+	}
 
-# Display certificate operation workflows
-` + exeName + ` ` + instructionsFlagName + `
+	// Execute template and set command properties
+	var result strings.Builder
+	if err := tmpl.Execute(&result, data); err != nil {
+		panic(fmt.Sprintf("failed to execute CLI help template: %v", err))
+	}
 
-# Show help and available options
-` + exeName + ` ` + helpFlagName
+	// Parse the template result to extract Long and Example sections
+	templateResult := result.String()
+	if longEnd := strings.Index(templateResult, "\n## Examples\n"); longEnd != -1 {
+		rootCmd.Long = strings.TrimSpace(templateResult[:longEnd])
+		rootCmd.Example = strings.TrimSpace(templateResult[longEnd+14:]) // Skip "## Examples\n"
+	} else {
+		// Template format error - this indicates a malformed template
+		panic("CLI help template has invalid format - missing '## Examples' section")
+	}
 
 	// Override root command run to handle instructions flag and default server behavior
 	// This custom run logic enables the dual CLI/MCP functionality
