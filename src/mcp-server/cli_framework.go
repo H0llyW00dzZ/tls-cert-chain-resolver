@@ -193,6 +193,10 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 		Version: cf.version,
 	}
 
+	// Ensure help flag is available for flag name lookup during command building
+	// Cobra normally adds this during Execute, but we need it for providing a dynamic help description that includes the actual binary name
+	rootCmd.Flags().BoolP("help", "h", false, "help for "+exeName)
+
 	// Add instructions flag similar to gopls for displaying usage workflows
 	// This provides users with immediate access to certificate operation guidance
 	var showInstructions bool
