@@ -240,6 +240,7 @@ gopls_go_search("BuildRootCommand") → Find CLI root command builder
 gopls_go_search("printInstructions") → Find CLI instructions display function
 gopls_go_search("startMCPServer") → Find MCP server startup function
 gopls_go_search("GetExecutableName") → Find cross-platform executable name helper function
+gopls_go_search("posix") → Find POSIX-compliant helper package
 gopls_go_search("CLIFramework") → Find CLI framework struct and methods
 gopls_go_search("loadAndExecuteCLIHelpTemplate") → Find CLI help template loader with embedded Markdown
 gopls_go_search("parseTemplateResult") → Find template result parser for cross-platform line endings
