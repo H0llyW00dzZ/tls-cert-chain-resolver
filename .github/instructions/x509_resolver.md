@@ -426,7 +426,10 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 
 ### 2. Configuration
 
-**CLI Flag**: Use `--config` flag to specify configuration file path
+**CLI Flags**: 
+- `--config`: Specify MCP server configuration file path (can be overridden via `MCP_X509_CONFIG_FILE` environment variable)
+- `--instructions`: Display certificate operation workflows and usage instructions
+
 **Default Config**: `./src/mcp-server/config.example.json`
 
 ### 3. Error Handling
