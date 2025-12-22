@@ -720,7 +720,7 @@ grep("handleVisualizeCertChain|TestHandleVisualizeCertChain", include="*.go")
 grep("crlCacheCounters", include="*.go")
 
 # Find CLI framework patterns
-grep("NewCLIFramework|BuildRootCommand|printInstructions|startMCPServer|getExecutableName", include="*.go")
+grep("NewCLIFramework|BuildRootCommand|printInstructions|startMCPServer|getExecutableName|loadAndExecuteCLIHelpTemplate|parseTemplateResult|extractFlagNames|createRootCommandRunE", include="*.go")
 
 # Find MCP configuration patterns
 grep("MCP_X509_CONFIG_FILE", include="*.go")
