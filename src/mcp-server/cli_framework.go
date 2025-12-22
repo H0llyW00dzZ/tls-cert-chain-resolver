@@ -230,38 +230,41 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 	// Allows configuration override via CLI flag while supporting environment variables
 	rootCmd.PersistentFlags().StringVar(&cf.configFile, "config", cf.configFile, "path to MCP server configuration file")
 
-	// Get flag names for dynamic text generation
-	instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
-	instructionsFlagName := "--instructions"
-	if instructionsFlag != nil {
-		instructionsFlagName = "--" + instructionsFlag.Name
-	}
+	// Extract flag names for template processing
+	instructionsFlagName, configFlagName, helpFlagName := extractFlagNames(rootCmd)
 
-	// Load CLI help template and populate with dynamic data
-	// This enables easy editing of help text in the templates/cli_help.md file
+	// Check if embed filesystem is available before proceeding with template loading
 	if cf.embed == nil {
-		panic("CLIFramework embed filesystem not initialized - required for template loading")
+		panic("CLIFramework embed filesystem not initialized")
 	}
 
+	// Load and execute CLI help template
+	longDesc, examples, err := cf.loadAndExecuteCLIHelpTemplate(exeName, instructionsFlagName, configFlagName, helpFlagName)
+	if err != nil {
+		// Template processing failures are critical errors during command building
+		panic(fmt.Sprintf("failed to process CLI help template: %v", err))
+	}
+
+	// Set the processed template content on the command
+	rootCmd.Long = longDesc
+	rootCmd.Example = examples
+
+	// Override root command run to handle instructions flag and default server behavior
+	// This custom run logic enables the dual CLI/MCP functionality
+	originalRunE := rootCmd.RunE
+	rootCmd.RunE = cf.createRootCommandRunE(showInstructions, exeName, originalRunE)
+
+	return rootCmd
+}
+
+// loadAndExecuteCLIHelpTemplate loads the CLI help template from embedded filesystem,
+// executes it with dynamic data, and parses the result to extract Long description and Examples.
+// This function handles the complex template processing logic separately from command building.
+func (cf *CLIFramework) loadAndExecuteCLIHelpTemplate(exeName, instructionsFlagName, configFlagName, helpFlagName string) (longDesc, examples string, err error) {
+	// Load CLI help template from embedded filesystem
 	templateBytes, err := cf.embed.ReadFile("cli_help.md")
 	if err != nil {
-		// Embedded files should never fail - this is a critical error
-		panic(fmt.Sprintf("failed to load CLI help template: %v", err))
-	}
-
-	// Build examples dynamically based on registered flags
-	// This ensures examples stay in sync with actual flag names
-	configFlag := rootCmd.PersistentFlags().Lookup("config")
-	helpFlag := rootCmd.Flags().Lookup("help")
-
-	configFlagName := "--config"
-	if configFlag != nil {
-		configFlagName = "--" + configFlag.Name
-	}
-
-	helpFlagName := "--help"
-	if helpFlag != nil {
-		helpFlagName = "--" + helpFlag.Name
+		return "", "", fmt.Errorf("failed to load CLI help template: %w", err)
 	}
 
 	// Prepare data for template
@@ -275,25 +278,33 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 	// Parse and execute template
 	tmpl, err := template.New("cli_help").Parse(string(templateBytes))
 	if err != nil {
-		panic(fmt.Sprintf("failed to parse CLI help template: %v", err))
+		return "", "", fmt.Errorf("failed to parse CLI help template: %w", err)
 	}
 
-	// Execute template and set command properties
+	// Execute template and parse result
 	var result strings.Builder
 	if err := tmpl.Execute(&result, data); err != nil {
-		panic(fmt.Sprintf("failed to execute CLI help template: %v", err))
+		return "", "", fmt.Errorf("failed to execute CLI help template: %w", err)
 	}
 
 	// Parse the template result to extract Long and Example sections
-	// Use a more robust parsing that handles different line endings (Windows \r\n vs Unix \n)
 	templateResult := result.String()
+	longDesc, examples, err = cf.parseTemplateResult(templateResult)
+	if err != nil {
+		return "", "", err
+	}
 
-	// Look for "## Examples" section marker, handling different line endings
+	return longDesc, examples, nil
+}
+
+// parseTemplateResult parses the template execution result to extract Long description and Examples.
+// It looks for the "## Examples" marker and splits the content accordingly.
+func (cf *CLIFramework) parseTemplateResult(templateResult string) (longDesc, examples string, err error) {
+	// Look for "## Examples" section marker
 	examplesMarker := "## Examples"
 	markerIndex := strings.Index(templateResult, examplesMarker)
 	if markerIndex == -1 {
-		// Template format error - this indicates a malformed template
-		panic("CLI help template has invalid format - missing '## Examples' section")
+		return "", "", fmt.Errorf("CLI help template has invalid format - missing '## Examples' section")
 	}
 
 	// Find the start of the line containing "## Examples"
@@ -313,37 +324,37 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 	}
 
 	// Extract Long description (everything before "## Examples" line)
-	rootCmd.Long = strings.TrimSpace(templateResult[:lineStart])
+	longDesc = strings.TrimSpace(templateResult[:lineStart])
 
 	// Extract Examples section (everything after "## Examples" line)
-	rootCmd.Example = strings.TrimSpace(templateResult[lineEnd:])
+	examples = strings.TrimSpace(templateResult[lineEnd:])
 
-	// Override root command run to handle instructions flag and default server behavior
-	// This custom run logic enables the dual CLI/MCP functionality
-	originalRunE := rootCmd.RunE
-	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		// Handle instructions flag by displaying formatted workflows
-		if showInstructions {
-			return cf.printInstructions()
-		}
-		// If no arguments and no instructions flag, start MCP server directly
-		// This makes the default behavior user-friendly - just run the binary
-		if len(args) == 0 && !showInstructions {
-			return cf.startMCPServer()
-		}
-		// TODO: Allow original run logic for subcommands (if any are added later)
-		if originalRunE != nil {
-			return originalRunE(cmd, args)
-		}
-		// If we reach here with arguments, it means an invalid command was provided
-		// Return an error to indicate the command is not recognized
-		if len(args) > 0 {
-			return fmt.Errorf("unexpected arguments: %s for %q", strings.Join(args, " "), exeName)
-		}
-		return nil
+	return longDesc, examples, nil
+}
+
+// extractFlagNames extracts formatted flag names from the root command.
+// It looks up the actual flag objects and formats them with the "--" prefix.
+func extractFlagNames(rootCmd *cobra.Command) (instructionsFlagName, configFlagName, helpFlagName string) {
+	// Get flag names for dynamic text generation
+	instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
+	instructionsFlagName = "--instructions"
+	if instructionsFlag != nil {
+		instructionsFlagName = "--" + instructionsFlag.Name
 	}
 
-	return rootCmd
+	configFlag := rootCmd.PersistentFlags().Lookup("config")
+	configFlagName = "--config"
+	if configFlag != nil {
+		configFlagName = "--" + configFlag.Name
+	}
+
+	helpFlag := rootCmd.Flags().Lookup("help")
+	helpFlagName = "--help"
+	if helpFlag != nil {
+		helpFlagName = "--" + helpFlag.Name
+	}
+
+	return instructionsFlagName, configFlagName, helpFlagName
 }
 
 // startMCPServer starts the MCP server directly without requiring the 'server' subcommand.
@@ -498,4 +509,30 @@ func (cf *CLIFramework) printInstructions() error {
 	fmt.Print(cf.instructions)
 
 	return nil
+}
+
+// createRootCommandRunE creates the RunE function for the root command.
+// It handles the instructions flag display and default server startup behavior.
+func (cf *CLIFramework) createRootCommandRunE(showInstructions bool, exeName string, originalRunE func(*cobra.Command, []string) error) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		// Handle instructions flag by displaying formatted workflows
+		if showInstructions {
+			return cf.printInstructions()
+		}
+		// If no arguments and no instructions flag, start MCP server directly
+		// This makes the default behavior user-friendly - just run the binary
+		if len(args) == 0 && !showInstructions {
+			return cf.startMCPServer()
+		}
+		// TODO: Allow original run logic for subcommands (if any are added later)
+		if originalRunE != nil {
+			return originalRunE(cmd, args)
+		}
+		// If we reach here with arguments, it means an invalid command was provided
+		// Return an error to indicate the command is not recognized
+		if len(args) > 0 {
+			return fmt.Errorf("unexpected arguments: %s for %q", strings.Join(args, " "), exeName)
+		}
+		return nil
+	}
 }
