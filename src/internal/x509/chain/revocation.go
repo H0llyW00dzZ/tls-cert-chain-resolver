@@ -108,8 +108,8 @@ func ParseCRLResponse(crlData []byte, certSerial *big.Int, issuer *x509.Certific
 //   - issuer: Issuer certificate
 //
 // Returns:
-//   - string: Status ("Good" or "Revoked")
-//   - error: Error if parsing or signature verification fails
+//   - string: Revocation status ("Good", "Revoked", or "Unknown")
+//   - error: Parsing error, signature verification failure, or other issues
 func parseCRLBlock(der []byte, certSerial *big.Int, issuer *x509.Certificate) (string, error) {
 	crl, err := x509.ParseRevocationList(der)
 	if err != nil {

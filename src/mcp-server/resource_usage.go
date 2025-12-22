@@ -452,17 +452,40 @@ func formatMarkdownTable(data map[string]any, fieldPairs []string) string {
 	return buf.String()
 }
 
-// formatStringValue formats string values
+// formatStringValue formats string values by returning them unchanged.
+// It ensures string values are passed through without modification in resource usage output.
+//
+// Parameters:
+//   - value: String value to format
+//
+// Returns:
+//   - string: Unchanged string value
 func formatStringValue(value string) string {
 	return value
 }
 
-// formatIntValue formats int values
+// formatIntValue formats int values using Go's %d verb, converting integers to decimal string representation.
+// It provides standard integer formatting for resource usage metrics.
+//
+// Parameters:
+//   - value: Integer value to format
+//
+// Returns:
+//   - string: Decimal string representation of the integer
 func formatIntValue(value int) string {
 	return fmt.Sprintf("%d", value)
 }
 
-// formatInt64Value formats int64 values with special handling for size-related keys
+// formatInt64Value formats int64 values with special handling for size-related keys.
+// It formats cache sizes as "X entries" when the key indicates a size metric,
+// otherwise uses standard decimal formatting.
+//
+// Parameters:
+//   - key: The key name indicating the type of value (e.g., "size", "max_size")
+//   - value: The int64 value to format
+//
+// Returns:
+//   - string: Formatted string, either "X entries" for sizes or decimal representation
 func formatInt64Value(key string, value int64) string {
 	if key == "size" || key == "max_size" {
 		return fmt.Sprintf("%d entries", value)
@@ -470,7 +493,14 @@ func formatInt64Value(key string, value int64) string {
 	return fmt.Sprintf("%d", value)
 }
 
-// formatUint32Value formats uint32 values
+// formatUint32Value formats uint32 values using Go's %d verb, converting unsigned 32-bit integers to decimal string representation.
+// This provides standard unsigned integer formatting for resource usage metrics.
+//
+// Parameters:
+//   - value: Unsigned 32-bit integer value to format
+//
+// Returns:
+//   - string: Decimal string representation of the uint32 value
 func formatUint32Value(value uint32) string {
 	return fmt.Sprintf("%d", value)
 }
@@ -490,7 +520,16 @@ func formatUint64Value(key string, value uint64) string {
 	return fmt.Sprintf("%d", value)
 }
 
-// formatFloat64Value formats float64 values with special handling for percentages and memory
+// formatFloat64Value formats float64 values with special handling for percentages and memory.
+// It formats CPU fractions and hit rates as percentages, memory values as "X.XX MB",
+// and other values with standard decimal precision.
+//
+// Parameters:
+//   - key: The key name indicating the type of value (e.g., "gc_cpu_fraction", memory keys)
+//   - value: The float64 value to format
+//
+// Returns:
+//   - string: Formatted string with appropriate units (%, MB, or plain decimal)
 func formatFloat64Value(key string, value float64) string {
 	if key == "gc_cpu_fraction" || key == "hit_rate_percent" {
 		return fmt.Sprintf("%.2f%%", value)
@@ -501,12 +540,26 @@ func formatFloat64Value(key string, value float64) string {
 	return fmt.Sprintf("%.2f", value)
 }
 
-// formatBoolValue formats boolean values
+// formatBoolValue formats boolean values using Go's %t verb, returning 'true' or 'false' as a string.
+// It provides consistent string representation for boolean values in resource usage output.
+//
+// Parameters:
+//   - value: Boolean value to format
+//
+// Returns:
+//   - string: 'true' or 'false' string representation
 func formatBoolValue(value bool) string {
 	return fmt.Sprintf("%t", value)
 }
 
-// formatDefaultValue formats values of unknown types
+// formatDefaultValue formats values of unknown types using Go's %v verb.
+// It provides a fallback formatting mechanism for any unsupported data types in resource usage output.
+//
+// Parameters:
+//   - value: Value of unknown type to format
+//
+// Returns:
+//   - string: String representation using fmt.Sprintf("%v", value)
 func formatDefaultValue(value any) string {
 	return fmt.Sprintf("%v", value)
 }
