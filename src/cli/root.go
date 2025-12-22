@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/posix"
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
@@ -72,16 +73,22 @@ var (
 //
 // Example usage handled by this function:
 //
-//	tls-cert-chain-resolver -f cert.pem -o output.pem
-//	tls-cert-chain-resolver -f cert.pem -t  # tree format
-//	tls-cert-chain-resolver -f cert.pem -j  # JSON format
+//	<exe> -f cert.pem -o output.pem
+//	<exe> -f cert.pem -t  # tree format
+//	<exe> -f cert.pem -j  # JSON format
+//
+// Where <exe> is the actual executable name (determined dynamically).
 func Execute(ctx context.Context, version string, log logger.Logger) error {
 	globalLogger = log
+
+	// Use cross-platform executable name for consistent CLI UX
+	exeName := posix.GetExecutableName()
+
 	rootCmd := &cobra.Command{
-		Use:   "tls-cert-chain-resolver",
+		Use:   exeName,
 		Short: "TLS certificate chain resolver",
-		Example: `  tls-cert-chain-resolver -f test-leaf.cer -o test-output-bundle.pem
-  tls-cert-chain-resolver -f another-cert.cer -o test-output-bundle.crt --der --include-system`,
+		Example: fmt.Sprintf(`  %s -f test-leaf.cer -o test-output-bundle.pem
+  %s -f another-cert.cer -o test-output-bundle.crt --der --include-system`, exeName, exeName),
 		Version: version,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if inputFile == "" {
