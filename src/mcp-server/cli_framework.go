@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	x509chain "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/chain"
+	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/mcp-server/templates"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/server"
@@ -301,20 +302,30 @@ analysis tools. Use ` + instructionsFlagName + ` to see available certificate op
 // Signal handling:
 //   - Intercepts SIGINT (Ctrl+C) and SIGTERM signals
 //   - Uses context cancellation for graceful shutdown
+//   - Provides user feedback during shutdown process
 //   - Waits for active operations to complete before exiting
+//
+// Error handling:
+//   - Gracefully handles context.Canceled (signal interruption) as successful termination
+//   - Reports context.DeadlineExceeded and other errors normally
+//   - Wraps errors with context for debugging
+//   - Integrates with Cobra's error handling for appropriate CLI behavior
 //
 // The server runs indefinitely until interrupted, communicating via stdio
 // for MCP protocol messages. This enables integration with MCP clients and AI assistants.
 //
-// Parameters:
-//   - exeName: The name of the binary executable for dynamic template rendering
-//
 // Returns:
-//   - error: Configuration loading, server building, or runtime errors.
+//   - nil: When server shuts down gracefully due to signal interruption (successful operation)
+//   - error: Configuration loading, server building, timeouts, or other runtime errors.
 //
 // The method will block until the server is shut down via signal or context cancellation.
-// All errors are properly wrapped with context for debugging.
+// User-initiated cancellation (signals) is treated as successful termination without usage display,
+// while operational errors are reported normally for debugging.
 func (cf *CLIFramework) startMCPServer() error {
+	// Create a logger for server messages that outputs to stderr
+	l := logger.NewCLILogger()
+	l.SetOutput(os.Stderr)
+
 	// Load config based on the --config flag or environment variable fallback
 	// This allows users to override configuration without editing files
 	config, err := loadConfig(cf.configFile)
@@ -372,20 +383,21 @@ func (cf *CLIFramework) startMCPServer() error {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		// Block until signal is received, then cancel context
-		<-sigChan
+		sig := <-sigChan
+		// Clear the line (including any ^C) and show clean shutdown message
+		l.Printf("\rReceived signal %s, initiating graceful shutdown...", sig)
 		cancel()
 	}()
 
 	// Start the server - this will block until context is cancelled
 	// The server listens for MCP protocol messages on stdin and responds on stdout
 	// All MCP tool calls, resource requests, and sampling operations are handled here
-	err = stdioServer.Listen(ctx, os.Stdin, os.Stdout)
+	l.Printf("X.509 Certificate Chain Resolver MCP server started.")
 
 	// Check if the error is due to context cancellation (graceful shutdown)
-	// In this case, we don't want to return an error to avoid showing usage help
-	//
-	// TODO: We may need to improve this later; currently, I don't have any ideas for combining a CLI framework with MCP
-	if err != nil && err == context.Canceled {
+	// Only user-initiated cancellation (signals) should be treated as graceful shutdown
+	// Timeout errors are operational issues that should be reported
+	if err = stdioServer.Listen(ctx, os.Stdin, os.Stdout); err != nil && err == context.Canceled {
 		return nil
 	}
 
