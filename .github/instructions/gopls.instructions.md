@@ -240,6 +240,12 @@ gopls_go_search("BuildRootCommand") → Find CLI root command builder
 gopls_go_search("printInstructions") → Find CLI instructions display function
 gopls_go_search("startMCPServer") → Find MCP server startup function
 gopls_go_search("getExecutableName") → Find cross-platform executable name helper function
+gopls_go_search("CLIFramework") → Find CLI framework struct and methods
+gopls_go_search("loadAndExecuteCLIHelpTemplate") → Find CLI help template loader with embedded Markdown
+gopls_go_search("parseTemplateResult") → Find template result parser for cross-platform line endings
+gopls_go_search("extractFlagNames") → Find dynamic flag name extraction for help text
+gopls_go_search("createRootCommandRunE") → Find root command RunE wrapper with error handling
+gopls_go_search("signal.NotifyContext") → Find modern signal handling for graceful shutdown
 ```
 
 ### gopls_go_file_context(file)
