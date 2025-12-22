@@ -16,6 +16,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"math/big"
 	"net/http"
@@ -4650,7 +4651,7 @@ func TestGetExecutableName(t *testing.T) {
 
 func TestCLIFramework_BuildRootCommand_Coverage(t *testing.T) {
 	// Test for uncovered lines in CLIFramework.BuildRootCommand
-	// Specifically: return cf.printInstructions() and the if originalRunE != nil check
+	// Specifically: return cf.printInstructions(), the if originalRunE != nil check, and help flag lookup
 
 	// Create minimal dependencies for CLIFramework
 	deps := ServerDependencies{
@@ -4663,34 +4664,76 @@ func TestCLIFramework_BuildRootCommand_Coverage(t *testing.T) {
 	framework := NewCLIFramework("", deps)
 	rootCmd := framework.BuildRootCommand()
 
-	// Test 1: printInstructions() return path
-	// Set the instructions flag to true
-	instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
-	if instructionsFlag == nil {
-		t.Fatal("instructions flag not found")
-	}
-	err := instructionsFlag.Value.Set("true")
-	if err != nil {
-		t.Fatalf("Failed to set instructions flag: %v", err)
-	}
-
-	// Call RunE with no args - should call cf.printInstructions()
-	err = rootCmd.RunE(rootCmd, []string{})
-	if err != nil {
-		t.Errorf("Expected no error from printInstructions, got: %v", err)
+	// Verify that BuildRootCommand looked up the help flag and built the example
+	// This covers: helpFlagName := "--help" and if helpFlag != nil { helpFlagName = "--" + helpFlag.Name }
+	helpFlag := rootCmd.Flags().Lookup("help")
+	if helpFlag == nil {
+		t.Error("Expected help flag to be found")
+	} else {
+		// Verify the flag name is used in the example construction
+		expectedFlagName := "--" + helpFlag.Name
+		if !strings.Contains(rootCmd.Example, expectedFlagName) {
+			t.Errorf("Expected Example to contain flag name %q", expectedFlagName)
+		}
 	}
 
-	// Test 2: originalRunE check path (covers the if condition)
-	// Reset the instructions flag
-	err = instructionsFlag.Value.Set("false")
-	if err != nil {
-		t.Fatalf("Failed to reset instructions flag: %v", err)
+	if rootCmd.Example == "" {
+		t.Error("Expected Example to be set")
 	}
 
-	// Call RunE with args (non-empty) and instructions false
-	// This executes the if originalRunE != nil check (originalRunE is nil, so it falls through to return nil)
-	err = rootCmd.RunE(rootCmd, []string{"some", "args"})
-	if err != nil {
-		t.Errorf("Expected no error from default path, got: %v", err)
+	tests := []struct {
+		name        string
+		setup       func() error // Function to set up flags before test
+		args        []string
+		expectError bool
+		description string
+	}{
+		{
+			name: "printInstructions return path",
+			setup: func() error {
+				instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
+				if instructionsFlag == nil {
+					return fmt.Errorf("instructions flag not found")
+				}
+				return instructionsFlag.Value.Set("true")
+			},
+			args:        []string{},
+			expectError: false,
+			description: "Should call cf.printInstructions() when --instructions flag is true",
+		},
+		{
+			name: "originalRunE check path",
+			setup: func() error {
+				instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
+				if instructionsFlag == nil {
+					return fmt.Errorf("instructions flag not found")
+				}
+				return instructionsFlag.Value.Set("false")
+			},
+			args:        []string{"some", "args"},
+			expectError: false,
+			description: "Should execute if originalRunE != nil check when args provided and instructions false",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup flags for this test case
+			if err := tt.setup(); err != nil {
+				t.Fatalf("Setup failed: %v", err)
+			}
+
+			// Call RunE with the specified args
+			err := rootCmd.RunE(rootCmd, tt.args)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error for %s, but got none", tt.description)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
+				}
+			}
+		})
 	}
 }
