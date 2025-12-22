@@ -4647,3 +4647,50 @@ func TestGetExecutableName(t *testing.T) {
 		})
 	}
 }
+
+func TestCLIFramework_BuildRootCommand_Coverage(t *testing.T) {
+	// Test for uncovered lines in CLIFramework.BuildRootCommand
+	// Specifically: return cf.printInstructions() and the if originalRunE != nil check
+
+	// Create minimal dependencies for CLIFramework
+	deps := ServerDependencies{
+		Version:      "1.0.0",
+		Instructions: "Test instructions",
+		Config:       &Config{}, // minimal config
+		// Other fields can be nil/zero for this test since we only test BuildRootCommand
+	}
+
+	framework := NewCLIFramework("", deps)
+	rootCmd := framework.BuildRootCommand()
+
+	// Test 1: printInstructions() return path
+	// Set the instructions flag to true
+	instructionsFlag := rootCmd.PersistentFlags().Lookup("instructions")
+	if instructionsFlag == nil {
+		t.Fatal("instructions flag not found")
+	}
+	err := instructionsFlag.Value.Set("true")
+	if err != nil {
+		t.Fatalf("Failed to set instructions flag: %v", err)
+	}
+
+	// Call RunE with no args - should call cf.printInstructions()
+	err = rootCmd.RunE(rootCmd, []string{})
+	if err != nil {
+		t.Errorf("Expected no error from printInstructions, got: %v", err)
+	}
+
+	// Test 2: originalRunE check path (covers the if condition)
+	// Reset the instructions flag
+	err = instructionsFlag.Value.Set("false")
+	if err != nil {
+		t.Fatalf("Failed to reset instructions flag: %v", err)
+	}
+
+	// Call RunE with args (non-empty) and instructions false
+	// This executes the if originalRunE != nil check (originalRunE is nil, so it falls through to return nil)
+	err = rootCmd.RunE(rootCmd, []string{"some", "args"})
+	if err != nil {
+		t.Errorf("Expected no error from default path, got: %v", err)
+	}
+}
