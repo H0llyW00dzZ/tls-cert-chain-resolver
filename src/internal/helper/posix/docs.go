@@ -18,6 +18,34 @@
 // Key functions:
 //   - GetExecutableName: Returns the executable name without extension for CLI usage
 //
+// # Usage Examples
+//
+// ## Basic Usage
+//
+//	import "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/posix"
+//
+//	// Get the current executable name for CLI usage
+//	exeName := posix.GetExecutableName()
+//	fmt.Printf("Usage: %s [options] <file>\n", exeName)
+//
+// ## CLI Framework Integration
+//
+//	// Use in cobra command definitions
+//	rootCmd := &cobra.Command{
+//	    Use:   posix.GetExecutableName(),
+//	    Short: "Certificate chain resolver",
+//	    Example: fmt.Sprintf(`  %s -f cert.pem
+//	  %s --help`, posix.GetExecutableName(), posix.GetExecutableName()),
+//	}
+//
+// ## Cross-Platform Behavior
+//
+// The GetExecutableName function provides consistent behavior across platforms:
+//
+//   - Linux/macOS: "/usr/bin/myapp" → "myapp"
+//   - Windows: "C:\bin\myapp.exe" → "myapp"
+//   - Fallback: Empty args → "x509-cert-chain-resolver"
+//
 // [POSIX]: https://grokipedia.com/page/POSIX
 // [Unix-like]: https://grokipedia.com/page/Unix-like
 package posix
