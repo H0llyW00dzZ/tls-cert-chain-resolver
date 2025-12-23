@@ -47,7 +47,7 @@ func readCertificateData(input string) ([]byte, error) {
 		return decoded, nil
 	}
 
-	return nil, fmt.Errorf("not a valid file path or base64 data")
+	return nil, fmt.Errorf("certificate input '%s' is not a valid file path or base64-encoded data", input)
 }
 
 // resolveChainOptions contains configuration options for certificate chain resolution.
