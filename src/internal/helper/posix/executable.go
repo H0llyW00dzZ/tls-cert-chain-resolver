@@ -47,8 +47,10 @@ func GetExecutableName() string {
 	}
 
 	// Remove common executable extensions for clean CLI display
-	// This handles .exe on Windows while preserving other extensions
-	name = strings.TrimSuffix(name, ".exe")
+	// This handles .exe on Windows while preserving other extensions (case-insensitive)
+	if strings.HasSuffix(strings.ToLower(name), ".exe") {
+		name = name[:len(name)-4] // Remove last 4 characters (.exe)
+	}
 
 	return name
 }
