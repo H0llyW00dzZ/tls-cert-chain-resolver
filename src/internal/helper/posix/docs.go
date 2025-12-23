@@ -20,7 +20,7 @@
 //
 // # Usage Examples
 //
-// ## Basic Usage
+// Basic Usage:
 //
 //	import "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/posix"
 //
@@ -28,7 +28,7 @@
 //	exeName := posix.GetExecutableName()
 //	fmt.Printf("Usage: %s [options] <file>\n", exeName)
 //
-// ## CLI Framework Integration
+// CLI Framework Integration:
 //
 //	// Use in cobra command definitions
 //	rootCmd := &cobra.Command{
@@ -38,7 +38,7 @@
 //	  %s --help`, posix.GetExecutableName(), posix.GetExecutableName()),
 //	}
 //
-// ## Cross-Platform Behavior
+// Cross-Platform Behavior:
 //
 // The GetExecutableName function provides consistent behavior across platforms:
 //
