@@ -46,6 +46,21 @@ func TestGetExecutableName(t *testing.T) {
 			args:     []string{""},
 			expected: "x509-cert-chain-resolver",
 		},
+		{
+			name:     "Path with dots in name",
+			args:     []string{"my.app.name"},
+			expected: "my.app.name",
+		},
+		{
+			name:     "Path with multiple extensions",
+			args:     []string{"myapp.tar.gz"},
+			expected: "myapp.tar.gz",
+		},
+		{
+			name:     "Path ending with dot",
+			args:     []string{"myapp."},
+			expected: "myapp.",
+		},
 	}
 
 	tests = append(tests, commonTests...)
@@ -89,6 +104,16 @@ func TestGetExecutableName(t *testing.T) {
 				args:     []string{"C:\\Users\\VeryLongUserNameThatExceedsNormalLimits\\AppData\\Local\\Microsoft\\WindowsApps\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\WindowsTerminal.exe"},
 				expected: "WindowsTerminal",
 			},
+			{
+				name:     "Windows path with mixed separators",
+				args:     []string{"C:/Program Files\\Microsoft Office\\excel.exe"},
+				expected: "excel",
+			},
+			{
+				name:     "Complex Windows path with spaces and special chars",
+				args:     []string{"C:\\Program Files (x86)\\Common Files\\Microsoft Shared\\Office16\\MSPUB.EXE"},
+				expected: "MSPUB",
+			},
 		}
 		tests = append(tests, windowsTests...)
 
@@ -112,6 +137,26 @@ func TestGetExecutableName(t *testing.T) {
 				name:     "Unix home path",
 				args:     []string{"/home/user/bin/myapp"},
 				expected: "myapp",
+			},
+			{
+				name:     "Windows-style path on Unix system",
+				args:     []string{"C:\\windows\\system32\\cmd.exe"},
+				expected: "cmd",
+			},
+			{
+				name:     "Mixed path separators on Unix",
+				args:     []string{"C:/unix/style\\path\\to\\program.exe"},
+				expected: "program",
+			},
+			{
+				name:     "Complex mixed path with multiple separators",
+				args:     []string{"\\\\server\\share\\folder/file\\app.exe"},
+				expected: "app",
+			},
+			{
+				name:     "Path with only backslashes",
+				args:     []string{"program\\name\\here\\app"},
+				expected: "app",
 			},
 		}
 		tests = append(tests, unixTests...)
