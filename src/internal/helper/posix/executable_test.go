@@ -61,6 +61,11 @@ func TestGetExecutableName(t *testing.T) {
 			args:     []string{"myapp."},
 			expected: "myapp.",
 		},
+		{
+			name:     "Complex path with uppercase .EXE extension",
+			args:     []string{"C:\\Program Files (x86)\\Common Files\\Microsoft Shared\\Office16\\MSPUB.EXE"},
+			expected: "MSPUB",
+		},
 	}
 
 	tests = append(tests, commonTests...)
