@@ -225,7 +225,7 @@ func execCli(ctx context.Context, cmd *cobra.Command) error {
 func readCertificateFile(inputFile string) ([]byte, error) {
 	certData, err := os.ReadFile(inputFile)
 	if err != nil {
-		return nil, fmt.Errorf("error reading input file: %w", err)
+		return nil, fmt.Errorf("error reading input file '%s': %w", inputFile, err)
 	}
 	return certData, nil
 }
@@ -246,7 +246,7 @@ func readCertificateFile(inputFile string) ([]byte, error) {
 func decodeCertificate(certData []byte, certManager *x509certs.Certificate) (*x509.Certificate, error) {
 	cert, err := certManager.Decode(certData)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding certificate: %w", err)
+		return nil, fmt.Errorf("error decoding certificate (%d bytes): %w", len(certData), err)
 	}
 	return cert, nil
 }
