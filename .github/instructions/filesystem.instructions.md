@@ -217,7 +217,7 @@ glob("**/*.md")
 grep("func.*Certificate", include="*.go")
 
 # Find specific type usage
-grep("x509chain\\.New", include="*.go")
+grep("x509chain.New", include="*.go")
 
 # Find error handling
 grep("fmt\\.Errorf", path="src/internal", include="*.go")
@@ -529,7 +529,7 @@ glob("**/*_test.go")
 glob("**/*benchmark_test.go")
 
 # Find function definitions
-grep("func (c \\*Certificate)", include="*.go")
+grep("func \(c \*Certificate\)", include="*.go")
 
 # Find certificate operations
 grep("Encode.*PEM", include="*.go")
@@ -629,7 +629,7 @@ grep("handleStatusResource|status://server-status", include="*.go")
 
 # Find embedded templates and FS
 grep("MagicEmbed|templates/.*prompt.*\\.md|templates/X509.*\\.md", include="*.go")
-grep("embed\\.FS|EmbedFS|embeddedFS", include="*.go")
+grep("embed\\.FS|embeddedFS", include="*.go")
 
 # Find tool name constants
 grep("ToolResolveCertChain|ToolValidateCertChain|ToolBatchResolveCertChain|ToolCheckCertExpiry|ToolFetchRemoteCert|ToolAnalyzeCertificateWithAI|ToolGetResourceUsage", include="*.go")
@@ -656,7 +656,7 @@ grep("handleCertificateAnalysisPrompt|handleExpiryMonitoringPrompt|handleSecurit
 grep("templateCache|sync\\.Map", include="*.go")
 
 # Find embedded FS configuration patterns
-grep("WithEmbed|WithEmbeddedPrompts|WithEmbeddedResources|PromptDefinition\\.WithEmbed|ResourceDefinition\\.WithEmbed", include="*.go")
+grep("WithEmbed|WithEmbeddedPrompts|WithEmbeddedResources", include="*.go")
 grep("ServerPromptWithEmbed|ServerResourceWithEmbed|PromptHandlerWithEmbed|ResourceHandlerWithEmbed", include="*.go")
 
 # Find template validation and execution patterns
@@ -681,7 +681,7 @@ grep("MCP_X509_CONFIG_FILE", include="*.go")
 grep("--instructions|instructions.*flag", include="*.go")
 
 # Find dynamic binary naming patterns
-grep("dynamic.*binary|GetExecutableName", include="*.go")
+grep("GetExecutableName", include="*.go")
 
 # Find context cancellation patterns in MCP server
 grep("context.*cancel|ctx.*cancel", include="*.go")
