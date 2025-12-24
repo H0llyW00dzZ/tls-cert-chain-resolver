@@ -698,7 +698,7 @@ grep("templateCache|sync\\.Map", include="*.go")
 # Find embedded FS configuration patterns
 grep("WithEmbed|WithEmbeddedPrompts|WithEmbeddedResources|PromptDefinition\\.WithEmbed|ResourceDefinition\\.WithEmbed", include="*.go")
 grep("ServerPromptWithEmbed|ServerResourceWithEmbed|PromptHandlerWithEmbed|ResourceHandlerWithEmbed", include="*.go")
-grep("ServerDependencies\\.PromptsWithEmbed|ServerDependencies\\.ResourcesWithEmbed", include="*.go")
+grep("deps\\.PromptsWithEmbed|deps\\.ResourcesWithEmbed", include="*.go")
 
 # Find template validation and execution patterns
 grep("getOrCreateTemplate|validateTemplateStructure|executeTemplate|parseMessagesFromContent", include="*.go")
