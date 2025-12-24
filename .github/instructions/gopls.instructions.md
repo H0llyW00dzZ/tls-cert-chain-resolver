@@ -207,8 +207,8 @@ gopls_go_search("PromptDefinition.WithEmbed") → Find embed flag in prompt defi
 gopls_go_search("ResourceDefinition.WithEmbed") → Find embed flag in resource definitions
 gopls_go_search("PromptHandlerWithEmbed") → Find embedded prompt handlers
 gopls_go_search("ResourceHandlerWithEmbed") → Find embedded resource handlers
-gopls_go_search("ServerDependencies.PromptsWithEmbed") → Find embedded prompts in server dependencies
-gopls_go_search("ServerDependencies.ResourcesWithEmbed") → Find embedded resources in server dependencies
+gopls_go_search("PromptsWithEmbed") → Find embedded prompts field in server dependencies
+gopls_go_search("ResourcesWithEmbed") → Find embedded resources field in server dependencies
 gopls_go_search("readCertificateData") → Find certificate data reading helper
 gopls_go_search("processSingleCertificate") → Find single certificate processing helper
 gopls_go_search("validateResolveParams") → Find certificate resolution parameter validation
