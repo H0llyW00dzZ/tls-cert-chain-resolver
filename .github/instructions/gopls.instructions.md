@@ -142,7 +142,6 @@ gopls_go_search("sendErrorResponse") → Find JSON-RPC error response methods
 gopls_go_search("FetchRemoteChain") → Find remote TLS chain retrieval helper (`src/internal/x509/chain/remote.go`)
 gopls_go_search("CheckRevocationStatus") → Find OCSP/CRL revocation checking (`src/internal/x509/chain/revocation.go`)
 gopls_go_search("RevocationStatus") → Find revocation status structures
-gopls_go_search("createOCSPRequest") → Find OCSP request creation functions
 gopls_go_search("ParseCRLResponse") → Find CRL response parsing functions
 gopls_go_search("getCachedCRL") → Find CRL caching functions
 gopls_go_search("tryOCSPServer") → Find OCSP server retry functions
@@ -235,7 +234,7 @@ gopls_go_search("formatExtKeyUsage") → Find extended key usage formatting help
 gopls_go_search("getAnalysisInstruction") → Find AI analysis instruction selector
 gopls_go_search("crlCacheCounters") → Find CRL cache counters (documented unexported type)
 gopls_go_search("handleVisualizeCertChain") → Find visualize certificate chain tool handler
-gopls_go_search("NewCLIFramework") → Find CLI framework constructor (`src/mcp-server/cli_framework.go`)
+gopls_go_search("NewCLIFramework") → Find CLI framework constructor
 gopls_go_search("BuildRootCommand") → Find CLI root command builder
 gopls_go_search("printInstructions") → Find CLI instructions display function
 gopls_go_search("startMCPServer") → Find MCP server startup function
