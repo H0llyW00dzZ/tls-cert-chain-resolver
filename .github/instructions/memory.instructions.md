@@ -129,7 +129,7 @@ func main() {
 **Interface**: `gc.Pool` and `gc.Buffer`  
 **Purpose**: Efficient memory usage for certificate processing, logging, and AI sampling requests
 
-The `gc` package wraps `bytebufferpool` to avoid direct dependencies while providing reusable buffers for high-throughput operations such as MCP AI sampling (`src/mcp-server/framework.go:246`).
+The `gc` package wraps `bytebufferpool` to avoid direct dependencies while providing reusable buffers for high-throughput operations such as MCP AI sampling (`src/mcp-server/framework.go:777`).
 
 ```go
 // ✅ Good - using gc.Default buffer pool for certificate data
@@ -852,7 +852,7 @@ func fetchCertificateFromURL(ctx context.Context, url string) (*x509.Certificate
     return parseCertificate(data)
 }
 
-// AI API streaming with buffer pooling (see src/mcp-server/framework.go:246)
+// AI API streaming with buffer pooling (see src/mcp-server/framework.go:777)
 func (h *DefaultSamplingHandler) CreateMessage(ctx context.Context, request mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
     buf := gc.Default.Get()
     defer func() {
