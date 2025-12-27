@@ -123,9 +123,9 @@ func (t *InMemoryTransport) SetSamplingHandler(handler client.SamplingHandler) {
 // channel is full (the notification will be dropped in that case).
 //
 // Common use cases:
-// - Streaming AI token responses during certificate analysis
-// - Progress updates for long-running certificate operations
-// - Status notifications for certificate validation results
+//   - Streaming AI token responses during certificate analysis
+//   - Progress updates for long-running certificate operations
+//   - Status notifications for certificate validation results
 //
 // Parameters:
 //   - method: The JSON-RPC method name for the notification
@@ -149,9 +149,9 @@ func (t *InMemoryTransport) SendJSONRPCNotification(method string, params any) {
 // with full context cancellation support for graceful shutdown.
 //
 // The transport uses buffered channels to prevent blocking and supports:
-// - Thread-safe message passing between client and server
-// - Context-aware cancellation for clean shutdown
-// - Sampling handler integration for AI-powered features
+//   - Thread-safe message passing between client and server
+//   - Context-aware cancellation for clean shutdown
+//   - Sampling handler integration for AI-powered features
 //
 // Parameters:
 //   - ctx: Parent context for lifecycle management and cancellation
