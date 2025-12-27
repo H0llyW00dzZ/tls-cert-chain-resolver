@@ -159,55 +159,9 @@ func (p *pool) Put(b Buffer) {
 	}
 }
 
-// Default is the default buffer pool used for efficient memory reuse in I/O operations.
+// Default is the default buffer pool used for efficient memory reuse in certificate operations.
 //
-// Example usage for replacing I/O operations like ReadAll/ReadFull with Fiber's custom JSON encoder/decoder:
-//
-//	// Get a buffer from the pool
-//	buf := gc.Default.Get()
-//
-//	defer func() {
-//		buf.Reset()         // Reset the buffer to prevent data leaks
-//		gc.Default.Put(buf) // Return the buffer to the pool for reuse
-//	}()
-//
-//	if _, err := buf.ReadFrom(resp.Body); err != nil {
-//		return "", fmt.Errorf("error reading response body: %w", err)
-//	}
-//
-//	// Use the decoder from the Fiber app configuration
-//	if err := j.c.App().Config().JSONDecoder(buf.Bytes(), &JsonStructPointer); err != nil {
-//		return "", fmt.Errorf("error decoding response: %w", err)
-//	}
-//
-// Example usage for rendering HTMX + TEMPL components:
-//
-//	buf := gc.Default.Get()
-//
-//	// Use defer to guarantee buffer cleanup (reset and return to the pool)
-//	// even if an error occurs during rendering.
-//	defer func() {
-//		buf.Reset()         // Reset the buffer to prevent data leaks.
-//		gc.Default.Put(buf) // Return the buffer to the pool for reuse.
-//	}()
-//
-//	// Render the HTMX component into the byte buffer.
-//	if err := component.Render(c.Context(), buf); err != nil {
-//		// Handle any rendering errors by returning an internal server error page.
-//		return v.renderErrorPage(c, fiber.StatusInternalServerError, "Error rendering component: %v", err)
-//	}
-//
-//	// Convert the byte buffer to a string.
-//	renderedHTML := buf.String()
-//
-//	// Set the appropriate response headers for HTMX.
-//	c.Set("HX-Trigger", "update")
-//	c.Set("Content-Type", "text/html")
-//
-//	// Send the rendered HTML as the response.
-//	return c.SendString(renderedHTML)
-//
-// Example usage for efficient file reading:
+// Example usage for reading certificate data:
 //
 //	// Get a buffer from the pool
 //	buf := gc.Default.Get()
@@ -217,53 +171,68 @@ func (p *pool) Put(b Buffer) {
 //		gc.Default.Put(buf) // Return the buffer to the pool for reuse
 //	}()
 //
-//	// Open the file for reading
-//	file, err := os.Open("example.txt")
+//	// Read certificate file into buffer
+//	file, err := os.Open("cert.pem")
 //	if err != nil {
-//		return "", fmt.Errorf("error opening file: %w", err)
+//		return fmt.Errorf("error opening certificate file: %w", err)
 //	}
 //	defer file.Close()
 //
-//	// Read the file contents into the buffer
 //	if _, err := buf.ReadFrom(file); err != nil {
-//		return "", fmt.Errorf("error reading file: %w", err)
+//		return fmt.Errorf("error reading certificate data: %w", err)
 //	}
 //
-//	// Process the file contents from the buffer
-//	processFileContents(buf.Bytes())
+//	// Parse certificate from buffer
+//	cert, err := x509certs.Decode(buf.Bytes())
+//	if err != nil {
+//		return fmt.Errorf("error parsing certificate: %w", err)
+//	}
 //
-// Example usage for handling HTTP requests and responses using the standard library net/http:
+// Example usage for AI streaming responses:
 //
-//	http.HandleFunc("/example", func(w http.ResponseWriter, r *http.Request) {
-//		// Get a buffer from the pool
-//		buf := gc.Default.Get()
+//	buf := gc.Default.Get()
 //
-//		defer func() {
-//			buf.Reset()         // Reset the buffer to prevent data leaks
-//			gc.Default.Put(buf) // Return the buffer to the pool for reuse
-//		}()
+//	defer func() {
+//		buf.Reset()         // Reset the buffer to prevent data leaks
+//		gc.Default.Put(buf) // Return the buffer to the pool for reuse
+//	}()
 //
-//		// Read request body into the buffer
-//		if _, err := buf.ReadFrom(r.Body); err != nil {
-//			http.Error(w, "Error reading request body", http.StatusInternalServerError)
-//			return
+//	// Read streaming AI response into buffer
+//	if _, err := buf.ReadFrom(resp.Body); err != nil {
+//		return fmt.Errorf("error reading AI response: %w", err)
+//	}
+//
+//	// Process AI analysis data
+//	analysisResult := analyzeCertificateWithAI(buf.Bytes())
+//
+// Example usage for certificate chain encoding:
+//
+//	// Get a buffer from the pool
+//	buf := gc.Default.Get()
+//
+//	defer func() {
+//		buf.Reset()         // Reset the buffer to prevent data leaks
+//		gc.Default.Put(buf) // Return the buffer to the pool for reuse
+//	}()
+//
+//	// Encode multiple certificates to PEM format
+//	for _, cert := range certs {
+//		pemBlock := &pem.Block{
+//			Type:  "CERTIFICATE",
+//			Bytes: cert.Raw,
 //		}
-//
-//		// Process the request data
-//		processedData := processData(buf.Bytes())
-//
-//		// Set response headers
-//		w.Header().Set("Content-Type", "text/plain")
-//
-//		// Write the processed data as the response
-//		if _, err := w.Write(processedData); err != nil {
-//			fmt.Printf("Error writing response: %v\n", err)
+//		if err := pem.Encode(buf, pemBlock); err != nil {
+//			return fmt.Errorf("error encoding certificate: %w", err)
 //		}
-//	})
+//	}
 //
-//	http.ListenAndServe(":8080", nil)
+//	// Write encoded certificates to file
+//	if err := os.WriteFile("chain.pem", buf.Bytes(), 0644); err != nil {
+//		return fmt.Errorf("error writing certificate chain: %w", err)
+//	}
 //
-// Note: These examples demonstrate various I/O operations, such as JSON responses, rendering HTML components, reading files, and handling HTTP requests.
-// Efficient memory usage is achieved by leveraging a buffer pool, which is especially beneficial in high-concurrency environments.
-// For example, using 8 cores while keeping memory usage under 100MiB maintains high CPU efficiency with low memory consumption it's better.
+// Note: Buffer pooling provides efficient memory reuse for certificate operations,
+// especially beneficial in high-concurrency environments processing multiple
+// certificate chains. Memory usage remains low even under high load by reusing
+// buffer allocations instead of constant allocation/deallocation.
 var Default Pool = &pool{p: &bytebufferpool.Pool{}}
