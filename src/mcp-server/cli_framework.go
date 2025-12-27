@@ -224,8 +224,7 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 
 	// Add instructions flag similar to gopls for displaying usage workflows
 	// This provides users with immediate access to certificate operation guidance
-	var showInstructions bool
-	rootCmd.PersistentFlags().BoolVar(&showInstructions, "instructions", false, "print usage workflows for certificate operations")
+	rootCmd.PersistentFlags().Bool("instructions", false, "print usage workflows for certificate operations")
 
 	// Add config file flag with persistent behavior for subcommands
 	// Allows configuration override via CLI flag while supporting environment variables
@@ -253,7 +252,7 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 	// Override root command run to handle instructions flag and default server behavior
 	// This custom run logic enables the dual CLI/MCP functionality
 	originalRunE := rootCmd.RunE
-	rootCmd.RunE = cf.createRootCommandRunE(showInstructions, exeName, originalRunE)
+	rootCmd.RunE = cf.createRootCommandRunE(rootCmd, exeName, originalRunE)
 
 	return rootCmd
 }
@@ -591,7 +590,7 @@ func (cf *CLIFramework) printInstructions() error {
 // seamless while providing clear feedback for invalid usage patterns.
 //
 // Parameters:
-//   - showInstructions: Whether the --instructions flag was provided by the user
+//   - cmd: The root command to check flags on
 //   - exeName: The executable name for error messages and identification
 //   - originalRunE: The original RunE function (if any) from Cobra command setup
 //
@@ -606,9 +605,10 @@ func (cf *CLIFramework) printInstructions() error {
 //   - Invalid arguments result in clear error messages with executable name
 //   - Instructions display uses pre-generated content for consistency
 //   - Server startup delegates to the full MCP server initialization process
-func (cf *CLIFramework) createRootCommandRunE(showInstructions bool, exeName string, originalRunE func(*cobra.Command, []string) error) func(*cobra.Command, []string) error {
+func (cf *CLIFramework) createRootCommandRunE(cmd *cobra.Command, exeName string, originalRunE func(*cobra.Command, []string) error) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		// Handle instructions flag by displaying formatted workflows
+		showInstructions, _ := cmd.Flags().GetBool("instructions")
 		if showInstructions {
 			return cf.printInstructions()
 		}

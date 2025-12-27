@@ -95,7 +95,7 @@ func Run(version string, configFile string) error {
 
 	// Generate instructions dynamically
 	exeName := posix.GetExecutableName()
-	instructions, err := loadInstructions(tools, toolsWithConfig, exeName)
+	instructions, err := loadInstructions(tools, toolsWithConfig, exeName, version)
 	if err != nil {
 		return fmt.Errorf("failed to load instructions: %w", err)
 	}

@@ -1,4 +1,4 @@
-# [X.509](https://grokipedia.com/page/X.509) Certificate Chain Resolver [MCP](https://modelcontextprotocol.io/docs/getting-started/intro) Server
+# [X.509](https://grokipedia.com/page/X.509) Certificate Chain Resolver [MCP](https://modelcontextprotocol.io/docs/getting-started/intro) Server (v{{.Version}})
 
 These instructions describe how to efficiently work with [X.509](https://grokipedia.com/page/X.509) certificates using the certificate chain resolver [MCP](https://modelcontextprotocol.io/docs/getting-started/intro) server. You can load this file directly into a session where the certificate [MCP](https://modelcontextprotocol.io/docs/getting-started/intro) server is connected.
 
