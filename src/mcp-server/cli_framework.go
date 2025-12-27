@@ -590,7 +590,7 @@ func (cf *CLIFramework) printInstructions() error {
 // seamless while providing clear feedback for invalid usage patterns.
 //
 // Parameters:
-//   - cmd: The root command to check flags on
+//   - _: Unused (reserved for future use)
 //   - exeName: The executable name for error messages and identification
 //   - originalRunE: The original RunE function (if any) from Cobra command setup
 //
@@ -605,7 +605,7 @@ func (cf *CLIFramework) printInstructions() error {
 //   - Invalid arguments result in clear error messages with executable name
 //   - Instructions display uses pre-generated content for consistency
 //   - Server startup delegates to the full MCP server initialization process
-func (cf *CLIFramework) createRootCommandRunE(cmd *cobra.Command, exeName string, originalRunE func(*cobra.Command, []string) error) func(*cobra.Command, []string) error {
+func (cf *CLIFramework) createRootCommandRunE(_ *cobra.Command, exeName string, originalRunE func(*cobra.Command, []string) error) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		// Handle instructions flag by displaying formatted workflows
 		showInstructions, _ := cmd.Flags().GetBool("instructions")
