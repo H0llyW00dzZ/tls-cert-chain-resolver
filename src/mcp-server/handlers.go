@@ -207,9 +207,9 @@ func getServerCache() *serverCache {
 //   - error: Always nil (cache access doesn't fail)
 //
 // The metadata includes:
-// - Prompt names and descriptions
-// - Argument schemas with names, descriptions, and required flags
-// - Additional metadata fields from the prompt definitions
+//   - Prompt names and descriptions
+//   - Argument schemas with names, descriptions, and required flags
+//   - Additional metadata fields from the prompt definitions
 func loadPromptsConfig() ([]map[string]any, error) {
 	cache := getServerCache()
 	return cache.prompts, nil
@@ -248,9 +248,9 @@ type toolsConfig struct {
 //   - error: Always nil (cache access doesn't fail)
 //
 // The returned config provides:
-// - Tools: Regular tools (first N items from cache)
-// - ToolsWithConfig: Tools requiring config (remaining items)
-// - AllTools: Complete merged list for unified access
+//   - Tools: Regular tools (first N items from cache)
+//   - ToolsWithConfig: Tools requiring config (remaining items)
+//   - AllTools: Complete merged list for unified access
 func loadToolsConfig() (*toolsConfig, error) {
 	cache := getServerCache()
 	return &toolsConfig{
@@ -274,10 +274,10 @@ func loadToolsConfig() (*toolsConfig, error) {
 //   - error: Always nil (cache access doesn't fail)
 //
 // The metadata includes:
-// - Resource URIs for client access
-// - Human-readable names and descriptions
-// - MIME types for content type indication
-// - Additional metadata fields from resource definitions
+//   - Resource URIs for client access
+//   - Human-readable names and descriptions
+//   - MIME types for content type indication
+//   - Additional metadata fields from resource definitions
 func loadResourcesConfig() ([]map[string]any, error) {
 	cache := getServerCache()
 	return cache.resources, nil
@@ -343,10 +343,10 @@ func populateToolMetadataCache(serverCache *serverCache, tools []ToolDefinition,
 // argument schemas, and additional metadata for resource handler access.
 //
 // The function handles complex prompt structures including:
-// - Basic prompt information (name, description)
-// - Argument definitions with names, descriptions, and required flags
-// - Additional metadata fields from the prompt definitions
-// - Proper handling of optional meta fields and progress tokens
+//   - Basic prompt information (name, description)
+//   - Argument definitions with names, descriptions, and required flags
+//   - Additional metadata fields from the prompt definitions
+//   - Proper handling of optional meta fields and progress tokens
 //
 // Parameters:
 //   - serverCache: The server cache instance to populate with prompt metadata
@@ -416,10 +416,10 @@ func populatePromptMetadataCache(serverCache *serverCache, prompts []ServerPromp
 // dynamically, supporting discovery and documentation of available resources.
 //
 // Processed metadata includes:
-// - Resource URIs for client access
-// - Human-readable names and descriptions
-// - MIME types for content negotiation
-// - Filtered metadata fields (excluding internal fields)
+//   - Resource URIs for client access
+//   - Human-readable names and descriptions
+//   - MIME types for content negotiation
+//   - Filtered metadata fields (excluding internal fields)
 func populateResourceMetadataCache(serverCache *serverCache, resources []ServerResource) {
 	serverCache.resources = make([]map[string]any, 0, len(resources))
 
