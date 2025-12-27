@@ -343,10 +343,10 @@ func populateToolMetadataCache(serverCache *serverCache, tools []ToolDefinition,
 // argument schemas, and additional metadata for resource handler access.
 //
 // The function handles complex prompt structures including:
-// - Basic prompt information (name, description)
-// - Argument definitions with names, descriptions, and required flags
-// - Additional metadata fields from the prompt definitions
-// - Proper handling of optional meta fields and progress tokens
+//   - Basic prompt information (name, description)
+//   - Argument definitions with names, descriptions, and required flags
+//   - Additional metadata fields from the prompt definitions
+//   - Proper handling of optional meta fields and progress tokens
 //
 // Parameters:
 //   - serverCache: The server cache instance to populate with prompt metadata
