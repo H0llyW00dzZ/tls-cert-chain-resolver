@@ -22,6 +22,7 @@ Analyze Go code complexity using `gocyclo` and provide refactoring suggestions f
     gocyclo . | grep -v "_test.go" | awk '
     BEGIN {
         # Initialize variables for tracking complexity statistics
+        high_count = 0;
     }
     {
         complexity = $1;
@@ -29,17 +30,18 @@ Analyze Go code complexity using `gocyclo` and provide refactoring suggestions f
         count++;
 
         # Store high-complexity functions for later reporting
+        # Use counter as key to preserve all functions, even with same complexity
         if (complexity >= 15) {
-            high[complexity] = $0;
+            high[++high_count] = $0;
         }
     }
     END {
         # Report high-complexity functions if any exist
-        if (length(high) > 0) {
+        if (high_count > 0) {
             print "🚨 Functions with complexity >= 15:";
             print "";
-            for (c in high) {
-                print "  • " high[c];
+            for (i = 1; i <= high_count; i++) {
+                print "  • " high[i];
             }
             print "";
         } else {
