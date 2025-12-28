@@ -11,16 +11,72 @@ Analyze Go code complexity using `gocyclo` and provide refactoring suggestions f
 
 1. **Run Complexity Analysis**:
 
-   - Execute `gocyclo .` to analyze all Go functions in the codebase
-   - Filter for functions with complexity ≥ 15
-   - Exclude test functions and test packages
-   - Sort results by complexity (highest first)
+    - Execute `gocyclo .` to analyze all Go functions in the codebase
+    - Filter out test functions (exclude _test.go files)
+    - Calculate average complexity across all analyzed functions
+    - Identify functions with complexity ≥ 15
+    - Provide interpretation and actionable guidance based on average complexity
+    - Display results with visual formatting and emojis for better readability
 
-   ```bash
-   gocyclo . | grep -v "_test.go" | awk '$1 >= 15' | sort -nr
-   ```
+    ```bash
+    gocyclo . | grep -v "_test.go" | awk '
+    BEGIN {
+        # Initialize variables for tracking complexity statistics
+    }
+    {
+        complexity = $1;
+        sum += complexity;
+        count++;
 
-   **Note**: If there is no output, then there is no complexity reached ≥ 15.
+        # Store high-complexity functions for later reporting
+        if (complexity >= 15) {
+            high[complexity] = $0;
+        }
+    }
+    END {
+        # Report high-complexity functions if any exist
+        if (length(high) > 0) {
+            print "🚨 Functions with complexity >= 15:";
+            print "";
+            for (c in high) {
+                print "  • " high[c];
+            }
+            print "";
+        } else {
+            print "✅ No functions with complexity >= 15.";
+            print "";
+        }
+
+        # Always report average complexity
+        if (count > 0) {
+            avg = sum / count;
+            printf "📊 Average complexity across all functions: %.1f\n", avg;
+
+            # Provide interpretation based on average
+            if (avg < 2) {
+                print "💡 Excellent: Very simple and maintainable code";
+            } else if (avg < 5) {
+                print "💡 Good: Well-structured functions with reasonable complexity";
+            } else if (avg < 10) {
+                print "⚠️ Moderate: Some functions may benefit from refactoring";
+            } else {
+                print "🚨 High: Consider reviewing function complexity";
+            }
+        }
+    }
+    '
+    ```
+
+    **Output Interpretation**:
+    - If functions exist with complexity ≥ 15, they will be listed with bullet points (🚨 alert emoji)
+    - If no functions reach ≥ 15, it will report this with a checkmark (✅)
+    - Always displays the average complexity across all analyzed functions
+    - Provides automatic interpretation of complexity levels with actionable recommendations:
+      - < 2: Excellent (very simple code)
+      - < 5: Good (well-structured functions)
+      - < 10: Moderate (may benefit from refactoring)
+      - ≥ 10: High (consider reviewing function complexity)
+    - The average helps understand overall code complexity trends even when no individual functions exceed the threshold
 
 2. **Identify Refactoring Candidates**:
 
