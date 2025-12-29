@@ -19,6 +19,7 @@ Analyze Go code complexity using `gocyclo` and provide refactoring suggestions f
     - Display results with visual formatting and emojis for better readability
 
     ```bash
+    # Run this bash command for effective complexity analysis by composing it from Unix/Unix-like tools
     gocyclo . | grep -v "_test.go" | awk '
     BEGIN {
         # Initialize variables for tracking complexity statistics
@@ -38,14 +39,14 @@ Analyze Go code complexity using `gocyclo` and provide refactoring suggestions f
     END {
         # Report high-complexity functions if any exist
         if (high_count > 0) {
-            print "🚨 Functions with complexity >= 15:";
+            print "🚨 Functions with complexity ≥ 15:";
             print "";
             for (i = 1; i <= high_count; i++) {
                 print "  • " high[i];
             }
             print "";
         } else {
-            print "✅ No functions with complexity >= 15.";
+            print "✅ No functions with complexity ≥ 15.";
             print "";
         }
 
