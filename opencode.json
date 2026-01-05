@@ -28,7 +28,7 @@
     "x509_resolver": {
       "type": "local",
       "command": [
-        "./bin/x509-cert-chain-resolver",
+        "x509-cert-chain-resolver",
         "--config",
         "./src/mcp-server/config.example.yaml"
       ],
