@@ -100,9 +100,6 @@ The MCP server supports both JSON and YAML configuration formats. The format is 
 ```json
 {
   "defaults": {
-    "format": "pem",
-    "includeSystemRoot": false,
-    "intermediateOnly": false,
     "warnDays": 30,
     "timeoutSeconds": 10
   },
@@ -119,9 +116,6 @@ The MCP server supports both JSON and YAML configuration formats. The format is 
 
 ```yaml
 defaults:
-  format: pem
-  includeSystemRoot: false
-  intermediateOnly: false
   warnDays: 30
   timeoutSeconds: 10
 
