@@ -609,6 +609,9 @@ grep("resolve_cert_chain|validate_cert_chain|check_cert_expiry|batch_resolve_cer
 # Find MCP server configuration
 grep("MCP_X509_CONFIG_FILE|config\\.Defaults|AI.*API", include="*.go")
 
+# Find config format detection (JSON/YAML support)
+grep("detectConfigFormat|unmarshalConfig|configFormat", include="*.go")
+
 # Find MCP tool handlers
 grep("handleResolveCertChain|handleValidateCertChain|handleCheckCertExpiry|handleBatchResolveCertChain|handleFetchRemoteCert|handleAnalyzeCertificateWithAI|handleGetResourceUsage", include="*.go")
 

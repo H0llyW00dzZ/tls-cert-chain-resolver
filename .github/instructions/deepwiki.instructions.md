@@ -385,6 +385,8 @@ deepwiki_ask_question("protocolbuffers/protobuf-go", "How do I work with protoco
 
 # YAML processing
 deepwiki_ask_question("go-yaml/yaml", "How do I parse YAML configurations with custom types?")
+deepwiki_ask_question("go-yaml/yaml", "How do I support both JSON and YAML config files in Go?")
+deepwiki_ask_question("go-yaml/yaml", "What are best practices for YAML struct tags alongside JSON tags?")
 
 # JSON schema validation
 deepwiki_ask_question("xeipuuv/gojsonschema", "How do I validate JSON configurations against schemas in Go?")
@@ -468,6 +470,7 @@ Solutions:
 - `google.golang.org/adk` v0.3.0 - For Google ADK integration for MCP transport creation
 - `google.golang.org/genai` v1.40.0 - For Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - For enhanced markdown table formatting with emoji headers
+- `gopkg.in/yaml.v3` v3.0.1 - For YAML configuration file support (GitHub: go-yaml/yaml)
 - `golang.org/x/crypto` v0.46.0 - For supplementary cryptography libraries leveraged in recent releases
 - `golang.org/x/text` v0.32.0 - For text processing utilities for proper casing and internationalization (GitHub: golang/text)
 - `golang/go` - For standard library best practices
