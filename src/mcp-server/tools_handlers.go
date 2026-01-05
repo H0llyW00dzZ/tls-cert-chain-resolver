@@ -1013,8 +1013,8 @@ func executeAIAnalysis(ctx context.Context, analysisPrompt, analysisType string,
 				},
 			},
 			SystemPrompt: systemPrompt,
-			MaxTokens:    4096, // Increased for comprehensive analysis
-			Temperature:  0.3,  // Lower temperature for more consistent analysis
+			MaxTokens:    config.AI.MaxTokens,
+			Temperature:  config.AI.Temperature,
 		},
 	}
 

@@ -50,6 +50,10 @@ type Config struct {
 		Model string `json:"model,omitempty" yaml:"model,omitempty"`
 		// Timeout: API timeout in seconds for AI requests
 		Timeout int `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+		// MaxTokens: Maximum tokens for AI analysis responses
+		MaxTokens int `json:"maxTokens,omitempty" yaml:"maxTokens,omitempty"`
+		// Temperature: Sampling temperature for AI responses (0.0 to 1.0)
+		Temperature float64 `json:"temperature,omitempty" yaml:"temperature,omitempty"`
 	} `json:"ai" yaml:"ai"`
 }
 
@@ -132,6 +136,8 @@ func loadConfig(configPath string) (*Config, error) {
 	config.AI.Endpoint = "https://api.x.ai"
 	config.AI.Model = "grok-4-1-fast-non-reasoning"
 	config.AI.Timeout = 30
+	config.AI.MaxTokens = 4096
+	config.AI.Temperature = 0.3
 
 	// Check environment variable for config file path if not provided
 	if configPath == "" {
