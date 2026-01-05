@@ -5340,6 +5340,39 @@ func TestLoadConfig_ExampleFiles(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_InvalidValues(t *testing.T) {
+	// Test that invalid (negative or zero) values are corrected to defaults
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "invalid.yaml")
+
+	yamlContent := []byte(`defaults:
+  warnDays: -10
+  timeoutSeconds: 0
+ai:
+  timeout: -5
+`)
+
+	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	config, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	// Verify invalid values were corrected to defaults
+	if config.Defaults.WarnDays != 30 {
+		t.Errorf("Expected warnDays to be corrected to 30, got %d", config.Defaults.WarnDays)
+	}
+	if config.Defaults.Timeout != 30 {
+		t.Errorf("Expected timeout to be corrected to 30, got %d", config.Defaults.Timeout)
+	}
+	if config.AI.Timeout != 30 {
+		t.Errorf("Expected AI timeout to be corrected to 30, got %d", config.AI.Timeout)
+	}
+}
+
 func TestConfigFormat_Constants(t *testing.T) {
 	// Verify config format constants are distinct
 	if configFormatJSON == configFormatYAML {
