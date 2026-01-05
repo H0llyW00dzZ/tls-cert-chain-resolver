@@ -30,7 +30,7 @@
       "command": [
         "./bin/x509-cert-chain-resolver",
         "--config",
-        "./src/mcp-server/config.example.json"
+        "./src/mcp-server/config.example.yaml"
       ],
       "enabled": true
     }
