@@ -195,13 +195,13 @@ The MCP server binary provides a CLI interface similar to `gopls` with additiona
 
 | Flag | Description |
 |------|-------------|
-| `--config` | Path to MCP server configuration JSON file |
+| `--config` | Path to MCP server configuration file (JSON or YAML) |
 | `--instructions` | Display certificate operation workflows and MCP server usage |
 | `--help` | Show help information |
 | `--version` | Show version information |
 
 **Environment Variables**:
-- `MCP_X509_CONFIG_FILE`: Path to configuration file (alternative to `--config` flag)
+- `MCP_X509_CONFIG_FILE`: Path to configuration file (alternative to `--config` flag, supports `.json`, `.yaml`, `.yml`)
 
 **Examples**:
 
@@ -210,9 +210,10 @@ Start MCP server with default configuration:
 ./bin/linux/x509-cert-chain-resolver
 ```
 
-Load custom configuration:
+Load custom configuration (JSON or YAML):
 ```bash
 ./bin/linux/x509-cert-chain-resolver --config /path/to/custom-config.json
+./bin/linux/x509-cert-chain-resolver --config /path/to/custom-config.yaml
 ```
 
 Show certificate operation workflows:
@@ -270,11 +271,13 @@ Then, include the contents of `X509_instructions.md` in your AI agent's or agent
 | Variable | Description |
 |----------|-------------|
 | `X509_AI_APIKEY` | API key for AI-backed certificate analysis (optional) |
-| `MCP_X509_CONFIG_FILE` | Path to MCP server configuration JSON |
+| `MCP_X509_CONFIG_FILE` | Path to MCP server configuration file (JSON or YAML) |
 
 ### Config File
 
-Default configuration (`src/mcp-server/config.example.json`):
+The MCP server supports both JSON and YAML configuration formats. The format is auto-detected based on file extension (`.json`, `.yaml`, or `.yml`).
+
+**JSON format** (`src/mcp-server/config.example.json`):
 
 ```json
 {
@@ -292,6 +295,24 @@ Default configuration (`src/mcp-server/config.example.json`):
     "timeout": 30
   }
 }
+```
+
+**YAML format** (`src/mcp-server/config.example.yaml`):
+
+```yaml
+# MCP Server Configuration (YAML format)
+defaults:
+  format: pem
+  includeSystemRoot: false
+  intermediateOnly: false
+  warnDays: 30
+  timeoutSeconds: 10
+
+ai:
+  apiKey: ""  # Set via X509_AI_APIKEY environment variable
+  endpoint: https://api.x.ai
+  model: grok-beta
+  timeout: 30
 ```
 
 Custom endpoints following the OpenAI chat completions schema are supported.

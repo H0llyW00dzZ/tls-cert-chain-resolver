@@ -121,14 +121,16 @@ The server supports multiple configuration methods for full functionality:
 
 - **Basic operation**: No configuration required - runs with sensible defaults
 - **Configuration file**: 
-  - CLI flag: `--config /path/to/config.json`
-  - Environment variable: `MCP_X509_CONFIG_FILE=/path/to/config.json`
+  - CLI flag: `--config /path/to/config.json` or `--config /path/to/config.yaml`
+  - Environment variable: `MCP_X509_CONFIG_FILE=/path/to/config.json` (or `.yaml`/`.yml`)
+  - Supported formats: JSON (`.json`) and YAML (`.yaml`, `.yml`)
   - Priority: CLI flag takes precedence over environment variable
 - **AI features**: Set `X509_AI_APIKEY` environment variable for AI-powered certificate analysis
 - **CRL caching**: Automatically configured for optimal performance
 
-### Configuration File Example
+### Configuration File Examples
 
+**JSON format** (`config.json`):
 ```json
 {
   "defaults": {
@@ -136,10 +138,19 @@ The server supports multiple configuration methods for full functionality:
     "includeSystemRoot": false,
     "intermediateOnly": false,
     "warnDays": 30,
-    "port": 443,
     "timeoutSeconds": 10
   }
 }
+```
+
+**YAML format** (`config.yaml`):
+```yaml
+defaults:
+  format: pem
+  includeSystemRoot: false
+  intermediateOnly: false
+  warnDays: 30
+  timeoutSeconds: 10
 ```
 
 ### CLI Usage Examples
@@ -148,11 +159,12 @@ The server supports multiple configuration methods for full functionality:
 # Start with default configuration
 {{.BinaryName}}
 
-# Start with custom config file
+# Start with custom config file (JSON or YAML)
 {{.BinaryName}} --config /path/to/config.json
+{{.BinaryName}} --config /path/to/config.yaml
 
 # Start with environment variable
-export MCP_X509_CONFIG_FILE=/path/to/config.json
+export MCP_X509_CONFIG_FILE=/path/to/config.yaml
 {{.BinaryName}}
 
 # Enable AI features
