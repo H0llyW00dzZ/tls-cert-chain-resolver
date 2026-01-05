@@ -291,7 +291,7 @@ The MCP server supports both JSON and YAML configuration formats. The format is 
   "ai": {
     "apiKey": "",
     "endpoint": "https://api.x.ai",
-    "model": "grok-beta",
+    "model": "grok-4-1-fast-non-reasoning",
     "timeout": 30
   }
 }
@@ -311,7 +311,7 @@ defaults:
 ai:
   apiKey: ""  # Set via X509_AI_APIKEY environment variable
   endpoint: https://api.x.ai
-  model: grok-beta
+  model: grok-4-1-fast-non-reasoning
   timeout: 30
 ```
 

@@ -18,7 +18,7 @@ ai:
   # API endpoint URL for AI service (defaults to xAI)
   endpoint: https://api.x.ai
   # Default AI model to use for certificate analysis
-  model: grok-4-fast-non-reasoning
+  model: grok-4-1-fast-non-reasoning
   # API timeout in seconds for AI requests
   timeout: 30
   # API key can be set here or via X509_AI_APIKEY environment variable

@@ -8,7 +8,7 @@
   },
   "ai": {
     "endpoint": "https://api.x.ai",
-    "model": "grok-4-fast-non-reasoning",
+    "model": "grok-4-1-fast-non-reasoning",
     "timeout": 30
   }
 }

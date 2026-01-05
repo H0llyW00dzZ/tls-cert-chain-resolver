@@ -139,7 +139,7 @@ func loadConfig(configPath string) (*Config, error) {
 
 	// Set AI defaults
 	config.AI.Endpoint = "https://api.x.ai"
-	config.AI.Model = "grok-beta"
+	config.AI.Model = "grok-4-1-fast-non-reasoning"
 	config.AI.Timeout = 30
 
 	// Check environment variable for config file path if not provided
