@@ -5157,8 +5157,8 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if config.AI.Endpoint != "https://api.x.ai" {
 		t.Errorf("Expected default AI endpoint 'https://api.x.ai', got %s", config.AI.Endpoint)
 	}
-	if config.AI.Model != "grok-beta" {
-		t.Errorf("Expected default AI model 'grok-beta', got %s", config.AI.Model)
+	if config.AI.Model != "grok-4-1-fast-non-reasoning" {
+		t.Errorf("Expected default AI model 'grok-4-1-fast-non-reasoning', got %s", config.AI.Model)
 	}
 	if config.AI.Timeout != 30 {
 		t.Errorf("Expected default AI timeout 30, got %d", config.AI.Timeout)
