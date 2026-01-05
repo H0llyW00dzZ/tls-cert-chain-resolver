@@ -246,6 +246,9 @@ gopls_go_search("parseTemplateResult") → Find template result parser for cross
 gopls_go_search("extractFlagNames") → Find dynamic flag name extraction for help text
 gopls_go_search("createRootCommandRunE") → Find root command RunE wrapper with error handling
 gopls_go_search("signal.NotifyContext") → Find modern signal handling for graceful shutdown
+gopls_go_search("detectConfigFormat") → Find config format detection (JSON/YAML)
+gopls_go_search("unmarshalConfig") → Find config unmarshaling with format support
+gopls_go_search("configFormat") → Find config format type constants
 ```
 
 ### gopls_go_file_context(file)

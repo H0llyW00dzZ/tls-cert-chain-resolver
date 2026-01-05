@@ -13,8 +13,9 @@ analysis tools. Use {{.InstructionsFlagName}} to see available certificate opera
 # Start MCP server (default behavior)
 {{.ExeName}}
 
-# Start MCP server with custom config
+# Start MCP server with custom config (JSON or YAML)
 {{.ExeName}} {{.ConfigFlagName}} /path/to/config.json
+{{.ExeName}} {{.ConfigFlagName}} /path/to/config.yaml
 
 # Display certificate operation workflows
 {{.ExeName}} {{.InstructionsFlagName}}

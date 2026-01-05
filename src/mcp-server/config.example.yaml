@@ -1,0 +1,25 @@
+# X.509 Certificate Chain Resolver MCP Server Configuration
+# This file can be used instead of config.example.json
+# Supported formats: .json, .yaml, .yml
+
+defaults:
+  # Output format for certificates ("pem", "der", "json")
+  format: pem
+  # Whether to include system root CAs in chain operations
+  includeSystemRoot: false
+  # Whether to return only intermediate certificates
+  intermediateOnly: false
+  # Number of days before expiry to show warnings
+  warnDays: 30
+  # Default timeout in seconds for operations
+  timeoutSeconds: 10
+
+ai:
+  # API endpoint URL for AI service (defaults to xAI)
+  endpoint: https://api.x.ai
+  # Default AI model to use for certificate analysis
+  model: grok-4-1-fast-non-reasoning
+  # API timeout in seconds for AI requests
+  timeout: 30
+  # API key can be set here or via X509_AI_APIKEY environment variable
+  # apiKey: your-api-key-here
