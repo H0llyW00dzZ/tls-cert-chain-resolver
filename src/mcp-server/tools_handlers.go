@@ -560,7 +560,7 @@ func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolReques
 // It ensures required parameters are present and returns structured remote options.
 //
 // Parameters:
-//   - request: MCP tool call request containing hostname, port, and format options//
+//   - request: MCP tool call request containing hostname, port, and format options
 //
 // Returns:
 //   - hostname: Target hostname to connect to
