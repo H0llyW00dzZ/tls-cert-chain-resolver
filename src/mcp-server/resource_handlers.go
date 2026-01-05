@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -31,11 +31,8 @@ import (
 func handleConfigResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	exampleConfig := map[string]any{
 		"defaults": map[string]any{
-			"format":            "pem",
-			"includeSystemRoot": false,
-			"intermediateOnly":  false,
-			"warnDays":          30,
-			"timeoutSeconds":    30,
+			"warnDays":       30,
+			"timeoutSeconds": 30,
 		},
 	}
 

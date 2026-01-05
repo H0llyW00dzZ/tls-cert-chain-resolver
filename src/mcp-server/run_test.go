@@ -1083,7 +1083,7 @@ func TestResourceHandlers(t *testing.T) {
 			name:           "read config template resource",
 			uri:            "config://template",
 			expectError:    false,
-			expectContains: []string{`"format"`, `"includeSystemRoot"`, `"warnDays"`},
+			expectContains: []string{`"warnDays"`, `"timeoutSeconds"`},
 			expectMIMEType: "application/json",
 		},
 		{

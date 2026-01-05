@@ -560,8 +560,7 @@ func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolReques
 // It ensures required parameters are present and returns structured remote options.
 //
 // Parameters:
-//   - request: MCP tool call request containing hostname, port, and format options
-//   - config: Server configuration containing defaults
+//   - request: MCP tool call request containing hostname, port, and format options//
 //
 // Returns:
 //   - hostname: Target hostname to connect to
@@ -570,7 +569,7 @@ func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolReques
 //   - includeSystemRoot: Whether to include system root CA
 //   - intermediateOnly: Whether to return only intermediate certificates
 //   - error: Parameter validation error
-func validateRemoteParams(request mcp.CallToolRequest, config *Config) (hostname string, port int, format string, includeSystemRoot, intermediateOnly bool, err error) {
+func validateRemoteParams(request mcp.CallToolRequest) (hostname string, port int, format string, includeSystemRoot, intermediateOnly bool, err error) {
 	hostname, err = request.RequireString("hostname")
 	if err != nil {
 		return "", 0, "", false, false, fmt.Errorf("hostname parameter required: %w", err)
@@ -684,7 +683,7 @@ func buildRemoteResult(hostname string, port int, certCount int, filteredCerts [
 // CA addition and certificate filtering.
 func handleFetchRemoteCert(ctx context.Context, request mcp.CallToolRequest, config *Config) (*mcp.CallToolResult, error) {
 	// Validate and extract parameters
-	hostname, port, format, includeSystemRoot, intermediateOnly, err := validateRemoteParams(request, config)
+	hostname, port, format, includeSystemRoot, intermediateOnly, err := validateRemoteParams(request)
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
