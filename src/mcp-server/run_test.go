@@ -1580,12 +1580,7 @@ func TestLoadConfig(t *testing.T) {
 			}
 
 			// Verify default values
-			if config.Defaults.Format != "pem" {
-				t.Errorf("Expected default format 'pem', got %s", config.Defaults.Format)
-			}
-			if config.Defaults.WarnDays != 30 {
-				t.Errorf("Expected default warn_days 30, got %d", config.Defaults.WarnDays)
-			}
+			// Format, WarnDays, IncludeSystemRoot, IntermediateOnly removed from config
 		})
 	}
 }
@@ -2888,10 +2883,6 @@ func TestServerBuilder(t *testing.T) {
 			builder: NewServerBuilder(),
 			setup: func(sb *ServerBuilder) *ServerBuilder {
 				config := &Config{}
-				config.Defaults.Format = "json"
-				config.Defaults.IncludeSystemRoot = true
-				config.Defaults.IntermediateOnly = false
-				config.Defaults.WarnDays = 60
 				config.Defaults.Timeout = 15
 				return sb.WithConfig(config)
 			},
@@ -2941,10 +2932,6 @@ func TestServerBuilder(t *testing.T) {
 			builder: NewServerBuilder(),
 			setup: func(sb *ServerBuilder) *ServerBuilder {
 				config := &Config{}
-				config.Defaults.Format = "pem"
-				config.Defaults.IncludeSystemRoot = false
-				config.Defaults.IntermediateOnly = true
-				config.Defaults.WarnDays = 30
 				config.Defaults.Timeout = 10
 				config.AI.APIKey = "test-api-key"
 				config.AI.Model = "test-model"
@@ -3611,13 +3598,11 @@ func TestHandleAnalyzeCertificateWithAI(t *testing.T) {
 	// Test with config without AI API key (should return certificate context)
 	config := &Config{
 		Defaults: struct {
-			Format            string `json:"format" yaml:"format"`
-			IncludeSystemRoot bool   `json:"includeSystemRoot" yaml:"includeSystemRoot"`
-			IntermediateOnly  bool   `json:"intermediateOnly" yaml:"intermediateOnly"`
-			WarnDays          int    `json:"warnDays" yaml:"warnDays"`
-			Timeout           int    `json:"timeoutSeconds" yaml:"timeoutSeconds"`
+			WarnDays int `json:"warnDays" yaml:"warnDays"`
+			Timeout  int `json:"timeoutSeconds" yaml:"timeoutSeconds"`
 		}{
-			Timeout: 30,
+			WarnDays: 30,
+			Timeout:  30,
 		},
 	}
 
@@ -3695,13 +3680,11 @@ func TestConcurrentCertificateAnalysis(t *testing.T) {
 
 	config := &Config{
 		Defaults: struct {
-			Format            string `json:"format" yaml:"format"`
-			IncludeSystemRoot bool   `json:"includeSystemRoot" yaml:"includeSystemRoot"`
-			IntermediateOnly  bool   `json:"intermediateOnly" yaml:"intermediateOnly"`
-			WarnDays          int    `json:"warnDays" yaml:"warnDays"`
-			Timeout           int    `json:"timeoutSeconds" yaml:"timeoutSeconds"`
+			WarnDays int `json:"warnDays" yaml:"warnDays"`
+			Timeout  int `json:"timeoutSeconds" yaml:"timeoutSeconds"`
 		}{
-			Timeout: 30,
+			WarnDays: 30,
+			Timeout:  30,
 		},
 	}
 
@@ -4895,18 +4878,6 @@ func TestUnmarshalConfig_JSON(t *testing.T) {
 	}
 
 	// Verify defaults
-	if config.Defaults.Format != "der" {
-		t.Errorf("Expected format 'der', got %s", config.Defaults.Format)
-	}
-	if !config.Defaults.IncludeSystemRoot {
-		t.Error("Expected includeSystemRoot true")
-	}
-	if !config.Defaults.IntermediateOnly {
-		t.Error("Expected intermediateOnly true")
-	}
-	if config.Defaults.WarnDays != 60 {
-		t.Errorf("Expected warnDays 60, got %d", config.Defaults.WarnDays)
-	}
 	if config.Defaults.Timeout != 45 {
 		t.Errorf("Expected timeout 45, got %d", config.Defaults.Timeout)
 	}
@@ -4949,18 +4920,6 @@ ai:
 	}
 
 	// Verify defaults
-	if config.Defaults.Format != "der" {
-		t.Errorf("Expected format 'der', got %s", config.Defaults.Format)
-	}
-	if !config.Defaults.IncludeSystemRoot {
-		t.Error("Expected includeSystemRoot true")
-	}
-	if !config.Defaults.IntermediateOnly {
-		t.Error("Expected intermediateOnly true")
-	}
-	if config.Defaults.WarnDays != 60 {
-		t.Errorf("Expected warnDays 60, got %d", config.Defaults.WarnDays)
-	}
 	if config.Defaults.Timeout != 45 {
 		t.Errorf("Expected timeout 45, got %d", config.Defaults.Timeout)
 	}
@@ -5033,15 +4992,6 @@ func TestLoadConfig_JSONFile(t *testing.T) {
 	}
 
 	// Verify loaded values
-	if config.Defaults.Format != "json" {
-		t.Errorf("Expected format 'json', got %s", config.Defaults.Format)
-	}
-	if !config.Defaults.IncludeSystemRoot {
-		t.Error("Expected includeSystemRoot true")
-	}
-	if config.Defaults.WarnDays != 90 {
-		t.Errorf("Expected warnDays 90, got %d", config.Defaults.WarnDays)
-	}
 	if config.Defaults.Timeout != 60 {
 		t.Errorf("Expected timeout 60, got %d", config.Defaults.Timeout)
 	}
@@ -5082,12 +5032,6 @@ ai:
 	}
 
 	// Verify loaded values
-	if config.Defaults.Format != "json" {
-		t.Errorf("Expected format 'json', got %s", config.Defaults.Format)
-	}
-	if !config.Defaults.IncludeSystemRoot {
-		t.Error("Expected includeSystemRoot true")
-	}
 	if config.Defaults.WarnDays != 90 {
 		t.Errorf("Expected warnDays 90, got %d", config.Defaults.WarnDays)
 	}
@@ -5108,7 +5052,6 @@ func TestLoadConfig_YMLExtension(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.yml")
 
 	ymlContent := []byte(`defaults:
-  format: der
   warnDays: 45
 `)
 
@@ -5121,9 +5064,6 @@ func TestLoadConfig_YMLExtension(t *testing.T) {
 		t.Fatalf("loadConfig failed: %v", err)
 	}
 
-	if config.Defaults.Format != "der" {
-		t.Errorf("Expected format 'der', got %s", config.Defaults.Format)
-	}
 	if config.Defaults.WarnDays != 45 {
 		t.Errorf("Expected warnDays 45, got %d", config.Defaults.WarnDays)
 	}
@@ -5137,15 +5077,6 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	}
 
 	// Verify default values
-	if config.Defaults.Format != "pem" {
-		t.Errorf("Expected default format 'pem', got %s", config.Defaults.Format)
-	}
-	if config.Defaults.IncludeSystemRoot != false {
-		t.Error("Expected default includeSystemRoot false")
-	}
-	if config.Defaults.IntermediateOnly != false {
-		t.Error("Expected default intermediateOnly false")
-	}
 	if config.Defaults.WarnDays != 30 {
 		t.Errorf("Expected default warnDays 30, got %d", config.Defaults.WarnDays)
 	}
@@ -5226,9 +5157,6 @@ func TestLoadConfig_EnvironmentVariable(t *testing.T) {
 		t.Fatalf("loadConfig failed: %v", err)
 	}
 
-	if config.Defaults.Format != "der" {
-		t.Errorf("Expected format 'der' from env config, got %s", config.Defaults.Format)
-	}
 	if config.Defaults.WarnDays != 100 {
 		t.Errorf("Expected warnDays 100 from env config, got %d", config.Defaults.WarnDays)
 	}
@@ -5302,7 +5230,7 @@ func TestLoadConfig_PartialYAML(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "partial.yaml")
 
 	yamlContent := []byte(`defaults:
-  format: json
+  warnDays: 60
 `)
 
 	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
@@ -5315,14 +5243,9 @@ func TestLoadConfig_PartialYAML(t *testing.T) {
 	}
 
 	// Specified value should be used
-	if config.Defaults.Format != "json" {
-		t.Errorf("Expected format 'json', got %s", config.Defaults.Format)
+	if config.Defaults.WarnDays != 60 {
+		t.Errorf("Expected warnDays 60, got %d", config.Defaults.WarnDays)
 	}
-
-	// Unspecified values should be zero values (not defaults, since config overrides)
-	// Note: In Go, unmarshaling into a pre-populated struct will only overwrite
-	// the fields that are present in the input. So defaults ARE preserved.
-	// The loadConfig function sets defaults first, then unmarshals.
 }
 
 func TestLoadConfig_EmptyYAML(t *testing.T) {
@@ -5340,9 +5263,6 @@ func TestLoadConfig_EmptyYAML(t *testing.T) {
 	}
 
 	// Defaults should be preserved
-	if config.Defaults.Format != "pem" {
-		t.Errorf("Expected default format 'pem', got %s", config.Defaults.Format)
-	}
 	if config.Defaults.WarnDays != 30 {
 		t.Errorf("Expected default warnDays 30, got %d", config.Defaults.WarnDays)
 	}
@@ -5375,9 +5295,6 @@ ai:
 		t.Fatalf("loadConfig failed: %v", err)
 	}
 
-	if config.Defaults.Format != "der" {
-		t.Errorf("Expected format 'der', got %s", config.Defaults.Format)
-	}
 	if config.Defaults.WarnDays != 45 {
 		t.Errorf("Expected warnDays 45, got %d", config.Defaults.WarnDays)
 	}
@@ -5410,9 +5327,6 @@ func TestLoadConfig_ExampleFiles(t *testing.T) {
 			}
 
 			// Verify basic structure
-			if config.Defaults.Format == "" {
-				t.Error("Expected format to be set")
-			}
 			if config.Defaults.Timeout == 0 {
 				t.Error("Expected timeout to be set")
 			}

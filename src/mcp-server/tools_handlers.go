@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -578,9 +577,9 @@ func validateRemoteParams(request mcp.CallToolRequest, config *Config) (hostname
 	}
 
 	port = request.GetInt("port", 443)
-	format = request.GetString("format", config.Defaults.Format)
-	includeSystemRoot = request.GetBool("include_system_root", config.Defaults.IncludeSystemRoot)
-	intermediateOnly = request.GetBool("intermediate_only", config.Defaults.IntermediateOnly)
+	format = request.GetString("format", "pem")
+	includeSystemRoot = request.GetBool("include_system_root", false)
+	intermediateOnly = request.GetBool("intermediate_only", false)
 
 	return hostname, port, format, includeSystemRoot, intermediateOnly, nil
 }
@@ -706,15 +705,15 @@ func handleFetchRemoteCert(ctx context.Context, request mcp.CallToolRequest, con
 }
 
 // validateExpiryParams validates and extracts parameters for certificate expiry checking.
-// It ensures required parameters are present and parses the warning days parameter.
+// It ensures required parameters are present and uses the configured warning days.
 //
 // Parameters:
-//   - request: MCP tool call request containing certificate input and warning threshold
+//   - request: MCP tool call request containing certificate input
 //   - config: Server configuration containing default warning days
 //
 // Returns:
 //   - certInput: Certificate input as file path or base64 data
-//   - warnDays: Number of days before expiry to show warnings
+//   - warnDays: Number of days before expiry to show warnings (from config)
 //   - error: Parameter validation error
 func validateExpiryParams(request mcp.CallToolRequest, config *Config) (certInput string, warnDays int, err error) {
 	certInput, err = request.RequireString("certificate")
@@ -722,12 +721,7 @@ func validateExpiryParams(request mcp.CallToolRequest, config *Config) (certInpu
 		return "", 0, fmt.Errorf("certificate parameter required: %w", err)
 	}
 
-	warnDaysStr := request.GetString("warn_days", strconv.Itoa(config.Defaults.WarnDays))
-	warnDays, err = strconv.Atoi(warnDaysStr)
-	if err != nil {
-		warnDays = config.Defaults.WarnDays // fallback to config default
-	}
-
+	warnDays = config.Defaults.WarnDays
 	return certInput, warnDays, nil
 }
 
@@ -1058,7 +1052,7 @@ func formatFallbackResult(analysisType, certificateContext, analysisPrompt strin
 	result := fmt.Sprintf("AI Collaborative Analysis (%s)\n\n", analysisType)
 	result += "⚠️  No AI API key configured. To enable real AI analysis:\n"
 	result += "   1. Set X509_AI_APIKEY environment variable, or\n"
-	result += "   2. Configure 'ai.apiKey' in your config.json file\n\n"
+	result += "   2. Configure 'ai.apiKey' in your config.json or config.yaml file\n\n"
 	result += "📋 Certificate Context Prepared for AI Analysis:\n"
 	result += certificateContext
 	result += fmt.Sprintf("\n\n💭 Analysis Prompt Ready:\n%s", analysisPrompt)

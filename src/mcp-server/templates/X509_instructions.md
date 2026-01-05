@@ -134,9 +134,6 @@ The server supports multiple configuration methods for full functionality:
 ```json
 {
   "defaults": {
-    "format": "pem",
-    "includeSystemRoot": false,
-    "intermediateOnly": false,
     "warnDays": 30,
     "timeoutSeconds": 10
   }
@@ -146,9 +143,6 @@ The server supports multiple configuration methods for full functionality:
 **YAML format** (`config.yaml`):
 ```yaml
 defaults:
-  format: pem
-  includeSystemRoot: false
-  intermediateOnly: false
   warnDays: 30
   timeoutSeconds: 10
 ```

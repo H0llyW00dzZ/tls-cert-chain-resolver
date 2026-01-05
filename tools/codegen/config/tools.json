@@ -122,24 +122,15 @@
       "withConfig": true,
       "readOnlyHintAnnotation": true,
       "idempotentHintAnnotation": true,
-      "params": [
-        {
-          "name": "certificate",
-          "description": "Certificate file path or base64-encoded certificate data",
-          "type": "string",
-          "required": true,
-          "minLength": 1
-        },
-        {
-          "name": "warn_days",
-          "description": "Number of days before expiry to show warning (default: 30)",
-          "type": "number",
-          "required": false,
-          "default": "30",
-          "minimum": 1,
-          "maximum": 365
-        }
-      ]
+       "params": [
+         {
+           "name": "certificate",
+           "description": "Certificate file path or base64-encoded certificate data",
+           "type": "string",
+           "required": true,
+           "minLength": 1
+         }
+       ]
     },
     {
       "constName": "ToolFetchRemoteCert",

@@ -34,12 +34,6 @@ const (
 type Config struct {
 	// Defaults: Default settings for certificate chain operations
 	Defaults struct {
-		// Format: Default output format for certificates ("pem", "der", "json")
-		Format string `json:"format" yaml:"format"`
-		// IncludeSystemRoot: Whether to include system root CAs in chain operations
-		IncludeSystemRoot bool `json:"includeSystemRoot" yaml:"includeSystemRoot"`
-		// IntermediateOnly: Whether to return only intermediate certificates
-		IntermediateOnly bool `json:"intermediateOnly" yaml:"intermediateOnly"`
 		// WarnDays: Number of days before expiry to show warnings
 		WarnDays int `json:"warnDays" yaml:"warnDays"`
 		// Timeout: Default timeout in seconds for operations
@@ -131,9 +125,6 @@ func loadConfig(configPath string) (*Config, error) {
 	config := &Config{}
 
 	// Set defaults
-	config.Defaults.Format = "pem"
-	config.Defaults.IncludeSystemRoot = false
-	config.Defaults.IntermediateOnly = false
 	config.Defaults.WarnDays = 30
 	config.Defaults.Timeout = 30
 
@@ -158,6 +149,17 @@ func loadConfig(configPath string) (*Config, error) {
 		format := detectConfigFormat(configPath)
 		if err := unmarshalConfig(data, config, format); err != nil {
 			return nil, err
+		}
+
+		// Validate and set defaults for invalid values
+		if config.Defaults.WarnDays <= 0 {
+			config.Defaults.WarnDays = 30
+		}
+		if config.Defaults.Timeout <= 0 {
+			config.Defaults.Timeout = 30
+		}
+		if config.AI.Timeout <= 0 {
+			config.AI.Timeout = 30
 		}
 	}
 

@@ -1,8 +1,5 @@
 {
   "defaults": {
-    "format": "pem",
-    "includeSystemRoot": false,
-    "intermediateOnly": false,
     "warnDays": 30,
     "timeoutSeconds": 10
   },
