@@ -43,7 +43,7 @@ return:
 build-linux: checkout
 	@echo "Building $(BINARY_NAME) for Linux ($(GOARCH_DETECTED)) version $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)/linux/$(GOARCH_DETECTED)
-	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH_DETECTED) go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(BINARY_NAME) ./cmd
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH_DETECTED) go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(BINARY_NAME) ./cmd/tls-cert-chain-resolver
 	@echo "Build complete: $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(BINARY_NAME)"
 	@$(MAKE) --no-print-directory return
 
@@ -51,7 +51,7 @@ build-linux: checkout
 build-macos-amd64: checkout
 	@echo "Building $(BINARY_NAME) for macOS (amd64) version $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)/macos/amd64
-	@GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/amd64/$(BINARY_NAME) ./cmd
+	@GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/amd64/$(BINARY_NAME) ./cmd/tls-cert-chain-resolver
 	@echo "Build complete: $(BUILD_DIR)/macos/amd64/$(BINARY_NAME)"
 	@$(MAKE) --no-print-directory return
 
@@ -59,7 +59,7 @@ build-macos-amd64: checkout
 build-macos-arm64: checkout
 	@echo "Building $(BINARY_NAME) for macOS (arm64) version $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)/macos/arm64
-	@GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/arm64/$(BINARY_NAME) ./cmd
+	@GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/arm64/$(BINARY_NAME) ./cmd/tls-cert-chain-resolver
 	@echo "Build complete: $(BUILD_DIR)/macos/arm64/$(BINARY_NAME)"
 	@$(MAKE) --no-print-directory return
 
@@ -70,7 +70,7 @@ build-macos: build-macos-amd64 build-macos-arm64
 build-windows: checkout
 	@echo "Building $(BINARY_NAME) for Windows version $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)/windows
-	@GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/windows/$(BINARY_NAME).exe ./cmd
+	@GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/windows/$(BINARY_NAME).exe ./cmd/tls-cert-chain-resolver
 	@echo "Build complete: $(BUILD_DIR)/windows/$(BINARY_NAME).exe"
 	@$(MAKE) --no-print-directory return
 
@@ -78,7 +78,7 @@ build-windows: checkout
 build-mcp-linux: checkout
 	@echo "Building $(MCP_BINARY_NAME) for Linux ($(GOARCH_DETECTED)) version $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)/linux/$(GOARCH_DETECTED)
-	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH_DETECTED) go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(MCP_BINARY_NAME) ./cmd/mcp-server
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH_DETECTED) go build -ldflags="-X main.version=$(VERSION) -s -w" -o $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(MCP_BINARY_NAME) ./cmd/x509-cert-chain-resolver
 	@echo "Build complete: $(BUILD_DIR)/linux/$(GOARCH_DETECTED)/$(MCP_BINARY_NAME)"
 	@$(MAKE) --no-print-directory return
 
@@ -86,7 +86,7 @@ build-mcp-linux: checkout
 build-mcp-macos-amd64: checkout
 	@echo "Building $(MCP_BINARY_NAME) for macOS (amd64) version $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)/macos/amd64
-	@GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/amd64/$(MCP_BINARY_NAME) ./cmd/mcp-server
+	@GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/amd64/$(MCP_BINARY_NAME) ./cmd/x509-cert-chain-resolver
 	@echo "Build complete: $(BUILD_DIR)/macos/amd64/$(MCP_BINARY_NAME)"
 	@$(MAKE) --no-print-directory return
 
@@ -94,7 +94,7 @@ build-mcp-macos-amd64: checkout
 build-mcp-macos-arm64: checkout
 	@echo "Building $(MCP_BINARY_NAME) for macOS (arm64) version $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)/macos/arm64
-	@GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/arm64/$(MCP_BINARY_NAME) ./cmd/mcp-server
+	@GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/macos/arm64/$(MCP_BINARY_NAME) ./cmd/x509-cert-chain-resolver
 	@echo "Build complete: $(BUILD_DIR)/macos/arm64/$(MCP_BINARY_NAME)"
 	@$(MAKE) --no-print-directory return
 
@@ -105,7 +105,7 @@ build-mcp-macos: build-mcp-macos-amd64 build-mcp-macos-arm64
 build-mcp-windows: checkout
 	@echo "Building $(MCP_BINARY_NAME) for Windows version $(VERSION)..."
 	@mkdir -p $(BUILD_DIR)/windows
-	@GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/windows/$(MCP_BINARY_NAME).exe ./cmd/mcp-server
+	@GOOS=windows GOARCH=amd64 go build -ldflags="-X main.version=$(VERSION)" -o $(BUILD_DIR)/windows/$(MCP_BINARY_NAME).exe ./cmd/x509-cert-chain-resolver
 	@echo "Build complete: $(BUILD_DIR)/windows/$(MCP_BINARY_NAME).exe"
 	@$(MAKE) --no-print-directory return
 

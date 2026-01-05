@@ -45,10 +45,14 @@ TLS Cert Chain Resolver is a Go toolkit for building, validating, and inspecting
 
 ## Quick Start
 
-Install the CLI with Go 1.25.5 or later:
+Install with Go 1.25.5 or later:
 
 ```bash
-go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest
+# Install the CLI tool
+go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd/tls-cert-chain-resolver@latest
+
+# Install the MCP server
+go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd/x509-cert-chain-resolver@latest
 ```
 
 Run against a certificate file:
@@ -83,7 +87,7 @@ tls-cert-chain-resolver -f INPUT_CERT [FLAGS]
 | `-t, --tree` | Display certificate chain as ASCII tree diagram |
 | `--table` | Display certificate chain as markdown table |
 
-> **Tip:** If `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver@latest` fails due to module proxies, use `go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd@latest` or build from source with the provided Makefile targets.
+> **Tip:** The binary names match the directory names under `cmd/`, so `go install` will produce binaries named `tls-cert-chain-resolver` (CLI) and `x509-cert-chain-resolver` (MCP server). If installation fails due to module proxies, build from source with the provided Makefile targets.
 
 ### Examples
 
@@ -115,7 +119,7 @@ tls-cert-chain-resolver -f cert.pem --table
 
 ## Model Context Protocol (MCP) Server
 
-The repository includes a first-party MCP server (`cmd/mcp-server`) that exposes certificate operations to AI assistants or automation clients over stdio.
+The repository includes a first-party MCP server (`cmd/x509-cert-chain-resolver`) that exposes certificate operations to AI assistants or automation clients over stdio.
 
 > [!IMPORTANT]
 > **Go-Native Implementation**: This MCP server is implemented entirely in Go and leverages Go-specific features that provide superior performance and memory efficiency but limit portability to other programming languages. Key Go-native dependencies include:
@@ -178,9 +182,14 @@ All prompts include metadata for categorization and workflow identification, wit
 
 The remote fetcher sets `InsecureSkipVerify` on its TLS dialer so it can capture every handshake certificate without relying on the sandbox trust store. No verification is performed during that session; always validate the returned chain (for example with `VerifyChain`) before treating the endpoint as trusted, since a [man-in-the-middle](https://grokipedia.com/page/Man-in-the-middle_attack) could present an arbitrary certificate set.
 
-Enable the MCP server by building and running the binary:
+Enable the MCP server by installing or building the binary:
 
 ```bash
+# Install via go install
+go install github.com/H0llyW00dzZ/tls-cert-chain-resolver/cmd/x509-cert-chain-resolver@latest
+x509-cert-chain-resolver --help
+
+# Or build from source
 make build-mcp-linux
 ./bin/linux/x509-cert-chain-resolver --help
 ```
@@ -346,10 +355,11 @@ Additional targets are available in `Makefile`, including race detection and pla
 ```
 tls-cert-chain-resolver/
 ├── cmd/
-│   ├── adk-go/           # Google ADK integration example
-│   ├── run.go            # CLI entry point
-│   └── mcp-server/
-│       └── run.go        # MCP server entry point
+│   ├── adk-go/                    # Google ADK integration example
+│   ├── tls-cert-chain-resolver/   # CLI entry point (go install target)
+│   │   └── run.go
+│   └── x509-cert-chain-resolver/  # MCP server entry point (go install target)
+│       └── run.go
 ├── src/
 │   ├── cli/              # Cobra-based CLI implementation
 │   ├── internal/
