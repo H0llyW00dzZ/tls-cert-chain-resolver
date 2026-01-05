@@ -80,9 +80,9 @@ These instruction files are loaded via **[`/opencode.json`](../../opencode.json)
     "x509_resolver": {
       "type": "local",
       "command": [
-        "./bin/x509-cert-chain-resolver",
+        "x509-cert-chain-resolver",
         "--config",
-        "./src/mcp-server/config.example.json"
+        "./src/mcp-server/config.example.yaml"
       ],
       "enabled": true
     }
