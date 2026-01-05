@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -266,14 +266,6 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 					mcp.Required(),
 					mcp.Description("Certificate file path or base64-encoded certificate data"),
 					mcp.MinLength(1),
-				),
-
-				mcp.WithNumber(
-					"warn_days",
-					mcp.Description("Number of days before expiry to show warning (default: 30)"),
-					mcp.Min(1),
-					mcp.Max(365),
-					mcp.DefaultNumber(30),
 				),
 			),
 			Handler: handleCheckCertExpiry,

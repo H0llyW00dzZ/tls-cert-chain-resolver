@@ -23,7 +23,7 @@ The goal of the basic analysis workflow is to perform standard certificate valid
     EXAMPLE: `{{.ToolRoles.chainValidator}}({"certificate":"path/to/cert.pem"})`
 
 3. **Check expiry status**: Use `{{.ToolRoles.expiryChecker}}` to analyze certificate validity periods and identify upcoming expirations. Always specify appropriate warning thresholds based on organizational policies.
-    EXAMPLE: `{{.ToolRoles.expiryChecker}}({"certificate":"path/to/cert.pem","warn_days":30})`
+    EXAMPLE: `{{.ToolRoles.expiryChecker}}({"certificate":"path/to/cert.pem"})`
 
 4. **Verify server health**: If the analysis involves server certificates, use `{{.ToolRoles.resourceMonitor}}` to ensure the certificate resolver service is operating correctly.
     EXAMPLE: `{{.ToolRoles.resourceMonitor}}({"detailed":false,"format":"json"})`
@@ -134,9 +134,6 @@ The server supports multiple configuration methods for full functionality:
 ```json
 {
   "defaults": {
-    "format": "pem",
-    "includeSystemRoot": false,
-    "intermediateOnly": false,
     "warnDays": 30,
     "timeoutSeconds": 10
   }
@@ -146,9 +143,6 @@ The server supports multiple configuration methods for full functionality:
 **YAML format** (`config.yaml`):
 ```yaml
 defaults:
-  format: pem
-  includeSystemRoot: false
-  intermediateOnly: false
   warnDays: 30
   timeoutSeconds: 10
 ```

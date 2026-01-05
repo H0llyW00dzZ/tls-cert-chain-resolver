@@ -3,12 +3,6 @@
 # Supported formats: .json, .yaml, .yml
 
 defaults:
-  # Output format for certificates ("pem", "der", "json")
-  format: pem
-  # Whether to include system root CAs in chain operations
-  includeSystemRoot: false
-  # Whether to return only intermediate certificates
-  intermediateOnly: false
   # Number of days before expiry to show warnings
   warnDays: 30
   # Default timeout in seconds for operations

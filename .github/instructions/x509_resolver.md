@@ -7,7 +7,7 @@
 - [Available Tools](#available-tools)
   - [x509_resolver_resolve_cert_chain(certificate)](#x509_resolver_resolve_cert_chaincertificate)
   - [x509_resolver_validate_cert_chain(certificate)](#x509_resolver_validate_cert_chaincertificate)
-  - [x509_resolver_check_cert_expiry(certificate, warn_days?)](#x509_resolver_check_cert_expirycertificate-warn_days)
+  - [x509_resolver_check_cert_expiry(certificate)](#x509_resolver_check_cert_expirycertificate)
   - [x509_resolver_batch_resolve_cert_chain(certificates)](#x509_resolver_batch_resolve_cert_chain-certificates)
   - [x509_resolver_fetch_remote_cert(hostname, port?)](#x509_resolver_fetch_remote_certhostname-port)
   - [x509_resolver_analyze_certificate_with_ai(certificate, analysis_type?)](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type---enterprise-grade)
@@ -79,7 +79,7 @@ x509_resolver_validate_cert_chain("path/to/cert.pem")
 x509_resolver_validate_cert_chain("cert.pem", include_system_root=false)
 ```
 
-### x509_resolver_check_cert_expiry(certificate, warn_days?)
+### x509_resolver_check_cert_expiry(certificate)
 
 **Purpose**: Check certificate expiry dates and warn about upcoming expirations
 **Returns**: Expiry information with configurable warning thresholds
@@ -88,13 +88,11 @@ x509_resolver_validate_cert_chain("cert.pem", include_system_root=false)
 **Parameters**:
 
 - `certificate`: File path or base64-encoded certificate data
-- `warn_days`: Number of days before expiry to show warning (default: 30)
 
 **Examples**:
 
 ```
 x509_resolver_check_cert_expiry("cert.pem")
-x509_resolver_check_cert_expiry("cert.pem", warn_days=90)
 ```
 
 ### x509_resolver_batch_resolve_cert_chain(certificates)
@@ -508,12 +506,11 @@ x509_resolver_validate_cert_chain("cert.pem") # May fail without intermediates
 ### 2. Expiry Monitoring
 
 ```
-✅ GOOD: Set appropriate warning thresholds
-x509_resolver_check_cert_expiry("cert.pem", warn_days=30)   # 30 days
-x509_resolver_check_cert_expiry("cert.pem", warn_days=90)   # 90 days
+✅ GOOD: Check expiry status using configured warning thresholds
+x509_resolver_check_cert_expiry("cert.pem") # Uses configured WarnDays (default 30 days)
 
-❌ BAD: Using default without considering requirements
-x509_resolver_check_cert_expiry("cert.pem") # Always uses 30 days
+❌ BAD: Not monitoring certificate expiry dates
+# Missing expiry checks can lead to unexpected certificate failures
 ```
 
 ### 3. Remote Certificate Fetching
@@ -562,7 +559,7 @@ x509_resolver_validate_cert_chain("example.com.pem")
 3. **Check expiry status**
 
 ```
-x509_resolver_check_cert_expiry("example.com.pem", warn_days=30)
+x509_resolver_check_cert_expiry("example.com.pem")
 ```
 
 4. **Process results in application code**
@@ -585,7 +582,7 @@ bash("go test -v ./src/internal/x509/chain 2>&1 | cat")
 // Fetch and validate remote certificates
 certChain := x509_resolver_fetch_remote_cert("api.example.com")
 validation := x509_resolver_validate_cert_chain(certChain)
-expiry := x509_resolver_check_cert_expiry(certChain, warn_days=30)
+expiry := x509_resolver_check_cert_expiry(certChain)
 
 // Process results
 if validation.trusted && !expiry.expired {
@@ -647,7 +644,7 @@ for i, chain := range chains {
 
 1. **Use [`x509_resolver_resolve_cert_chain`](#x509_resolver_resolve_cert_chaincertificate)** for building complete certificate chains
 2. **Use [`x509_resolver_validate_cert_chain`](#x509_resolver_validate_cert_chaincertificate)** to verify certificate trust and validity
-3. **Use [`x509_resolver_check_cert_expiry`](#x509_resolver_check_cert_expirycertificate-warn_days)** to monitor certificate expiration dates
+3. **Use [`x509_resolver_check_cert_expiry`](#x509_resolver_check_cert_expirycertificate)** to monitor certificate expiration dates
 4. **Use [`x509_resolver_batch_resolve_cert_chain`](#x509_resolver_batch_resolve_cert_chain-certificates)** for efficient multi-certificate processing
 5. **Use [`x509_resolver_fetch_remote_cert`](#x509_resolver_fetch_remote_certhostname-port)** to retrieve certificates from remote servers
 6. **Use [`x509_resolver_analyze_certificate_with_ai`](#x509_resolver_analyze_certificate_with_aicertificate-analysis_type)** for AI-powered security analysis (requires sampling handler and AI API key)
