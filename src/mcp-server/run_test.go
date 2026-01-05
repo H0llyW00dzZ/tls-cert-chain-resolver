@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
@@ -3610,11 +3611,11 @@ func TestHandleAnalyzeCertificateWithAI(t *testing.T) {
 	// Test with config without AI API key (should return certificate context)
 	config := &Config{
 		Defaults: struct {
-			Format            string `json:"format"`
-			IncludeSystemRoot bool   `json:"includeSystemRoot"`
-			IntermediateOnly  bool   `json:"intermediateOnly"`
-			WarnDays          int    `json:"warnDays"`
-			Timeout           int    `json:"timeoutSeconds"`
+			Format            string `json:"format" yaml:"format"`
+			IncludeSystemRoot bool   `json:"includeSystemRoot" yaml:"includeSystemRoot"`
+			IntermediateOnly  bool   `json:"intermediateOnly" yaml:"intermediateOnly"`
+			WarnDays          int    `json:"warnDays" yaml:"warnDays"`
+			Timeout           int    `json:"timeoutSeconds" yaml:"timeoutSeconds"`
 		}{
 			Timeout: 30,
 		},
@@ -3694,11 +3695,11 @@ func TestConcurrentCertificateAnalysis(t *testing.T) {
 
 	config := &Config{
 		Defaults: struct {
-			Format            string `json:"format"`
-			IncludeSystemRoot bool   `json:"includeSystemRoot"`
-			IntermediateOnly  bool   `json:"intermediateOnly"`
-			WarnDays          int    `json:"warnDays"`
-			Timeout           int    `json:"timeoutSeconds"`
+			Format            string `json:"format" yaml:"format"`
+			IncludeSystemRoot bool   `json:"includeSystemRoot" yaml:"includeSystemRoot"`
+			IntermediateOnly  bool   `json:"intermediateOnly" yaml:"intermediateOnly"`
+			WarnDays          int    `json:"warnDays" yaml:"warnDays"`
+			Timeout           int    `json:"timeoutSeconds" yaml:"timeoutSeconds"`
 		}{
 			Timeout: 30,
 		},
@@ -4794,5 +4795,646 @@ func TestCLIFramework_BuildRootCommand_Coverage(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestDetectConfigFormat(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected configFormat
+	}{
+		{
+			name:     "JSON extension lowercase",
+			path:     "config.json",
+			expected: configFormatJSON,
+		},
+		{
+			name:     "JSON extension uppercase",
+			path:     "config.JSON",
+			expected: configFormatJSON,
+		},
+		{
+			name:     "YAML extension lowercase",
+			path:     "config.yaml",
+			expected: configFormatYAML,
+		},
+		{
+			name:     "YAML extension uppercase",
+			path:     "config.YAML",
+			expected: configFormatYAML,
+		},
+		{
+			name:     "YML extension lowercase",
+			path:     "config.yml",
+			expected: configFormatYAML,
+		},
+		{
+			name:     "YML extension uppercase",
+			path:     "config.YML",
+			expected: configFormatYAML,
+		},
+		{
+			name:     "Mixed case yaml",
+			path:     "config.YaML",
+			expected: configFormatYAML,
+		},
+		{
+			name:     "No extension defaults to JSON",
+			path:     "config",
+			expected: configFormatJSON,
+		},
+		{
+			name:     "Unknown extension defaults to JSON",
+			path:     "config.txt",
+			expected: configFormatJSON,
+		},
+		{
+			name:     "Full path with YAML extension",
+			path:     "/etc/mcp/config.yaml",
+			expected: configFormatYAML,
+		},
+		{
+			name:     "Full path with JSON extension",
+			path:     "/etc/mcp/config.json",
+			expected: configFormatJSON,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := detectConfigFormat(tt.path)
+			if result != tt.expected {
+				t.Errorf("detectConfigFormat(%q) = %v, expected %v", tt.path, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestUnmarshalConfig_JSON(t *testing.T) {
+	jsonData := []byte(`{
+		"defaults": {
+			"format": "der",
+			"includeSystemRoot": true,
+			"intermediateOnly": true,
+			"warnDays": 60,
+			"timeoutSeconds": 45
+		},
+		"ai": {
+			"apiKey": "test-key",
+			"endpoint": "https://api.test.com",
+			"model": "test-model",
+			"timeout": 120
+		}
+	}`)
+
+	config := &Config{}
+	err := unmarshalConfig(jsonData, config, configFormatJSON)
+	if err != nil {
+		t.Fatalf("unmarshalConfig failed for JSON: %v", err)
+	}
+
+	// Verify defaults
+	if config.Defaults.Format != "der" {
+		t.Errorf("Expected format 'der', got %s", config.Defaults.Format)
+	}
+	if !config.Defaults.IncludeSystemRoot {
+		t.Error("Expected includeSystemRoot true")
+	}
+	if !config.Defaults.IntermediateOnly {
+		t.Error("Expected intermediateOnly true")
+	}
+	if config.Defaults.WarnDays != 60 {
+		t.Errorf("Expected warnDays 60, got %d", config.Defaults.WarnDays)
+	}
+	if config.Defaults.Timeout != 45 {
+		t.Errorf("Expected timeout 45, got %d", config.Defaults.Timeout)
+	}
+
+	// Verify AI settings
+	if config.AI.APIKey != "test-key" {
+		t.Errorf("Expected apiKey 'test-key', got %s", config.AI.APIKey)
+	}
+	if config.AI.Endpoint != "https://api.test.com" {
+		t.Errorf("Expected endpoint 'https://api.test.com', got %s", config.AI.Endpoint)
+	}
+	if config.AI.Model != "test-model" {
+		t.Errorf("Expected model 'test-model', got %s", config.AI.Model)
+	}
+	if config.AI.Timeout != 120 {
+		t.Errorf("Expected AI timeout 120, got %d", config.AI.Timeout)
+	}
+}
+
+func TestUnmarshalConfig_YAML(t *testing.T) {
+	yamlData := []byte(`
+defaults:
+  format: der
+  includeSystemRoot: true
+  intermediateOnly: true
+  warnDays: 60
+  timeoutSeconds: 45
+
+ai:
+  apiKey: test-key
+  endpoint: https://api.test.com
+  model: test-model
+  timeout: 120
+`)
+
+	config := &Config{}
+	err := unmarshalConfig(yamlData, config, configFormatYAML)
+	if err != nil {
+		t.Fatalf("unmarshalConfig failed for YAML: %v", err)
+	}
+
+	// Verify defaults
+	if config.Defaults.Format != "der" {
+		t.Errorf("Expected format 'der', got %s", config.Defaults.Format)
+	}
+	if !config.Defaults.IncludeSystemRoot {
+		t.Error("Expected includeSystemRoot true")
+	}
+	if !config.Defaults.IntermediateOnly {
+		t.Error("Expected intermediateOnly true")
+	}
+	if config.Defaults.WarnDays != 60 {
+		t.Errorf("Expected warnDays 60, got %d", config.Defaults.WarnDays)
+	}
+	if config.Defaults.Timeout != 45 {
+		t.Errorf("Expected timeout 45, got %d", config.Defaults.Timeout)
+	}
+
+	// Verify AI settings
+	if config.AI.APIKey != "test-key" {
+		t.Errorf("Expected apiKey 'test-key', got %s", config.AI.APIKey)
+	}
+	if config.AI.Endpoint != "https://api.test.com" {
+		t.Errorf("Expected endpoint 'https://api.test.com', got %s", config.AI.Endpoint)
+	}
+	if config.AI.Model != "test-model" {
+		t.Errorf("Expected model 'test-model', got %s", config.AI.Model)
+	}
+	if config.AI.Timeout != 120 {
+		t.Errorf("Expected AI timeout 120, got %d", config.AI.Timeout)
+	}
+}
+
+func TestUnmarshalConfig_InvalidJSON(t *testing.T) {
+	invalidJSON := []byte(`{invalid json}`)
+
+	config := &Config{}
+	err := unmarshalConfig(invalidJSON, config, configFormatJSON)
+	if err == nil {
+		t.Error("Expected error for invalid JSON, got nil")
+	}
+}
+
+func TestUnmarshalConfig_InvalidYAML(t *testing.T) {
+	invalidYAML := []byte(`
+defaults:
+  format: "unclosed string
+`)
+
+	config := &Config{}
+	err := unmarshalConfig(invalidYAML, config, configFormatYAML)
+	if err == nil {
+		t.Error("Expected error for invalid YAML, got nil")
+	}
+}
+
+func TestLoadConfig_JSONFile(t *testing.T) {
+	// Create temp JSON config file
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.json")
+
+	jsonContent := []byte(`{
+		"defaults": {
+			"format": "json",
+			"includeSystemRoot": true,
+			"intermediateOnly": false,
+			"warnDays": 90,
+			"timeoutSeconds": 60
+		},
+		"ai": {
+			"endpoint": "https://custom.api.com",
+			"model": "custom-model",
+			"timeout": 90
+		}
+	}`)
+
+	if err := os.WriteFile(configPath, jsonContent, 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	config, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	// Verify loaded values
+	if config.Defaults.Format != "json" {
+		t.Errorf("Expected format 'json', got %s", config.Defaults.Format)
+	}
+	if !config.Defaults.IncludeSystemRoot {
+		t.Error("Expected includeSystemRoot true")
+	}
+	if config.Defaults.WarnDays != 90 {
+		t.Errorf("Expected warnDays 90, got %d", config.Defaults.WarnDays)
+	}
+	if config.Defaults.Timeout != 60 {
+		t.Errorf("Expected timeout 60, got %d", config.Defaults.Timeout)
+	}
+	if config.AI.Endpoint != "https://custom.api.com" {
+		t.Errorf("Expected endpoint 'https://custom.api.com', got %s", config.AI.Endpoint)
+	}
+	if config.AI.Model != "custom-model" {
+		t.Errorf("Expected model 'custom-model', got %s", config.AI.Model)
+	}
+}
+
+func TestLoadConfig_YAMLFile(t *testing.T) {
+	// Create temp YAML config file
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yaml")
+
+	yamlContent := []byte(`# Test YAML config
+defaults:
+  format: json
+  includeSystemRoot: true
+  intermediateOnly: false
+  warnDays: 90
+  timeoutSeconds: 60
+
+ai:
+  endpoint: https://custom.api.com
+  model: custom-model
+  timeout: 90
+`)
+
+	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	config, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	// Verify loaded values
+	if config.Defaults.Format != "json" {
+		t.Errorf("Expected format 'json', got %s", config.Defaults.Format)
+	}
+	if !config.Defaults.IncludeSystemRoot {
+		t.Error("Expected includeSystemRoot true")
+	}
+	if config.Defaults.WarnDays != 90 {
+		t.Errorf("Expected warnDays 90, got %d", config.Defaults.WarnDays)
+	}
+	if config.Defaults.Timeout != 60 {
+		t.Errorf("Expected timeout 60, got %d", config.Defaults.Timeout)
+	}
+	if config.AI.Endpoint != "https://custom.api.com" {
+		t.Errorf("Expected endpoint 'https://custom.api.com', got %s", config.AI.Endpoint)
+	}
+	if config.AI.Model != "custom-model" {
+		t.Errorf("Expected model 'custom-model', got %s", config.AI.Model)
+	}
+}
+
+func TestLoadConfig_YMLExtension(t *testing.T) {
+	// Create temp YML config file (alternative YAML extension)
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yml")
+
+	ymlContent := []byte(`defaults:
+  format: der
+  warnDays: 45
+`)
+
+	if err := os.WriteFile(configPath, ymlContent, 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	config, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	if config.Defaults.Format != "der" {
+		t.Errorf("Expected format 'der', got %s", config.Defaults.Format)
+	}
+	if config.Defaults.WarnDays != 45 {
+		t.Errorf("Expected warnDays 45, got %d", config.Defaults.WarnDays)
+	}
+}
+
+func TestLoadConfig_Defaults(t *testing.T) {
+	// Test with empty path to verify defaults
+	config, err := loadConfig("")
+	if err != nil {
+		t.Fatalf("loadConfig with empty path failed: %v", err)
+	}
+
+	// Verify default values
+	if config.Defaults.Format != "pem" {
+		t.Errorf("Expected default format 'pem', got %s", config.Defaults.Format)
+	}
+	if config.Defaults.IncludeSystemRoot != false {
+		t.Error("Expected default includeSystemRoot false")
+	}
+	if config.Defaults.IntermediateOnly != false {
+		t.Error("Expected default intermediateOnly false")
+	}
+	if config.Defaults.WarnDays != 30 {
+		t.Errorf("Expected default warnDays 30, got %d", config.Defaults.WarnDays)
+	}
+	if config.Defaults.Timeout != 30 {
+		t.Errorf("Expected default timeout 30, got %d", config.Defaults.Timeout)
+	}
+
+	// Verify AI defaults
+	if config.AI.Endpoint != "https://api.x.ai" {
+		t.Errorf("Expected default AI endpoint 'https://api.x.ai', got %s", config.AI.Endpoint)
+	}
+	if config.AI.Model != "grok-beta" {
+		t.Errorf("Expected default AI model 'grok-beta', got %s", config.AI.Model)
+	}
+	if config.AI.Timeout != 30 {
+		t.Errorf("Expected default AI timeout 30, got %d", config.AI.Timeout)
+	}
+}
+
+func TestLoadConfig_NonexistentFile(t *testing.T) {
+	_, err := loadConfig("/nonexistent/path/config.json")
+	if err == nil {
+		t.Error("Expected error for nonexistent file, got nil")
+	}
+}
+
+func TestLoadConfig_InvalidJSONFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "invalid.json")
+
+	if err := os.WriteFile(configPath, []byte(`{invalid`), 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	_, err := loadConfig(configPath)
+	if err == nil {
+		t.Error("Expected error for invalid JSON file, got nil")
+	}
+}
+
+func TestLoadConfig_InvalidYAMLFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "invalid.yaml")
+
+	if err := os.WriteFile(configPath, []byte("invalid: yaml: content: ["), 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	_, err := loadConfig(configPath)
+	if err == nil {
+		t.Error("Expected error for invalid YAML file, got nil")
+	}
+}
+
+func TestLoadConfig_EnvironmentVariable(t *testing.T) {
+	// Create temp config file
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "env_config.yaml")
+
+	yamlContent := []byte(`defaults:
+  format: der
+  warnDays: 100
+`)
+
+	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	// Set environment variable
+	oldEnv := os.Getenv("MCP_X509_CONFIG_FILE")
+	defer os.Setenv("MCP_X509_CONFIG_FILE", oldEnv)
+
+	os.Setenv("MCP_X509_CONFIG_FILE", configPath)
+
+	// Load with empty path - should use env var
+	config, err := loadConfig("")
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	if config.Defaults.Format != "der" {
+		t.Errorf("Expected format 'der' from env config, got %s", config.Defaults.Format)
+	}
+	if config.Defaults.WarnDays != 100 {
+		t.Errorf("Expected warnDays 100 from env config, got %d", config.Defaults.WarnDays)
+	}
+}
+
+func TestLoadConfig_APIKeyFromEnvironment(t *testing.T) {
+	// Create temp config file without API key
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "no_key.yaml")
+
+	yamlContent := []byte(`defaults:
+  format: pem
+ai:
+  endpoint: https://api.test.com
+`)
+
+	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	// Set API key environment variable
+	oldEnv := os.Getenv("X509_AI_APIKEY")
+	defer os.Setenv("X509_AI_APIKEY", oldEnv)
+
+	os.Setenv("X509_AI_APIKEY", "env-api-key")
+
+	config, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	if config.AI.APIKey != "env-api-key" {
+		t.Errorf("Expected API key 'env-api-key' from env, got %s", config.AI.APIKey)
+	}
+}
+
+func TestLoadConfig_ConfigAPIKeyOverridesDefault(t *testing.T) {
+	// Create temp config file with API key
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "with_key.yaml")
+
+	yamlContent := []byte(`defaults:
+  format: pem
+ai:
+  apiKey: config-api-key
+  endpoint: https://api.test.com
+`)
+
+	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	// Ensure env var is not set
+	oldEnv := os.Getenv("X509_AI_APIKEY")
+	defer os.Setenv("X509_AI_APIKEY", oldEnv)
+	os.Unsetenv("X509_AI_APIKEY")
+
+	config, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	if config.AI.APIKey != "config-api-key" {
+		t.Errorf("Expected API key 'config-api-key' from config, got %s", config.AI.APIKey)
+	}
+}
+
+func TestLoadConfig_PartialYAML(t *testing.T) {
+	// Test that partial YAML config merges with defaults
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "partial.yaml")
+
+	yamlContent := []byte(`defaults:
+  format: json
+`)
+
+	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	config, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	// Specified value should be used
+	if config.Defaults.Format != "json" {
+		t.Errorf("Expected format 'json', got %s", config.Defaults.Format)
+	}
+
+	// Unspecified values should be zero values (not defaults, since config overrides)
+	// Note: In Go, unmarshaling into a pre-populated struct will only overwrite
+	// the fields that are present in the input. So defaults ARE preserved.
+	// The loadConfig function sets defaults first, then unmarshals.
+}
+
+func TestLoadConfig_EmptyYAML(t *testing.T) {
+	// Test that empty YAML file uses defaults
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "empty.yaml")
+
+	if err := os.WriteFile(configPath, []byte(""), 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	config, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	// Defaults should be preserved
+	if config.Defaults.Format != "pem" {
+		t.Errorf("Expected default format 'pem', got %s", config.Defaults.Format)
+	}
+	if config.Defaults.WarnDays != 30 {
+		t.Errorf("Expected default warnDays 30, got %d", config.Defaults.WarnDays)
+	}
+}
+
+func TestLoadConfig_YAMLWithComments(t *testing.T) {
+	// Test that YAML comments are handled correctly
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "commented.yaml")
+
+	yamlContent := []byte(`# This is a comment
+defaults:
+  # Output format
+  format: der  # inline comment
+  # Warning days before expiry
+  warnDays: 45
+
+# AI Configuration
+ai:
+  # API endpoint
+  endpoint: https://api.example.com
+`)
+
+	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	config, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig failed: %v", err)
+	}
+
+	if config.Defaults.Format != "der" {
+		t.Errorf("Expected format 'der', got %s", config.Defaults.Format)
+	}
+	if config.Defaults.WarnDays != 45 {
+		t.Errorf("Expected warnDays 45, got %d", config.Defaults.WarnDays)
+	}
+	if config.AI.Endpoint != "https://api.example.com" {
+		t.Errorf("Expected endpoint 'https://api.example.com', got %s", config.AI.Endpoint)
+	}
+}
+
+func TestLoadConfig_ExampleFiles(t *testing.T) {
+	// Test loading the actual example config files
+	tests := []struct {
+		name string
+		path string
+	}{
+		{
+			name: "JSON example config",
+			path: "config.example.json",
+		},
+		{
+			name: "YAML example config",
+			path: "config.example.yaml",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config, err := loadConfig(tt.path)
+			if err != nil {
+				t.Fatalf("Failed to load %s: %v", tt.path, err)
+			}
+
+			// Verify basic structure
+			if config.Defaults.Format == "" {
+				t.Error("Expected format to be set")
+			}
+			if config.Defaults.Timeout == 0 {
+				t.Error("Expected timeout to be set")
+			}
+			if config.AI.Endpoint == "" {
+				t.Error("Expected AI endpoint to be set")
+			}
+			if config.AI.Model == "" {
+				t.Error("Expected AI model to be set")
+			}
+		})
+	}
+}
+
+func TestConfigFormat_Constants(t *testing.T) {
+	// Verify config format constants are distinct
+	if configFormatJSON == configFormatYAML {
+		t.Error("configFormatJSON and configFormatYAML should be different")
+	}
+
+	// Verify JSON is the default (0 value)
+	var defaultFormat configFormat
+	if defaultFormat != configFormatJSON {
+		t.Error("Default configFormat should be JSON")
 	}
 }

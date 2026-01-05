@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -9,46 +9,109 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+// configFormat represents supported configuration file formats.
+type configFormat int
+
+const (
+	// configFormatJSON represents JSON configuration format (.json)
+	configFormatJSON configFormat = iota
+	// configFormatYAML represents YAML configuration format (.yaml, .yml)
+	configFormatYAML
 )
 
 // Config represents the MCP server configuration structure.
 // It contains default settings for certificate operations and AI integration parameters.
 //
-// The configuration can be loaded from a JSON file specified by the MCP_X509_CONFIG_FILE
+// The configuration can be loaded from a JSON or YAML file specified by the MCP_X509_CONFIG_FILE
 // environment variable, with defaults applied for any missing values.
+// Supported file extensions: .json, .yaml, .yml
 type Config struct {
 	// Defaults: Default settings for certificate chain operations
 	Defaults struct {
 		// Format: Default output format for certificates ("pem", "der", "json")
-		Format string `json:"format"`
+		Format string `json:"format" yaml:"format"`
 		// IncludeSystemRoot: Whether to include system root CAs in chain operations
-		IncludeSystemRoot bool `json:"includeSystemRoot"`
+		IncludeSystemRoot bool `json:"includeSystemRoot" yaml:"includeSystemRoot"`
 		// IntermediateOnly: Whether to return only intermediate certificates
-		IntermediateOnly bool `json:"intermediateOnly"`
+		IntermediateOnly bool `json:"intermediateOnly" yaml:"intermediateOnly"`
 		// WarnDays: Number of days before expiry to show warnings
-		WarnDays int `json:"warnDays"`
+		WarnDays int `json:"warnDays" yaml:"warnDays"`
 		// Timeout: Default timeout in seconds for operations
-		Timeout int `json:"timeoutSeconds"`
-	} `json:"defaults"`
+		Timeout int `json:"timeoutSeconds" yaml:"timeoutSeconds"`
+	} `json:"defaults" yaml:"defaults"`
 
 	// AI: Configuration for sampling/LLM integration
 	AI struct {
 		// APIKey: API key for AI service authentication (can also be set via X509_AI_APIKEY env var)
-		APIKey string `json:"apiKey,omitempty"`
+		APIKey string `json:"apiKey,omitempty" yaml:"apiKey,omitempty"`
 		// Endpoint: API endpoint URL for AI service (defaults to xAI)
-		Endpoint string `json:"endpoint,omitempty"`
+		Endpoint string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 		// Model: Default AI model to use for certificate analysis
-		Model string `json:"model,omitempty"`
+		Model string `json:"model,omitempty" yaml:"model,omitempty"`
 		// Timeout: API timeout in seconds for AI requests
-		Timeout int `json:"timeout,omitempty"`
-	} `json:"ai"`
+		Timeout int `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	} `json:"ai" yaml:"ai"`
 }
 
-// loadConfig loads MCP server configuration from a JSON file or applies defaults.
+// detectConfigFormat determines the configuration file format based on file extension.
+// It supports .json, .yaml, and .yml extensions for flexible configuration management.
+//
+// Parameters:
+//   - configPath: Path to the configuration file
+//
+// Returns:
+//   - configFormat: The detected format (configFormatJSON or configFormatYAML)
+//
+// The function uses case-insensitive extension matching for cross-platform compatibility.
+func detectConfigFormat(configPath string) configFormat {
+	ext := strings.ToLower(filepath.Ext(configPath))
+	switch ext {
+	case ".yaml", ".yml":
+		return configFormatYAML
+	default:
+		return configFormatJSON
+	}
+}
+
+// unmarshalConfig unmarshals configuration data based on the specified format.
+// It supports both JSON and YAML formats for configuration flexibility.
+//
+// Parameters:
+//   - data: Raw configuration file contents
+//   - config: Pointer to Config struct to populate
+//   - format: The configuration format (configFormatJSON or configFormatYAML)
+//
+// Returns:
+//   - error: Any parsing error encountered during unmarshaling
+//
+// The function delegates to the appropriate parser based on the format parameter,
+// ensuring consistent error handling across both configuration formats.
+func unmarshalConfig(data []byte, config *Config, format configFormat) error {
+	switch format {
+	case configFormatYAML:
+		if err := yaml.Unmarshal(data, config); err != nil {
+			return fmt.Errorf("failed to parse YAML config file: %w", err)
+		}
+	default:
+		if err := json.Unmarshal(data, config); err != nil {
+			return fmt.Errorf("failed to parse JSON config file: %w", err)
+		}
+	}
+	return nil
+}
+
+// loadConfig loads MCP server configuration from a JSON or YAML file or applies defaults.
 // It sets up default values for certificate operations and AI integration settings.
 //
 // Parameters:
-//   - configPath: Path to the JSON configuration file (optional, can be empty)
+//   - configPath: Path to the configuration file (optional, can be empty)
+//     Supported formats: .json, .yaml, .yml
 //
 // Returns:
 //   - A pointer to the loaded Config struct with defaults applied
@@ -61,8 +124,9 @@ type Config struct {
 //  4. Environment variables override config file values (X509_AI_APIKEY)
 //
 // The function first applies hardcoded defaults, then attempts to load and merge
-// configuration from the specified file. Environment variables can override
-// certain settings like the AI API key.
+// configuration from the specified file. The file format is automatically detected
+// based on the file extension (.json, .yaml, or .yml). Environment variables can
+// override certain settings like the AI API key.
 func loadConfig(configPath string) (*Config, error) {
 	config := &Config{}
 
@@ -87,11 +151,13 @@ func loadConfig(configPath string) (*Config, error) {
 	if configPath != "" {
 		data, err := os.ReadFile(configPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read config file: %v", err)
+			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
 
-		if err := json.Unmarshal(data, config); err != nil {
-			return nil, fmt.Errorf("failed to parse config file: %v", err)
+		// Detect format and unmarshal accordingly
+		format := detectConfigFormat(configPath)
+		if err := unmarshalConfig(data, config, format); err != nil {
+			return nil, err
 		}
 	}
 
