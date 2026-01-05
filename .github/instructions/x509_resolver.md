@@ -158,6 +158,7 @@ x509_resolver_fetch_remote_cert("mail.google.com", port=993, intermediate_only=t
 - Includes OCSP/CRL status verification using `CheckRevocationStatus` from `src/internal/x509/chain/revocation.go`.
 - Provides methodology explanations for revocation status checks (OCSP priority over CRL, multi-endpoint redundancy, signature verification requirements).
 - CRL cache includes O(1) LRU eviction with hashmap and doubly-linked list, automatic cleanup with context cancellation support, configurable size limits, comprehensive metrics tracking (hits, misses, evictions, cleanups, memory usage), and atomic operations to prevent race conditions and prevent memory leaks.
+- `maxTokens` and `temperature` parameters are configurable via the MCP server configuration file (defaults: 4096 tokens, 0.3 temperature).
 
 **Examples**:
 

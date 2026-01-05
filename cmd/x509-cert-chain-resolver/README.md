@@ -107,7 +107,9 @@ The MCP server supports both JSON and YAML configuration formats. The format is 
     "apiKey": "",
     "endpoint": "https://api.x.ai",
     "model": "grok-4-1-fast-non-reasoning",
-    "timeout": 30
+    "timeout": 30,
+    "maxTokens": 4096,
+    "temperature": 0.3
   }
 }
 ```
@@ -124,6 +126,8 @@ ai:
   endpoint: https://api.x.ai
   model: grok-4-1-fast-non-reasoning
   timeout: 30
+  maxTokens: 4096
+  temperature: 0.3
 ```
 
 ## AI-Assisted Analysis
