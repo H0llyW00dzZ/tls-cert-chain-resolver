@@ -13,7 +13,11 @@ Analyze Go code complexity using `gocyclo` and provide refactoring suggestions f
 
     - Execute `gocyclo .` to analyze all Go functions in the codebase
     - Filter out test functions (exclude _test.go files)
-    - Calculate average complexity across all analyzed functions
+    - Calculate average complexity across all analyzed functions using the arithmetic mean formula: $\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i$
+      - Where $\bar{x}$ is the average complexity
+      - $n$ is the total number of functions analyzed
+      - $x_i$ is the cyclomatic complexity of the $i$-th function
+      - The awk code implements this as: $\text{avg} = \frac{\text{sum}}{n}$ where $\text{sum} = \sum_{i=1}^{n} \text{complexity}_i$
     - Identify functions with complexity ≥ 15
     - Provide interpretation and actionable guidance based on average complexity
     - Display results with visual formatting and emojis for better readability
