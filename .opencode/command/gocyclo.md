@@ -22,7 +22,6 @@ Analyze Go code complexity using `gocyclo` and provide refactoring suggestions f
     - Provide interpretation and actionable guidance based on average complexity
     - Display results with visual formatting and emojis for better readability
 
-
     ```bash
     # Run this bash command for effective complexity analysis by composing it from Unix/Unix-like tools
     gocyclo . | grep -v "_test.go" | awk '
