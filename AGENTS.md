@@ -293,6 +293,7 @@ deepwiki_read_wiki_contents("microsoft/typescript")
 - Provides batch processing for multiple certificates
 - Includes remote certificate fetching capabilities
 - Use configuration file via `--config` CLI flag
+- Configure AI parameters (maxTokens, temperature) via config file for customized analysis
 
 **Example Usage**:
 
