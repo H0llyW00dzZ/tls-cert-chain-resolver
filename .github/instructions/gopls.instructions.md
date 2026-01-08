@@ -220,6 +220,11 @@ gopls_go_search("extractCertificateIndex") → Find certificate index extraction
 gopls_go_search("findFinalStatus") → Find final revocation status parsing
 gopls_go_search("TestHandleVisualizeCertChain") → Find visualize certificate chain test
 gopls_go_search("formatBatchResults") → Find batch result formatting helper
+gopls_go_search("setupTestServer") → Find MCP server test setup helper
+gopls_go_search("setupTestTransport") → Find transport test setup helper
+gopls_go_search("sendJSONRPCMessage") → Find JSON-RPC message sending test helper
+gopls_go_search("runJSONRPCTestCase") → Find JSON-RPC test case execution helper
+gopls_go_search("extractTestContent") → Find test content extraction helper
 gopls_go_search("appendSubjectInfo") → Find AI context subject info builder
 gopls_go_search("appendIssuerInfo") → Find AI context issuer info builder
 gopls_go_search("appendValidityInfo") → Find AI context validity info builder
