@@ -96,8 +96,8 @@ func Execute(ctx context.Context, version string, log logger.Logger) error {
 			}
 			return nil
 		},
-		// TODO: This might need improvment however this doesn't actually important to improve even cobra has 3 function execute,
-		// because 2 function or 1 function execute its already enought.
+		// TODO: This execution flow could be improved, but the current implementation
+		// is sufficient for the CLI's needs.
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Log start with version
 			globalLogger.Printf("Starting TLS certificate chain resolver (v%s)...", version)
