@@ -1184,9 +1184,8 @@ func TestADKTransportBridge(t *testing.T) {
 	})
 }
 
-// TestADKTransportBridge_FullJSONRPC tests complete JSON-RPC request-response cycle through the bridge
-func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
-	// Create MCP server with tools, resources, and prompts
+// setupTestServer creates a basic MCP server with test tool, resource, and prompt for integration tests
+func setupTestServer(_ *testing.T) *server.MCPServer {
 	s := server.NewMCPServer(
 		"Bridge Test Server",
 		"1.0.0",
@@ -1195,12 +1194,11 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 		server.WithPromptCapabilities(true),
 	)
 
-	// Add test tools
+	// Add test tool
 	testTool := mcp.NewTool("echo_tool",
 		mcp.WithDescription("Echoes the input message"),
 		mcp.WithString("message", mcp.Required(), mcp.Description("Message to echo")),
 	)
-
 	s.AddTool(testTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		params := request.Params
 		args := params.Arguments.(map[string]any)
@@ -1241,16 +1239,184 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 		}, nil
 	})
 
-	ctx := t.Context()
+	return s
+}
+
+// setupTestTransport creates and connects a test transport to the server
+func setupTestTransport(ctx context.Context, t *testing.T, s *server.MCPServer) *InMemoryTransport {
 	transport := NewInMemoryTransport(ctx)
 
-	// Connect server to transport
 	if err := transport.ConnectServer(ctx, s); err != nil {
 		t.Fatalf("Failed to connect server: %v", err)
 	}
+
+	return transport
+}
+
+// sendJSONRPCMessage sends a JSON-RPC message via transport
+func sendJSONRPCMessage(t *testing.T, transport *InMemoryTransport, message map[string]any) {
+	data, _ := json.Marshal(message)
+	if err := transport.WriteMessage(data); err != nil {
+		t.Fatalf("Failed to write message: %v", err)
+	}
+}
+
+// runJSONRPCTestCase executes a single JSON-RPC test case through the bridge
+func runJSONRPCTestCase(ctx context.Context, t *testing.T, bridge *ADKTransportConnection, tc struct {
+	name          string
+	request       map[string]any
+	expectID      float64
+	expectResult  bool
+	expectContent string
+}) {
+	// Convert request to JSON-RPC message
+	data, err := json.Marshal(tc.request)
+	if err != nil {
+		t.Fatalf("Failed to marshal request: %v", err)
+	}
+
+	t.Logf("Sending JSON request: %s", string(data))
+
+	jsonrpcMsg, err := jsonrpc.DecodeMessage(data)
+	if err != nil {
+		t.Fatalf("Failed to decode message: %v", err)
+	}
+
+	// Re-encode using MCP SDK for consistent formatting
+	encodedData, err := jsonrpc.EncodeMessage(jsonrpcMsg)
+	if err != nil {
+		t.Fatalf("Failed to encode message: %v", err)
+	}
+
+	t.Logf("Sending JSON-RPC request: --> %s", string(encodedData))
+
+	// Write through bridge
+	err = bridge.Write(ctx, jsonrpcMsg)
+	if err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
+
+	// Wait for processing
+	time.Sleep(500 * time.Millisecond)
+
+	// Read response through bridge
+	respMsg, err := bridge.Read(ctx)
+	if err != nil {
+		t.Fatalf("Bridge Read failed: %v", err)
+	}
+
+	// Use proper wire format encoding
+	wireData, err := jsonrpc.EncodeMessage(respMsg)
+	if err != nil {
+		t.Fatalf("Failed to encode message: %v", err)
+	}
+
+	t.Logf("Received JSON-RPC response: <-- %s", string(wireData))
+
+	// Parse the response using proper wire format
+	var resp map[string]any
+	err = json.Unmarshal(wireData, &resp)
+
+	if err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
+
+	// Validate response - handle jsonrpc.Message format
+	if resp["error"] != nil {
+		t.Errorf("Response contains error: %v", resp["error"])
+	}
+
+	result, ok := resp["result"].(map[string]any)
+	if !ok {
+		t.Errorf("Expected result field in response")
+		return
+	}
+
+	// Validate response id
+	if idValue, ok := resp["id"].(float64); ok {
+		if idValue != tc.expectID {
+			t.Errorf("Expected id %v, got %v", tc.expectID, idValue)
+		}
+	} else {
+		t.Errorf("Expected id field to be a number, got %T", resp["id"])
+	}
+
+	// Check content based on test case
+	if tc.expectContent != "" {
+		content := extractTestContent(tc.name, result)
+		if content != tc.expectContent {
+			t.Errorf("Expected content %q, got %q", tc.expectContent, content)
+		}
+	}
+}
+
+// extractTestContent extracts expected content from test result based on test case type
+func extractTestContent(testName string, result map[string]any) string {
+	switch testName {
+	case "tools/list":
+		if tools, ok := result["tools"].([]any); ok && len(tools) > 0 {
+			if tool, ok := tools[0].(map[string]any); ok {
+				if name, ok := tool["name"].(string); ok {
+					return name
+				}
+			}
+		}
+	case "resources/list":
+		if resources, ok := result["resources"].([]any); ok && len(resources) > 0 {
+			if resource, ok := resources[0].(map[string]any); ok {
+				if name, ok := resource["name"].(string); ok {
+					return name
+				}
+			}
+		}
+	case "resources/read":
+		if contents, ok := result["contents"].([]any); ok && len(contents) > 0 {
+			if item, ok := contents[0].(map[string]any); ok {
+				if text, ok := item["text"].(string); ok {
+					return text
+				}
+			}
+		}
+	case "prompts/list":
+		if prompts, ok := result["prompts"].([]any); ok && len(prompts) > 0 {
+			if prompt, ok := prompts[0].(map[string]any); ok {
+				if name, ok := prompt["name"].(string); ok {
+					return name
+				}
+			}
+		}
+	case "prompts/get":
+		if messages, ok := result["messages"].([]any); ok && len(messages) > 0 {
+			if message, ok := messages[0].(map[string]any); ok {
+				if contentMap, ok := message["content"].(map[string]any); ok {
+					if text, ok := contentMap["text"].(string); ok {
+						return text
+					}
+				}
+			}
+		}
+	case "ping":
+		return "" // Ping returns empty result
+	default: // tools/call
+		if resultContent, ok := result["content"].([]any); ok && len(resultContent) > 0 {
+			if textContent, ok := resultContent[0].(map[string]any); ok {
+				if text, ok := textContent["text"].(string); ok {
+					return text
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// TestADKTransportBridge_FullJSONRPC tests complete JSON-RPC request-response cycle through the bridge
+func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
+	ctx := t.Context()
+	s := setupTestServer(t)
+	transport := setupTestTransport(ctx, t, s)
 	defer transport.Close()
 
-	// Initialize client via transport methods (since we're using bridge)
+	// Initialize client
 	initRequest := map[string]any{
 		"jsonrpc": "2.0",
 		"method":  "initialize",
@@ -1264,10 +1430,7 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 		},
 		"id": 0,
 	}
-	initData, _ := json.Marshal(initRequest)
-	if err := transport.WriteMessage(initData); err != nil {
-		t.Fatalf("Failed to write init message: %v", err)
-	}
+	sendJSONRPCMessage(t, transport, initRequest)
 
 	// Wait for processing
 	time.Sleep(100 * time.Millisecond)
@@ -1276,14 +1439,12 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 		t.Fatalf("Failed to read init response: %v", err)
 	}
 
+	// Send initialized notification
 	notifyRequest := map[string]any{
 		"jsonrpc": "2.0",
 		"method":  "notifications/initialized",
 	}
-	notifyData, _ := json.Marshal(notifyRequest)
-	if err := transport.WriteMessage(notifyData); err != nil {
-		t.Fatalf("Failed to write notify message: %v", err)
-	}
+	sendJSONRPCMessage(t, transport, notifyRequest)
 
 	// Create bridge
 	bridge := &ADKTransportConnection{transport: transport}
@@ -1388,142 +1549,7 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Convert request to JSON-RPC message
-			data, err := json.Marshal(tc.request)
-			if err != nil {
-				t.Fatalf("Failed to marshal request: %v", err)
-			}
-
-			t.Logf("Sending JSON request: %s", string(data))
-
-			jsonrpcMsg, err := jsonrpc.DecodeMessage(data)
-			if err != nil {
-				t.Fatalf("Failed to decode message: %v", err)
-			}
-
-			// Re-encode using MCP SDK for consistent formatting
-			encodedData, err := jsonrpc.EncodeMessage(jsonrpcMsg)
-			if err != nil {
-				t.Fatalf("Failed to encode message: %v", err)
-			}
-
-			t.Logf("Sending JSON-RPC request: --> %s", string(encodedData))
-
-			// Write through bridge
-			err = bridge.Write(ctx, jsonrpcMsg)
-			if err != nil {
-				t.Fatalf("Write failed: %v", err)
-			}
-
-			// Wait for processing
-			time.Sleep(500 * time.Millisecond)
-
-			// Read response through bridge
-			respMsg, err := bridge.Read(ctx)
-			if err != nil {
-				t.Fatalf("Bridge Read failed: %v", err)
-			}
-
-			// Use proper wire format encoding
-			wireData, err := jsonrpc.EncodeMessage(respMsg)
-			if err != nil {
-				t.Fatalf("Failed to encode message: %v", err)
-			}
-
-			t.Logf("Received JSON-RPC response: <-- %s", string(wireData))
-
-			// Parse the response using proper wire format
-			var resp map[string]any
-			err = json.Unmarshal(wireData, &resp)
-
-			if err != nil {
-				t.Fatalf("Failed to unmarshal response: %v", err)
-			}
-
-			// Validate response - handle jsonrpc.Message format
-			if resp["error"] != nil {
-				t.Errorf("Response contains error: %v", resp["error"])
-			}
-
-			result, ok := resp["result"].(map[string]any)
-			if !ok {
-				t.Errorf("Expected result field in response")
-				return
-			}
-
-			// Validate response id
-			if idValue, ok := resp["id"].(float64); ok {
-				if idValue != tc.expectID {
-					t.Errorf("Expected id %v, got %v", tc.expectID, idValue)
-				}
-			} else {
-				t.Errorf("Expected id field to be a number, got %T", resp["id"])
-			}
-
-			// Check content based on test case
-			if tc.expectContent != "" {
-				content := ""
-
-				switch tc.name {
-				case "tools/list":
-					if tools, ok := result["tools"].([]any); ok && len(tools) > 0 {
-						if tool, ok := tools[0].(map[string]any); ok {
-							if name, ok := tool["name"].(string); ok {
-								content = name
-							}
-						}
-					}
-				case "resources/list":
-					if resources, ok := result["resources"].([]any); ok && len(resources) > 0 {
-						if resource, ok := resources[0].(map[string]any); ok {
-							if name, ok := resource["name"].(string); ok {
-								content = name
-							}
-						}
-					}
-				case "resources/read":
-					if contents, ok := result["contents"].([]any); ok && len(contents) > 0 {
-						if item, ok := contents[0].(map[string]any); ok {
-							if text, ok := item["text"].(string); ok {
-								content = text
-							}
-						}
-					}
-				case "prompts/list":
-					if prompts, ok := result["prompts"].([]any); ok && len(prompts) > 0 {
-						if prompt, ok := prompts[0].(map[string]any); ok {
-							if name, ok := prompt["name"].(string); ok {
-								content = name
-							}
-						}
-					}
-				case "prompts/get":
-					if messages, ok := result["messages"].([]any); ok && len(messages) > 0 {
-						if message, ok := messages[0].(map[string]any); ok {
-							if contentMap, ok := message["content"].(map[string]any); ok {
-								if text, ok := contentMap["text"].(string); ok {
-									content = text
-								}
-							}
-						}
-					}
-				case "ping":
-					// Ping returns empty result, content check is empty string
-					content = ""
-				default: // tools/call
-					if resultContent, ok := result["content"].([]any); ok && len(resultContent) > 0 {
-						if textContent, ok := resultContent[0].(map[string]any); ok {
-							if text, ok := textContent["text"].(string); ok {
-								content = text
-							}
-						}
-					}
-				}
-
-				if content != tc.expectContent {
-					t.Errorf("Expected content %q, got %q", tc.expectContent, content)
-				}
-			}
+			runJSONRPCTestCase(ctx, t, bridge, tc)
 		})
 	}
 }
