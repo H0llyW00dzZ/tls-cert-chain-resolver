@@ -35,14 +35,14 @@ grep -E "^func\s+(\([^)]+\)\s+)?[a-z]", include="*.go"
 # Find exported functions without comments (regular functions only)
 grep "^func [A-Z]", include="*.go"
 
-# Find exported methods without comments (methods with receivers)
-grep -E "^func \(\w+ \*?\w+\) [A-Z]", include="*.go"
+# Find exported methods with pointer receivers (improved pattern for qualified types)
+grep -E "^func \([^)]*\*[^)]+\) [A-Z]", include="*.go"
 
 # Find unexported functions without comments
 grep "^func [a-z]", include="*.go"
 
-# Find unexported methods without comments
-grep -E "^func \(\w+ \*?\w+\) [a-z]", include="*.go"
+# Find unexported methods with pointer receivers (improved pattern for qualified types)
+grep -E "^func \([^)]*\*[^)]+\) [a-z]", include="*.go"
 
 # Find exported types without comments
 grep "^type [A-Z]", include="*.go"
@@ -60,6 +60,48 @@ grep "^type [a-z].*interface", include="*.go"
 #### Package-by-Package Verification
 
 To ensure the entire codebase is verified, scan each major package individually:
+
+**Option 1: Using built-in grep tool (recommended for agents)**
+
+Use these grep tool calls for comprehensive documentation scanning:
+
+```bash
+# Exported functions and methods
+grep(pattern="^func\\s+(\\([^)]+\\)\\s+)?[A-Z]", include="*.go")
+
+# Exported methods with pointer receivers (improved pattern for qualified types)
+grep(pattern="^func\\s+\\([^)]*\\*[^)]+\\)\\s+[A-Z]", include="*.go")
+
+# Unexported functions and methods
+grep(pattern="^func\\s+(\\([^)]+\\)\\s+)?[a-z]", include="*.go")
+
+# Unexported methods with pointer receivers (improved pattern for qualified types)
+grep(pattern="^func\\s+\\([^)]*\\*[^)]+\\)\\s+[a-z]", include="*.go")
+
+# Exported types
+grep(pattern="^type [A-Z]", include="*.go")
+
+# Unexported types
+grep(pattern="^type [a-z]", include="*.go")
+
+# Exported interfaces
+grep(pattern="^type [A-Z].*interface", include="*.go")
+
+# Unexported interfaces
+grep(pattern="^type [a-z].*interface", include="*.go")
+```
+
+**Package-by-Package Scanning:**
+
+For detailed package-level analysis, use these patterns with specific path parameters:
+
+```bash
+# Example for x509/chain package
+grep(pattern="^func\\s+(\\([^)]+\\)\\s+)?[A-Z]", path="src/internal/x509/chain", include="*.go")
+grep(pattern="^func\\s+\\([^)]*\\*[^)]+\\)\\s+[A-Z]", path="src/internal/x509/chain", include="*.go")
+```
+
+**Option 2: Using bash grep (for manual execution)**
 
 ```bash
 # Scan each major package for comprehensive coverage
