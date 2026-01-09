@@ -182,7 +182,7 @@ func writeJSONString(buf gc.Buffer, s string) {
 			buf.WriteString(`\f`)
 		default:
 			if c < 0x20 {
-				buf.WriteString(fmt.Sprintf(`\u%04x`, c))
+				fmt.Fprintf(buf, `\u%04x`, c)
 			} else {
 				buf.WriteByte(c)
 			}
