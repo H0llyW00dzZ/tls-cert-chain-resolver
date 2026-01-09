@@ -29,7 +29,7 @@
       "type": "local",
       "command": [
         "x509-cert-chain-resolver",
-        "--config",
+        "-c",
         "./src/mcp-server/config.example.yaml"
       ],
       "enabled": true
