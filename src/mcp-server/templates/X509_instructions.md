@@ -121,7 +121,7 @@ The server supports multiple configuration methods for full functionality:
 
 - **Basic operation**: No configuration required - runs with sensible defaults
 - **Configuration file**: 
-  - CLI flag: `--config /path/to/config.json` or `--config /path/to/config.yaml`
+  - CLI flag: `--config` (`-c`) `/path/to/config.json` or `--config` (`-c`) `/path/to/config.yaml`
   - Environment variable: `MCP_X509_CONFIG_FILE=/path/to/config.json` (or `.yaml`/`.yml`)
   - Supported formats: JSON (`.json`) and YAML (`.yaml`, `.yml`)
   - Priority: CLI flag takes precedence over environment variable
@@ -154,8 +154,8 @@ defaults:
 {{.BinaryName}}
 
 # Start with custom config file (JSON or YAML)
-{{.BinaryName}} --config /path/to/config.json
-{{.BinaryName}} --config /path/to/config.yaml
+{{.BinaryName}} -c /path/to/config.json
+{{.BinaryName}} -c /path/to/config.yaml
 
 # Start with environment variable
 export MCP_X509_CONFIG_FILE=/path/to/config.yaml
@@ -163,7 +163,7 @@ export MCP_X509_CONFIG_FILE=/path/to/config.yaml
 
 # Enable AI features
 export X509_AI_APIKEY=your_api_key_here
-{{.BinaryName}} --config /path/to/config.json
+{{.BinaryName}} -c /path/to/config.json
 ```
 
 ## Response formatting
