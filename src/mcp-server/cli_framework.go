@@ -224,11 +224,11 @@ func (cf *CLIFramework) BuildRootCommand() *cobra.Command {
 
 	// Add instructions flag similar to gopls for displaying usage workflows
 	// This provides users with immediate access to certificate operation guidance
-	rootCmd.PersistentFlags().Bool("instructions", false, "print usage workflows for certificate operations")
+	rootCmd.PersistentFlags().BoolP("instructions", "i", false, "print usage workflows for certificate operations")
 
 	// Add config file flag with persistent behavior for subcommands
 	// Allows configuration override via CLI flag while supporting environment variables
-	rootCmd.PersistentFlags().StringVar(&cf.configFile, "config", cf.configFile, "path to MCP server configuration file")
+	rootCmd.PersistentFlags().StringVarP(&cf.configFile, "config", "c", cf.configFile, "path to MCP server configuration file")
 
 	// Extract flag names for template processing
 	instructionsFlagName, configFlagName, helpFlagName := extractFlagNames(rootCmd)
