@@ -563,6 +563,7 @@ func handleGetResourceUsage(params map[string]any) (any, error) {
 
 ```go
 // ✅ Good - efficient string building for certificate context (see src/mcp-server/handlers.go)
+// Uses fmt.Fprintf for efficient string concatenation without intermediate allocations
 func buildCertificateContext(certs []*x509.Certificate, analysisType string) string {
     var context strings.Builder
 
@@ -586,6 +587,37 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
     }
 
     return context.String()
+}
+
+// ✅ Good - optimized control character escaping in logger (see src/logger/logger.go)
+// Uses fmt.Fprintf for efficient string building and control character handling
+func writeJSONString(buf *bytes.Buffer, s string) {
+    buf.WriteByte('"')
+    for _, r := range s {
+        switch r {
+        case '"':
+            buf.WriteString(`\"`)
+        case '\\':
+            buf.WriteString(`\\`)
+        case '\b':
+            buf.WriteString(`\b`)
+        case '\f':
+            buf.WriteString(`\f`)
+        case '\n':
+            buf.WriteString(`\n`)
+        case '\r':
+            buf.WriteString(`\r`)
+        case '\t':
+            buf.WriteString(`\t`)
+        default:
+            if r < 32 || r > 126 {
+                fmt.Fprintf(buf, "\\u%04x", r) // Efficient Unicode escaping
+            } else {
+                buf.WriteRune(r)
+            }
+        }
+    }
+    buf.WriteByte('"')
 }
 
 // ❌ BAD - inefficient string concatenation:
