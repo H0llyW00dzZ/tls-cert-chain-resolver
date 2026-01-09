@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -182,7 +182,7 @@ func writeJSONString(buf gc.Buffer, s string) {
 			buf.WriteString(`\f`)
 		default:
 			if c < 0x20 {
-				buf.WriteString(fmt.Sprintf(`\u%04x`, c))
+				fmt.Fprintf(buf, `\u%04x`, c)
 			} else {
 				buf.WriteByte(c)
 			}
