@@ -155,7 +155,13 @@ func (m *MCPLogger) Println(v ...any) {
 }
 
 // writeJSONString writes a string to the buffer with proper JSON escaping.
-// It escapes special characters that need escaping in JSON strings.
+//
+// It escapes special characters that need escaping in JSON strings,
+// including quotes, backslashes, control characters, and Unicode characters.
+//
+// Parameters:
+//   - buf: Buffer to write the escaped string to
+//   - s: String to escape and write
 func writeJSONString(buf gc.Buffer, s string) {
 	for i := 0; i < len(s); i++ {
 		c := s[i]
