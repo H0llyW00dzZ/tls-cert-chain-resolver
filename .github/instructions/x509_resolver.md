@@ -274,7 +274,7 @@ Read resource: info://version
 # Returns the following server information:
 {
   "name": "X.509 Certificate Chain Resolver",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "type": "MCP Server",
   "capabilities": {
     "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai", "get_resource_usage", "visualize_cert_chain"],
@@ -318,7 +318,7 @@ Read resource: status://server-status
   "status": "healthy",
   "timestamp": "2025-11-02T12:00:00Z",
   "server": "X.509 Certificate Chain Resolver MCP Server",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "capabilities": {
     "tools": ["resolve_cert_chain", "validate_cert_chain", "check_cert_expiry", "batch_resolve_cert_chain", "fetch_remote_cert", "analyze_certificate_with_ai", "get_resource_usage", "visualize_cert_chain"],
     "resources": ["config://template", "info://version", "docs://certificate-formats", "status://server-status"],
@@ -425,9 +425,9 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 
 ### 2. Configuration
 
-**CLI Flags**: 
-- `--config`: Specify MCP server configuration file path (can be overridden via `MCP_X509_CONFIG_FILE` environment variable)
-- `--instructions`: Display certificate operation workflows and usage instructions
+**CLI Flags**:
+- `--config` / `-c`: Specify MCP server configuration file path (can be overridden via `MCP_X509_CONFIG_FILE` environment variable)
+- `--instructions` / `-i`: Display certificate operation workflows and usage instructions
 
 **Default Config**: `./src/mcp-server/config.example.yaml` (supports both JSON and YAML formats)
 
