@@ -292,7 +292,7 @@ deepwiki_read_wiki_contents("microsoft/typescript")
 - Supports both PEM and DER formats
 - Provides batch processing for multiple certificates
 - Includes remote certificate fetching capabilities
-- Use configuration file via `--config` CLI flag
+- Use configuration file via `--config` (`-c`) CLI flag
 - Configure AI parameters (maxTokens, temperature) via config file for customized analysis
 
 **Example Usage**:
