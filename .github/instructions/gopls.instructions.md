@@ -254,6 +254,7 @@ gopls_go_search("signal.NotifyContext") → Find modern signal handling for grac
 gopls_go_search("detectConfigFormat") → Find config format detection (JSON/YAML)
 gopls_go_search("unmarshalConfig") → Find config unmarshaling with format support
 gopls_go_search("configFormat") → Find config format type constants
+gopls_go_search("writeJSONString") → Find optimized control character escaping in logger
 ```
 
 ### gopls_go_file_context(file)
