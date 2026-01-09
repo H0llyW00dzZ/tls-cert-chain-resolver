@@ -590,34 +590,33 @@ func buildCertificateContext(certs []*x509.Certificate, analysisType string) str
 }
 
 // ✅ Good - optimized control character escaping in logger (see src/logger/logger.go)
-// Uses fmt.Fprintf for efficient string building and control character handling
-func writeJSONString(buf *bytes.Buffer, s string) {
-    buf.WriteByte('"')
-    for _, r := range s {
-        switch r {
+// Uses byte-by-byte processing and fmt.Fprintf for efficient string building and control character handling
+func writeJSONString(buf gc.Buffer, s string) {
+    for i := 0; i < len(s); i++ {
+        c := s[i]
+        switch c {
         case '"':
             buf.WriteString(`\"`)
         case '\\':
             buf.WriteString(`\\`)
-        case '\b':
-            buf.WriteString(`\b`)
-        case '\f':
-            buf.WriteString(`\f`)
         case '\n':
             buf.WriteString(`\n`)
         case '\r':
             buf.WriteString(`\r`)
         case '\t':
             buf.WriteString(`\t`)
+        case '\b':
+            buf.WriteString(`\b`)
+        case '\f':
+            buf.WriteString(`\f`)
         default:
-            if r < 32 || r > 126 {
-                fmt.Fprintf(buf, "\\u%04x", r) // Efficient Unicode escaping
+            if c < 0x20 {
+                fmt.Fprintf(buf, `\u%04x`, c) // Efficient Unicode escaping
             } else {
-                buf.WriteRune(r)
+                buf.WriteByte(c)
             }
         }
     }
-    buf.WriteByte('"')
 }
 
 // ❌ BAD - inefficient string concatenation:
