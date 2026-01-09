@@ -26,8 +26,8 @@ x509-cert-chain-resolver [FLAGS]
 
 | Flag | Description |
 |------|-------------|
-| `--config` | Path to MCP server configuration file (JSON or YAML) |
-| `--instructions` | Display certificate operation workflows and MCP server usage |
+| `--config` (`-c`) | Path to MCP server configuration file (JSON or YAML) |
+| `--instructions` (`-i`) | Display certificate operation workflows and MCP server usage |
 | `--help` | Show help information |
 | `--version` | Show version information |
 
@@ -49,14 +49,14 @@ x509-cert-chain-resolver
 Load custom configuration (JSON or YAML):
 
 ```bash
-x509-cert-chain-resolver --config /path/to/config.json
-x509-cert-chain-resolver --config /path/to/config.yaml
+x509-cert-chain-resolver -c /path/to/config.json
+x509-cert-chain-resolver -c /path/to/config.yaml
 ```
 
 Show certificate operation workflows:
 
 ```bash
-x509-cert-chain-resolver --instructions
+x509-cert-chain-resolver -i
 ```
 
 ## MCP Tools
@@ -144,7 +144,7 @@ Set `X509_AI_APIKEY` or configure the `ai` section of the MCP config to allow th
 For MCP clients that don't have a built-in instruction mechanism to automatically pass server instructions into the system prompt, you can manually copy the instructions:
 
 ```bash
-x509-cert-chain-resolver --instructions > X509_instructions.md
+x509-cert-chain-resolver -i > X509_instructions.md
 ```
 
 Then, include the contents of `X509_instructions.md` in your AI agent's instruction field.
