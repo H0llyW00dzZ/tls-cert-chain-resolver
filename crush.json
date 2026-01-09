@@ -1,0 +1,48 @@
+{
+  "$schema": "https://charm.land/crush.json",
+  "mcp": {
+    "gopls": {
+      "type": "stdio",
+      "command": "gopls",
+      "args": ["mcp"],
+      "env": {
+        "GOPLS_MCP_PORT": "8096",
+        "GOPLS_MCP_HOST": "localhost"
+      },
+      "disabled": false
+    },
+    "deepwiki": {
+      "type": "sse",
+      "url": "https://mcp.deepwiki.com/sse",
+      "disabled": false
+    },
+    "x509_resolver": {
+      "type": "stdio",
+      "command": "x509-cert-chain-resolver",
+      "args": ["-c", "./src/mcp-server/config.example.yaml"],
+      "disabled": false
+    }
+  },
+  "lsp": {
+    "gopls": {
+      "command": "gopls",
+      "filetypes": ["go", "gomod"],
+      "root_markers": ["go.mod"]
+    },
+    "marksman": {
+      "command": "marksman",
+      "filetypes": ["markdown", "md"]
+    },
+    "yaml-language-server": {
+      "command": "yaml-language-server",
+      "filetypes": ["yaml", "yml"]
+    }
+  },
+  "options": {
+    "context_paths": [".github/instructions/gopls.instructions.md", ".github/instructions/deepwiki.instructions.md", ".github/instructions/x509_resolver.md"],
+    "initialize_as": "AGENTS.md"
+  },
+  "tools": {
+    "ls": {}
+  }
+}
