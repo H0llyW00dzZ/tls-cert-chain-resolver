@@ -204,8 +204,8 @@ The MCP server binary provides a CLI interface similar to `gopls` with additiona
 
 | Flag | Description |
 |------|-------------|
-| `--config` | Path to MCP server configuration file (JSON or YAML) |
-| `--instructions` | Display certificate operation workflows and MCP server usage |
+| `--config` (`-c`) | Path to MCP server configuration file (JSON or YAML) |
+| `--instructions` (`-i`) | Display certificate operation workflows and MCP server usage |
 | `--help` | Show help information |
 | `--version` | Show version information |
 
@@ -221,13 +221,13 @@ Start MCP server with default configuration:
 
 Load custom configuration (JSON or YAML):
 ```bash
-./bin/linux/x509-cert-chain-resolver --config /path/to/custom-config.json
-./bin/linux/x509-cert-chain-resolver --config /path/to/custom-config.yaml
+./bin/linux/x509-cert-chain-resolver -c /path/to/custom-config.json
+./bin/linux/x509-cert-chain-resolver -c /path/to/custom-config.yaml
 ```
 
 Show certificate operation workflows:
 ```bash
-./bin/linux/x509-cert-chain-resolver --instructions
+./bin/linux/x509-cert-chain-resolver -i
 ```
 
 ### AI-Assisted Analysis
