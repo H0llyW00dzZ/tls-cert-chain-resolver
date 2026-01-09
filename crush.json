@@ -28,6 +28,14 @@
       "command": "gopls",
       "filetypes": ["go", "gomod"],
       "root_markers": ["go.mod"]
+    },
+    "marksman": {
+      "command": "marksman",
+      "filetypes": ["markdown", "md"]
+    },
+    "yaml-language-server": {
+      "command": "yaml-language-server",
+      "filetypes": ["yaml", "yml"]
     }
   },
   "options": {
