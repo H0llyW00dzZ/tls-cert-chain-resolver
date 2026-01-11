@@ -845,6 +845,40 @@ todowrite([
 ])
 ```
 
+### 4. Question Tool for User Interaction
+
+Use the `question` tool to gather user preferences, clarify ambiguous instructions, get decisions on implementation choices, or offer choices about task direction during execution. This helps manage session working memory by getting user input when needed.
+
+**When to use question tool**:
+- **Gather preferences**: When multiple implementation approaches exist
+- **Clarify ambiguity**: When user request could be interpreted in different ways
+- **Get decisions**: When choosing between valid options (e.g., file locations, naming conventions)
+- **Offer choices**: When presenting alternatives with pros/cons
+- **Confirm assumptions**: Before proceeding with potentially irreversible actions
+
+**Example usage**:
+```
+question({
+  "questions": [{
+    "question": "Which logging level should I use for this error?",
+    "header": "Log Level",
+    "options": [
+      {"label": "Error", "description": "Standard error level for this issue"},
+      {"label": "Warn", "description": "Warning level if non-critical"},
+      {"label": "Info", "description": "Informational if expected behavior"},
+      {"label": "Debug", "description": "Debug level for detailed tracing"}
+    ]
+  }]
+})
+```
+
+**Best practices**:
+- Keep questions focused and concise (header max 12 chars)
+- Provide clear descriptions for each option
+- Use "Other" option when appropriate for custom input
+- Wait for user response before proceeding with implementation
+- Reference user choices in subsequent actions to maintain session context
+
 ## Resource Optimization
 
 ### 1. Network Operations

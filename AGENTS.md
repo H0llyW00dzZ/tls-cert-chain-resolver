@@ -325,6 +325,7 @@ Agents also have access to built-in file and project tools:
 - `list(path)`: List directory contents
 - `glob(pattern)`: Find files by pattern (e.g., `**/*.go`)
 - `grep(pattern)`: Search file contents with regex
+- `question(questions)`: Ask user questions during execution for clarification or decisions
 
 ### Code Execution
 
