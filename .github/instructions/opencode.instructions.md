@@ -6,7 +6,52 @@ This file explains the OpenCode configuration and how to use the instruction fil
 
 ## Configuration Overview
 
-See [README.md](./README.md) for the complete OpenCode configuration. This file focuses on how OpenCode processes and uses the instruction files.
+This repository supports two configuration formats for different development environments:
+
+### OpenCode Configuration (opencode.json)
+
+Primary configuration for OpenCode agent sessions with MCP server integration:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "tools": {
+    "todowrite": true,
+    "todoread": true,
+    "question": true
+  },
+  "instructions": [
+    ".github/instructions/*.md"
+  ],
+  "mcp": {
+    "gopls": {
+      "type": "local",
+      "command": ["gopls", "mcp"],
+      "environment": {
+        "GOPLS_MCP_PORT": "8096",
+        "GOPLS_MCP_HOST": "localhost"
+      },
+      "enabled": true
+    },
+    "deepwiki": {
+      "type": "remote",
+      "url": "https://mcp.deepwiki.com/sse",
+      "enabled": true
+    },
+    "x509_resolver": {
+      "type": "local",
+      "command": [
+        "x509-cert-chain-resolver",
+        "-c",
+        "./src/mcp-server/config.example.yaml"
+      ],
+      "enabled": true
+    }
+  }
+}
+```
+
+This file focuses on how OpenCode processes and uses the instruction files.
 
 ## Instruction Files Hierarchy
 
@@ -534,7 +579,7 @@ If examples don't work:
 ## Summary
 
 **OpenCode Configuration**:
-- `opencode.json` → Defines which instruction files to load
+- `opencode.json` → Defines which instruction files to load (OpenCode format)
 - `AGENTS.md` → High-level guidelines and conventions
 - `.github/instructions/*.md` → Detailed tool-specific instructions
 

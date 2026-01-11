@@ -311,6 +311,11 @@ x509_resolver_check_cert_expiry("cert.pem", warn_days=30)
 x509_resolver_fetch_remote_cert("example.com", port=443)
 ```
 
+### Configuration Files
+
+- `opencode.json` - Primary OpenCode agent configuration (MCP servers, tools, instruction paths)
+- `crush.json` - Alternative Crush LSP client configuration (includes LSP servers: gopls, marksman, yaml-language-server)
+
 ### Built-in Tools (Not MCP)
 
 Agents also have access to built-in file and project tools:
