@@ -36,6 +36,7 @@ This command uses a structured todo list to systematically test all agent capabi
 - Test built-in glob pattern matching (glob) (id: "test-builtin-glob")
 - Test built-in content search (grep) (id: "test-builtin-grep")
 - Test built-in bash execution (bash) (id: "test-builtin-bash")
+- Test built-in question tool (question) (id: "test-builtin-question")
 - Verify MCP connection handling and error recovery (id: "test-verify-connections")
 - Compile and report final test results with success/failure analysis (id: "test-report-results")
 
@@ -86,6 +87,7 @@ This command uses a structured todo list to systematically test all agent capabi
 - **Glob Pattern Matching**: Call `glob("src/**/*.go")` to verify file discovery
 - **Content Search**: Call `grep("func.*Execute", include="*.go")` to test regex search
 - **Bash Execution**: Call `bash("echo 'Testing bash tool'")` to verify command execution
+- **Question Tool**: Call `question` with test parameters to verify interactive question handling
 
 ### Connection and Error Handling Tests
 
@@ -186,6 +188,7 @@ After all tasks are completed, compile a comprehensive report:
 - [ ] Glob patterns match files
 - [ ] Grep searches content
 - [ ] Bash commands execute safely
+- [ ] Question tool works
 
 ### System & Performance
 - [ ] MCP connections stable
