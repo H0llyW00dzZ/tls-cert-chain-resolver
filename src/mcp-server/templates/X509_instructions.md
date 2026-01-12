@@ -135,7 +135,7 @@ The server supports multiple configuration methods for full functionality:
 {
   "defaults": {
     "warnDays": 30,
-    "timeoutSeconds": 10,
+    "timeoutSeconds": 30,
     "batchConcurrency": 10
   }
 }
@@ -145,7 +145,7 @@ The server supports multiple configuration methods for full functionality:
 ```yaml
 defaults:
   warnDays: 30
-  timeoutSeconds: 10
+  timeoutSeconds: 30
   batchConcurrency: 10
 ```
 
