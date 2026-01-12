@@ -249,12 +249,16 @@ Read resource: config://template
 # Returns the following JSON configuration template:
 {
   "defaults": {
-    "format": "pem",
-    "includeSystemRoot": false,
-    "intermediateOnly": false,
     "warnDays": 30,
-    "port": 443,
-    "timeoutSeconds": 10
+    "timeoutSeconds": 30,
+    "batchConcurrency": 10
+  },
+  "ai": {
+    "endpoint": "https://api.x.ai",
+    "model": "grok-4-1-fast-non-reasoning",
+    "timeout": 30,
+    "maxTokens": 4096,
+    "temperature": 0.3
   }
 }
 ```
