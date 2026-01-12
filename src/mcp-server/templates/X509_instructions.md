@@ -135,7 +135,8 @@ The server supports multiple configuration methods for full functionality:
 {
   "defaults": {
     "warnDays": 30,
-    "timeoutSeconds": 10
+    "timeoutSeconds": 10,
+    "batchConcurrency": 10
   }
 }
 ```
@@ -145,6 +146,7 @@ The server supports multiple configuration methods for full functionality:
 defaults:
   warnDays: 30
   timeoutSeconds: 10
+  batchConcurrency: 10
 ```
 
 ### CLI Usage Examples

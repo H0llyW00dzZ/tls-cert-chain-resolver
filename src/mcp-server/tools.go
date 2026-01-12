@@ -95,9 +95,10 @@ const (
 //   - []ToolDefinitionWithConfig: Slice of tool definitions for tools that require server configuration
 //
 // Tool Categories:
-//   - Standard tools ([]ToolDefinition): resolve_cert_chain, validate_cert_chain, batch_resolve_cert_chain,
-//     get_resource_usage, visualize_cert_chain
-//   - Config-dependent tools ([]ToolDefinitionWithConfig): check_cert_expiry, fetch_remote_cert, analyze_certificate_with_ai
+//   - Standard tools ([]ToolDefinition): resolve_cert_chain, validate_cert_chain, get_resource_usage,
+//     visualize_cert_chain
+//   - Config-dependent tools ([]ToolDefinitionWithConfig): batch_resolve_cert_chain, check_cert_expiry, fetch_remote_cert,
+//     analyze_certificate_with_ai
 //
 // The function defines the following tools:
 //   - resolve_cert_chain: Resolve X509 certificate chain from a certificate file or base64-encoded certificate data
@@ -175,38 +176,6 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 		},
 		{
 			Tool: mcp.NewTool(
-				ToolBatchResolveCertChain,
-				mcp.WithDescription("Resolve X509 certificate chains for multiple certificates in batch"),
-
-				mcp.WithString(
-					"certificates",
-					mcp.Required(),
-					mcp.Description("Comma-separated list of certificate file paths or base64-encoded certificate data"),
-				),
-
-				mcp.WithString(
-					"format",
-					mcp.Description("Output format: 'pem', 'der', or 'json' (default: pem)"),
-					mcp.DefaultString("pem"),
-				),
-
-				mcp.WithBoolean(
-					"include_system_root",
-					mcp.Description("Include system root CA in output (default: false)"),
-					mcp.DefaultBool(false),
-				),
-
-				mcp.WithBoolean(
-					"intermediate_only",
-					mcp.Description("Output only intermediate certificates (default: false)"),
-					mcp.DefaultBool(false),
-				),
-			),
-			Handler: handleBatchResolveCertChain,
-			Role:    RoleBatchResolver,
-		},
-		{
-			Tool: mcp.NewTool(
 				ToolGetResourceUsage,
 				mcp.WithDescription("Get current resource usage statistics including memory, GC, and CPU information"),
 
@@ -254,6 +223,38 @@ func createTools() ([]ToolDefinition, []ToolDefinitionWithConfig) {
 
 	// Tools that need config
 	toolsWithConfig := []ToolDefinitionWithConfig{
+		{
+			Tool: mcp.NewTool(
+				ToolBatchResolveCertChain,
+				mcp.WithDescription("Resolve X509 certificate chains for multiple certificates in batch"),
+
+				mcp.WithString(
+					"certificates",
+					mcp.Required(),
+					mcp.Description("Comma-separated list of certificate file paths or base64-encoded certificate data"),
+				),
+
+				mcp.WithString(
+					"format",
+					mcp.Description("Output format: 'pem', 'der', or 'json' (default: pem)"),
+					mcp.DefaultString("pem"),
+				),
+
+				mcp.WithBoolean(
+					"include_system_root",
+					mcp.Description("Include system root CA in output (default: false)"),
+					mcp.DefaultBool(false),
+				),
+
+				mcp.WithBoolean(
+					"intermediate_only",
+					mcp.Description("Output only intermediate certificates (default: false)"),
+					mcp.DefaultBool(false),
+				),
+			),
+			Handler: handleBatchResolveCertChain,
+			Role:    RoleBatchResolver,
+		},
 		{
 			Tool: mcp.NewTool(
 				ToolCheckCertExpiry,

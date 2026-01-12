@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
@@ -504,22 +505,50 @@ func parseCertInputs(certInput string) []string {
 }
 
 // processBatchCertificates processes multiple certificates in batch.
-// It processes each certificate independently and collects results.
+// It processes each certificate concurrently using goroutines for improved performance.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout handling
 //   - certInputs: List of certificate inputs to process
 //   - opts: Batch resolution options
+//   - maxConcurrent: Maximum number of concurrent goroutines (from config)
 //
 // Returns:
 //   - results: List of processing results for each certificate
-func processBatchCertificates(ctx context.Context, certInputs []string, opts batchResolveOptions) []string {
-	results := make([]string, 0, len(certInputs))
+func processBatchCertificates(ctx context.Context, certInputs []string, opts batchResolveOptions, maxConcurrent int) []string {
+	results := make([]string, len(certInputs))
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, maxConcurrent) // Limit concurrent goroutines to configurable limit
 
 	for i, certInput := range certInputs {
-		result := processSingleCertificate(ctx, certInput, i, opts)
-		results = append(results, result)
+		wg.Add(1)
+		go func(index int, input string) {
+			defer wg.Done()
+
+			// Acquire semaphore
+			select {
+			case semaphore <- struct{}{}:
+				defer func() { <-semaphore }()
+			case <-ctx.Done():
+				results[index] = fmt.Sprintf("Certificate %d: Processing cancelled: %v", index+1, ctx.Err())
+				return
+			}
+
+			// Check context again before processing
+			select {
+			case <-ctx.Done():
+				results[index] = fmt.Sprintf("Certificate %d: Processing cancelled: %v", index+1, ctx.Err())
+				return
+			default:
+			}
+
+			result := processSingleCertificate(ctx, input, index, opts)
+			results[index] = result
+		}(i, certInput)
 	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
 
 	return results
 }
@@ -538,7 +567,7 @@ func processBatchCertificates(ctx context.Context, certInputs []string, opts bat
 // The function handles multiple certificates efficiently, processing each one independently
 // and collecting results. Individual certificate failures are reported per-certificate rather
 // than failing the entire batch.
-func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolRequest, config *Config) (*mcp.CallToolResult, error) {
 	// Validate and extract parameters
 	certInput, opts, err := validateBatchParams(request)
 	if err != nil {
@@ -549,7 +578,7 @@ func handleBatchResolveCertChain(ctx context.Context, request mcp.CallToolReques
 	certInputs := parseCertInputs(certInput)
 
 	// Process certificates in batch
-	results := processBatchCertificates(ctx, certInputs, opts)
+	results := processBatchCertificates(ctx, certInputs, opts, config.Defaults.BatchConcurrency)
 
 	// Combine and return results
 	finalResult := formatBatchResults(results, len(certInputs))
