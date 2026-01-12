@@ -80,7 +80,7 @@
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
 - `github.com/xeipuuv/gojsonschema` v1.2.0 - JSON schema validation for code generation
 - `gopkg.in/yaml.v3` v3.0.1 - YAML configuration file support for MCP server
-- `golang.org/x/text` v0.32.0 - Text processing utilities for proper casing and internationalization
+- `golang.org/x/text` v0.33.0 - Text processing utilities for proper casing and internationalization
 - `golang.org/x/crypto` v0.46.0 (via Go 1.25.5) - Standard crypto updates leveraged in recent releases
 
 ### Code Formatting
