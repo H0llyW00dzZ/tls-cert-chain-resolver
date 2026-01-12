@@ -31,8 +31,9 @@ import (
 func handleConfigResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	exampleConfig := map[string]any{
 		"defaults": map[string]any{
-			"warnDays":       30,
-			"timeoutSeconds": 30,
+			"warnDays":         30,
+			"timeoutSeconds":   30,
+			"batchConcurrency": 10,
 		},
 	}
 
