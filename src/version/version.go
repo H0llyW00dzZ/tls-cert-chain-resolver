@@ -8,4 +8,4 @@ package version
 
 // Version holds the current version of the TLS certificate chain resolver.
 // It can be overridden at build time using ldflags.
-var Version = "0.6.4"
+var Version = "0.6.5"
