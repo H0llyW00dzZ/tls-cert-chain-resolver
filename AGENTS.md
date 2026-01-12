@@ -327,7 +327,6 @@ Agents also have access to built-in file and project tools:
   - `limit`: Number of lines to read (default 2000)
 - `write(filePath, content)`: Create or overwrite files
 - `edit(filePath, oldString, newString)`: Precise string replacement
-
 - `glob(pattern)`: Find files by pattern (e.g., `**/*.go`)
 - `grep(pattern)`: Search file contents with regex
 - `question(questions)`: Ask user questions during execution for clarification or decisions
