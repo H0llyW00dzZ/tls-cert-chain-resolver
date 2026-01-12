@@ -38,6 +38,8 @@ type Config struct {
 		WarnDays int `json:"warnDays" yaml:"warnDays"`
 		// Timeout: Default timeout in seconds for operations
 		Timeout int `json:"timeoutSeconds" yaml:"timeoutSeconds"`
+		// BatchConcurrency: Maximum concurrent goroutines for batch processing
+		BatchConcurrency int `json:"batchConcurrency" yaml:"batchConcurrency"`
 	} `json:"defaults" yaml:"defaults"`
 
 	// AI: Configuration for sampling/LLM integration
@@ -131,6 +133,7 @@ func loadConfig(configPath string) (*Config, error) {
 	// Set defaults
 	config.Defaults.WarnDays = 30
 	config.Defaults.Timeout = 30
+	config.Defaults.BatchConcurrency = 10
 
 	// Set AI defaults
 	config.AI.Endpoint = "https://api.x.ai"
@@ -163,6 +166,9 @@ func loadConfig(configPath string) (*Config, error) {
 		}
 		if config.Defaults.Timeout <= 0 {
 			config.Defaults.Timeout = 30
+		}
+		if config.Defaults.BatchConcurrency <= 0 {
+			config.Defaults.BatchConcurrency = 10
 		}
 		if config.AI.Timeout <= 0 {
 			config.AI.Timeout = 30

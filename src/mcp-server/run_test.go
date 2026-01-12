@@ -197,7 +197,9 @@ func TestMCPTools(t *testing.T) {
 
 	// Register tool handlers
 	s.AddTool(resolveCertChainTool, handleResolveCertChain)
-	s.AddTool(batchResolveCertChainTool, handleBatchResolveCertChain)
+	s.AddTool(batchResolveCertChainTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		return handleBatchResolveCertChain(ctx, request, config)
+	})
 	s.AddTool(validateCertChainTool, handleValidateCertChain)
 	s.AddTool(checkCertExpiryTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		return handleCheckCertExpiry(ctx, request, config)
@@ -217,8 +219,10 @@ func TestMCPTools(t *testing.T) {
 			Handler: handleResolveCertChain,
 		},
 		{
-			Tool:    batchResolveCertChainTool,
-			Handler: handleBatchResolveCertChain,
+			Tool: batchResolveCertChainTool,
+			Handler: func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+				return handleBatchResolveCertChain(ctx, request, config)
+			},
 		},
 		{
 			Tool:    validateCertChainTool,
@@ -701,7 +705,8 @@ func TestHandlerErrorPaths(t *testing.T) {
 			case "validate_cert_chain":
 				result, err = handleValidateCertChain(t.Context(), req)
 			case "batch_resolve_cert_chain":
-				result, err = handleBatchResolveCertChain(t.Context(), req)
+				config, _ := loadConfig("")
+				result, err = handleBatchResolveCertChain(t.Context(), req, config)
 			case "check_cert_expiry":
 				config, _ := loadConfig("")
 				result, err = handleCheckCertExpiry(t.Context(), req, config)
@@ -834,7 +839,8 @@ func TestContextCancellation(t *testing.T) {
 			case "validate_cert_chain":
 				result, err = handleValidateCertChain(ctx, req)
 			case "batch_resolve_cert_chain":
-				result, err = handleBatchResolveCertChain(ctx, req)
+				config, _ := loadConfig("")
+				result, err = handleBatchResolveCertChain(ctx, req, config)
 			case "fetch_remote_cert":
 				config, _ := loadConfig("")
 				result, err = handleFetchRemoteCert(ctx, req, config)
@@ -946,7 +952,8 @@ func TestEdgeCases(t *testing.T) {
 			case "validate_cert_chain":
 				result, err = handleValidateCertChain(t.Context(), req)
 			case "batch_resolve_cert_chain":
-				result, err = handleBatchResolveCertChain(t.Context(), req)
+				config, _ := loadConfig("")
+				result, err = handleBatchResolveCertChain(t.Context(), req, config)
 			case "check_cert_expiry":
 				config, _ := loadConfig("")
 				result, err = handleCheckCertExpiry(t.Context(), req, config)
@@ -1589,11 +1596,11 @@ func TestCreateTools(t *testing.T) {
 	tools, toolsWithConfig := createTools()
 
 	// Verify we get the expected number of tools
-	if len(tools) != 5 {
-		t.Errorf("Expected 5 regular tools, got %d", len(tools))
+	if len(tools) != 4 {
+		t.Errorf("Expected 4 regular tools, got %d", len(tools))
 	}
-	if len(toolsWithConfig) != 3 {
-		t.Errorf("Expected 3 config tools, got %d", len(toolsWithConfig))
+	if len(toolsWithConfig) != 4 {
+		t.Errorf("Expected 4 config tools, got %d", len(toolsWithConfig))
 	}
 
 	// Verify tool names
@@ -1605,6 +1612,7 @@ func TestCreateTools(t *testing.T) {
 		"check_cert_expiry",
 		"fetch_remote_cert",
 		"analyze_certificate_with_ai",
+		"visualize_cert_chain",
 	}
 
 	foundTools := make(map[string]bool)
@@ -3598,11 +3606,13 @@ func TestHandleAnalyzeCertificateWithAI(t *testing.T) {
 	// Test with config without AI API key (should return certificate context)
 	config := &Config{
 		Defaults: struct {
-			WarnDays int `json:"warnDays" yaml:"warnDays"`
-			Timeout  int `json:"timeoutSeconds" yaml:"timeoutSeconds"`
+			WarnDays         int `json:"warnDays" yaml:"warnDays"`
+			Timeout          int `json:"timeoutSeconds" yaml:"timeoutSeconds"`
+			BatchConcurrency int `json:"batchConcurrency" yaml:"batchConcurrency"`
 		}{
-			WarnDays: 30,
-			Timeout:  30,
+			WarnDays:         30,
+			Timeout:          30,
+			BatchConcurrency: 10,
 		},
 	}
 
@@ -3680,11 +3690,13 @@ func TestConcurrentCertificateAnalysis(t *testing.T) {
 
 	config := &Config{
 		Defaults: struct {
-			WarnDays int `json:"warnDays" yaml:"warnDays"`
-			Timeout  int `json:"timeoutSeconds" yaml:"timeoutSeconds"`
+			WarnDays         int `json:"warnDays" yaml:"warnDays"`
+			Timeout          int `json:"timeoutSeconds" yaml:"timeoutSeconds"`
+			BatchConcurrency int `json:"batchConcurrency" yaml:"batchConcurrency"`
 		}{
-			WarnDays: 30,
-			Timeout:  30,
+			WarnDays:         30,
+			Timeout:          30,
+			BatchConcurrency: 10,
 		},
 	}
 

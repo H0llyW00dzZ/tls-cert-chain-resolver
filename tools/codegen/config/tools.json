@@ -79,7 +79,7 @@
       "roleConst": "RoleBatchResolver",
       "roleName": "batchResolver",
       "roleComment": "manages bulk certificate chain processing operations.\n// Optimizes performance for high-volume certificate processing scenarios.",
-      "withConfig": false,
+      "withConfig": true,
       "params": [
         {
           "name": "certificates",
