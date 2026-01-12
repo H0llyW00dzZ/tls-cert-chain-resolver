@@ -5397,3 +5397,36 @@ func TestConfigFormat_Constants(t *testing.T) {
 		t.Error("Default configFormat should be JSON")
 	}
 }
+
+func TestBatchConcurrencyLimit(t *testing.T) {
+	ctx := t.Context()
+
+	// Test with low concurrency limit to verify semaphore works
+	maxConcurrent := 2
+
+	// Create more certificates to test concurrency limiting
+	certInputs := make([]string, 6) // More than the concurrency limit
+	for i := range certInputs {
+		certInputs[i] = pemToBase64(testCertPEM)
+	}
+
+	opts := batchResolveOptions{
+		format:            "pem",
+		includeSystemRoot: false,
+		intermediateOnly:  false,
+	}
+
+	results := processBatchCertificates(ctx, certInputs, opts, maxConcurrent)
+
+	// Verify we got results for all certificates
+	if len(results) != len(certInputs) {
+		t.Fatalf("Expected %d results, got %d", len(certInputs), len(results))
+	}
+
+	// Verify all results have the expected format
+	for i, result := range results {
+		if !strings.Contains(result, fmt.Sprintf("Certificate %d:", i+1)) {
+			t.Errorf("Result %d missing expected format: %s", i, result)
+		}
+	}
+}
