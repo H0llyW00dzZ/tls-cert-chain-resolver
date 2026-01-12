@@ -6,7 +6,9 @@ defaults:
   # Number of days before expiry to show warnings
   warnDays: 30
   # Default timeout in seconds for operations
-  timeoutSeconds: 10
+  timeoutSeconds: 30
+  # Maximum concurrent goroutines for batch processing
+  batchConcurrency: 10
 
 ai:
   # API endpoint URL for AI service (defaults to xAI)
@@ -15,5 +17,9 @@ ai:
   model: grok-4-1-fast-non-reasoning
   # API timeout in seconds for AI requests
   timeout: 30
+  # Maximum tokens for AI analysis responses
+  maxTokens: 4096
+  # Temperature for AI response generation
+  temperature: 0.3
   # API key can be set here or via X509_AI_APIKEY environment variable
   # apiKey: your-api-key-here
