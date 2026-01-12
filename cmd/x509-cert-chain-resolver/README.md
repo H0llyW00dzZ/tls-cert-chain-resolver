@@ -101,7 +101,7 @@ The MCP server supports both JSON and YAML configuration formats. The format is 
 {
   "defaults": {
     "warnDays": 30,
-    "timeoutSeconds": 10,
+    "timeoutSeconds": 30,
     "batchConcurrency": 10
   },
   "ai": {
@@ -120,7 +120,7 @@ The MCP server supports both JSON and YAML configuration formats. The format is 
 ```yaml
 defaults:
   warnDays: 30
-  timeoutSeconds: 10
+  timeoutSeconds: 30
   batchConcurrency: 10
 
 ai:
