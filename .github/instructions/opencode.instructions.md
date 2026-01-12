@@ -174,7 +174,6 @@ agent: general
 - Reading files (windowed reading)
 - Writing new files
 - Editing existing files (precise replacements)
-- Directory listing
 - File pattern matching (glob)
 - Content search (grep)
 - .ignore file patterns

@@ -327,7 +327,7 @@ Agents also have access to built-in file and project tools:
   - `limit`: Number of lines to read (default 2000)
 - `write(filePath, content)`: Create or overwrite files
 - `edit(filePath, oldString, newString)`: Precise string replacement
-- `list(path)`: List directory contents
+
 - `glob(pattern)`: Find files by pattern (e.g., `**/*.go`)
 - `grep(pattern)`: Search file contents with regex
 - `question(questions)`: Ask user questions during execution for clarification or decisions
@@ -616,7 +616,7 @@ glob("**/*.go")  # Automatically excludes patterns defined in .ignore
 bash("find . -type f -name '*.go'")          # Use glob instead
 bash("grep -r 'pattern' src/")               # Use grep tool instead
 bash("cat file.go")                          # Use read instead
-bash("ls -la directory/")                    # Use list instead
+bash("ls -la directory/")                    # Avoid bash for directory listing
 ```
 
 **✅ Good: Use bash only for operations built-in tools can't do**
