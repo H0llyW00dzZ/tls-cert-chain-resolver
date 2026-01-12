@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Built-in filesystem tools for reading, writing, editing, listing, and searching files in the X509 certificate chain resolver repository.
+Built-in filesystem tools for reading, writing, editing, and searching files in the X509 certificate chain resolver repository.
 
 ## Repository Structure
 
@@ -141,30 +141,7 @@ Use in edit:
 oldString="    log.Printf(\"test\")"  # No line number prefix!
 ```
 
-### 4. list(path?)
-
-**Purpose**: List directory contents  
-**Default**: Current working directory if path not specified
-
-**Examples**:
-```
-# List root directory
-list("/home/h0llyw00dzz/Workspace/git/tls-cert-chain-resolver")
-
-# List specific package
-list("/home/h0llyw00dzz/Workspace/git/tls-cert-chain-resolver/src/internal/x509")
-
-# List current directory
-list()
-```
-
-**When to use**:
-- Exploring directory structure
-- Verifying file existence before read/write
-- Finding test files
-- Checking build output
-
-### 5. glob(pattern, path?)
+### 4. glob(pattern, path?)
 
 **Purpose**: Find files by pattern  
 **Respects**: `.ignore` file  
@@ -200,7 +177,7 @@ glob("**/*.md")
 - Combine with grep for content search
 - Check results before bulk operations
 
-### 6. grep(pattern, path?, include?)
+### 5. grep(pattern, path?, include?)
 
 **Purpose**: Search file contents with regex  
 **Respects**: `.ignore` file  
@@ -264,9 +241,6 @@ grep("TODO:", include="*.go")
 ### 1. Understanding New Code
 
 ```
-# List package structure
-list("/path/to/package")
-
 # Find all Go files
 glob("package/**/*.go")
 
@@ -467,13 +441,13 @@ bash("find . -name '*.go'")  # Searches everything, including ignored dirs
 bash("find . -name '*.go'")           # Use glob instead
 bash("grep -r 'pattern' .")           # Use grep tool instead
 bash("cat file.go")                   # Use read instead
-bash("ls -la directory/")             # Use list instead
+bash("ls -la directory/")             # Use bash (only when necessary)
 
 ✅ GOOD:
 glob("**/*.go")
 grep("pattern", include="*.go")
 read("file.go")
-list("directory")
+# Directory exploration via glob patterns
 ```
 
 ### ❌ Editing Without Reading
@@ -727,5 +701,4 @@ edit("file.go",
 - Content search → grep
 - Read code → read
 - Modify code → edit (preferred) or write (new files only)
-- Directory listing → list
 - Build/test/git → bash (only for operations tools can't do)
