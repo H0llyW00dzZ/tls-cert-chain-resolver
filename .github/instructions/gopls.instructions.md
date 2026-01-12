@@ -215,6 +215,7 @@ gopls_go_search("resolveCertChain") → Find certificate chain resolution logic
 gopls_go_search("formatChainOutput") → Find certificate chain output formatting
 gopls_go_search("buildResolveResult") → Find resolution result building
 gopls_go_search("processBatchCertificates") → Find batch certificate processing
+gopls_go_search("handleBatchResolveCertChain") → Find batch certificate chain handler
 gopls_go_search("BatchConcurrency") → Find batch concurrency configuration
 gopls_go_search("initializeStatusMap") → Find revocation status map initialization
 gopls_go_search("extractCertificateIndex") → Find certificate index extraction for visualization

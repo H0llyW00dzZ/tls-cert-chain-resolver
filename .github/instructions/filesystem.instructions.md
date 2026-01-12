@@ -571,7 +571,7 @@ grep("ParseOCSPResponse|ParseCRLResponse", include="*.go")
 grep("readCertificateData", include="*.go")
 
 # Find batch processing helpers
-grep("processSingleCertificate|formatBatchResults|processBatchCertificates", include="*.go")
+grep("processSingleCertificate|formatBatchResults|processBatchCertificates|batchConcurrency", include="*.go")
 
 # Find certificate resolution helpers
 grep("validateResolveParams|resolveCertChain|formatChainOutput|buildResolveResult", include="*.go")
