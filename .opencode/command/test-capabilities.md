@@ -31,7 +31,6 @@ This command uses a structured todo list to systematically test all agent capabi
 - Test X509 Resolver MCP resource usage monitoring (basic and detailed) (id: "test-x509-resource-usage")
 - Test X509 Resolver MCP AI analysis (x509_resolver_analyze_certificate_with_ai) (id: "test-x509-ai-analysis")
 - Clean up test certificate bundle file (id: "test-cleanup-bundle")
-- Test built-in filesystem listing (list) (id: "test-builtin-list")
 - Test built-in file reading (read) (id: "test-builtin-read")
 - Test built-in glob pattern matching (glob) (id: "test-builtin-glob")
 - Test built-in content search (grep) (id: "test-builtin-grep")
@@ -82,7 +81,6 @@ This command uses a structured todo list to systematically test all agent capabi
 
 ### Built-in Tools Tests
 
-- **Filesystem Listing**: Call `list("/home/h0llyw00dzZ/Workspace/git/tls-cert-chain-resolver/src")` to verify directory access
 - **File Reading**: Call `read("src/cli/root.go", offset=0, limit=50)` to test file content access
 - **Glob Pattern Matching**: Call `glob("src/**/*.go")` to verify file discovery
 - **Content Search**: Call `grep("func.*Execute", include="*.go")` to test regex search
@@ -183,7 +181,6 @@ After all tasks are completed, compile a comprehensive report:
 - [ ] AI certificate analysis works
 
 ### Built-in Tools
-- [ ] File listing works
 - [ ] File reading works
 - [ ] Glob patterns match files
 - [ ] Grep searches content
