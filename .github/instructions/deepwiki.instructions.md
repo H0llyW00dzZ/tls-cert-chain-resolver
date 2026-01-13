@@ -370,6 +370,10 @@ deepwiki_ask_question("cloudflare/cfssl", "What's the difference between PEM and
 # Buffer pooling
 deepwiki_ask_question("valyala/bytebufferpool", "When should I use bytebufferpool vs sync.Pool?")
 
+# Testing
+deepwiki_ask_question("stretchr/testify", "How do I migrate from t.Error to testify assert/require?")
+deepwiki_ask_question("stretchr/testify", "What are the differences between assert and require in testify?")
+
 # Table formatting
 deepwiki_ask_question("olekukonko/tablewriter", "How do I create markdown tables with emoji headers and structured formatting?")
 deepwiki_ask_question("olekukonko/tablewriter", "How do I set table borders and alignment for resource usage reports?")
@@ -465,6 +469,7 @@ Solutions:
 - `spf13/cobra` - For CLI improvements
 - `cloudflare/cfssl` - For certificate handling
 - `valyala/bytebufferpool` - For memory optimization
+- `github.com/stretchr/testify` v1.11.1 - For testing assertions and require utilities
 - `mark3labs/mcp-go` v0.43.2 - For MCP server features with enhanced bidirectional AI sampling support
 - `modelcontextprotocol/go-sdk` v1.2.0 - For official MCP transport implementations
 - `google.golang.org/adk` v0.3.0 - For Google ADK integration for MCP transport creation
