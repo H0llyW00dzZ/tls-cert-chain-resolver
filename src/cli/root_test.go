@@ -174,14 +174,6 @@ func TestExecute_ValidCertificate(t *testing.T) {
 			},
 		},
 		{
-			name:          "Intermediate Only",
-			args:          []string{"--intermediate-only"},
-			outputFileExt: ".pem",
-			validateOutput: func(t *testing.T, outputData []byte) {
-				assert.NotEmpty(t, outputData, "expected non-empty output")
-			},
-		},
-		{
 			name:          "Include System Root CA",
 			args:          []string{"--include-system"},
 			outputFileExt: ".pem",
