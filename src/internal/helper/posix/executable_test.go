@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -9,6 +9,8 @@ import (
 	"os"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestGetExecutableName tests the GetExecutableName function for cross-platform compatibility.
@@ -182,9 +184,7 @@ func TestGetExecutableName(t *testing.T) {
 
 			result := GetExecutableName()
 			t.Logf("Input: %q → Output: %q (Expected: %q)", tt.args, result, tt.expected)
-			if result != tt.expected {
-				t.Errorf("GetExecutableName() = %q, want %q", result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "GetExecutableName() = %q, want %q", result, tt.expected)
 		})
 	}
 }

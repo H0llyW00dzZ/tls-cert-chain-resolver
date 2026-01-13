@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -9,6 +9,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	x509certs "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/x509/certs"
 )
@@ -53,98 +56,66 @@ func TestCertificateOperations(t *testing.T) {
 			name: "Decode Multiple Certificates",
 			testFunc: func(t *testing.T, decoder *x509certs.Certificate, _ *x509.Certificate) {
 				certs, err := decoder.DecodeMultiple([]byte(testCertPEM))
-				if err != nil {
-					t.Fatalf("DecodeMultiple() error = %v", err)
-				}
+				require.NoError(t, err, "DecodeMultiple() error")
 
-				if len(certs) != 1 {
-					t.Errorf("expected 1 certificate, got %d", len(certs))
-				}
+				assert.Len(t, certs, 1, "expected 1 certificate")
 			},
 		},
 		{
 			name: "Encode Certificate to DER",
 			testFunc: func(t *testing.T, decoder *x509certs.Certificate, cert *x509.Certificate) {
 				encodedDER := decoder.EncodeDER(cert)
-				if len(encodedDER) == 0 {
-					t.Fatal("EncodeDER() returned empty result")
-				}
+				assert.NotEmpty(t, encodedDER, "EncodeDER() returned empty result")
 
-				if !x509CertEqual(cert, encodedDER) {
-					t.Error("original and encoded DER certificates are not equal")
-				}
+				assert.True(t, x509CertEqual(cert, encodedDER), "original and encoded DER certificates are not equal")
 			},
 		},
 		{
 			name: "Encode Single Certificate to PEM",
 			testFunc: func(t *testing.T, decoder *x509certs.Certificate, cert *x509.Certificate) {
 				encoded := decoder.EncodeMultiplePEM([]*x509.Certificate{cert})
-				if len(encoded) == 0 {
-					t.Fatal("EncodeMultiplePEM() returned empty result")
-				}
+				assert.NotEmpty(t, encoded, "EncodeMultiplePEM() returned empty result")
 
 				decodedBlock, _ := pem.Decode(encoded)
-				if decodedBlock == nil {
-					t.Fatal("failed to decode encoded certificates PEM")
-				}
+				assert.NotNil(t, decodedBlock, "failed to decode encoded certificates PEM")
 
 				decodedCert, err := x509.ParseCertificate(decodedBlock.Bytes)
-				if err != nil {
-					t.Fatalf("ParseCertificate() error = %v", err)
-				}
+				require.NoError(t, err, "ParseCertificate() error")
 
-				if !cert.Equal(decodedCert) {
-					t.Error("original and decoded certificates are not equal")
-				}
+				assert.True(t, cert.Equal(decodedCert), "original and decoded certificates are not equal")
 			},
 		},
 		{
 			name: "Encode Multiple Certificates to DER",
 			testFunc: func(t *testing.T, decoder *x509certs.Certificate, cert *x509.Certificate) {
 				encodedDER := decoder.EncodeMultipleDER([]*x509.Certificate{cert})
-				if len(encodedDER) == 0 {
-					t.Fatal("EncodeMultipleDER() returned empty result")
-				}
+				assert.NotEmpty(t, encodedDER, "EncodeMultipleDER() returned empty result")
 
-				if !x509CertEqual(cert, encodedDER) {
-					t.Error("original and encoded DER certificates are not equal")
-				}
+				assert.True(t, x509CertEqual(cert, encodedDER), "original and encoded DER certificates are not equal")
 			},
 		},
 		{
 			name: "Decode Certificate",
 			testFunc: func(t *testing.T, decoder *x509certs.Certificate, _ *x509.Certificate) {
 				block, _ := pem.Decode([]byte(testCertPEM))
-				if block == nil {
-					t.Fatal("failed to parse certificate PEM")
-				}
+				assert.NotNil(t, block, "failed to parse certificate PEM")
 
 				cert, err := decoder.Decode(block.Bytes)
-				if err != nil {
-					t.Fatalf("Decode() error = %v", err)
-				}
+				require.NoError(t, err, "Decode() error")
 
-				if cert.Subject.CommonName != "www.google.com" {
-					t.Errorf("expected CommonName www.google.com, got %s", cert.Subject.CommonName)
-				}
+				assert.Equal(t, "www.google.com", cert.Subject.CommonName, "expected CommonName www.google.com")
 			},
 		},
 		{
 			name: "Decode-Encode-Decode Round Trip",
 			testFunc: func(t *testing.T, decoder *x509certs.Certificate, cert *x509.Certificate) {
 				encodedDER := decoder.EncodeDER(cert)
-				if len(encodedDER) == 0 {
-					t.Fatal("EncodeDER() returned empty result")
-				}
+				assert.NotEmpty(t, encodedDER, "EncodeDER() returned empty result")
 
 				decodedCert, err := decoder.Decode(encodedDER)
-				if err != nil {
-					t.Fatalf("Decode() error = %v", err)
-				}
+				require.NoError(t, err, "Decode() error")
 
-				if !cert.Equal(decodedCert) {
-					t.Error("original and decoded certificates are not equal")
-				}
+				assert.True(t, cert.Equal(decodedCert), "original and decoded certificates are not equal")
 			},
 		},
 	}
@@ -152,14 +123,10 @@ func TestCertificateOperations(t *testing.T) {
 	decoder := x509certs.New()
 
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM for test setup")
-	}
+	require.NotNil(t, block, "failed to parse certificate PEM for test setup")
 
 	testCert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse test certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to parse test certificate")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -211,9 +178,8 @@ func TestDecodeCertificate_Invalid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			decoder := x509certs.New()
-			if _, err := decoder.Decode([]byte(tt.input)); err != tt.expected {
-				t.Fatalf("expected %v, got %v", tt.expected, err)
-			}
+			_, err := decoder.Decode([]byte(tt.input))
+			assert.Equal(t, tt.expected, err, "expected specific error")
 		})
 	}
 }
@@ -223,34 +189,24 @@ func TestCertificate_DecodeDER(t *testing.T) {
 
 	// Parse test certificate to get DER data
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM")
-	}
+	require.NotNil(t, block, "failed to parse certificate PEM")
 
 	testCert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse test certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to parse test certificate")
 
 	// Test decoding DER data directly
 	t.Run("Valid DER Certificate", func(t *testing.T) {
 		cert, err := decoder.Decode(testCert.Raw)
-		if err != nil {
-			t.Fatalf("Decode() error = %v", err)
-		}
+		require.NoError(t, err, "Decode() error")
 
-		if !cert.Equal(testCert) {
-			t.Error("decoded certificate does not match original")
-		}
+		assert.True(t, cert.Equal(testCert), "decoded certificate does not match original")
 	})
 
 	// Test invalid DER data
 	t.Run("Invalid DER Data", func(t *testing.T) {
 		invalidDER := []byte("not a certificate")
 		_, err := decoder.Decode(invalidDER)
-		if err != x509certs.ErrParseCertificate {
-			t.Errorf("expected ErrParseCertificate, got %v", err)
-		}
+		assert.Equal(t, x509certs.ErrParseCertificate, err, "expected ErrParseCertificate")
 	})
 }
 
@@ -291,9 +247,7 @@ func TestCertificate_IsPEM(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := decoder.IsPEM(tt.input)
-			if result != tt.expected {
-				t.Errorf("IsPEM() = %v, want %v", result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "IsPEM() result incorrect")
 		})
 	}
 }
@@ -302,14 +256,10 @@ func TestCertificate_EncodeMultiplePEM(t *testing.T) {
 	decoder := x509certs.New()
 
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM")
-	}
+	require.NotNil(t, block, "failed to parse certificate PEM")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to parse certificate")
 
 	tests := []struct {
 		name         string
@@ -338,9 +288,7 @@ func TestCertificate_EncodeMultiplePEM(t *testing.T) {
 			encoded := decoder.EncodeMultiplePEM(tt.certs)
 
 			if tt.expectBlocks == 0 {
-				if len(encoded) != 0 {
-					t.Errorf("expected empty result, got %d bytes", len(encoded))
-				}
+				assert.Empty(t, encoded, "expected empty result")
 				return
 			}
 
@@ -355,9 +303,7 @@ func TestCertificate_EncodeMultiplePEM(t *testing.T) {
 				rest = remainder
 			}
 
-			if blockCount != tt.expectBlocks {
-				t.Errorf("expected %d PEM blocks, got %d", tt.expectBlocks, blockCount)
-			}
+			assert.Equal(t, tt.expectBlocks, blockCount, "expected correct number of PEM blocks")
 		})
 	}
 }
@@ -366,14 +312,10 @@ func TestCertificate_DecodeMultiple(t *testing.T) {
 	decoder := x509certs.New()
 
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM")
-	}
+	require.NotNil(t, block, "failed to parse certificate PEM")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to parse certificate")
 
 	tests := []struct {
 		name        string
@@ -418,19 +360,13 @@ func TestCertificate_DecodeMultiple(t *testing.T) {
 			certs, err := decoder.DecodeMultiple(tt.input)
 
 			if tt.expectError != nil {
-				if err != tt.expectError {
-					t.Errorf("expected error %v, got %v", tt.expectError, err)
-				}
+				assert.Equal(t, tt.expectError, err, "expected specific error")
 				return
 			}
 
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error")
 
-			if len(certs) != tt.expectCount {
-				t.Errorf("expected %d certificates, got %d", tt.expectCount, len(certs))
-			}
+			assert.Len(t, certs, tt.expectCount, "expected correct number of certificates")
 		})
 	}
 }
@@ -439,35 +375,21 @@ func TestCertificate_EncodePEM(t *testing.T) {
 	decoder := x509certs.New()
 
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM")
-	}
+	require.NotNil(t, block, "failed to parse certificate PEM")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to parse certificate")
 
 	encoded := decoder.EncodePEM(cert)
-	if len(encoded) == 0 {
-		t.Fatal("EncodePEM() returned empty result")
-	}
+	assert.NotEmpty(t, encoded, "EncodePEM() returned empty result")
 
 	decodedBlock, _ := pem.Decode(encoded)
-	if decodedBlock == nil {
-		t.Fatal("failed to decode encoded PEM")
-	}
+	assert.NotNil(t, decodedBlock, "failed to decode encoded PEM")
 
-	if decodedBlock.Type != "CERTIFICATE" {
-		t.Errorf("expected block type CERTIFICATE, got %s", decodedBlock.Type)
-	}
+	assert.Equal(t, "CERTIFICATE", decodedBlock.Type, "expected block type CERTIFICATE")
 
 	decodedCert, err := x509.ParseCertificate(decodedBlock.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse decoded certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to parse decoded certificate")
 
-	if !cert.Equal(decodedCert) {
-		t.Error("original and decoded certificates are not equal")
-	}
+	assert.True(t, cert.Equal(decodedCert), "original and decoded certificates are not equal")
 }

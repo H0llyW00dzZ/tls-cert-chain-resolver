@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -9,13 +9,12 @@ import (
 	"testing"
 
 	verpkg "github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/version"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestVersionInit(t *testing.T) {
 	// Test that version is initialized
-	if version == "" {
-		t.Error("version should not be empty after init")
-	}
+	assert.NotEmpty(t, version, "version should not be empty after init")
 
 	// Test that it matches the version package when not set by ldflags
 	// We can't directly test the init logic, but we can verify version is set

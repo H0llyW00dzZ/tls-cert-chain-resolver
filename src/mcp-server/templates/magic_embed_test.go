@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -9,6 +9,9 @@ import (
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMagicEmbed_ReadFile(t *testing.T) {
@@ -47,19 +50,15 @@ func TestMagicEmbed_ReadFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			data, err := MagicEmbed.ReadFile(tt.filename)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("MagicEmbed.ReadFile() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr {
-				if len(data) == 0 {
-					t.Error("MagicEmbed.ReadFile() returned empty data for existing file")
-				}
+			if tt.wantErr {
+				assert.Error(t, err, "MagicEmbed.ReadFile() should return error for %s", tt.filename)
+			} else {
+				require.NoError(t, err, "MagicEmbed.ReadFile() should not return error for %s", tt.filename)
+				assert.NotEmpty(t, data, "MagicEmbed.ReadFile() should return non-empty data for existing file")
 				// Verify content is valid UTF-8 and contains expected content
 				content := string(data)
-				if !strings.Contains(content, "#") && !strings.Contains(content, "```") {
-					t.Logf("File %s appears to be valid markdown content", tt.filename)
-				}
+				assert.True(t, strings.Contains(content, "#") || strings.Contains(content, ":") || strings.Contains(content, "```"),
+					"File %s should contain structured content", tt.filename)
 			}
 		})
 	}
@@ -68,14 +67,8 @@ func TestMagicEmbed_ReadFile(t *testing.T) {
 func TestMagicEmbed_ReadDir(t *testing.T) {
 	t.Run("read root directory", func(t *testing.T) {
 		entries, err := MagicEmbed.ReadDir(".")
-		if err != nil {
-			t.Errorf("MagicEmbed.ReadDir() error = %v", err)
-			return
-		}
-
-		if len(entries) == 0 {
-			t.Error("MagicEmbed.ReadDir() returned no entries")
-		}
+		require.NoError(t, err, "MagicEmbed.ReadDir() should not return error")
+		assert.NotEmpty(t, entries, "MagicEmbed.ReadDir() should return entries")
 
 		// Verify we have the expected markdown files
 		expectedFiles := map[string]bool{
@@ -85,27 +78,20 @@ func TestMagicEmbed_ReadDir(t *testing.T) {
 		}
 
 		for _, entry := range entries {
-			if entry.IsDir() {
-				t.Errorf("Unexpected directory found: %s", entry.Name())
-				continue
-			}
+			assert.False(t, entry.IsDir(), "Unexpected directory found: %s", entry.Name())
 			if _, exists := expectedFiles[entry.Name()]; exists {
 				expectedFiles[entry.Name()] = true
 			}
 		}
 
 		for filename, found := range expectedFiles {
-			if !found {
-				t.Errorf("Expected file %s not found in directory listing", filename)
-			}
+			assert.True(t, found, "Expected file %s not found in directory listing", filename)
 		}
 	})
 
 	t.Run("read non-existent directory", func(t *testing.T) {
 		_, err := MagicEmbed.ReadDir("non-existent")
-		if err == nil {
-			t.Error("MagicEmbed.ReadDir() expected error for non-existent directory")
-		}
+		assert.Error(t, err, "MagicEmbed.ReadDir() should return error for non-existent directory")
 	})
 }
 
@@ -135,38 +121,27 @@ func TestMagicEmbed_Open(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			file, err := MagicEmbed.Open(tt.filename)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("MagicEmbed.Open() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr {
-				if file == nil {
-					t.Error("MagicEmbed.Open() returned nil file for existing file")
-					return
-				}
+			if tt.wantErr {
+				assert.Error(t, err, "MagicEmbed.Open() should return error for %s", tt.filename)
+				assert.Nil(t, file, "MagicEmbed.Open() should return nil file for %s", tt.filename)
+			} else {
+				require.NoError(t, err, "MagicEmbed.Open() should not return error for %s", tt.filename)
+				require.NotNil(t, file, "MagicEmbed.Open() should return file for %s", tt.filename)
 				defer file.Close()
 
 				// Verify we can read from the file
 				data := make([]byte, 1024)
 				n, err := file.Read(data)
 				if err != nil && err != io.EOF {
-					t.Errorf("Failed to read from opened file: %v", err)
+					assert.NoError(t, err, "Failed to read from opened file")
 				}
-				if n == 0 {
-					t.Error("Opened file appears to be empty")
-				}
+				assert.Greater(t, n, 0, "Opened file should contain data")
 
 				// Verify file info
 				info, err := file.Stat()
-				if err != nil {
-					t.Errorf("Failed to get file info: %v", err)
-				}
-				if info.IsDir() {
-					t.Error("Opened file should not be a directory")
-				}
-				if info.Size() == 0 {
-					t.Error("Opened file should not be empty")
-				}
+				require.NoError(t, err, "Should be able to get file info")
+				assert.False(t, info.IsDir(), "Opened file should not be a directory")
+				assert.Greater(t, info.Size(), int64(0), "Opened file should not be empty")
 			}
 		})
 	}
@@ -175,10 +150,13 @@ func TestMagicEmbed_Open(t *testing.T) {
 func TestMagicEmbed_InterfaceCompliance(t *testing.T) {
 	t.Run("MagicEmbed implements EmbedFS interface", func(t *testing.T) {
 		var _ EmbedFS = MagicEmbed
+		assert.NotNil(t, MagicEmbed, "MagicEmbed should implement EmbedFS interface")
 	})
 
 	t.Run("embedFS implements EmbedFS interface", func(t *testing.T) {
 		var _ EmbedFS = &embedFS{}
+		efs := &embedFS{}
+		assert.NotNil(t, efs, "embedFS should implement EmbedFS interface")
 	})
 }
 
@@ -216,30 +194,24 @@ func TestMagicEmbed_ContentValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			data, err := MagicEmbed.ReadFile(tt.filename)
-			if err != nil {
-				t.Errorf("Failed to read %s: %v", tt.filename, err)
-				return
-			}
+			require.NoError(t, err, "Failed to read %s", tt.filename)
 
 			content := string(data)
 
 			// Check minimum size
-			if len(content) < tt.minSize {
-				t.Errorf("File %s is too small: got %d bytes, want at least %d", tt.filename, len(content), tt.minSize)
-			}
+			assert.GreaterOrEqual(t, len(content), tt.minSize,
+				"File %s should be at least %d bytes, got %d", tt.filename, tt.minSize, len(content))
 
 			// Check for expected content
 			for _, expected := range tt.contains {
-				if !strings.Contains(content, expected) {
-					t.Errorf("File %s does not contain expected string '%s'", tt.filename, expected)
-				}
+				assert.Contains(t, content, expected,
+					"File %s should contain expected string '%s'", tt.filename, expected)
 			}
 
 			// Basic content type validation
 			if tt.contentType == "markdown" {
-				if !strings.Contains(content, "#") && !strings.Contains(content, "-") {
-					t.Logf("File %s appears to be valid markdown content", tt.filename)
-				}
+				assert.True(t, strings.Contains(content, "#") || strings.Contains(content, "-"),
+					"File %s should contain markdown formatting", tt.filename)
 			}
 		})
 	}
@@ -248,13 +220,14 @@ func TestMagicEmbed_ContentValidation(t *testing.T) {
 func TestMagicEmbed_ConcurrentAccess(t *testing.T) {
 	// Test concurrent access to ensure thread safety
 	done := make(chan bool, 3)
+	errors := make(chan error, 30) // Buffer for potential errors
 
 	// Goroutine 1: Read certificate formats
 	go func() {
 		for range 10 {
 			_, err := MagicEmbed.ReadFile("certificate-formats.md")
 			if err != nil {
-				t.Errorf("Concurrent read failed: %v", err)
+				errors <- err
 			}
 		}
 		done <- true
@@ -265,7 +238,7 @@ func TestMagicEmbed_ConcurrentAccess(t *testing.T) {
 		for range 10 {
 			_, err := MagicEmbed.ReadFile("X509_instructions.md")
 			if err != nil {
-				t.Errorf("Concurrent read failed: %v", err)
+				errors <- err
 			}
 		}
 		done <- true
@@ -276,7 +249,7 @@ func TestMagicEmbed_ConcurrentAccess(t *testing.T) {
 		for range 10 {
 			_, err := MagicEmbed.ReadDir(".")
 			if err != nil {
-				t.Errorf("Concurrent ReadDir failed: %v", err)
+				errors <- err
 			}
 		}
 		done <- true
@@ -284,7 +257,18 @@ func TestMagicEmbed_ConcurrentAccess(t *testing.T) {
 
 	// Wait for all goroutines to complete
 	for range 3 {
-		<-done
+		select {
+		case <-done:
+			// Goroutine completed
+		case err := <-errors:
+			assert.NoError(t, err, "Concurrent operation failed")
+		}
+	}
+
+	// Check for any remaining errors
+	close(errors)
+	for err := range errors {
+		assert.NoError(t, err, "Concurrent operation failed")
 	}
 }
 
@@ -296,33 +280,23 @@ func TestEmbedFS_Methods(t *testing.T) {
 		data1, err1 := MagicEmbed.ReadFile("certificate-formats.md")
 		data2, err2 := efs.ReadFile("certificate-formats.md")
 
-		if err1 != err2 {
-			t.Errorf("ReadFile error mismatch: %v vs %v", err1, err2)
-		}
-		if string(data1) != string(data2) {
-			t.Error("ReadFile data mismatch")
-		}
+		assert.Equal(t, err1, err2, "ReadFile error should match")
+		assert.Equal(t, string(data1), string(data2), "ReadFile data should match")
 	})
 
 	t.Run("ReadDir delegation", func(t *testing.T) {
 		entries1, err1 := MagicEmbed.ReadDir(".")
 		entries2, err2 := efs.ReadDir(".")
 
-		if err1 != err2 {
-			t.Errorf("ReadDir error mismatch: %v vs %v", err1, err2)
-		}
-		if len(entries1) != len(entries2) {
-			t.Errorf("ReadDir entries count mismatch: %d vs %d", len(entries1), len(entries2))
-		}
+		assert.Equal(t, err1, err2, "ReadDir error should match")
+		assert.Len(t, entries2, len(entries1), "ReadDir entries count should match")
 	})
 
 	t.Run("Open delegation", func(t *testing.T) {
 		file1, err1 := MagicEmbed.Open("certificate-formats.md")
 		file2, err2 := efs.Open("certificate-formats.md")
 
-		if err1 != err2 {
-			t.Errorf("Open error mismatch: %v vs %v", err1, err2)
-		}
+		assert.Equal(t, err1, err2, "Open error should match")
 		if file1 != nil {
 			file1.Close()
 		}

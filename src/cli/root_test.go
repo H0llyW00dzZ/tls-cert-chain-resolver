@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -19,6 +19,8 @@ import (
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/cli"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const version = "1.3.3.7-testing"
@@ -71,9 +73,7 @@ func TestExecute_ErrorCases(t *testing.T) {
 			name: "Invalid Certificate File",
 			setupFile: func(t *testing.T) string {
 				tmpFile := filepath.Join(t.TempDir(), "invalid.cer")
-				if err := os.WriteFile(tmpFile, []byte("invalid data"), 0644); err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, os.WriteFile(tmpFile, []byte("invalid data"), 0644), "Failed to write test file")
 				return tmpFile
 			},
 			expectedError: nil,
@@ -102,13 +102,10 @@ func TestExecute_ErrorCases(t *testing.T) {
 			err := cli.Execute(ctx, version, log)
 
 			if tt.expectedError != nil {
-				if !errors.Is(err, tt.expectedError) {
-					t.Errorf("expected error %v, got %v", tt.expectedError, err)
-				}
+				assert.Error(t, err, "Expected error")
+				assert.True(t, errors.Is(err, tt.expectedError), "expected error %v, got %v", tt.expectedError, err)
 			} else {
-				if err == nil {
-					t.Error("expected error, got nil")
-				}
+				assert.Error(t, err, "expected error, got nil")
 			}
 		})
 	}
@@ -128,9 +125,7 @@ func TestExecute_ValidCertificate(t *testing.T) {
 			args:          []string{},
 			outputFileExt: ".pem",
 			validateOutput: func(t *testing.T, outputData []byte) {
-				if !strings.Contains(string(outputData), "BEGIN CERTIFICATE") {
-					t.Error("expected PEM format in output")
-				}
+				assert.Contains(t, string(outputData), "BEGIN CERTIFICATE", "expected PEM format in output")
 			},
 		},
 		{
@@ -138,33 +133,8 @@ func TestExecute_ValidCertificate(t *testing.T) {
 			args:          []string{"--der"},
 			outputFileExt: ".der",
 			validateOutput: func(t *testing.T, outputData []byte) {
-				if len(outputData) == 0 {
-					t.Error("expected non-empty DER output")
-				}
-				if strings.Contains(string(outputData), "BEGIN CERTIFICATE") {
-					t.Error("expected DER format (binary), not PEM format")
-				}
-			},
-		},
-		{
-			name:          "Intermediate Only",
-			args:          []string{"--intermediate-only"},
-			outputFileExt: ".pem",
-			validateOutput: func(t *testing.T, outputData []byte) {
-				if len(outputData) == 0 {
-					t.Error("expected non-empty output")
-				}
-			},
-		},
-		{
-			name:          "Include System Root CA",
-			args:          []string{"--include-system"},
-			outputFileExt: ".pem",
-			skipOnMacOS:   true,
-			validateOutput: func(t *testing.T, outputData []byte) {
-				if len(outputData) == 0 {
-					t.Error("expected non-empty output")
-				}
+				assert.NotEmpty(t, outputData, "expected non-empty DER output")
+				assert.NotContains(t, string(outputData), "BEGIN CERTIFICATE", "expected DER format (binary), not PEM format")
 			},
 		},
 		{
@@ -173,21 +143,70 @@ func TestExecute_ValidCertificate(t *testing.T) {
 			outputFileExt: ".json",
 			validateOutput: func(t *testing.T, outputData []byte) {
 				var jsonData map[string]any
-				if err := json.Unmarshal(outputData, &jsonData); err != nil {
-					t.Fatalf("failed to parse JSON output: %v", err)
-				}
+				require.NoError(t, json.Unmarshal(outputData, &jsonData), "failed to parse JSON output")
 
 				if title, ok := jsonData["title"].(string); !ok || title != "TLS Certificate Resolver" {
-					t.Errorf("expected title 'TLS Certificate Resolver', got %v", jsonData["title"])
+					assert.Equal(t, "TLS Certificate Resolver", title, "expected title 'TLS Certificate Resolver', got %v", jsonData["title"])
 				}
 
-				if _, ok := jsonData["totalChained"].(float64); !ok {
-					t.Error("expected totalChained field in JSON output")
+				_, ok := jsonData["totalChained"].(float64)
+				assert.True(t, ok, "expected totalChained field in JSON output")
+
+				_, ok = jsonData["listCertificates"].([]any)
+				assert.True(t, ok, "expected non-empty listCertificates array in JSON output")
+			},
+		},
+		{
+			name:          "Include System Root CA",
+			args:          []string{"--include-system"},
+			outputFileExt: ".pem",
+			skipOnMacOS:   true,
+			validateOutput: func(t *testing.T, outputData []byte) {
+				assert.NotEmpty(t, outputData, "expected non-empty output")
+			},
+		},
+		{
+			name:          "Intermediate Only",
+			args:          []string{"--intermediate-only"},
+			outputFileExt: ".pem",
+			validateOutput: func(t *testing.T, outputData []byte) {
+				assert.NotEmpty(t, outputData, "expected non-empty output")
+			},
+		},
+		{
+			name:          "Intermediate Only",
+			args:          []string{"--intermediate-only"},
+			outputFileExt: ".pem",
+			validateOutput: func(t *testing.T, outputData []byte) {
+				assert.NotEmpty(t, outputData, "expected non-empty output")
+			},
+		},
+		{
+			name:          "Include System Root CA",
+			args:          []string{"--include-system"},
+			outputFileExt: ".pem",
+			skipOnMacOS:   true,
+			validateOutput: func(t *testing.T, outputData []byte) {
+				assert.NotEmpty(t, outputData, "expected non-empty output")
+			},
+		},
+		{
+			name:          "JSON Output",
+			args:          []string{"--json"},
+			outputFileExt: ".json",
+			validateOutput: func(t *testing.T, outputData []byte) {
+				var jsonData map[string]any
+				require.NoError(t, json.Unmarshal(outputData, &jsonData), "failed to parse JSON output")
+
+				if title, ok := jsonData["title"].(string); !ok || title != "TLS Certificate Resolver" {
+					assert.Equal(t, "TLS Certificate Resolver", title, "expected title 'TLS Certificate Resolver', got %v", jsonData["title"])
 				}
 
-				if certs, ok := jsonData["listCertificates"].([]any); !ok || len(certs) == 0 {
-					t.Error("expected non-empty listCertificates array in JSON output")
-				}
+				_, ok := jsonData["totalChained"].(float64)
+				assert.True(t, ok, "expected totalChained field in JSON output")
+
+				_, ok = jsonData["listCertificates"].([]any)
+				assert.True(t, ok, "expected non-empty listCertificates array in JSON output")
 			},
 		},
 	}
@@ -207,9 +226,7 @@ func TestExecute_ValidCertificate(t *testing.T) {
 			inputFile := filepath.Join(tmpDir, "google.cer")
 			outputFile := filepath.Join(tmpDir, "output"+tt.outputFileExt)
 
-			if err := os.WriteFile(inputFile, []byte(testCertPEM), 0644); err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, os.WriteFile(inputFile, []byte(testCertPEM), 0644), "Failed to write test certificate file")
 			t.Cleanup(func() {
 				os.Remove(inputFile)
 				os.Remove(outputFile)
@@ -225,28 +242,18 @@ func TestExecute_ValidCertificate(t *testing.T) {
 			err := cli.Execute(ctx, version, log)
 
 			if tt.expectError {
-				if err == nil {
-					t.Error("expected error, got nil")
-				}
+				assert.Error(t, err, "expected error, got nil")
 				return
 			}
 
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err, "unexpected error")
 
-			if !cli.OperationPerformed {
-				t.Error("expected OperationPerformed to be true")
-			}
+			assert.True(t, cli.OperationPerformed, "expected OperationPerformed to be true")
 
-			if !cli.OperationPerformedSuccessfully {
-				t.Error("expected OperationPerformedSuccessfully to be true")
-			}
+			assert.True(t, cli.OperationPerformedSuccessfully, "expected OperationPerformedSuccessfully to be true")
 
 			outputData, err := os.ReadFile(outputFile)
-			if err != nil {
-				t.Fatalf("failed to read output file: %v", err)
-			}
+			require.NoError(t, err, "failed to read output file")
 
 			if tt.validateOutput != nil {
 				tt.validateOutput(t, outputData)
@@ -264,7 +271,7 @@ func TestExecute_ContextCancellation(t *testing.T) {
 	inputFile := filepath.Join(tmpDir, "google.cer")
 
 	if err := os.WriteFile(inputFile, []byte(testCertPEM), 0644); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err, "Unexpected error")
 	}
 	t.Cleanup(func() {
 		os.Remove(inputFile)
@@ -275,9 +282,7 @@ func TestExecute_ContextCancellation(t *testing.T) {
 	os.Args = []string{"cmd", "-f", inputFile}
 
 	err := cli.Execute(ctx, version, log)
-	if err == nil {
-		t.Error("expected error due to context cancellation")
-	}
+	assert.Error(t, err, "expected error due to context cancellation")
 }
 
 func TestExecute_StdoutOutput(t *testing.T) {
@@ -290,12 +295,8 @@ func TestExecute_StdoutOutput(t *testing.T) {
 			name: "PEM to Stdout",
 			args: []string{},
 			validateStdout: func(t *testing.T, output string) {
-				if !strings.Contains(output, "BEGIN CERTIFICATE") {
-					t.Error("expected PEM format in stdout")
-				}
-				if !strings.Contains(output, "END CERTIFICATE") {
-					t.Error("expected complete PEM certificate in stdout")
-				}
+				assert.Contains(t, output, "BEGIN CERTIFICATE", "expected PEM format in stdout")
+				assert.Contains(t, output, "END CERTIFICATE", "expected complete PEM certificate in stdout")
 			},
 		},
 		{
@@ -303,20 +304,27 @@ func TestExecute_StdoutOutput(t *testing.T) {
 			args: []string{"--json"},
 			validateStdout: func(t *testing.T, output string) {
 				var jsonData map[string]any
-				if err := json.Unmarshal([]byte(output), &jsonData); err != nil {
-					t.Fatalf("failed to parse JSON output from stdout: %v", err)
-				}
+				require.NoError(t, json.Unmarshal([]byte(output), &jsonData), "failed to parse JSON output from stdout")
 
 				if title, ok := jsonData["title"].(string); !ok || title != "TLS Certificate Resolver" {
-					t.Errorf("expected title 'TLS Certificate Resolver', got %v", jsonData["title"])
+					assert.Equal(t, "TLS Certificate Resolver", title, "expected title 'TLS Certificate Resolver', got %v", jsonData["title"])
 				}
 
-				if _, ok := jsonData["totalChained"].(float64); !ok {
-					t.Error("expected totalChained field in JSON stdout output")
+				_, ok := jsonData["totalChained"].(float64)
+				assert.True(t, ok, "expected totalChained field in JSON stdout output")
+
+				_, ok = jsonData["listCertificates"].([]any)
+				assert.True(t, ok, "expected non-empty listCertificates array in JSON stdout output")
+
+				if title, ok := jsonData["title"].(string); !ok || title != "TLS Certificate Resolver" {
+					assert.Equal(t, "TLS Certificate Resolver", title, "expected title 'TLS Certificate Resolver', got %v", jsonData["title"])
 				}
+
+				_, ok = jsonData["totalChained"].(float64)
+				assert.True(t, ok, "expected totalChained field in JSON stdout output")
 
 				if certs, ok := jsonData["listCertificates"].([]any); !ok || len(certs) == 0 {
-					t.Error("expected non-empty listCertificates array in JSON stdout output")
+					assert.True(t, ok && len(certs) > 0, "expected non-empty listCertificates array in JSON stdout output")
 				}
 			},
 		},
@@ -324,12 +332,8 @@ func TestExecute_StdoutOutput(t *testing.T) {
 			name: "Intermediate Only to Stdout",
 			args: []string{"--intermediate-only"},
 			validateStdout: func(t *testing.T, output string) {
-				if len(output) == 0 {
-					t.Error("expected non-empty stdout output")
-				}
-				if !strings.Contains(output, "BEGIN CERTIFICATE") {
-					t.Error("expected PEM format in stdout for intermediate certificates")
-				}
+				assert.NotEmpty(t, output, "expected non-empty stdout output")
+				assert.Contains(t, output, "BEGIN CERTIFICATE", "expected PEM format in stdout for intermediate certificates")
 			},
 		},
 	}
@@ -345,7 +349,7 @@ func TestExecute_StdoutOutput(t *testing.T) {
 			inputFile := filepath.Join(tmpDir, "google.cer")
 
 			if err := os.WriteFile(inputFile, []byte(testCertPEM), 0644); err != nil {
-				t.Fatal(err)
+				require.NoError(t, err, "Unexpected error")
 			}
 			t.Cleanup(func() {
 				os.Remove(inputFile)
@@ -354,9 +358,7 @@ func TestExecute_StdoutOutput(t *testing.T) {
 			// Redirect stdout to capture output
 			oldStdout := os.Stdout
 			r, w, err := os.Pipe()
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err, "Unexpected error")
 			os.Stdout = w
 
 			// Build args without -o flag to write to stdout
@@ -386,17 +388,11 @@ func TestExecute_StdoutOutput(t *testing.T) {
 			output := <-outputChan
 			r.Close()
 
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			assert.NoError(t, err, "unexpected error")
 
-			if !cli.OperationPerformed {
-				t.Error("expected OperationPerformed to be true")
-			}
+			assert.True(t, cli.OperationPerformed, "expected OperationPerformed to be true")
 
-			if !cli.OperationPerformedSuccessfully {
-				t.Error("expected OperationPerformedSuccessfully to be true")
-			}
+			assert.True(t, cli.OperationPerformedSuccessfully, "expected OperationPerformedSuccessfully to be true")
 
 			if tt.validateStdout != nil {
 				tt.validateStdout(t, output)
@@ -414,7 +410,7 @@ func TestExecute_WriteError(t *testing.T) {
 
 	// Create input file
 	if err := os.WriteFile(inputFile, []byte(testCertPEM), 0644); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err, "Unexpected error")
 	}
 
 	// Use directory as output file to force write error
@@ -424,11 +420,7 @@ func TestExecute_WriteError(t *testing.T) {
 
 	err := cli.Execute(ctx, version, log)
 
-	if err == nil {
-		t.Error("expected error writing to directory, got nil")
-	}
+	assert.Error(t, err, "expected error writing to directory, got nil")
 
-	if !strings.Contains(err.Error(), "error writing to output file") {
-		t.Errorf("expected 'error writing to output file' error, got: %v", err)
-	}
+	assert.Contains(t, err.Error(), "error writing to output file", "expected 'error writing to output file' error, got: %v", err)
 }

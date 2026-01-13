@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -14,6 +14,8 @@ import (
 	"testing"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/logger"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCLILogger(t *testing.T) {
@@ -31,9 +33,7 @@ func TestCLILogger(t *testing.T) {
 				log.Printf("test message: %s", "hello")
 
 				output := buf.String()
-				if !strings.Contains(output, "test message: hello") {
-					t.Errorf("expected output to contain 'test message: hello', got %q", output)
-				}
+				assert.Contains(t, output, "test message: hello", "expected output to contain 'test message: hello'")
 			},
 		},
 		{
@@ -46,9 +46,7 @@ func TestCLILogger(t *testing.T) {
 				log.Println("test", "message")
 
 				output := buf.String()
-				if !strings.Contains(output, "test message") {
-					t.Errorf("expected output to contain 'test message', got %q", output)
-				}
+				assert.Contains(t, output, "test message", "expected output to contain 'test message'")
 			},
 		},
 		{
@@ -63,26 +61,16 @@ func TestCLILogger(t *testing.T) {
 				log.SetOutput(&buf2)
 				log.Println("second")
 
-				if !strings.Contains(buf1.String(), "first") {
-					t.Errorf("expected buf1 to contain 'first', got %q", buf1.String())
-				}
-
-				if !strings.Contains(buf2.String(), "second") {
-					t.Errorf("expected buf2 to contain 'second', got %q", buf2.String())
-				}
-
-				if strings.Contains(buf1.String(), "second") {
-					t.Errorf("buf1 should not contain 'second', got %q", buf1.String())
-				}
+				assert.Contains(t, buf1.String(), "first", "expected buf1 to contain 'first'")
+				assert.Contains(t, buf2.String(), "second", "expected buf2 to contain 'second'")
+				assert.NotContains(t, buf1.String(), "second", "buf1 should not contain 'second'")
 			},
 		},
 		{
 			name: "NewDefault",
 			testFunc: func(t *testing.T) {
 				log := logger.NewCLILogger()
-				if log == nil {
-					t.Error("NewCLILogger() returned nil")
-				}
+				assert.NotNil(t, log, "NewCLILogger() returned nil")
 			},
 		},
 		{
@@ -113,9 +101,7 @@ func TestCLILogger(t *testing.T) {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
 
 				expectedLines := numGoroutines * messagesPerGoroutine
-				if len(lines) != expectedLines {
-					t.Errorf("expected %d log lines, got %d", expectedLines, len(lines))
-				}
+				assert.Equal(t, expectedLines, len(lines), "expected %d log lines")
 			},
 		},
 	}
@@ -141,9 +127,7 @@ func TestMCPLogger(t *testing.T) {
 				log.Printf("test message: %s", "hello")
 				log.Println("another message")
 
-				if buf.Len() != 0 {
-					t.Errorf("expected no output in silent mode, got %q", buf.String())
-				}
+				assert.Equal(t, 0, buf.Len(), "expected no output in silent mode")
 			},
 		},
 		{
@@ -155,22 +139,13 @@ func TestMCPLogger(t *testing.T) {
 				log.Printf("test message: %s", "hello")
 
 				output := buf.String()
-				if output == "" {
-					t.Fatal("expected output, got empty string")
-				}
+				assert.Contains(t, output, "test message: hello", "expected output to contain 'test message: hello'")
 
 				var logEntry map[string]any
-				if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry); err != nil {
-					t.Fatalf("failed to parse JSON output: %v", err)
-				}
+				require.NoError(t, json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry), "failed to parse JSON output")
 
-				if logEntry["level"] != "info" {
-					t.Errorf("expected level 'info', got %v", logEntry["level"])
-				}
-
-				if logEntry["message"] != "test message: hello" {
-					t.Errorf("expected message 'test message: hello', got %v", logEntry["message"])
-				}
+				assert.Equal(t, "info", logEntry["level"], "expected level 'info'")
+				assert.Equal(t, "test message: hello", logEntry["message"], "expected message 'test message: hello'")
 			},
 		},
 		{
@@ -182,22 +157,13 @@ func TestMCPLogger(t *testing.T) {
 				log.Println("test message")
 
 				output := buf.String()
-				if output == "" {
-					t.Fatal("expected output, got empty string")
-				}
+				require.NotEmpty(t, output, "expected output, got empty string")
 
 				var logEntry map[string]any
-				if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry); err != nil {
-					t.Fatalf("failed to parse JSON output: %v", err)
-				}
+				require.NoError(t, json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry), "failed to parse JSON output")
 
-				if logEntry["level"] != "info" {
-					t.Errorf("expected level 'info', got %v", logEntry["level"])
-				}
-
-				if logEntry["message"] != "test message" {
-					t.Errorf("expected message 'test message', got %v", logEntry["message"])
-				}
+				assert.Equal(t, "info", logEntry["level"], "expected level 'info'")
+				assert.Equal(t, "test message", logEntry["message"], "expected message 'test message'")
 			},
 		},
 		{
@@ -211,21 +177,10 @@ func TestMCPLogger(t *testing.T) {
 				log.SetOutput(&buf2)
 				log.Println("second")
 
-				if buf1.Len() == 0 {
-					t.Error("expected buf1 to have content")
-				}
-
-				if buf2.Len() == 0 {
-					t.Error("expected buf2 to have content")
-				}
-
-				if strings.Contains(buf1.String(), "second") {
-					t.Errorf("buf1 should not contain 'second', got %q", buf1.String())
-				}
-
-				if strings.Contains(buf2.String(), "first") {
-					t.Errorf("buf2 should not contain 'first', got %q", buf2.String())
-				}
+				assert.NotZero(t, buf1.Len(), "expected buf1 to have content")
+				assert.NotZero(t, buf2.Len(), "expected buf2 to have content")
+				assert.NotContains(t, buf1.String(), "second", "buf1 should not contain 'second'")
+				assert.NotContains(t, buf2.String(), "first", "buf2 should not contain 'first'")
 			},
 		},
 		{
@@ -240,13 +195,8 @@ func TestMCPLogger(t *testing.T) {
 				log.Println("after")
 
 				output := buf.String()
-				if !strings.Contains(output, "before") {
-					t.Error("expected 'before' in output")
-				}
-
-				if strings.Contains(output, "after") {
-					t.Error("should not contain 'after' after setting nil output")
-				}
+				assert.Contains(t, output, "before", "expected 'before' in output")
+				assert.NotContains(t, output, "after", "should not contain 'after' after setting nil output")
 			},
 		},
 		{
@@ -271,15 +221,11 @@ func TestMCPLogger(t *testing.T) {
 				output := buf.String()
 				lines := strings.Split(strings.TrimSpace(output), "\n")
 
-				if len(lines) != 3 {
-					t.Errorf("expected 3 lines, got %d", len(lines))
-				}
+				assert.Len(t, lines, 3, "expected 3 lines")
 
 				for i, line := range lines {
 					var logEntry map[string]any
-					if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
-						t.Errorf("line %d: failed to parse JSON: %v", i+1, err)
-					}
+					assert.NoError(t, json.Unmarshal([]byte(line), &logEntry), "line %d: failed to parse JSON", i+1)
 				}
 			},
 		},
@@ -294,9 +240,7 @@ func TestMCPLogger(t *testing.T) {
 					log.Println("message", i)
 				}
 
-				if buf.Len() != 0 {
-					t.Errorf("expected no output in silent mode after 200 calls, got %d bytes", buf.Len())
-				}
+				assert.Equal(t, 0, buf.Len(), "expected no output in silent mode after 200 calls")
 			},
 		},
 		{
@@ -328,20 +272,13 @@ func TestMCPLogger(t *testing.T) {
 
 					output := buf.String()
 					var logEntry map[string]any
-					if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry); err != nil {
-						t.Errorf("input %q: failed to parse JSON: %v\nOutput: %s", tc.input, err, output)
-						continue
-					}
+					require.NoError(t, json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry),
+						"input %q: failed to parse JSON\nOutput: %s", tc.input, output)
 
 					msg, ok := logEntry["message"].(string)
-					if !ok {
-						t.Errorf("input %q: message is not a string", tc.input)
-						continue
-					}
+					require.True(t, ok, "input %q: message is not a string", tc.input)
 
-					if msg != tc.expectedMessage {
-						t.Errorf("input %q: expected message %q, got %q", tc.input, tc.expectedMessage, msg)
-					}
+					assert.Equal(t, tc.expectedMessage, msg, "input %q: expected message %q", tc.input, tc.expectedMessage)
 				}
 			},
 		},
@@ -368,20 +305,13 @@ func TestMCPLogger(t *testing.T) {
 
 					output := buf.String()
 					var logEntry map[string]any
-					if err := json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry); err != nil {
-						t.Errorf("input %q: failed to parse JSON: %v\nOutput: %s", tc.input, err, output)
-						continue
-					}
+					require.NoError(t, json.Unmarshal([]byte(strings.TrimSpace(output)), &logEntry),
+						"input %q: failed to parse JSON\nOutput: %s", tc.input, output)
 
 					msg, ok := logEntry["message"].(string)
-					if !ok {
-						t.Errorf("input %q: message is not a string", tc.input)
-						continue
-					}
+					require.True(t, ok, "input %q: message is not a string", tc.input)
 
-					if msg != tc.expectedMessage {
-						t.Errorf("input %q: expected message %q, got %q", tc.input, tc.expectedMessage, msg)
-					}
+					assert.Equal(t, tc.expectedMessage, msg, "input %q: expected message %q", tc.input, tc.expectedMessage)
 				}
 			},
 		},
@@ -426,29 +356,20 @@ func TestMCPLogger_Concurrent(t *testing.T) {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
 
 				expectedLines := numGoroutines * messagesPerGoroutine
-				if len(lines) != expectedLines {
-					t.Errorf("expected %d log lines, got %d", expectedLines, len(lines))
-				}
+				assert.Equal(t, expectedLines, len(lines), "expected %d log lines")
 
 				for i, line := range lines {
 					var logEntry map[string]any
-					if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
-						t.Errorf("line %d: failed to parse JSON: %v\nLine content: %s", i+1, err, line)
-					}
+					require.NoError(t, json.Unmarshal([]byte(line), &logEntry),
+						"line %d: failed to parse JSON\nLine content: %s", i+1, line)
 
-					if logEntry["level"] != "info" {
-						t.Errorf("line %d: expected level 'info', got %v", i+1, logEntry["level"])
-					}
+					assert.Equal(t, "info", logEntry["level"], "line %d: expected level 'info'", i+1)
 
 					msg, ok := logEntry["message"].(string)
-					if !ok {
-						t.Errorf("line %d: message is not a string", i+1)
-						continue
-					}
+					require.True(t, ok, "line %d: message is not a string", i+1)
 
-					if !strings.Contains(msg, "goroutine") || !strings.Contains(msg, "message") {
-						t.Errorf("line %d: unexpected message format: %s", i+1, msg)
-					}
+					assert.Contains(t, msg, "goroutine", "line %d: expected message to contain 'goroutine'", i+1)
+					assert.Contains(t, msg, "message", "line %d: expected message to contain 'message'", i+1)
 				}
 			},
 		},
@@ -479,15 +400,12 @@ func TestMCPLogger_Concurrent(t *testing.T) {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
 
 				expectedLines := numGoroutines * messagesPerGoroutine
-				if len(lines) != expectedLines {
-					t.Errorf("expected %d log lines, got %d", expectedLines, len(lines))
-				}
+				assert.Equal(t, expectedLines, len(lines), "expected %d log lines")
 
 				for i, line := range lines {
 					var logEntry map[string]any
-					if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
-						t.Errorf("line %d: failed to parse JSON: %v\nLine content: %s", i+1, err, line)
-					}
+					assert.NoError(t, json.Unmarshal([]byte(line), &logEntry),
+						"line %d: failed to parse JSON\nLine content: %s", i+1, line)
 				}
 			},
 		},
@@ -525,25 +443,18 @@ func TestMCPLogger_Concurrent(t *testing.T) {
 				lines := strings.Split(strings.TrimSpace(output), "\n")
 
 				expectedLines := numGoroutines * 2 * messagesPerGoroutine
-				if len(lines) != expectedLines {
-					t.Errorf("expected %d log lines, got %d", expectedLines, len(lines))
-				}
+				assert.Equal(t, expectedLines, len(lines), "expected %d log lines")
 
 				printfCount := 0
 				printlnCount := 0
 
 				for i, line := range lines {
 					var logEntry map[string]any
-					if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
-						t.Errorf("line %d: failed to parse JSON: %v", i+1, err)
-						continue
-					}
+					require.NoError(t, json.Unmarshal([]byte(line), &logEntry),
+						"line %d: failed to parse JSON", i+1)
 
 					msg, ok := logEntry["message"].(string)
-					if !ok {
-						t.Errorf("line %d: message is not a string", i+1)
-						continue
-					}
+					require.True(t, ok, "line %d: message is not a string", i+1)
 
 					if strings.HasPrefix(msg, "Printf") {
 						printfCount++
@@ -555,13 +466,8 @@ func TestMCPLogger_Concurrent(t *testing.T) {
 				expectedPrintfCount := numGoroutines * messagesPerGoroutine
 				expectedPrintlnCount := numGoroutines * messagesPerGoroutine
 
-				if printfCount != expectedPrintfCount {
-					t.Errorf("expected %d Printf messages, got %d", expectedPrintfCount, printfCount)
-				}
-
-				if printlnCount != expectedPrintlnCount {
-					t.Errorf("expected %d Println messages, got %d", expectedPrintlnCount, printlnCount)
-				}
+				assert.Equal(t, expectedPrintfCount, printfCount, "expected %d Printf messages", expectedPrintfCount)
+				assert.Equal(t, expectedPrintlnCount, printlnCount, "expected %d Println messages", expectedPrintlnCount)
 			},
 		},
 		{
@@ -591,9 +497,7 @@ func TestMCPLogger_Concurrent(t *testing.T) {
 				wg.Wait()
 
 				totalOutput := buf1.Len() + buf2.Len()
-				if totalOutput == 0 {
-					t.Error("expected some output across both buffers")
-				}
+				assert.NotZero(t, totalOutput, "expected some output across both buffers")
 			},
 		},
 		{
@@ -616,9 +520,7 @@ func TestMCPLogger_Concurrent(t *testing.T) {
 
 				wg.Wait()
 
-				if buf.Len() != 0 {
-					t.Errorf("expected no output in silent mode, got %d bytes", buf.Len())
-				}
+				assert.Equal(t, 0, buf.Len(), "expected no output in silent mode")
 			},
 		},
 	}
@@ -641,9 +543,7 @@ func TestMCPLogger_WriteToFile(t *testing.T) {
 				tmpFile := t.TempDir() + "/mcp-test.log"
 
 				file, err := os.Create(tmpFile)
-				if err != nil {
-					t.Fatalf("failed to create temp file: %v", err)
-				}
+				require.NoError(t, err, "failed to create temp file")
 				t.Cleanup(func() {
 					file.Close()
 					os.Remove(tmpFile)
@@ -655,60 +555,38 @@ func TestMCPLogger_WriteToFile(t *testing.T) {
 				log.Println("test message 2")
 				log.Printf("test message 3: %d", 42)
 
-				if err := file.Sync(); err != nil {
-					t.Fatalf("failed to sync file: %v", err)
-				}
+				require.NoError(t, file.Sync(), "failed to sync file")
 
 				content, err := os.ReadFile(tmpFile)
-				if err != nil {
-					t.Fatalf("failed to read temp file: %v", err)
-				}
+				require.NoError(t, err, "failed to read temp file")
 
 				output := string(content)
 				lines := strings.Split(strings.TrimSpace(output), "\n")
 
-				if len(lines) != 3 {
-					t.Errorf("expected 3 lines in file, got %d", len(lines))
-				}
+				assert.Len(t, lines, 3, "expected 3 lines in file")
 
 				for i, line := range lines {
 					var logEntry map[string]any
-					if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
-						t.Errorf("line %d: failed to parse JSON: %v", i+1, err)
-						continue
-					}
+					require.NoError(t, json.Unmarshal([]byte(line), &logEntry),
+						"line %d: failed to parse JSON", i+1)
 
-					if logEntry["level"] != "info" {
-						t.Errorf("line %d: expected level 'info', got %v", i+1, logEntry["level"])
-					}
+					assert.Equal(t, "info", logEntry["level"], "line %d: expected level 'info'", i+1)
 				}
 
 				var firstEntry map[string]any
-				if err := json.Unmarshal([]byte(lines[0]), &firstEntry); err != nil {
-					t.Fatalf("failed to parse first log entry: %v", err)
-				}
+				require.NoError(t, json.Unmarshal([]byte(lines[0]), &firstEntry), "failed to parse first log entry")
 
-				if firstEntry["message"] != "test message 1: hello" {
-					t.Errorf("expected message 'test message 1: hello', got %v", firstEntry["message"])
-				}
+				assert.Equal(t, "test message 1: hello", firstEntry["message"], "expected message 'test message 1: hello'")
 
 				var secondEntry map[string]any
-				if err := json.Unmarshal([]byte(lines[1]), &secondEntry); err != nil {
-					t.Fatalf("failed to parse second log entry: %v", err)
-				}
+				require.NoError(t, json.Unmarshal([]byte(lines[1]), &secondEntry), "failed to parse second log entry")
 
-				if secondEntry["message"] != "test message 2" {
-					t.Errorf("expected message 'test message 2', got %v", secondEntry["message"])
-				}
+				assert.Equal(t, "test message 2", secondEntry["message"], "expected message 'test message 2'")
 
 				var thirdEntry map[string]any
-				if err := json.Unmarshal([]byte(lines[2]), &thirdEntry); err != nil {
-					t.Fatalf("failed to parse third log entry: %v", err)
-				}
+				require.NoError(t, json.Unmarshal([]byte(lines[2]), &thirdEntry), "failed to parse third log entry")
 
-				if thirdEntry["message"] != "test message 3: 42" {
-					t.Errorf("expected message 'test message 3: 42', got %v", thirdEntry["message"])
-				}
+				assert.Equal(t, "test message 3: 42", thirdEntry["message"], "expected message 'test message 3: 42'")
 			},
 		},
 		{
@@ -717,9 +595,7 @@ func TestMCPLogger_WriteToFile(t *testing.T) {
 				tmpFile := t.TempDir() + "/mcp-concurrent-test.log"
 
 				file, err := os.Create(tmpFile)
-				if err != nil {
-					t.Fatalf("failed to create temp file: %v", err)
-				}
+				require.NoError(t, err, "failed to create temp file")
 				t.Cleanup(func() {
 					file.Close()
 					os.Remove(tmpFile)
@@ -744,42 +620,29 @@ func TestMCPLogger_WriteToFile(t *testing.T) {
 
 				wg.Wait()
 
-				if err := file.Sync(); err != nil {
-					t.Fatalf("failed to sync file: %v", err)
-				}
+				require.NoError(t, file.Sync(), "failed to sync file")
 
 				content, err := os.ReadFile(tmpFile)
-				if err != nil {
-					t.Fatalf("failed to read temp file: %v", err)
-				}
+				require.NoError(t, err, "failed to read temp file")
 
 				output := string(content)
 				lines := strings.Split(strings.TrimSpace(output), "\n")
 
 				expectedLines := numGoroutines * messagesPerGoroutine
-				if len(lines) != expectedLines {
-					t.Errorf("expected %d log lines, got %d", expectedLines, len(lines))
-				}
+				assert.Equal(t, expectedLines, len(lines), "expected %d log lines")
 
 				for i, line := range lines {
 					var logEntry map[string]any
-					if err := json.Unmarshal([]byte(line), &logEntry); err != nil {
-						t.Errorf("line %d: failed to parse JSON: %v\nLine content: %s", i+1, err, line)
-					}
+					require.NoError(t, json.Unmarshal([]byte(line), &logEntry),
+						"line %d: failed to parse JSON\nLine content: %s", i+1, line)
 
-					if logEntry["level"] != "info" {
-						t.Errorf("line %d: expected level 'info', got %v", i+1, logEntry["level"])
-					}
+					assert.Equal(t, "info", logEntry["level"], "line %d: expected level 'info'", i+1)
 
 					msg, ok := logEntry["message"].(string)
-					if !ok {
-						t.Errorf("line %d: message is not a string", i+1)
-						continue
-					}
+					require.True(t, ok, "line %d: message is not a string", i+1)
 
-					if !strings.Contains(msg, "goroutine") || !strings.Contains(msg, "message") {
-						t.Errorf("line %d: unexpected message format: %s", i+1, msg)
-					}
+					assert.Contains(t, msg, "goroutine", "line %d: expected message to contain 'goroutine'", i+1)
+					assert.Contains(t, msg, "message", "line %d: expected message to contain 'message'", i+1)
 				}
 			},
 		},

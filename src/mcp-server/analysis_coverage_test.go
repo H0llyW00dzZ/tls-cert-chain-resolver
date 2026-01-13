@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -14,19 +14,18 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"math/big"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandleAnalyzeCertificateWithAI_Resilience(t *testing.T) {
 	// Generate a self-signed certificate with unreachable AIA and CRL URLs
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("failed to generate private key: %v", err)
-	}
+	require.NoError(t, err, "failed to generate private key")
 
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
@@ -44,9 +43,7 @@ func TestHandleAnalyzeCertificateWithAI_Resilience(t *testing.T) {
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
-	if err != nil {
-		t.Fatalf("failed to create certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to create certificate")
 
 	certPEM := pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
@@ -74,31 +71,22 @@ func TestHandleAnalyzeCertificateWithAI_Resilience(t *testing.T) {
 
 	// Execute
 	result, err := handleAnalyzeCertificateWithAI(ctx, req, config)
-	if err != nil {
-		t.Fatalf("handleAnalyzeCertificateWithAI returned error: %v", err)
-	}
+	require.NoError(t, err, "handleAnalyzeCertificateWithAI should not return error")
 
 	// Verify result
+	require.Len(t, result.Content, 1, "should have one content item")
 	content, ok := result.Content[0].(mcp.TextContent)
-	if !ok {
-		t.Fatal("expected text content result")
-	}
+	require.True(t, ok, "expected text content result")
 
 	// Check if it processed successfully despite errors
-	if !strings.Contains(content.Text, "Test Resilience Cert") {
-		t.Error("result missing certificate subject")
-	}
+	assert.Contains(t, content.Text, "Test Resilience Cert", "result should contain certificate subject")
 
 	// Check if revocation failure was noted in the context OR if revocation section is present
 	// The context is included in the result when no API key is present
-	if !strings.Contains(content.Text, "Revocation Status Check") {
-		t.Errorf("expected revocation status section in context")
-	}
+	assert.Contains(t, content.Text, "Revocation Status Check", "expected revocation status section in context")
 
 	// Check if AI fallback message is present
-	if !strings.Contains(content.Text, "No AI API key") {
-		t.Error("expected no API key warning")
-	}
+	assert.Contains(t, content.Text, "No AI API key", "expected no API key warning")
 }
 
 func TestHandleAnalyzeCertificateWithAI_Sampling(t *testing.T) {
@@ -110,12 +98,16 @@ func TestHandleAnalyzeCertificateWithAI_Sampling(t *testing.T) {
 
 	// Let's verify if we can hit lines 715-718 (sampling failed).
 
-	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err, "failed to generate private key")
+
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject:      pkix.Name{CommonName: "Test"},
 	}
-	certBytes, _ := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
+	certBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
+	require.NoError(t, err, "failed to create certificate")
+
 	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 	certBase64 := base64.StdEncoding.EncodeToString(certPEM)
 
@@ -139,16 +131,11 @@ func TestHandleAnalyzeCertificateWithAI_Sampling(t *testing.T) {
 	result, err := handleAnalyzeCertificateWithAI(ctx, req, config)
 
 	// It should NOT return error, but return a ToolResult with the error message
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err, "handleAnalyzeCertificateWithAI should not return error on API failure")
 
+	require.Len(t, result.Content, 1, "should have one content item")
 	content, ok := result.Content[0].(mcp.TextContent)
-	if !ok {
-		t.Fatal("expected text content")
-	}
+	require.True(t, ok, "expected text content")
 
-	if !strings.Contains(content.Text, "AI Analysis Request Failed") {
-		t.Errorf("expected failure message, got: %s", content.Text)
-	}
+	assert.Contains(t, content.Text, "AI Analysis Request Failed", "expected failure message")
 }

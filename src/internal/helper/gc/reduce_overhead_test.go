@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or use this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -11,6 +11,9 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestBufferInterface verifies that bytebufferpool.ByteBuffer satisfies Buffer interface
@@ -26,12 +29,8 @@ func TestBufferInterface(t *testing.T) {
 				buf.Write([]byte("hello"))
 			},
 			check: func(t *testing.T, buf Buffer) {
-				if buf.String() != "hello" {
-					t.Errorf("Write() result = %q, want %q", buf.String(), "hello")
-				}
-				if buf.Len() != 5 {
-					t.Errorf("Write() length = %d, want 5", buf.Len())
-				}
+				assert.Equal(t, "hello", buf.String())
+				assert.Equal(t, 5, buf.Len())
 			},
 		},
 		{
@@ -40,9 +39,7 @@ func TestBufferInterface(t *testing.T) {
 				buf.WriteString("test string")
 			},
 			check: func(t *testing.T, buf Buffer) {
-				if buf.String() != "test string" {
-					t.Errorf("WriteString() result = %q, want %q", buf.String(), "test string")
-				}
+				assert.Equal(t, "test string", buf.String())
 			},
 		},
 		{
@@ -51,9 +48,7 @@ func TestBufferInterface(t *testing.T) {
 				buf.WriteByte('A')
 			},
 			check: func(t *testing.T, buf Buffer) {
-				if buf.String() != "A" {
-					t.Errorf("WriteByte() result = %q, want %q", buf.String(), "A")
-				}
+				assert.Equal(t, "A", buf.String())
 			},
 		},
 		{
@@ -65,15 +60,9 @@ func TestBufferInterface(t *testing.T) {
 			},
 			check: func(t *testing.T, buf Buffer) {
 				expected := "hello test!"
-				if buf.String() != expected {
-					t.Errorf("String() = %q, want %q", buf.String(), expected)
-				}
-				if !bytes.Equal(buf.Bytes(), []byte(expected)) {
-					t.Errorf("Bytes() = %q, want %q", buf.Bytes(), expected)
-				}
-				if buf.Len() != len(expected) {
-					t.Errorf("Len() = %d, want %d", buf.Len(), len(expected))
-				}
+				assert.Equal(t, expected, buf.String())
+				assert.Equal(t, []byte(expected), buf.Bytes())
+				assert.Equal(t, len(expected), buf.Len())
 			},
 		},
 		{
@@ -83,9 +72,7 @@ func TestBufferInterface(t *testing.T) {
 				buf.Set([]byte("replaced"))
 			},
 			check: func(t *testing.T, buf Buffer) {
-				if buf.String() != "replaced" {
-					t.Errorf("Set() result = %q, want %q", buf.String(), "replaced")
-				}
+				assert.Equal(t, "replaced", buf.String())
 			},
 		},
 		{
@@ -95,9 +82,7 @@ func TestBufferInterface(t *testing.T) {
 				buf.SetString("new content")
 			},
 			check: func(t *testing.T, buf Buffer) {
-				if buf.String() != "new content" {
-					t.Errorf("SetString() result = %q, want %q", buf.String(), "new content")
-				}
+				assert.Equal(t, "new content", buf.String())
 			},
 		},
 		{
@@ -107,21 +92,15 @@ func TestBufferInterface(t *testing.T) {
 				buf.Reset()
 			},
 			check: func(t *testing.T, buf Buffer) {
-				if buf.Len() != 0 {
-					t.Errorf("Reset() failed, buffer still contains data: %q", buf.Bytes())
-				}
+				assert.Equal(t, 0, buf.Len(), "Reset() failed, buffer still contains data: %q", buf.Bytes())
 			},
 		},
 		{
 			name:  "Empty buffer",
 			setup: func(buf Buffer) {},
 			check: func(t *testing.T, buf Buffer) {
-				if buf.Len() != 0 {
-					t.Errorf("Empty buffer Len() = %d, want 0", buf.Len())
-				}
-				if buf.String() != "" {
-					t.Errorf("Empty buffer String() = %q, want empty", buf.String())
-				}
+				assert.Equal(t, 0, buf.Len())
+				assert.Equal(t, "", buf.String())
 			},
 		},
 	}
@@ -192,23 +171,16 @@ func TestBufferReadFrom(t *testing.T) {
 			reader := strings.NewReader(tt.data)
 			n, err := buf.ReadFrom(reader)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ReadFrom() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr {
+				assert.Error(t, err, "ReadFrom() should return error")
+			} else {
+				assert.NoError(t, err, "ReadFrom() should not return error")
 			}
 
-			if n != tt.wantLen {
-				t.Errorf("ReadFrom() read %d bytes, want %d", n, tt.wantLen)
-			}
+			assert.Equal(t, tt.wantLen, n, "ReadFrom() read bytes")
 
 			result := buf.String()
-			if result != tt.wantData {
-				if len(result) != len(tt.wantData) {
-					t.Errorf("ReadFrom() length mismatch: got %d, want %d", len(result), len(tt.wantData))
-				} else {
-					t.Errorf("ReadFrom() = %q, want %q", result, tt.wantData)
-				}
-			}
+			assert.Equal(t, tt.wantData, result, "ReadFrom() result")
 		})
 	}
 }
@@ -218,18 +190,14 @@ func TestPoolGetPut(t *testing.T) {
 	// Test 1: Get returns non-nil buffer
 	buf1 := Default.Get()
 	if buf1 == nil {
-		t.Fatal("Get() returned nil buffer")
+		require.Fail(t, "Get() returned nil buffer")
 	}
 
 	// Test 2: Buffer can be written to and reset
 	buf1.WriteString("test data")
-	if buf1.Len() != 9 {
-		t.Errorf("WriteString() length = %d, want 9", buf1.Len())
-	}
+	assert.Equal(t, 9, buf1.Len(), "WriteString() length")
 	buf1.Reset()
-	if buf1.Len() != 0 {
-		t.Errorf("Reset() failed, length = %d, want 0", buf1.Len())
-	}
+	assert.Equal(t, 0, buf1.Len(), "Reset() failed")
 
 	// Return to pool (buf1 must not be accessed after this)
 	Default.Put(buf1)
@@ -237,13 +205,11 @@ func TestPoolGetPut(t *testing.T) {
 	// Test 3: Pool can provide another buffer after Put
 	buf2 := Default.Get()
 	if buf2 == nil {
-		t.Fatal("Get() returned nil buffer after Put()")
+		require.Fail(t, "Get() returned nil buffer after Put()")
 	}
 
 	// Test 4: New buffer from pool should be empty (Reset called before Put)
-	if buf2.Len() != 0 {
-		t.Errorf("Buffer from pool not empty, length = %d, want 0", buf2.Len())
-	}
+	assert.Equal(t, 0, buf2.Len(), "Buffer from pool should be empty")
 
 	buf2.Reset()
 	Default.Put(buf2)
@@ -267,9 +233,7 @@ func TestGoroutineCooking(t *testing.T) {
 				buf.WriteByte(byte('0' + (id % 10)))
 				buf.WriteString(" is sizzling on the CPU like a perfectly grilled steak 🥩")
 
-				if len(buf.Bytes()) < 10 {
-					t.Errorf("Buffer too small: %d bytes", len(buf.Bytes()))
-				}
+				assert.GreaterOrEqual(t, len(buf.Bytes()), 10, "Buffer should be large enough")
 
 				buf.Reset()
 				Default.Put(buf)
@@ -304,12 +268,10 @@ func TestBufferOperationsSequence(t *testing.T) {
 	expected := "Line 1\nLine 2\n\nLine 3\n"
 	result := string(buf.Bytes())
 
-	if result != expected {
-		t.Errorf("Buffer sequence result = %q, want %q", result, expected)
-	}
+	assert.Equal(t, expected, result, "Buffer sequence result")
 
 	if len(buf.Bytes()) != len(expected) {
-		t.Errorf("Buffer length = %d, want %d", len(buf.Bytes()), len(expected))
+		assert.Equal(t, len(expected), len(buf.Bytes()))
 	}
 }
 
@@ -324,9 +286,7 @@ func TestMultipleGetPutCycles(t *testing.T) {
 		}
 
 		expected := "cycle " + strings.Repeat("*", i)
-		if string(buf.Bytes()) != expected {
-			t.Errorf("Cycle %d: got %q, want %q", i, buf.Bytes(), expected)
-		}
+		assert.Equal(t, expected, string(buf.Bytes()), "Cycle %d", i)
 
 		buf.Reset()
 		Default.Put(buf)
@@ -393,16 +353,14 @@ func TestBufferWriteMethods(t *testing.T) {
 			}()
 
 			n, err := tt.operation(buf)
-			if err != nil {
-				t.Errorf("%s failed: %v", tt.name, err)
-			}
+			require.NoError(t, err, "%s failed", tt.name)
 
 			if n != tt.wantLen {
-				t.Errorf("%s returned %d, want %d", tt.name, n, tt.wantLen)
+				assert.Equal(t, tt.wantLen, n, "%s return value", tt.name)
 			}
 
 			if buf.String() != tt.wantResult {
-				t.Errorf("%s result = %q, want %q", tt.name, buf.String(), tt.wantResult)
+				assert.Equal(t, tt.wantResult, buf.String(), "%s result", tt.name)
 			}
 		})
 	}
@@ -468,13 +426,8 @@ func TestBufferResetBehavior(t *testing.T) {
 
 			tt.operations(buf)
 
-			if buf.Len() != tt.wantLen {
-				t.Errorf("After operations Len() = %d, want %d (buffer: %q)", buf.Len(), tt.wantLen, buf.Bytes())
-			}
-
-			if buf.String() != "" {
-				t.Errorf("After operations String() = %q, want empty", buf.String())
-			}
+			assert.Equal(t, tt.wantLen, buf.Len(), "After operations Len() (buffer: %q)", buf.Bytes())
+			assert.Equal(t, "", buf.String(), "After operations String()")
 		})
 	}
 }
@@ -497,11 +450,9 @@ func TestBufferReadFromError(t *testing.T) {
 
 	_, err := buf.ReadFrom(errReader)
 	if err == nil {
-		t.Error("ReadFrom should return error from reader")
+		assert.Fail(t, "ReadFrom should return error from reader")
 	}
-	if err != io.ErrUnexpectedEOF {
-		t.Errorf("ReadFrom error = %v, want %v", err, io.ErrUnexpectedEOF)
-	}
+	assert.Equal(t, io.ErrUnexpectedEOF, err, "ReadFrom error")
 }
 
 // TestBufferWriteTo verifies WriteTo functionality
@@ -546,17 +497,11 @@ func TestBufferWriteTo(t *testing.T) {
 
 			var output bytes.Buffer
 			n, err := buf.WriteTo(&output)
-			if err != nil {
-				t.Errorf("WriteTo() error = %v", err)
-			}
+			assert.NoError(t, err, "WriteTo() error")
 
-			if n != tt.wantLen {
-				t.Errorf("WriteTo() wrote %d bytes, want %d", n, tt.wantLen)
-			}
+			assert.Equal(t, tt.wantLen, n, "WriteTo() wrote bytes")
 
-			if output.String() != tt.data {
-				t.Errorf("WriteTo() output = %q, want %q", output.String(), tt.data)
-			}
+			assert.Equal(t, tt.data, output.String(), "WriteTo() output")
 
 			// Return to pool only after all assertions complete
 			buf.Reset()
@@ -632,13 +577,8 @@ func TestBufferSetMethods(t *testing.T) {
 			buf.WriteString(tt.initialData)
 			tt.operation(buf)
 
-			if buf.String() != tt.wantData {
-				t.Errorf("operation result = %q, want %q", buf.String(), tt.wantData)
-			}
-
-			if buf.Len() != tt.wantLen {
-				t.Errorf("operation length = %d, want %d", buf.Len(), tt.wantLen)
-			}
+			assert.Equal(t, tt.wantData, buf.String(), "operation result")
+			assert.Equal(t, tt.wantLen, buf.Len(), "operation length")
 		})
 	}
 }
@@ -715,7 +655,7 @@ func TestBufferLenMethod(t *testing.T) {
 			tt.operations(buf)
 
 			if buf.Len() != tt.wantLen {
-				t.Errorf("Len() = %d, want %d", buf.Len(), tt.wantLen)
+				assert.Equal(t, tt.wantLen, buf.Len())
 			}
 		})
 	}

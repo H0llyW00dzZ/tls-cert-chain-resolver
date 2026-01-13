@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by terms
 // of License Agreement, which you can find at LICENSE files.
@@ -11,12 +11,16 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // generateTestCRL creates a minimal valid CRL for testing purposes
@@ -126,29 +130,22 @@ func TestLRUAccessOrder(t *testing.T) {
 			for i, url := range test.accessSequence {
 				// Generate actual CRL data for testing
 				crlData, err := generateTestCRL()
-				if err != nil {
-					t.Fatalf("failed to generate test CRL: %v", err)
-				}
+				require.NoError(t, err, "failed to generate test CRL")
 				nextUpdate := time.Now().Add(24 * time.Hour)
 
-				if err := SetCachedCRL(url, crlData, nextUpdate); err != nil {
-					t.Fatalf("failed to set CRL %s: %v", url, err)
-				}
+				require.NoError(t, SetCachedCRL(url, crlData, nextUpdate), fmt.Sprintf("failed to set CRL %s", url))
 
 				// For re-access, simulate cache hit
 				if i > 0 {
 					_, found := GetCachedCRL(url)
-					if !found {
-						t.Errorf("expected to find cached CRL for %s", url)
-					}
+					assert.True(t, found, fmt.Sprintf("expected to find cached CRL for %s", url))
 				}
 			}
 
 			// Verify LRU order by checking that all expected URLs are present
 			for _, url := range test.expectLRUOrder {
-				if _, found := GetCachedCRL(url); !found {
-					t.Errorf("expected URL %s to be in cache", url)
-				}
+				_, found := GetCachedCRL(url)
+				assert.True(t, found, fmt.Sprintf("expected URL %s to be in cache", url))
 			}
 		})
 	}
@@ -173,71 +170,54 @@ func TestLRUEvictionCorrectness(t *testing.T) {
 	crlData := make([][]byte, len(urls))
 	for i := range urls {
 		data, err := generateTestCRL()
-		if err != nil {
-			t.Fatalf("failed to generate test CRL for %s: %v", urls[i], err)
-		}
+		require.NoError(t, err, fmt.Sprintf("failed to generate test CRL for %s", urls[i]))
 
 		crlData[i] = data
 	}
 
 	for i, url := range urls {
-		if err := SetCachedCRL(url, crlData[i], time.Now().Add(24*time.Hour)); err != nil {
-			t.Fatalf("failed to set CRL %s: %v", url, err)
-		}
+		require.NotEmpty(t, crlData[i], fmt.Sprintf("CRL data for %s should not be empty", url))
+		require.NoError(t, SetCachedCRL(url, crlData[i], time.Now().Add(24*time.Hour)), fmt.Sprintf("failed to set CRL %s", url))
 	}
 
 	// Verify some entries are present (a may be evicted depending on config)
 	for _, url := range []string{"b", "c"} {
-		if _, found := GetCachedCRL(url); !found {
-			t.Errorf("expected URL %s to be in cache", url)
-		}
+		_, found := GetCachedCRL(url)
+		assert.True(t, found, fmt.Sprintf("expected URL %s to be in cache", url))
 	}
 
 	// Access 'b' to make it most recently used
-	if _, found := GetCachedCRL("b"); !found {
-		t.Error("expected to find URL 'b' in cache")
-	}
+	_, found := GetCachedCRL("b")
+	assert.True(t, found, "expected to find URL 'b' in cache")
 
 	// Add 'd' - should evict 'a' (least recently used)
 	dData, err := generateTestCRL()
-	if err != nil {
-		t.Fatalf("failed to generate test CRL for d: %v", err)
-	}
-	if err := SetCachedCRL("d", dData, time.Now().Add(24*time.Hour)); err != nil {
-		t.Fatalf("failed to set CRL d: %v", err)
-	}
+	require.NoError(t, err, "failed to generate test CRL for d")
+	require.NoError(t, SetCachedCRL("d", dData, time.Now().Add(24*time.Hour)), "failed to set CRL d")
 
 	// Verify eviction: 'a' may or may not be evicted, just check some items are present
-	if _, found := GetCachedCRL("a"); found {
-		t.Error("expected URL 'a' to be evicted (LRU)")
-	}
+	_, found = GetCachedCRL("a")
+	assert.False(t, found, "expected URL 'a' to be evicted (LRU)")
 
 	expectedPresent := []string{"b", "d"}
 	for _, url := range expectedPresent {
-		if _, found := GetCachedCRL(url); !found {
-			t.Errorf("expected URL %s to still be in cache", url)
-		}
+		_, found := GetCachedCRL(url)
+		assert.True(t, found, fmt.Sprintf("expected URL %s to still be in cache", url))
 	}
 
 	// Add 'e' - may trigger eviction
 	eData, err := generateTestCRL()
-	if err != nil {
-		t.Fatalf("failed to generate test CRL for e: %v", err)
-	}
-	if err := SetCachedCRL("e", eData, time.Now().Add(24*time.Hour)); err != nil {
-		t.Fatalf("failed to set CRL e: %v", err)
-	}
+	require.NoError(t, err, "failed to generate test CRL for e")
+	require.NoError(t, SetCachedCRL("e", eData, time.Now().Add(24*time.Hour)), "failed to set CRL e")
 
 	// Verify some items are still present
-	if _, found := GetCachedCRL("b"); found {
-		t.Error("expected URL 'b' to be evicted (LRU)")
-	}
+	_, found = GetCachedCRL("b")
+	assert.False(t, found, "expected URL 'b' to be evicted (LRU)")
 
 	finalPresent := []string{"d", "e"}
 	for _, url := range finalPresent {
-		if _, found := GetCachedCRL(url); !found {
-			t.Errorf("expected URL %s to still be in cache", url)
-		}
+		_, found := GetCachedCRL(url)
+		assert.True(t, found, fmt.Sprintf("expected URL %s to still be in cache", url))
 	}
 }
 
@@ -272,7 +252,7 @@ func TestLRUConcurrentAccess(t *testing.T) {
 				url := "url-" + string(r)
 				crlData, err := generateTestCRL()
 				if err != nil {
-					t.Errorf("goroutine %d: failed to generate test CRL: %v", goroutineID, err)
+					assert.NoError(t, err, fmt.Sprintf("goroutine %d: failed to generate test CRL", goroutineID))
 					return
 				}
 
@@ -280,7 +260,7 @@ func TestLRUConcurrentAccess(t *testing.T) {
 				if _, found := GetCachedCRL(url); !found {
 					// Add to cache
 					if err := SetCachedCRL(url, crlData, time.Now().Add(24*time.Hour)); err != nil {
-						t.Errorf("goroutine %d: failed to set CRL: %v", goroutineID, err)
+						assert.NoError(t, err, fmt.Sprintf("goroutine %d: failed to set CRL", goroutineID))
 						return
 					}
 				} else {
@@ -295,13 +275,9 @@ func TestLRUConcurrentAccess(t *testing.T) {
 
 	// Verify cache consistency
 	metrics := GetCRLCacheMetrics()
-	if metrics.Size > int64(testConfig.MaxSize) {
-		t.Errorf("cache size %d exceeds max size %d", metrics.Size, testConfig.MaxSize)
-	}
+	assert.LessOrEqual(t, int(metrics.Size), testConfig.MaxSize, "cache size exceeds max size")
 
-	if metrics.Hits == 0 && metrics.Misses == 0 {
-		t.Error("expected some cache activity")
-	}
+	assert.True(t, metrics.Hits > 0 || metrics.Misses > 0, "expected some cache activity")
 
 	t.Logf("Concurrent test completed: %d hits, %d misses, %d evictions, size %d",
 		metrics.Hits, metrics.Misses, metrics.Evictions, metrics.Size)
@@ -319,40 +295,29 @@ func TestLRUEdgeCases(t *testing.T) {
 
 	t.Run("Empty cache access", func(t *testing.T) {
 		ClearCRLCache()
-		if _, found := GetCachedCRL("nonexistent"); found {
-			t.Error("expected cache miss for empty cache")
-		}
+		_, found := GetCachedCRL("nonexistent")
+		assert.False(t, found, "expected cache miss for empty cache")
 	})
 
 	t.Run("Single item repeated access", func(t *testing.T) {
 		ClearCRLCache()
 		url := "single-url"
 		crlData, err := generateTestCRL()
-		if err != nil {
-			t.Fatalf("failed to generate test CRL: %v", err)
-		}
+		require.NoError(t, err, "failed to generate test CRL")
 
 		// Add item
-		if err := SetCachedCRL(url, crlData, time.Now().Add(24*time.Hour)); err != nil {
-			t.Fatalf("failed to set CRL: %v", err)
-		}
+		require.NoError(t, SetCachedCRL(url, crlData, time.Now().Add(24*time.Hour)), "failed to set CRL")
 
 		// Access multiple times
 		for i := range 5 {
 			result, found := GetCachedCRL(url)
-			if !found {
-				t.Errorf("access %d: expected to find cached CRL", i)
-			}
-			if len(result) == 0 {
-				t.Errorf("access %d: expected non-empty CRL data", i)
-			}
+			assert.True(t, found, fmt.Sprintf("access %d: expected to find cached CRL", i))
+			assert.NotEmpty(t, result, fmt.Sprintf("access %d: expected non-empty CRL data", i))
 		}
 
 		// Verify metrics
 		metrics := GetCRLCacheMetrics()
-		if metrics.Hits < 4 { // First hit might be miss depending on timing
-			t.Errorf("expected at least 4 hits, got %d", metrics.Hits)
-		}
+		assert.GreaterOrEqual(t, int(metrics.Hits), 4, "expected at least 4 hits")
 	})
 
 	t.Run("Cache size zero", func(t *testing.T) {
@@ -369,19 +334,13 @@ func TestLRUEdgeCases(t *testing.T) {
 		for i := range 5 {
 			url := "unlimited-" + string(rune('a'+i))
 			crlData, err := generateTestCRL()
-			if err != nil {
-				t.Fatalf("failed to generate test CRL for %s: %v", url, err)
-			}
+			require.NoError(t, err, fmt.Sprintf("failed to generate test CRL for %s", url))
 
-			if err := SetCachedCRL(url, crlData, time.Now().Add(24*time.Hour)); err != nil {
-				t.Fatalf("failed to set CRL %s: %v", url, err)
-			}
+			require.NoError(t, SetCachedCRL(url, crlData, time.Now().Add(24*time.Hour)), fmt.Sprintf("failed to set CRL %s", url))
 		}
 
 		metrics := GetCRLCacheMetrics()
-		if metrics.Size != 5 {
-			t.Errorf("expected 5 items in unlimited cache, got %d", metrics.Size)
-		}
+		assert.Equal(t, int64(5), metrics.Size, "expected 5 items in unlimited cache")
 	})
 }
 
@@ -401,53 +360,38 @@ func TestLRUOrderPreservation(t *testing.T) {
 	initialURLs := []string{"A", "B", "C", "D"}
 	for _, url := range initialURLs {
 		crlData, err := generateTestCRL()
-		if err != nil {
-			t.Fatalf("failed to set CRL %s: %v", url, err)
-		}
-		if err := SetCachedCRL(url, crlData, time.Now().Add(24*time.Hour)); err != nil {
-			t.Fatalf("failed to set CRL %s: %v", url, err)
-		}
+		require.NoError(t, err, fmt.Sprintf("failed to generate CRL data for %s", url))
+		require.NoError(t, SetCachedCRL(url, crlData, time.Now().Add(24*time.Hour)), fmt.Sprintf("failed to set CRL %s", url))
 	}
 
 	// Access pattern: C, A, D to change LRU order
 	// Expected LRU order after access: B (least), C, A, D (most)
 	accessPattern := []string{"C", "A", "D"}
 	for _, url := range accessPattern {
-		if _, found := GetCachedCRL(url); !found {
-			t.Fatalf("expected to find URL %s in cache", url)
-		}
+		_, found := GetCachedCRL(url)
+		require.True(t, found, fmt.Sprintf("expected to find URL %s in cache", url))
 	}
 
 	// Add E to trigger eviction of B (actual LRU)
 	eData, err := generateTestCRL()
-	if err != nil {
-		t.Fatalf("failed to generate test CRL for E: %v", err)
-	}
-	if err := SetCachedCRL("E", eData, time.Now().Add(24*time.Hour)); err != nil {
-		t.Fatalf("failed to set CRL E: %v", err)
-	}
+	require.NoError(t, err, "failed to generate test CRL for E")
+	require.NoError(t, SetCachedCRL("E", eData, time.Now().Add(24*time.Hour)), "failed to set CRL E")
 
 	// Verify B was evicted, others remain
-	if _, found := GetCachedCRL("B"); found {
-		t.Error("expected B to be evicted (LRU)")
-	}
+	_, found := GetCachedCRL("B")
+	assert.False(t, found, "expected B to be evicted (LRU)")
 
 	expectedPresent := []string{"A", "C", "D", "E"}
 	for _, url := range expectedPresent {
-		if _, found := GetCachedCRL(url); !found {
-			t.Errorf("expected %s to be present after eviction", url)
-		}
+		_, found := GetCachedCRL(url)
+		assert.True(t, found, fmt.Sprintf("expected %s to be present after eviction", url))
 	}
 
 	// Test that order is still correct: C should now be LRU (since B was evicted)
 	// Add F to trigger eviction of C
 	fData, err := generateTestCRL()
-	if err != nil {
-		t.Fatalf("failed to generate test CRL for F: %v", err)
-	}
-	if err := SetCachedCRL("F", fData, time.Now().Add(24*time.Hour)); err != nil {
-		t.Fatalf("failed to set CRL F: %v", err)
-	}
+	require.NoError(t, err, "failed to generate test CRL for F")
+	require.NoError(t, SetCachedCRL("F", fData, time.Now().Add(24*time.Hour)), "failed to set CRL F")
 
 	// Debug: check what's actually in cache
 	metrics := GetCRLCacheStats()
@@ -464,9 +408,8 @@ func TestLRUOrderPreservation(t *testing.T) {
 
 	finalPresent := []string{"C", "E", "F"}
 	for _, url := range finalPresent {
-		if _, found := GetCachedCRL(url); !found {
-			t.Errorf("expected %s to be present", url)
-		}
+		_, found := GetCachedCRL(url)
+		assert.True(t, found, fmt.Sprintf("expected %s to be present", url))
 	}
 }
 
@@ -486,106 +429,77 @@ func TestLRUOrderExactVerification(t *testing.T) {
 	// Add A, B, C (cache full)
 	for _, url := range []string{"A", "B", "C"} {
 		crlData, err := generateTestCRL()
-		if err != nil {
-			t.Fatalf("failed to generate test CRL for %s: %v", url, err)
-		}
-		if err := SetCachedCRL(url, crlData, time.Now().Add(24*time.Hour)); err != nil {
-			t.Fatalf("failed to set CRL %s: %v", url, err)
-		}
+		require.NoError(t, err, fmt.Sprintf("failed to generate test CRL for %s", url))
+		require.NoError(t, SetCachedCRL(url, crlData, time.Now().Add(24*time.Hour)), fmt.Sprintf("failed to set CRL %s", url))
 	}
 
 	// Access B to make it most recently used
-	if _, found := GetCachedCRL("B"); !found {
-		t.Fatal("expected to find B in cache")
-	}
+	_, found := GetCachedCRL("B")
+	require.True(t, found, "expected to find B in cache")
 
 	// Add D to trigger eviction of A (LRU)
 	dData, err := generateTestCRL()
-	if err != nil {
-		t.Fatalf("failed to generate test CRL for D: %v", err)
-	}
-	if err := SetCachedCRL("D", dData, time.Now().Add(24*time.Hour)); err != nil {
-		t.Fatalf("failed to set CRL D: %v", err)
-	}
+	require.NoError(t, err, "failed to generate test CRL for D")
+	require.NoError(t, SetCachedCRL("D", dData, time.Now().Add(24*time.Hour)), "failed to set CRL D")
 
 	// Verify A was evicted, B, C, D remain
-	if _, found := GetCachedCRL("A"); found {
-		t.Error("expected A to be evicted (LRU)")
-	}
+	_, found = GetCachedCRL("A")
+	assert.False(t, found, "expected A to be evicted (LRU)")
 	expectedPresent := []string{"B", "C", "D"}
 	for _, url := range expectedPresent {
-		if _, found := GetCachedCRL(url); !found {
-			t.Errorf("expected %s to be present after eviction", url)
-		}
+		_, found := GetCachedCRL(url)
+		assert.True(t, found, fmt.Sprintf("expected %s to be present after eviction", url))
 	}
 
 	// Test 2: Multiple access pattern changes
 	// After first eviction, order is: B (LRU), C, D (MRU)
 	// Access pattern: D, C, B
 	for _, url := range []string{"D", "C", "B"} {
-		if _, found := GetCachedCRL(url); !found {
-			t.Fatalf("expected to find %s in cache", url)
-		}
+		_, found := GetCachedCRL(url)
+		require.True(t, found, fmt.Sprintf("expected to find %s in cache", url))
 	}
 
 	// Now order should be: D (LRU), C, B (MRU)
 	// Add E to trigger eviction of D
 	eData, err := generateTestCRL()
-	if err != nil {
-		t.Fatalf("failed to generate test CRL for E: %v", err)
-	}
-	if err := SetCachedCRL("E", eData, time.Now().Add(24*time.Hour)); err != nil {
-		t.Fatalf("failed to set CRL E: %v", err)
-	}
+	require.NoError(t, err, "failed to generate test CRL for E")
+	require.NoError(t, SetCachedCRL("E", eData, time.Now().Add(24*time.Hour)), "failed to set CRL E")
 
 	// Verify D was evicted
-	if _, found := GetCachedCRL("D"); found {
-		t.Error("expected D to be evicted (LRU)")
-	}
+	_, found = GetCachedCRL("D")
+	assert.False(t, found, "expected D to be evicted (LRU)")
 	expectedPresent = []string{"C", "B", "E"}
 	for _, url := range expectedPresent {
-		if _, found := GetCachedCRL(url); !found {
-			t.Errorf("expected %s to be present after second eviction", url)
-		}
+		_, found := GetCachedCRL(url)
+		assert.True(t, found, fmt.Sprintf("expected %s to be present after second eviction", url))
 	}
 
 	// Test 3: Edge case - accessing same item multiple times
 	// Current order: C (LRU), D, E (MRU)
 	// Access C multiple times to ensure it stays MRU
 	for i := range 3 {
-		if _, found := GetCachedCRL("C"); !found {
-			t.Fatalf("expected to find C in cache (iteration %d)", i)
-		}
+		_, found := GetCachedCRL("C")
+		require.True(t, found, fmt.Sprintf("expected to find C in cache (iteration %d)", i))
 	}
 
 	// Add F to trigger eviction of D (should be LRU now)
 	fData, err := generateTestCRL()
-	if err != nil {
-		t.Fatalf("failed to generate test CRL for F: %v", err)
-	}
-	if err := SetCachedCRL("F", fData, time.Now().Add(24*time.Hour)); err != nil {
-		t.Fatalf("failed to set CRL F: %v", err)
-	}
+	require.NoError(t, err, "failed to generate test CRL for F")
+	require.NoError(t, SetCachedCRL("F", fData, time.Now().Add(24*time.Hour)), "failed to set CRL F")
 
 	// Verify D was evicted, C, E, F remain
-	if _, found := GetCachedCRL("D"); found {
-		t.Error("expected D to be evicted (LRU)")
-	}
+	_, found = GetCachedCRL("D")
+	assert.False(t, found, "expected D to be evicted (LRU)")
 	expectedPresent = []string{"C", "E", "F"}
 	for _, url := range expectedPresent {
-		if _, found := GetCachedCRL(url); !found {
-			t.Errorf("expected %s to be present after third eviction", url)
-		}
+		_, found := GetCachedCRL(url)
+		assert.True(t, found, fmt.Sprintf("expected %s to be present after third eviction", url))
 	}
 
 	// Test 4: Verify cache statistics
 	metrics := GetCRLCacheMetrics()
-	if metrics.Size != 3 {
-		t.Errorf("expected cache size 3, got %d", metrics.Size)
-	}
-	if metrics.Evictions != 3 {
-		t.Errorf("expected 3 evictions, got %d", metrics.Evictions)
-	}
+	assert.Equal(t, int64(3), metrics.Size, "expected cache size 3")
+	assert.Equal(t, int64(3), metrics.Evictions, "expected 3 evictions")
 }
 
 // TestTickerResourceLeak tests if ticker resources are leaked during config changes
@@ -626,9 +540,7 @@ func TestTickerResourceLeak(t *testing.T) {
 	t.Logf("Goroutine increase: %d", goroutineIncrease)
 
 	// Should not have significant goroutine leak (allow 1-2 for cleanup)
-	if goroutineIncrease > 5 {
-		t.Errorf("Potential ticker resource leak: goroutines increased by %d", goroutineIncrease)
-	}
+	assert.LessOrEqual(t, goroutineIncrease, 5, fmt.Sprintf("Potential ticker resource leak: goroutines increased by %d", goroutineIncrease))
 
 	// Restore original config
 	SetCRLCacheConfig(originalConfig)
@@ -669,9 +581,7 @@ func TestTickerRaceCondition(t *testing.T) {
 
 	// Verify cache is still functional
 	_, found := GetCachedCRL("test1")
-	if !found {
-		t.Error("Cache should still be functional after concurrent config changes")
-	}
+	assert.True(t, found, "Cache should still be functional after concurrent config changes")
 
 	// Clear cache for cleanup
 	ClearCRLCache()
@@ -708,23 +618,17 @@ func TestConcurrentCleanupManagement(t *testing.T) {
 	t.Logf("Goroutine increase after multiple cleanup starts: %d", goroutineIncrease)
 
 	// Should not create multiple cleanup goroutines (only one should run)
-	if goroutineIncrease > 2 { // Allow 1-2 for proper cleanup
-		t.Errorf("Multiple cleanup goroutines may be running: increase by %d", goroutineIncrease)
-	}
+	assert.LessOrEqual(t, goroutineIncrease, 2, fmt.Sprintf("Multiple cleanup goroutines may be running: increase by %d", goroutineIncrease))
 
 	// Verify cleanup state is correct
-	if atomic.LoadInt32(&crlCache.cleanupRunning) != 1 {
-		t.Errorf("Expected exactly 1 cleanup goroutine running, got %d", atomic.LoadInt32(&crlCache.cleanupRunning))
-	}
+	assert.Equal(t, int32(1), atomic.LoadInt32(&crlCache.cleanupRunning), "Expected exactly 1 cleanup goroutine running")
 
 	// Stop cleanup and verify proper shutdown
 	StopCRLCacheCleanup()
 	time.Sleep(200 * time.Millisecond) // Wait for cleanup to exit
 
 	// Verify cleanup has stopped
-	if atomic.LoadInt32(&crlCache.cleanupRunning) != 0 {
-		t.Errorf("Expected cleanup goroutine to be stopped, but still running")
-	}
+	assert.Equal(t, int32(0), atomic.LoadInt32(&crlCache.cleanupRunning), "Expected cleanup goroutine to be stopped")
 }
 
 // TestMemoryLeakDetection tests for memory leaks in cache cleanup
@@ -742,9 +646,7 @@ func TestMemoryLeakDetection(t *testing.T) {
 
 	// Verify entries are cached
 	metrics := GetCRLCacheMetrics()
-	if metrics.Size != int64(numEntries) {
-		t.Errorf("Expected %d entries, got %d", numEntries, metrics.Size)
-	}
+	assert.Equal(t, int64(numEntries), metrics.Size, "expected correct number of entries")
 
 	// Start cleanup to trigger expired entry removal
 	ctx := t.Context()
@@ -777,16 +679,11 @@ func TestMemoryLeakDetection(t *testing.T) {
 		}
 	}
 
-	if expiredCount > 2 { // Allow some timing tolerance
-		t.Errorf("Expected expired entries to be cleaned up, but %d remain", expiredCount)
-	}
+	assert.LessOrEqual(t, expiredCount, 2, fmt.Sprintf("Expected expired entries to be cleaned up, but %d remain", expiredCount))
 
 	// Verify memory is not growing unbounded
 	finalMetrics := GetCRLCacheMetrics()
-	if finalMetrics.TotalMemory > metrics.TotalMemory*2 { // Should not double
-		t.Errorf("Potential memory leak: memory grew from %d to %d",
-			metrics.TotalMemory, finalMetrics.TotalMemory)
-	}
+	assert.LessOrEqual(t, finalMetrics.TotalMemory, metrics.TotalMemory*2, fmt.Sprintf("Potential memory leak: memory grew from %d to %d", metrics.TotalMemory, finalMetrics.TotalMemory))
 
 	// Cleanup
 	StopCRLCacheCleanup()
@@ -838,12 +735,8 @@ func TestTickerReplacementDuringCleanup(t *testing.T) {
 	testData := []byte("final test data")
 	SetCachedCRL("final-test", testData, time.Now().Add(1*time.Hour))
 	retrievedData, found := GetCachedCRL("final-test")
-	if !found {
-		t.Error("Cache should be functional after ticker replacement stress test")
-	}
-	if string(retrievedData) != string(testData) {
-		t.Error("Data integrity compromised after ticker replacement stress test")
-	}
+	assert.True(t, found, "Cache should be functional after ticker replacement stress test")
+	assert.Equal(t, testData, retrievedData, "Data integrity compromised after ticker replacement stress test")
 
 	// Cleanup
 	StopCRLCacheCleanup()
@@ -899,9 +792,7 @@ func TestValidateCRLData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := SetCachedCRL(tt.url, tt.data, tt.nextUpdate)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("SetCachedCRL() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			assert.Equal(t, tt.wantErr, err != nil, fmt.Sprintf("SetCachedCRL() error = %v, wantErr %v", err, tt.wantErr))
 		})
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -9,6 +9,9 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMarshal(t *testing.T) {
@@ -62,28 +65,20 @@ func TestMarshal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Marshal input to JSON bytes first
 			inputBytes, err := json.Marshal(tt.input)
-			if err != nil {
-				t.Fatalf("Failed to marshal input: %v", err)
-			}
+			require.NoError(t, err, "Failed to marshal input")
 
 			result, err := Marshal(inputBytes)
-			if err != nil {
-				t.Fatalf("Marshal failed: %v", err)
-			}
+			require.NoError(t, err, "Marshal failed")
 
 			var actual map[string]any
-			if err := json.Unmarshal(result, &actual); err != nil {
-				t.Fatalf("Failed to unmarshal result: %v", err)
-			}
+			require.NoError(t, json.Unmarshal(result, &actual), "Failed to unmarshal result")
 
-			if len(actual) != len(tt.expected) {
-				t.Errorf("Expected %d fields, got %d", len(tt.expected), len(actual))
-			}
+			assert.Len(t, actual, len(tt.expected), "Expected %d fields, got %d", len(tt.expected), len(actual))
 
 			for key, expectedValue := range tt.expected {
 				actualValue, ok := actual[key]
+				assert.True(t, ok, "Missing key: %s", key)
 				if !ok {
-					t.Errorf("Missing key: %s", key)
 					continue
 				}
 
@@ -102,7 +97,7 @@ func TestMarshal(t *testing.T) {
 							}
 						}
 					}
-					t.Errorf("Key %s: expected %v (type %T), got %v (type %T)", key, expectedValue, expectedValue, actualValue, actualValue)
+					assert.Equal(t, expectedValue, actualValue, "Key %s: expected %v (type %T), got %v (type %T)", key, expectedValue, expectedValue, actualValue, actualValue)
 				}
 			}
 		})
@@ -113,9 +108,7 @@ func TestMarshal_Error(t *testing.T) {
 	// Test case for invalid JSON input
 	invalidJSON := []byte(`{"incomplete": json`)
 	_, err := Marshal(invalidJSON)
-	if err == nil {
-		t.Error("Expected error for invalid JSON, got nil")
-	}
+	assert.Error(t, err, "Expected error for invalid JSON, got nil")
 }
 
 func TestMap(t *testing.T) {
@@ -158,20 +151,16 @@ func TestMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := Map(tt.input)
 
-			if len(result) != len(tt.expected) {
-				t.Errorf("Expected %d fields, got %d", len(tt.expected), len(result))
-			}
+			assert.Equal(t, len(tt.expected), len(result), "Expected %d fields, got %d", len(tt.expected), len(result))
 
 			for key, expectedValue := range tt.expected {
 				actualValue, ok := result[key]
+				assert.True(t, ok, "Missing key: %s", key)
 				if !ok {
-					t.Errorf("Missing key: %s", key)
 					continue
 				}
 
-				if !reflect.DeepEqual(expectedValue, actualValue) {
-					t.Errorf("Key %s: expected %v, got %v", key, expectedValue, actualValue)
-				}
+				assert.Equal(t, expectedValue, actualValue, "Key %s: expected %v, got %v", key, expectedValue, actualValue)
 			}
 		})
 	}
@@ -218,10 +207,8 @@ func TestNormalizeIDValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := normalizeIDValue(tt.input)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("normalizeIDValue(%v) = %v (type %T), expected %v (type %T)",
-					tt.input, result, result, tt.expected, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "normalizeIDValue(%v) = %v (type %T), expected %v (type %T)",
+				tt.input, result, result, tt.expected, tt.expected)
 		})
 	}
 }
@@ -285,13 +272,10 @@ func TestUnmarshalFromMap(t *testing.T) {
 			var result TestStruct
 			err := UnmarshalFromMap(tt.input, &result)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("UnmarshalFromMap() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			assert.Equal(t, tt.wantErr, err != nil, "UnmarshalFromMap() error = %v, wantErr %v", err, tt.wantErr)
 
-			if !tt.wantErr && !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("UnmarshalFromMap() = %v, want %v", result, tt.expected)
+			if !tt.wantErr {
+				assert.Equal(t, tt.expected, result, "UnmarshalFromMap() = %v, want %v", result, tt.expected)
 			}
 		})
 	}
