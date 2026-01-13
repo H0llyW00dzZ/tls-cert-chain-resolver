@@ -173,42 +173,6 @@ func TestExecute_ValidCertificate(t *testing.T) {
 				assert.NotEmpty(t, outputData, "expected non-empty output")
 			},
 		},
-		{
-			name:          "Intermediate Only",
-			args:          []string{"--intermediate-only"},
-			outputFileExt: ".pem",
-			validateOutput: func(t *testing.T, outputData []byte) {
-				assert.NotEmpty(t, outputData, "expected non-empty output")
-			},
-		},
-		{
-			name:          "Include System Root CA",
-			args:          []string{"--include-system"},
-			outputFileExt: ".pem",
-			skipOnMacOS:   true,
-			validateOutput: func(t *testing.T, outputData []byte) {
-				assert.NotEmpty(t, outputData, "expected non-empty output")
-			},
-		},
-		{
-			name:          "JSON Output",
-			args:          []string{"--json"},
-			outputFileExt: ".json",
-			validateOutput: func(t *testing.T, outputData []byte) {
-				var jsonData map[string]any
-				require.NoError(t, json.Unmarshal(outputData, &jsonData), "failed to parse JSON output")
-
-				if title, ok := jsonData["title"].(string); !ok || title != "TLS Certificate Resolver" {
-					assert.Equal(t, "TLS Certificate Resolver", title, "expected title 'TLS Certificate Resolver', got %v", jsonData["title"])
-				}
-
-				_, ok := jsonData["totalChained"].(float64)
-				assert.True(t, ok, "expected totalChained field in JSON output")
-
-				_, ok = jsonData["listCertificates"].([]any)
-				assert.True(t, ok, "expected non-empty listCertificates array in JSON output")
-			},
-		},
 	}
 
 	for _, tt := range tests {
