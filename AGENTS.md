@@ -73,6 +73,7 @@
 - `github.com/spf13/cobra` v1.10.2 - CLI framework
 - `github.com/cloudflare/cfssl` - Certificate utilities
 - `github.com/valyala/bytebufferpool` - Memory pooling
+- `github.com/stretchr/testify` v1.11.1 - Testing assertions and require utilities
 - `github.com/mark3labs/mcp-go` v0.43.2 - MCP server implementation with enhanced bidirectional AI sampling support
 - `github.com/modelcontextprotocol/go-sdk` v1.2.0 - Official MCP SDK for transport implementations
 - `google.golang.org/adk` v0.3.0 - Google ADK integration for MCP transport creation
