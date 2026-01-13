@@ -41,6 +41,6 @@ func TestRun_GracefulShutdown(t *testing.T) {
 	case err := <-done:
 		assert.NoError(t, err, "Expected Run() to return nil on graceful shutdown")
 	case <-time.After(5 * time.Second):
-		t.Fatal("Run() did not shut down gracefully within 5 seconds")
+		assert.Fail(t, "Run() did not shut down gracefully within 5 seconds")
 	}
 }

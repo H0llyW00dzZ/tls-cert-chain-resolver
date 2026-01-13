@@ -505,14 +505,10 @@ func TestParseCRLResponse(t *testing.T) {
 func TestChain_AddRootCA_Error(t *testing.T) {
 	// Create a certificate that will fail verification
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM")
-	}
+	require.NotNil(t, block, "failed to parse certificate PEM")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to parse certificate")
 
 	manager := New(cert, version)
 
@@ -526,14 +522,10 @@ func TestChain_AddRootCA_Error(t *testing.T) {
 func TestChain_VerifyChain_Error(t *testing.T) {
 	// Create a chain with certificates that won't verify
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM")
-	}
+	require.NotNil(t, block, "failed to parse certificate PEM")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to parse certificate")
 
 	manager := New(cert, version)
 
@@ -556,14 +548,10 @@ func TestRevocationStatus_Timeout(t *testing.T) {
 	}
 
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM")
-	}
+	require.NotNil(t, block, "failed to parse certificate PEM")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to parse certificate")
 
 	manager := New(cert, version)
 
@@ -590,14 +578,10 @@ func TestRevocationStatus_ContextCancellation(t *testing.T) {
 	}
 
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("failed to parse certificate PEM")
-	}
+	require.NotNil(t, block, "failed to parse certificate PEM")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "failed to parse certificate")
 
 	manager := New(cert, version)
 
@@ -605,9 +589,7 @@ func TestRevocationStatus_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
-	if err := manager.FetchCertificate(ctx); err != nil {
-		t.Fatalf("FetchCertificate() error = %v", err)
-	}
+	require.NoError(t, manager.FetchCertificate(ctx), "FetchCertificate() error")
 
 	// Test with context that gets cancelled mid-operation
 	revocationCtx, revocationCancel := context.WithCancel(t.Context())
@@ -908,12 +890,8 @@ func TestCRLCacheEviction(t *testing.T) {
 	url2 := "http://test2.com/crl"
 	url3 := "http://test3.com/crl"
 
-	if err := SetCachedCRL(url1, []byte("data1"), time.Now().Add(24*time.Hour)); err != nil {
-		t.Fatalf("failed to set CRL 1: %v", err)
-	}
-	if err := SetCachedCRL(url2, []byte("data2"), time.Now().Add(24*time.Hour)); err != nil {
-		t.Fatalf("failed to set CRL 2: %v", err)
-	}
+	require.NoError(t, SetCachedCRL(url1, []byte("data1"), time.Now().Add(24*time.Hour)), "failed to set CRL 1")
+	require.NoError(t, SetCachedCRL(url2, []byte("data2"), time.Now().Add(24*time.Hour)), "failed to set CRL 2")
 
 	// Check initial size
 	metrics := GetCRLCacheMetrics()
