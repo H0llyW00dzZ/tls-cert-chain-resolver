@@ -1,3 +1,8 @@
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
+//
+// By accessing or using this software, you agree to be bound by the terms
+// of the License Agreement, which you can find at LICENSE files.
+
 //go:build !windows
 
 package mcpserver
@@ -7,6 +12,9 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRun_GracefulShutdown(t *testing.T) {
@@ -25,16 +33,13 @@ func TestRun_GracefulShutdown(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Send SIGINT to trigger graceful shutdown
-	if err := syscall.Kill(syscall.Getpid(), syscall.SIGINT); err != nil {
-		t.Fatalf("Failed to send SIGINT: %v", err)
-	}
+	err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	require.NoError(t, err, "Failed to send SIGINT")
 
 	// Wait for graceful shutdown with timeout
 	select {
 	case err := <-done:
-		if err != nil {
-			t.Errorf("Expected Run() to return nil on graceful shutdown, got error: %v", err)
-		}
+		assert.NoError(t, err, "Expected Run() to return nil on graceful shutdown")
 	case <-time.After(5 * time.Second):
 		t.Fatal("Run() did not shut down gracefully within 5 seconds")
 	}

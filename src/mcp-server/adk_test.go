@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -20,6 +19,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	mcptransport "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestADKTransportBuilder_WithVersion(t *testing.T) {
@@ -52,9 +53,7 @@ func TestADKTransportBuilder_WithVersion(t *testing.T) {
 				builder = builder.WithVersion(tt.version)
 			}
 
-			if builder.config.Version != tt.expectResult {
-				t.Errorf("Expected version '%s', got '%s'", tt.expectResult, builder.config.Version)
-			}
+			assert.Equal(t, tt.expectResult, builder.config.Version)
 		})
 	}
 }
@@ -87,9 +86,7 @@ func TestADKTransportBuilder_WithMCPConfig(t *testing.T) {
 			builder := NewADKTransportBuilder().
 				WithMCPConfig(tt.configFile)
 
-			if builder.config.MCPConfigFile != tt.expectResult {
-				t.Errorf("Expected config file '%s', got '%s'", tt.expectResult, builder.config.MCPConfigFile)
-			}
+			assert.Equal(t, tt.expectResult, builder.config.MCPConfigFile)
 		})
 	}
 }
@@ -120,9 +117,7 @@ func TestADKTransportBuilder_WithInMemoryTransport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			builder := tt.setup(NewADKTransportBuilder())
 
-			if builder.config.TransportType != tt.expectResult {
-				t.Errorf("Expected transport type '%s', got '%s'", tt.expectResult, builder.config.TransportType)
-			}
+			assert.Equal(t, tt.expectResult, builder.config.TransportType)
 		})
 	}
 }
@@ -151,11 +146,10 @@ func TestADKTransportBuilder_ValidateConfig(t *testing.T) {
 			builder.config.TransportType = tt.transportType
 
 			err := builder.ValidateConfig()
-			if tt.expectError && err == nil {
-				t.Error("Expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error but got: %v", err)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -202,48 +196,28 @@ func TestADKTransportBuilder_BuildTransport(t *testing.T) {
 			transport, err := builder.BuildTransport(t.Context())
 
 			if tt.expectError {
-				if err == nil {
-					t.Errorf("Expected error for %s, but got none", tt.description)
-				}
-				if transport != nil {
-					t.Errorf("Expected nil transport on error, but got %T", transport)
-				}
+				require.Error(t, err, "Expected error for %s", tt.description)
+				assert.Nil(t, transport, "Expected nil transport on error")
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
-				return
-			}
-
-			if transport == nil {
-				t.Errorf("Expected valid transport for %s, but got nil", tt.description)
-				return
-			}
+			require.NoError(t, err, "Expected no error for %s", tt.description)
+			require.NotNil(t, transport, "Expected valid transport for %s", tt.description)
 
 			// Verify it's the expected transport type
-			if inmemoryTransport, ok := transport.(*InMemoryTransport); ok {
-				// Test basic transport functionality
-				if inmemoryTransport.ctx == nil {
-					t.Error("Transport context should not be nil")
-				}
-				if inmemoryTransport.recvCh == nil {
-					t.Error("Transport recvCh should not be nil")
-				}
-				if inmemoryTransport.sendCh == nil {
-					t.Error("Transport sendCh should not be nil")
-				}
+			inmemoryTransport, ok := transport.(*InMemoryTransport)
+			require.True(t, ok, "Expected *InMemoryTransport, got %T", transport)
 
-				// Test that sampling handler is set
-				if inmemoryTransport.samplingHandler == nil {
-					t.Error("Sampling handler should be set on transport")
-				}
+			// Test basic transport functionality
+			assert.NotNil(t, inmemoryTransport.ctx, "Transport context should not be nil")
+			assert.NotNil(t, inmemoryTransport.recvCh, "Transport recvCh should not be nil")
+			assert.NotNil(t, inmemoryTransport.sendCh, "Transport sendCh should not be nil")
 
-				// Clean up
-				inmemoryTransport.Close()
-			} else {
-				t.Errorf("Expected *InMemoryTransport, got %T", transport)
-			}
+			// Test that sampling handler is set
+			assert.NotNil(t, inmemoryTransport.samplingHandler, "Sampling handler should be set on transport")
+
+			// Clean up
+			inmemoryTransport.Close()
 		})
 	}
 }
@@ -307,9 +281,7 @@ func TestInMemoryTransport_JSONRPC(t *testing.T) {
 			// Create transport and connect server
 			transport := NewInMemoryTransport(t.Context())
 			err := transport.ConnectServer(t.Context(), s)
-			if err != nil {
-				t.Fatalf("Failed to connect server: %v", err)
-			}
+			require.NoError(t, err, "Failed to connect server")
 			defer transport.Close()
 
 			// Send initialize request first (required for tools/call)
@@ -328,17 +300,15 @@ func TestInMemoryTransport_JSONRPC(t *testing.T) {
 			}
 
 			initData, _ := json.Marshal(initRequest)
-			if err := transport.WriteMessage(initData); err != nil {
-				t.Fatalf("Failed to write init message: %v", err)
-			}
+			err = transport.WriteMessage(initData)
+			require.NoError(t, err, "Failed to write init message")
 
 			// Wait for processing
 			time.Sleep(500 * time.Millisecond)
 
 			// Read init response
-			if _, err := transport.ReadMessage(); err != nil {
-				t.Fatalf("Failed to read init response: %v", err)
-			}
+			_, err = transport.ReadMessage()
+			require.NoError(t, err, "Failed to read init response")
 
 			// Send initialized notification
 			notifyRequest := map[string]any{
@@ -346,58 +316,43 @@ func TestInMemoryTransport_JSONRPC(t *testing.T) {
 				"method":  "notifications/initialized",
 			}
 			notifyData, _ := json.Marshal(notifyRequest)
-			if err := transport.WriteMessage(notifyData); err != nil {
-				t.Fatalf("Failed to write notify message: %v", err)
-			}
+			err = transport.WriteMessage(notifyData)
+			require.NoError(t, err, "Failed to write notify message")
 
 			// Send JSON-RPC request
 			data, err := json.Marshal(tt.request)
-			if err != nil {
-				t.Fatalf("Failed to marshal request: %v", err)
-			}
+			require.NoError(t, err, "Failed to marshal request")
 
 			err = transport.WriteMessage(data)
-			if err != nil {
-				t.Fatalf("Failed to write message: %v", err)
-			}
+			require.NoError(t, err, "Failed to write message")
 
 			// Wait for processing
 			time.Sleep(500 * time.Millisecond)
 
 			// Read response
 			respData, err := transport.ReadMessage()
-			if err != nil {
-				t.Fatalf("Failed to read response: %v", err)
-			}
+			require.NoError(t, err, "Failed to read response")
 
 			var resp map[string]any
 			err = json.Unmarshal(respData, &resp)
-			if err != nil {
-				t.Fatalf("Failed to unmarshal response: %v", err)
-			}
+			require.NoError(t, err, "Failed to unmarshal response")
 
 			t.Logf("Response: %s", string(respData))
 
-			if resp["id"].(float64) != tt.expectID {
-				t.Errorf("Expected id %v, got %v", tt.expectID, resp["id"])
-			}
+			assert.Equal(t, tt.expectID, resp["id"].(float64))
 
-			if tt.expectHasResult && resp["result"] == nil {
-				t.Errorf("Expected result in response")
+			if tt.expectHasResult {
+				assert.NotNil(t, resp["result"], "Expected result in response")
 			}
 
 			// For tools/call, check the content
 			if tt.expectContent != "" {
 				result := resp["result"].(map[string]any)
 				content := result["content"].([]any)
-				if len(content) == 0 {
-					t.Errorf("Expected content in result")
-				}
+				require.NotEmpty(t, content, "Expected content in result")
 
 				textContent := content[0].(map[string]any)
-				if textContent["text"] != tt.expectContent {
-					t.Errorf("Expected '%s', got %v", tt.expectContent, textContent["text"])
-				}
+				assert.Equal(t, tt.expectContent, textContent["text"])
 			}
 		})
 	}
@@ -435,15 +390,12 @@ func TestADKTransportConnection(t *testing.T) {
 	transport := NewInMemoryTransport(ctx)
 
 	// Connect transport to server (this is what BuildInMemoryTransport does)
-	if err := transport.ConnectServer(ctx, s); err != nil {
-		t.Fatalf("Failed to connect server: %v", err)
-	}
+	err := transport.ConnectServer(ctx, s)
+	require.NoError(t, err, "Failed to connect server")
 
 	// Test Connect method returns ADKTransportConnection
 	conn, err := transport.Connect(ctx)
-	if err != nil {
-		t.Fatalf("Failed to connect: %v", err)
-	}
+	require.NoError(t, err, "Failed to connect")
 
 	tests := []struct {
 		name     string
@@ -452,18 +404,14 @@ func TestADKTransportConnection(t *testing.T) {
 		{
 			name: "connection is not nil",
 			testFunc: func(t *testing.T, conn mcptransport.Connection) {
-				if conn == nil {
-					t.Error("Connect returned nil connection")
-				}
+				assert.NotNil(t, conn, "Connect returned nil connection")
 			},
 		},
 		{
 			name: "session ID is correct",
 			testFunc: func(t *testing.T, conn mcptransport.Connection) {
 				sessionID := conn.SessionID()
-				if sessionID != "in-memory-transport" {
-					t.Errorf("Expected session ID 'in-memory-transport', got '%s'", sessionID)
-				}
+				assert.Equal(t, "in-memory-transport", sessionID)
 			},
 		},
 		// read blocks test case removed - moved to TestADKTransportConnection_Blocking
@@ -476,20 +424,14 @@ func TestADKTransportConnection(t *testing.T) {
 					"method":  "tools/list",
 					"id":      1,
 				})
-				if err != nil {
-					t.Fatalf("Failed to marshal request: %v", err)
-				}
+				require.NoError(t, err, "Failed to marshal request")
 
 				jsonrpcMsg, err := jsonrpc.DecodeMessage(requestData)
-				if err != nil {
-					t.Fatalf("Failed to decode message: %v", err)
-				}
+				require.NoError(t, err, "Failed to decode message")
 
 				// Test that Write doesn't return an error
-
-				if err = conn.Write(ctx, jsonrpcMsg); err != nil {
-					t.Errorf("Write returned unexpected error: %v", err)
-				}
+				err = conn.Write(ctx, jsonrpcMsg)
+				assert.NoError(t, err, "Write returned unexpected error")
 
 				// Consume response to clear channel for next tests
 				time.Sleep(50 * time.Millisecond)
@@ -499,18 +441,15 @@ func TestADKTransportConnection(t *testing.T) {
 		{
 			name: "close method works",
 			testFunc: func(t *testing.T, conn mcptransport.Connection) {
-
-				if err := conn.Close(); err != nil {
-					t.Errorf("Close returned unexpected error: %v", err)
-				}
+				err := conn.Close()
+				assert.NoError(t, err, "Close returned unexpected error")
 			},
 		},
 		{
 			name: "read fails after close",
 			testFunc: func(t *testing.T, conn mcptransport.Connection) {
-				if _, err := conn.Read(ctx); err == nil {
-					t.Error("Read expected to fail after close, but it succeeded")
-				}
+				_, err := conn.Read(ctx)
+				assert.Error(t, err, "Read expected to fail after close, but it succeeded")
 			},
 		},
 	}
@@ -526,7 +465,8 @@ func TestADKTransportConnection(t *testing.T) {
 func TestADKTransportConnection_Blocking(t *testing.T) {
 	ctx := t.Context() // Background context for manual control
 	transport := NewInMemoryTransport(ctx)
-	conn, _ := transport.Connect(ctx)
+	conn, err := transport.Connect(ctx)
+	require.NoError(t, err)
 
 	done := make(chan error)
 	go func() {
@@ -536,7 +476,7 @@ func TestADKTransportConnection_Blocking(t *testing.T) {
 
 	select {
 	case <-done:
-		t.Error("Read returned immediately, expected to block")
+		assert.Fail(t, "Read returned immediately, expected to block")
 	case <-time.After(50 * time.Millisecond):
 		// Blocked correctly
 	}
@@ -546,11 +486,9 @@ func TestADKTransportConnection_Blocking(t *testing.T) {
 
 	select {
 	case err := <-done:
-		if err != io.EOF {
-			t.Errorf("Expected EOF on close, got %v", err)
-		}
+		assert.Equal(t, io.EOF, err, "Expected EOF on close")
 	case <-time.After(100 * time.Millisecond):
-		t.Fatal("Read did not return after close")
+		require.Fail(t, "Read did not return after close")
 	}
 }
 
@@ -653,9 +591,8 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 	ctx := t.Context()
 	transport := NewInMemoryTransport(ctx)
 
-	if err := transport.ConnectServer(ctx, s); err != nil {
-		t.Fatalf("Failed to connect server: %v", err)
-	}
+	err := transport.ConnectServer(ctx, s)
+	require.NoError(t, err, "Failed to connect server")
 
 	// Initialize client
 	initRequest := map[string]any{
@@ -672,25 +609,22 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 		"id": 0,
 	}
 	initData, _ := json.Marshal(initRequest)
-	if err := transport.WriteMessage(initData); err != nil {
-		t.Fatalf("Failed to write init message: %v", err)
-	}
+	err = transport.WriteMessage(initData)
+	require.NoError(t, err, "Failed to write init message")
 
 	// Wait for processing
 	time.Sleep(100 * time.Millisecond)
 
-	if _, err := transport.ReadMessage(); err != nil {
-		t.Fatalf("Failed to read init response: %v", err)
-	}
+	_, err = transport.ReadMessage()
+	require.NoError(t, err, "Failed to read init response")
 
 	notifyRequest := map[string]any{
 		"jsonrpc": "2.0",
 		"method":  "notifications/initialized",
 	}
 	notifyData, _ := json.Marshal(notifyRequest)
-	if err := transport.WriteMessage(notifyData); err != nil {
-		t.Fatalf("Failed to write notify message: %v", err)
-	}
+	err = transport.WriteMessage(notifyData)
+	require.NoError(t, err, "Failed to write notify message")
 
 	// Note: This test uses internal transport methods for comprehensive testing
 	// The ADK bridge interface is tested separately in TestADKTransportConnection
@@ -813,29 +747,21 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Send request using internal transport (this is what actually works for complex scenarios)
 			data, err := json.Marshal(tc.request)
-			if err != nil {
-				t.Fatalf("Failed to marshal request: %v", err)
-			}
+			require.NoError(t, err, "Failed to marshal request")
 
 			err = transport.WriteMessage(data)
-			if err != nil {
-				t.Fatalf("Failed to write message: %v", err)
-			}
+			require.NoError(t, err, "Failed to write message")
 
 			// Wait for processing
 			time.Sleep(50 * time.Millisecond)
 
 			// Read response using internal transport
 			respData, err := transport.ReadMessage()
-			if err != nil {
-				t.Fatalf("Failed to read response: %v", err)
-			}
+			require.NoError(t, err, "Failed to read response")
 
 			var resp map[string]any
 			err = json.Unmarshal(respData, &resp)
-			if err != nil {
-				t.Fatalf("Failed to unmarshal response: %v", err)
-			}
+			require.NoError(t, err, "Failed to unmarshal response")
 
 			t.Logf("Test %s: Response: %s", tc.name, string(respData))
 
@@ -866,19 +792,14 @@ func TestADKTransportConnection_Advanced(t *testing.T) {
 				}
 			}
 
-			if !strings.Contains(content, tc.expectContains) {
-				t.Errorf("Expected response to contain %q, got: %s", tc.expectContains, content)
-			}
+			assert.Contains(t, content, tc.expectContains, "Expected response to contain %q", tc.expectContains)
 
 			// Verify isError field when expectToolError is true
 			if tc.expectToolError {
-				if result, ok := resp["result"].(map[string]any); ok {
-					if isError, ok := result["isError"].(bool); !ok || !isError {
-						t.Error("Expected result.isError to be true")
-					}
-				} else {
-					t.Error("Expected result object to be present")
-				}
+				result, ok := resp["result"].(map[string]any)
+				require.True(t, ok, "Expected result object to be present")
+				isError, ok := result["isError"].(bool)
+				assert.True(t, ok && isError, "Expected result.isError to be true")
 			}
 		})
 	}
@@ -904,32 +825,23 @@ func TestInMemoryTransport_SendJSONRPCNotification(t *testing.T) {
 	received := ""
 	for range 3 {
 		msg, err := transport.ReadMessage()
-		if err != nil {
-			t.Fatalf("Failed to read message: %v", err)
-		}
+		require.NoError(t, err, "Failed to read message")
 
 		var notification map[string]any
-		if err := json.Unmarshal(msg, &notification); err != nil {
-			t.Fatalf("Failed to unmarshal notification: %v", err)
-		}
+		err = json.Unmarshal(msg, &notification)
+		require.NoError(t, err, "Failed to unmarshal notification")
 
-		if notification["method"] != "notifications/sampling/progress" {
-			t.Errorf("Expected method 'notifications/sampling/progress', got %v", notification["method"])
-		}
+		assert.Equal(t, "notifications/sampling/progress", notification["method"])
 
 		params, ok := notification["params"].(map[string]any)
-		if !ok {
-			t.Fatalf("Expected params to be map, got %T", notification["params"])
-		}
+		require.True(t, ok, "Expected params to be map, got %T", notification["params"])
 
 		if content, ok := params["content"].(string); ok {
 			received += content
 		}
 	}
 
-	if received != "Hello World" {
-		t.Errorf("Expected 'Hello World', got '%s'", received)
-	}
+	assert.Equal(t, "Hello World", received)
 }
 
 // TestADKTransportConnection_Concurrent tests basic transport functionality
@@ -955,9 +867,8 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 
 	ctx := t.Context()
 	transport := NewInMemoryTransport(ctx)
-	if err := transport.ConnectServer(ctx, s); err != nil {
-		t.Fatalf("Failed to connect server: %v", err)
-	}
+	err := transport.ConnectServer(ctx, s)
+	require.NoError(t, err, "Failed to connect server")
 	defer transport.Close()
 
 	// Initialize client
@@ -975,14 +886,12 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 		"id": 0,
 	}
 	initData, _ := json.Marshal(initRequest)
-	if err := transport.WriteMessage(initData); err != nil {
-		t.Fatalf("Failed to write init message: %v", err)
-	}
+	err = transport.WriteMessage(initData)
+	require.NoError(t, err, "Failed to write init message")
 
 	// Read init response
-	if _, err := transport.ReadMessage(); err != nil {
-		t.Fatalf("Failed to read init response: %v", err)
-	}
+	_, err = transport.ReadMessage()
+	require.NoError(t, err, "Failed to read init response")
 
 	// Send initialized notification
 	notifyRequest := map[string]any{
@@ -990,9 +899,8 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 		"method":  "notifications/initialized",
 	}
 	notifyData, _ := json.Marshal(notifyRequest)
-	if err := transport.WriteMessage(notifyData); err != nil {
-		t.Fatalf("Failed to write notify message: %v", err)
-	}
+	err = transport.WriteMessage(notifyData)
+	require.NoError(t, err, "Failed to write notify message")
 
 	// Test concurrent sends to transport
 	var sendWg sync.WaitGroup
@@ -1026,7 +934,7 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 
 	// Check for send errors
 	if err := <-sendErrors; err != nil {
-		t.Fatalf("Failed to send message: %v", err)
+		require.NoError(t, err, "Failed to send message")
 	}
 
 	// Verify transport can handle concurrent sends without blocking
@@ -1058,7 +966,7 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 	select {
 	case <-consumeDone:
 	case <-time.After(10 * time.Second): // Allow more time for serial processing
-		t.Fatal("Timeout waiting for responses")
+		require.Fail(t, "Timeout waiting for responses")
 	}
 
 	// Verify all responses received
@@ -1066,9 +974,8 @@ func TestADKTransportConnection_Concurrent(t *testing.T) {
 	receivedCount := len(responseIds)
 	respMu.Unlock()
 
-	if receivedCount != count {
-		t.Errorf("Expected %d responses, got %d", count, receivedCount)
-	} else {
+	assert.Equal(t, count, receivedCount, "Expected %d responses, got %d", count, receivedCount)
+	if receivedCount == count {
 		t.Logf("Successfully received %d responses from transport", receivedCount)
 	}
 }
@@ -1134,11 +1041,10 @@ func TestADKTransportConnection_ErrorScenarios(t *testing.T) {
 			data, _ := json.Marshal(request)
 			err := transport.WriteMessage(data)
 
-			if tc.expectError && err == nil {
-				t.Errorf("Expected error for %s, but got none", tc.description)
-			}
-			if !tc.expectError && err != nil {
-				t.Errorf("Unexpected error for %s: %v", tc.description, err)
+			if tc.expectError {
+				assert.Error(t, err, "Expected error for %s", tc.description)
+			} else {
+				assert.NoError(t, err, "Unexpected error for %s", tc.description)
 			}
 		})
 	}
@@ -1155,17 +1061,13 @@ func TestADKTransportBridge(t *testing.T) {
 	// Test SessionID
 	t.Run("session_id", func(t *testing.T) {
 		sessionID := bridge.SessionID()
-		if sessionID != "in-memory-transport" {
-			t.Errorf("Expected session ID 'in-memory-transport', got '%s'", sessionID)
-		}
+		assert.Equal(t, "in-memory-transport", sessionID)
 	})
 
 	// Test Close
 	t.Run("close", func(t *testing.T) {
 		err := bridge.Close()
-		if err != nil {
-			t.Errorf("Close should not fail: %v", err)
-		}
+		assert.NoError(t, err, "Close should not fail")
 	})
 
 	// Test Read when context cancelled
@@ -1178,9 +1080,7 @@ func TestADKTransportBridge(t *testing.T) {
 		bridge := &ADKTransportConnection{transport: transport}
 
 		_, err := bridge.Read(ctx)
-		if err != io.EOF {
-			t.Errorf("Expected EOF when context cancelled, got: %v", err)
-		}
+		assert.Equal(t, io.EOF, err, "Expected EOF when context cancelled")
 	})
 }
 
@@ -1247,7 +1147,7 @@ func setupTestTransport(ctx context.Context, t *testing.T, s *server.MCPServer) 
 	transport := NewInMemoryTransport(ctx)
 
 	if err := transport.ConnectServer(ctx, s); err != nil {
-		t.Fatalf("Failed to connect server: %v", err)
+		require.NoError(t, err, "Failed to connect server")
 	}
 
 	return transport
@@ -1257,7 +1157,7 @@ func setupTestTransport(ctx context.Context, t *testing.T, s *server.MCPServer) 
 func sendJSONRPCMessage(t *testing.T, transport *InMemoryTransport, message map[string]any) {
 	data, _ := json.Marshal(message)
 	if err := transport.WriteMessage(data); err != nil {
-		t.Fatalf("Failed to write message: %v", err)
+		require.NoError(t, err, "Failed to write message")
 	}
 }
 
@@ -1271,82 +1171,58 @@ func runJSONRPCTestCase(ctx context.Context, t *testing.T, bridge *ADKTransportC
 }) {
 	// Convert request to JSON-RPC message
 	data, err := json.Marshal(tc.request)
-	if err != nil {
-		t.Fatalf("Failed to marshal request: %v", err)
-	}
+	require.NoError(t, err, "Failed to marshal request")
 
 	t.Logf("Sending JSON request: %s", string(data))
 
 	jsonrpcMsg, err := jsonrpc.DecodeMessage(data)
-	if err != nil {
-		t.Fatalf("Failed to decode message: %v", err)
-	}
+	require.NoError(t, err, "Failed to decode message")
 
 	// Re-encode using MCP SDK for consistent formatting
 	encodedData, err := jsonrpc.EncodeMessage(jsonrpcMsg)
-	if err != nil {
-		t.Fatalf("Failed to encode message: %v", err)
-	}
+	require.NoError(t, err, "Failed to encode message")
 
 	t.Logf("Sending JSON-RPC request: --> %s", string(encodedData))
 
 	// Write through bridge
 	err = bridge.Write(ctx, jsonrpcMsg)
-	if err != nil {
-		t.Fatalf("Write failed: %v", err)
-	}
+	require.NoError(t, err, "Write failed")
 
 	// Wait for processing
 	time.Sleep(500 * time.Millisecond)
 
 	// Read response through bridge
 	respMsg, err := bridge.Read(ctx)
-	if err != nil {
-		t.Fatalf("Bridge Read failed: %v", err)
-	}
+	require.NoError(t, err, "Bridge Read failed")
 
 	// Use proper wire format encoding
 	wireData, err := jsonrpc.EncodeMessage(respMsg)
-	if err != nil {
-		t.Fatalf("Failed to encode message: %v", err)
-	}
+	require.NoError(t, err, "Failed to encode message")
 
 	t.Logf("Received JSON-RPC response: <-- %s", string(wireData))
 
 	// Parse the response using proper wire format
 	var resp map[string]any
 	err = json.Unmarshal(wireData, &resp)
-
-	if err != nil {
-		t.Fatalf("Failed to unmarshal response: %v", err)
-	}
+	require.NoError(t, err, "Failed to unmarshal response")
 
 	// Validate response - handle jsonrpc.Message format
-	if resp["error"] != nil {
-		t.Errorf("Response contains error: %v", resp["error"])
-	}
+	assert.Nil(t, resp["error"], "Response contains error: %v", resp["error"])
 
 	result, ok := resp["result"].(map[string]any)
-	if !ok {
-		t.Errorf("Expected result field in response")
-		return
-	}
+	require.True(t, ok, "Expected result field in response")
 
 	// Validate response id
 	if idValue, ok := resp["id"].(float64); ok {
-		if idValue != tc.expectID {
-			t.Errorf("Expected id %v, got %v", tc.expectID, idValue)
-		}
+		assert.Equal(t, tc.expectID, idValue)
 	} else {
-		t.Errorf("Expected id field to be a number, got %T", resp["id"])
+		assert.Failf(t, "Expected id field to be a number, got %T", "%T", resp["id"])
 	}
 
 	// Check content based on test case
 	if tc.expectContent != "" {
 		content := extractTestContent(tc.name, result)
-		if content != tc.expectContent {
-			t.Errorf("Expected content %q, got %q", tc.expectContent, content)
-		}
+		assert.Equal(t, tc.expectContent, content)
 	}
 }
 
@@ -1436,7 +1312,7 @@ func TestADKTransportBridge_FullJSONRPC(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	if _, err := transport.ReadMessage(); err != nil {
-		t.Fatalf("Failed to read init response: %v", err)
+		require.NoError(t, err, "Failed to read init response")
 	}
 
 	// Send initialized notification
@@ -1585,9 +1461,8 @@ func TestADKTransportBridge_WithSDKClient(t *testing.T) {
 	transport := NewInMemoryTransport(ctx)
 
 	// Connect server to transport (bridge side)
-	if err := transport.ConnectServer(ctx, s); err != nil {
-		t.Fatalf("Failed to connect server: %v", err)
-	}
+	err := transport.ConnectServer(ctx, s)
+	require.NoError(t, err, "Failed to connect server")
 	defer transport.Close()
 
 	// Create official SDK client
@@ -1598,17 +1473,13 @@ func TestADKTransportBridge_WithSDKClient(t *testing.T) {
 
 	// Connect client to transport (this establishes session and performs handshake)
 	session, err := client.Connect(ctx, transport, nil)
-	if err != nil {
-		t.Fatalf("Failed to connect SDK client: %v", err)
-	}
+	require.NoError(t, err, "Failed to connect SDK client")
 	defer session.Close()
 
 	// List tools
 	listParams := mcptransport.ListToolsParams{}
 	toolsResult, err := session.ListTools(ctx, &listParams)
-	if err != nil {
-		t.Fatalf("Failed to list tools: %v", err)
-	}
+	require.NoError(t, err, "Failed to list tools")
 
 	// Log ListTools response
 	toolsJSON, _ := json.MarshalIndent(toolsResult, "", "  ")
@@ -1621,9 +1492,7 @@ func TestADKTransportBridge_WithSDKClient(t *testing.T) {
 			break
 		}
 	}
-	if !found {
-		t.Error("Expected to find 'sdk_echo' tool")
-	}
+	assert.True(t, found, "Expected to find 'sdk_echo' tool")
 
 	// Call tool
 	callParams := mcptransport.CallToolParams{
@@ -1633,33 +1502,25 @@ func TestADKTransportBridge_WithSDKClient(t *testing.T) {
 		},
 	}
 	callResult, err := session.CallTool(ctx, &callParams)
-	if err != nil {
-		t.Fatalf("Failed to call tool: %v", err)
-	}
+	require.NoError(t, err, "Failed to call tool")
 
 	// Log CallTool response
 	callJSON, _ := json.MarshalIndent(callResult, "", "  ")
 	t.Logf("SDK CallTool Response: %s", string(callJSON))
 
-	if len(callResult.Content) == 0 {
-		t.Fatal("Expected content in tool result")
-	}
+	require.NotEmpty(t, callResult.Content, "Expected content in tool result")
 
 	// Content is interface{}, need to type assert
 	// SDK usually returns []Content interface
 	// Check if it's TextContent (pointer receiver)
 	if textContent, ok := callResult.Content[0].(*mcptransport.TextContent); ok {
-		if textContent.Text != "Echo: Hello SDK" {
-			t.Errorf("Expected 'Echo: Hello SDK', got '%s'", textContent.Text)
-		}
+		assert.Equal(t, "Echo: Hello SDK", textContent.Text)
 	} else {
 		// It might be a pointer or different structure depending on SDK version
 		t.Logf("Content type: %T", callResult.Content[0])
 		// Try simplified check via JSON marshalling if type assertion fails
 		bytes, _ := json.Marshal(callResult.Content[0])
-		if !strings.Contains(string(bytes), "Echo: Hello SDK") {
-			t.Errorf("Expected content to contain 'Echo: Hello SDK', got %s", string(bytes))
-		}
+		assert.Contains(t, string(bytes), "Echo: Hello SDK", "Expected content to contain 'Echo: Hello SDK'")
 	}
 }
 
@@ -1714,9 +1575,8 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 	transport := NewInMemoryTransport(ctx)
 	// Increase worker pool size to handle concurrent requests
 	// Default is 5, which causes timeout when waiting for 50
-	if err := transport.ConnectServer(ctx, s, server.WithWorkerPoolSize(count)); err != nil {
-		t.Fatalf("Failed to connect server: %v", err)
-	}
+	err := transport.ConnectServer(ctx, s, server.WithWorkerPoolSize(count))
+	require.NoError(t, err, "Failed to connect server")
 	defer transport.Close()
 
 	// Initialize client
@@ -1734,14 +1594,12 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 		"id": 0,
 	}
 	initData, _ := json.Marshal(initRequest)
-	if err := transport.WriteMessage(initData); err != nil {
-		t.Fatalf("Failed to write init message: %v", err)
-	}
+	err = transport.WriteMessage(initData)
+	require.NoError(t, err, "Failed to write init message")
 
 	// Read init response
-	if _, err := transport.ReadMessage(); err != nil {
-		t.Fatalf("Failed to read init response: %v", err)
-	}
+	_, err = transport.ReadMessage()
+	require.NoError(t, err, "Failed to read init response")
 
 	// Send initialized notification
 	notifyRequest := map[string]any{
@@ -1749,9 +1607,8 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 		"method":  "notifications/initialized",
 	}
 	notifyData, _ := json.Marshal(notifyRequest)
-	if err := transport.WriteMessage(notifyData); err != nil {
-		t.Fatalf("Failed to write notify message: %v", err)
-	}
+	err = transport.WriteMessage(notifyData)
+	require.NoError(t, err, "Failed to write notify message")
 
 	// Run multiple requests concurrently
 	// Use a separate WaitGroup for the senders to ensure they are all sent
@@ -1791,7 +1648,7 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 	case <-doneCh:
 		// Success: all handlers are active
 	case <-time.After(5 * time.Second):
-		t.Fatalf("Timeout waiting for concurrent handlers. Active: %d/%d", active, count)
+		require.Fail(t, "Timeout waiting for concurrent handlers", "Active: %d/%d", active, count)
 	}
 
 	// Verify peak concurrency
@@ -1799,9 +1656,8 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 	peak := maxActive
 	mu.Unlock()
 
-	if peak != count {
-		t.Errorf("Expected max concurrency %d, got %d", count, peak)
-	} else {
+	assert.Equal(t, count, peak, "Expected max concurrency %d, got %d", count, peak)
+	if peak == count {
 		t.Logf("Successfully achieved %d concurrent executions", peak)
 	}
 
@@ -1834,14 +1690,12 @@ func TestInMemoryTransport_Concurrency(t *testing.T) {
 	select {
 	case <-consumeDone:
 	case <-time.After(2 * time.Second):
-		t.Fatal("Timeout waiting for responses")
+		require.Fail(t, "Timeout waiting for responses")
 	}
 
 	// Verify all responses received
 	respMu.Lock()
-	if len(responseIds) != count {
-		t.Errorf("Expected %d responses, got %d", count, len(responseIds))
-	}
+	assert.Equal(t, count, len(responseIds), "Expected %d responses, got %d", count, len(responseIds))
 	respMu.Unlock()
 }
 
@@ -1866,9 +1720,8 @@ func TestInMemoryTransport_GracefulShutdown(t *testing.T) {
 
 	ctx := t.Context()
 	transport := NewInMemoryTransport(ctx)
-	if err := transport.ConnectServer(ctx, s); err != nil {
-		t.Fatalf("Failed to connect server: %v", err)
-	}
+	err := transport.ConnectServer(ctx, s)
+	require.NoError(t, err, "Failed to connect server")
 
 	// Initialize client
 	initRequest := map[string]any{
@@ -1885,14 +1738,12 @@ func TestInMemoryTransport_GracefulShutdown(t *testing.T) {
 		"id": 0,
 	}
 	initData, _ := json.Marshal(initRequest)
-	if err := transport.WriteMessage(initData); err != nil {
-		t.Fatalf("Failed to write init message: %v", err)
-	}
+	err = transport.WriteMessage(initData)
+	require.NoError(t, err, "Failed to write init message")
 
 	// Read init response
-	if _, err := transport.ReadMessage(); err != nil {
-		t.Fatalf("Failed to read init response: %v", err)
-	}
+	_, err = transport.ReadMessage()
+	require.NoError(t, err, "Failed to read init response")
 
 	// Send initialized notification
 	notifyRequest := map[string]any{
@@ -1900,9 +1751,8 @@ func TestInMemoryTransport_GracefulShutdown(t *testing.T) {
 		"method":  "notifications/initialized",
 	}
 	notifyData, _ := json.Marshal(notifyRequest)
-	if err := transport.WriteMessage(notifyData); err != nil {
-		t.Fatalf("Failed to write notify message: %v", err)
-	}
+	err = transport.WriteMessage(notifyData)
+	require.NoError(t, err, "Failed to write notify message")
 
 	// Send request
 	req := map[string]any{
@@ -1915,9 +1765,8 @@ func TestInMemoryTransport_GracefulShutdown(t *testing.T) {
 		"id": 1,
 	}
 	data, _ := json.Marshal(req)
-	if err := transport.WriteMessage(data); err != nil {
-		t.Fatalf("Failed to write message: %v", err)
-	}
+	err = transport.WriteMessage(data)
+	require.NoError(t, err, "Failed to write message")
 
 	// Give it a moment to start processing
 	time.Sleep(10 * time.Millisecond)
@@ -1931,7 +1780,7 @@ func TestInMemoryTransport_GracefulShutdown(t *testing.T) {
 
 	// Consume response if any (might be dropped due to context cancel)
 	// transport.ReadMessage() should return EOF or error now
-	_, err := transport.ReadMessage()
+	_, err = transport.ReadMessage()
 	if err == nil {
 		t.Log("ReadMessage returned nil error after Close")
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -10,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidateParamConstraints(t *testing.T) {
@@ -153,14 +156,14 @@ func TestValidateParamConstraints(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateParamConstraints(&tt.param, 0, 0)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validateParamConstraints() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantErr && err != nil && tt.errMsg != "" {
-				if !contains(err.Error(), tt.errMsg) {
-					t.Errorf("validateParamConstraints() error = %v, expected to contain %v", err.Error(), tt.errMsg)
+			if tt.wantErr {
+				assert.Error(t, err, "validateParamConstraints() should return error")
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg,
+						"validateParamConstraints() error should contain expected message")
 				}
+			} else {
+				assert.NoError(t, err, "validateParamConstraints() should not return error")
 			}
 		})
 	}
@@ -224,8 +227,10 @@ func TestValidateToolParams(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateToolParams(tt.params, 0)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validateToolParams() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "validateToolParams() should return error")
+			} else {
+				assert.NoError(t, err, "validateToolParams() should not return error")
 			}
 		})
 	}
@@ -325,11 +330,14 @@ func TestValidateResources(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateResources(tt.resources)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validateResources() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if tt.wantErr && tt.errMsg != "" && !contains(err.Error(), tt.errMsg) {
-				t.Errorf("validateResources() error = %v, expected to contain %v", err, tt.errMsg)
+			if tt.wantErr {
+				assert.Error(t, err, "validateResources() should return error")
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg,
+						"validateResources() error should contain expected message")
+				}
+			} else {
+				assert.NoError(t, err, "validateResources() should not return error")
 			}
 		})
 	}
@@ -425,11 +433,14 @@ func TestValidatePrompts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validatePrompts(tt.prompts)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validatePrompts() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if tt.wantErr && tt.errMsg != "" && !contains(err.Error(), tt.errMsg) {
-				t.Errorf("validatePrompts() error = %v, expected to contain %v", err, tt.errMsg)
+			if tt.wantErr {
+				assert.Error(t, err, "validatePrompts() should return error")
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg,
+						"validatePrompts() error should contain expected message")
+				}
+			} else {
+				assert.NoError(t, err, "validatePrompts() should not return error")
 			}
 		})
 	}
@@ -498,25 +509,9 @@ func TestToGoMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := toGoMap(tt.input)
-			if result != tt.expected {
-				t.Errorf("toGoMap() = %q, expected %q", result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "toGoMap() should return expected result")
 		})
 	}
-}
-
-// Helper function to check if a string contains a substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || containsAt(s, substr)))
-}
-
-func containsAt(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
 
 func TestLoadJSON(t *testing.T) {
@@ -531,51 +526,31 @@ func TestLoadJSON(t *testing.T) {
 	defer os.Remove(tempFile)
 	defer os.Remove(schemaFile)
 
-	if err := os.WriteFile(tempFile, []byte(jsonContent), 0644); err != nil {
-		t.Fatalf("Failed to create test JSON file: %v", err)
-	}
-	if err := os.WriteFile(schemaFile, []byte(schemaContent), 0644); err != nil {
-		t.Fatalf("Failed to create test schema file: %v", err)
-	}
+	err := os.WriteFile(tempFile, []byte(jsonContent), 0644)
+	require.NoError(t, err, "Failed to create test JSON file")
+
+	err = os.WriteFile(schemaFile, []byte(schemaContent), 0644)
+	require.NoError(t, err, "Failed to create test schema file")
 
 	var result map[string]any
-	err := loadJSON("test_temp.json", &result)
-	if err != nil {
-		t.Errorf("loadJSON() error = %v", err)
-	}
+	err = loadJSON("test_temp.json", &result)
+	assert.NoError(t, err, "loadJSON() should not return error")
 
-	if result["test"] != "value" {
-		t.Errorf("Expected test = 'value', got %v", result["test"])
-	}
-	if result["number"] != float64(42) {
-		t.Errorf("Expected number = 42, got %v", result["number"])
-	}
+	assert.Equal(t, "value", result["test"], "test field should equal 'value'")
+	assert.Equal(t, float64(42), result["number"], "number field should equal 42")
 }
 
 func TestLoadConfig(t *testing.T) {
 	// This test requires the actual config files to exist
 	// We'll test error cases and assume config files are present for success case
 	config, err := loadConfig()
-	if err != nil {
-		t.Errorf("loadConfig() error = %v", err)
-		return
-	}
-
-	if config == nil {
-		t.Error("Expected config to be non-nil")
-		return
-	}
+	require.NoError(t, err, "loadConfig() should not return error")
+	require.NotNil(t, config, "config should not be nil")
 
 	// Basic validation that config has expected structure
-	if len(config.Resources) == 0 {
-		t.Error("Expected at least one resource in config")
-	}
-	if len(config.Tools) == 0 {
-		t.Error("Expected at least one tool in config")
-	}
-	if len(config.Prompts) == 0 {
-		t.Error("Expected at least one prompt in config")
-	}
+	assert.NotEmpty(t, config.Resources, "Expected at least one resource in config")
+	assert.NotEmpty(t, config.Tools, "Expected at least one tool in config")
+	assert.NotEmpty(t, config.Prompts, "Expected at least one prompt in config")
 }
 
 func TestValidateConfig(t *testing.T) {
@@ -631,8 +606,10 @@ func TestValidateConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateConfig(tt.config)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validateConfig() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "validateConfig() should return error")
+			} else {
+				assert.NoError(t, err, "validateConfig() should not return error")
 			}
 		})
 	}
@@ -689,8 +666,10 @@ func TestValidateTools(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateTools(tt.tools)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validateTools() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "validateTools() should return error")
+			} else {
+				assert.NoError(t, err, "validateTools() should not return error")
 			}
 		})
 	}
@@ -740,8 +719,10 @@ func TestValidateTool(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateTool(&tt.tool, 0, make(map[string]bool), make(map[string]bool))
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validateTool() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "validateTool() should return error")
+			} else {
+				assert.NoError(t, err, "validateTool() should not return error")
 			}
 		})
 	}
@@ -781,8 +762,10 @@ func TestValidatePromptArguments(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validatePromptArguments(tt.arguments, 0)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validatePromptArguments() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				assert.Error(t, err, "validatePromptArguments() should return error")
+			} else {
+				assert.NoError(t, err, "validatePromptArguments() should not return error")
 			}
 		})
 	}
@@ -818,63 +801,65 @@ func TestFormatGoValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := formatGoValue(tt.input)
-			if result != tt.expected {
-				t.Errorf("formatGoValue(%v) = %q, expected %q", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "formatGoValue(%v) should return expected result", tt.input)
 		})
 	}
 }
 
 func TestGetCodegenDir(t *testing.T) {
 	dir := getCodegenDir()
-	if dir == "" {
-		t.Error("getCodegenDir() returned empty string")
-	}
+	assert.NotEmpty(t, dir, "getCodegenDir() should not return empty string")
 	// Check if directory exists
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		t.Errorf("getCodegenDir() returned non-existent directory: %s", dir)
-	}
+	_, err := os.Stat(dir)
+	assert.False(t, os.IsNotExist(err), "getCodegenDir() should return existing directory: %s", dir)
 }
 
 func TestGetTemplatePath(t *testing.T) {
 	path := getTemplatePath("test.tmpl")
 	// Check that path contains the expected components regardless of OS path separators
 	parts := strings.Split(filepath.ToSlash(path), "/")
-	if len(parts) < 2 || parts[len(parts)-2] != "templates" || parts[len(parts)-1] != "test.tmpl" {
-		t.Errorf("getTemplatePath() = %s, expected to end with templates/test.tmpl", path)
-	}
+	require.GreaterOrEqual(t, len(parts), 2, "path should have at least 2 parts")
+	assert.Equal(t, "templates", parts[len(parts)-2], "path should contain 'templates' directory")
+	assert.Equal(t, "test.tmpl", parts[len(parts)-1], "path should end with 'test.tmpl'")
 }
 
 func TestGetOutputPath(t *testing.T) {
 	path := getOutputPath("test.go")
 	// Check that path contains the expected components regardless of OS path separators
 	parts := strings.Split(filepath.ToSlash(path), "/")
-	if len(parts) < 3 || parts[len(parts)-3] != "src" || parts[len(parts)-2] != "mcp-server" || parts[len(parts)-1] != "test.go" {
-		t.Errorf("getOutputPath() = %s, expected to end with src/mcp-server/test.go", path)
-	}
+	require.GreaterOrEqual(t, len(parts), 3, "path should have at least 3 parts")
+	assert.Equal(t, "src", parts[len(parts)-3], "path should contain 'src' directory")
+	assert.Equal(t, "mcp-server", parts[len(parts)-2], "path should contain 'mcp-server' directory")
+	assert.Equal(t, "test.go", parts[len(parts)-1], "path should end with 'test.go'")
 }
 
 func TestGenerateResources(t *testing.T) {
 	// Test that GenerateResources can be called without panicking
 	// Note: This will actually generate files, so we test error handling
 	// We expect this to succeed if config files exist
-	if err := GenerateResources(); err != nil {
+	err := GenerateResources()
+	if err != nil {
 		t.Logf("GenerateResources() returned error (expected if config files missing): %v", err)
 	}
+	// We don't assert here since the function may legitimately fail if config files are missing
 }
 
 func TestGenerateTools(t *testing.T) {
 	// Test that GenerateTools can be called without panicking
-	if err := GenerateTools(); err != nil {
+	err := GenerateTools()
+	if err != nil {
 		t.Logf("GenerateTools() returned error (expected if config files missing): %v", err)
 	}
+	// We don't assert here since the function may legitimately fail if config files are missing
 }
 
 func TestGeneratePrompts(t *testing.T) {
 	// Test that GeneratePrompts can be called without panicking
-	if err := GeneratePrompts(); err != nil {
+	err := GeneratePrompts()
+	if err != nil {
 		t.Logf("GeneratePrompts() returned error (expected if config files missing): %v", err)
 	}
+	// We don't assert here since the function may legitimately fail if config files are missing
 }
 
 func TestValidateJSONSchema(t *testing.T) {
@@ -968,15 +953,13 @@ func TestValidateJSONSchema(t *testing.T) {
 			err := validateJSONSchema([]byte(tt.jsonData), schemaPath)
 
 			if tt.wantErr {
-				if err == nil {
-					t.Errorf("validateJSONSchema() expected error, got nil")
-				} else if tt.errMsg != "" && !strings.Contains(err.Error(), tt.errMsg) {
-					t.Errorf("validateJSONSchema() error = %v, expected to contain %q", err, tt.errMsg)
+				assert.Error(t, err, "validateJSONSchema() should return error")
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg,
+						"validateJSONSchema() error should contain expected message")
 				}
 			} else {
-				if err != nil {
-					t.Errorf("validateJSONSchema() unexpected error: %v", err)
-				}
+				assert.NoError(t, err, "validateJSONSchema() should not return error")
 			}
 		})
 	}
@@ -990,4 +973,5 @@ func TestLoadConfigWithSchemaValidation(t *testing.T) {
 		t.Logf("loadConfig() returned error (may be expected if config files are invalid): %v", err)
 		// We don't fail the test here as config files might be intentionally invalid for testing
 	}
+	// We don't assert here since the function may legitimately fail if config files are missing/invalid
 }

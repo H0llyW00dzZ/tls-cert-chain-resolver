@@ -1,4 +1,4 @@
-// Copyright (c) 2025 H0llyW00dzZ All rights reserved.
+// Copyright (c) 2026 H0llyW00dzZ All rights reserved.
 //
 // By accessing or using this software, you agree to be bound by the terms
 // of the License Agreement, which you can find at LICENSE files.
@@ -9,9 +9,11 @@ package mcpserver
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSamplingResponseDestination(t *testing.T) {
@@ -26,9 +28,7 @@ func TestSamplingResponseDestination(t *testing.T) {
 	// 1. Write a sampling request
 	samplingRequest := `{"jsonrpc":"2.0","method":"sampling/createMessage","id":999,"params":{"messages":[{"role":"user","content":{"type":"text","text":"test"}}],"maxTokens":100}}` + "\n"
 	_, err := writer.Write([]byte(samplingRequest))
-	if err != nil {
-		t.Fatalf("Write failed: %v", err)
-	}
+	require.NoError(t, err, "Write should not fail")
 
 	// 2. Check where the response goes
 	// It SHOULD go to internalRespCh (so pipeReader/StdioServer gets it)
@@ -41,7 +41,7 @@ func TestSamplingResponseDestination(t *testing.T) {
 		var resp map[string]any
 		if err := json.Unmarshal(msg, &resp); err == nil {
 			if id, ok := resp["id"].(float64); ok && id == 999 {
-				t.Fatalf("FAIL: Sampling response sent to recvCh (ADK client), expected internalRespCh (Server)")
+				require.Fail(t, "FAIL: Sampling response sent to recvCh (ADK client), expected internalRespCh (Server)")
 			}
 		}
 	case <-time.After(100 * time.Millisecond):
@@ -54,15 +54,15 @@ func TestSamplingResponseDestination(t *testing.T) {
 	select {
 	case msg := <-transport.internalRespCh:
 		var resp map[string]any
-		if err := json.Unmarshal(msg, &resp); err == nil {
-			if id, ok := resp["id"].(float64); ok && id == 999 {
-				t.Logf("SUCCESS: Sampling response received on internalRespCh")
-				return
-			}
+		err := json.Unmarshal(msg, &resp)
+		require.NoError(t, err, "Failed to unmarshal response")
+		if id, ok := resp["id"].(float64); ok && id == 999 {
+			t.Logf("SUCCESS: Sampling response received on internalRespCh")
+			return
 		}
 		t.Logf("Received unrelated message on internalRespCh: %s", string(msg))
 	case <-time.After(100 * time.Millisecond):
-		t.Fatalf("FAIL: No response received on internalRespCh")
+		require.Fail(t, "FAIL: No response received on internalRespCh")
 	}
 }
 
@@ -75,35 +75,30 @@ func TestPipeWriter_ErrorPaths(t *testing.T) {
 	// Should go to sendToRecv (recvCh)
 	malformed := `{"method": "foo", invalid json` + "\n"
 	_, err := writer.Write([]byte(malformed))
-	if err != nil {
-		t.Errorf("Write failed: %v", err)
-	}
+	assert.NoError(t, err, "Write should not fail for malformed JSON")
+
 	select {
 	case msg := <-transport.recvCh:
 		// Trim newline for comparison if needed, but pipeWriter might pass it as is
-		if !strings.Contains(string(msg), "invalid json") {
-			t.Errorf("Expected forwarded message to contain original content, got: %s", string(msg))
-		}
+		assert.Contains(t, string(msg), "invalid json",
+			"Expected forwarded message to contain original content")
 	case <-time.After(100 * time.Millisecond):
-		t.Error("Expected message on recvCh for malformed JSON")
+		assert.Fail(t, "Expected message on recvCh for malformed JSON")
 	}
 
 	// 2. Sampling request without ID (should be forwarded to recvCh)
 	noID := `{"jsonrpc":"2.0","method":"sampling/createMessage","params":{}}` + "\n"
 	_, err = writer.Write([]byte(noID))
-	if err != nil {
-		t.Errorf("Write failed: %v", err)
-	}
+	assert.NoError(t, err, "Write should not fail for sampling request without ID")
+
 	select {
 	case msg := <-transport.recvCh:
 		var req map[string]any
-		if err := json.Unmarshal(msg, &req); err != nil {
-			t.Errorf("Failed to unmarshal forwarded message: %v", err)
-		}
-		if req["method"] != "sampling/createMessage" {
-			t.Errorf("Expected forwarded message to be the sampling request")
-		}
+		err := json.Unmarshal(msg, &req)
+		assert.NoError(t, err, "Failed to unmarshal forwarded message")
+		assert.Equal(t, "sampling/createMessage", req["method"],
+			"Expected forwarded message to be the sampling request")
 	case <-time.After(100 * time.Millisecond):
-		t.Error("Expected message on recvCh for sampling request without ID")
+		assert.Fail(t, "Expected message on recvCh for sampling request without ID")
 	}
 }

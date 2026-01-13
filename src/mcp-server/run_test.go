@@ -23,7 +23,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -32,6 +31,8 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/mcptest"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/gc"
 	"github.com/H0llyW00dzZ/tls-cert-chain-resolver/src/internal/helper/posix"
@@ -82,9 +83,7 @@ func TestMCPTools(t *testing.T) {
 		t.Skip("Skipping TestMCPTools on macOS due to certificate validation differences")
 	}
 	config, err := loadConfig("")
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig should not fail")
 
 	// Encode test certificate as base64
 	certData := pemToBase64(testCertPEM)
@@ -249,9 +248,7 @@ func TestMCPTools(t *testing.T) {
 	srv.AddTools(tools...)
 
 	// Start the server
-	if err := srv.Start(t.Context()); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, srv.Start(t.Context()), "Failed to start server")
 	defer srv.Close()
 
 	client := srv.Client()
@@ -525,10 +522,9 @@ func TestMCPTools(t *testing.T) {
 
 			result, err := client.CallTool(t.Context(), req)
 			if tt.expectError {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-					return
-				}
+				assert.NoError(t, err, "expected no error for expectError=true case")
+				require.NotNil(t, result, "result should not be nil when expectError=true")
+
 				// Check if result contains error message
 				content := ""
 				for _, c := range result.Content {
@@ -536,21 +532,16 @@ func TestMCPTools(t *testing.T) {
 						content += tc.Text
 					}
 				}
-				if !strings.Contains(content, "error") && !strings.Contains(content, "failed") && !strings.Contains(content, "required") {
-					t.Errorf("expected error message in result, but got: %s", content)
-				}
+				assert.True(t,
+					strings.Contains(content, "error") ||
+						strings.Contains(content, "failed") ||
+						strings.Contains(content, "required"),
+					"expected error message in result, but got: %s", content)
 				return
 			}
 
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-				return
-			}
-
-			if result == nil {
-				t.Errorf("expected result but got nil")
-				return
-			}
+			assert.NoError(t, err, "unexpected error")
+			assert.NotNil(t, result, "expected result but got nil")
 
 			// Check result content
 			content := ""
@@ -569,9 +560,8 @@ func TestMCPTools(t *testing.T) {
 			}
 
 			for _, expected := range tt.expectContains {
-				if !contains(content, expected) {
-					t.Errorf("expected result to contain %q, but it didn't. Result: %s", expected, content)
-				}
+				assert.Contains(t, content, expected,
+					"expected result to contain %q, but it didn't. Result: %s", expected, content)
 			}
 		})
 	}
@@ -714,44 +704,34 @@ func TestHandlerErrorPaths(t *testing.T) {
 				config, _ := loadConfig("")
 				result, err = handleFetchRemoteCert(t.Context(), req, config)
 			default:
-				t.Fatalf("Unknown tool name: %s", tt.toolName)
+				require.Fail(t, "Unknown tool name: %s", tt.toolName)
 			}
 
 			if tt.expectError {
 				if err == nil {
 					// Check if result contains error message instead
-					if result != nil {
-						content := ""
-						for _, c := range result.Content {
-							if tc, ok := c.(mcp.TextContent); ok {
-								content += tc.Text
-							}
+					require.NotNil(t, result, "result should not be nil when expectError=true")
+					content := ""
+					for _, c := range result.Content {
+						if tc, ok := c.(mcp.TextContent); ok {
+							content += tc.Text
 						}
-						foundError := false
-						for _, errStr := range tt.errorContains {
-							if strings.Contains(content, errStr) {
-								foundError = true
-								break
-							}
-						}
-						if !foundError {
-							t.Errorf("Expected error message containing %v in result, but got: %s", tt.errorContains, content)
-						}
-					} else {
-						t.Error("Expected error but got nil result")
 					}
+					foundError := false
+					for _, errStr := range tt.errorContains {
+						if strings.Contains(content, errStr) {
+							foundError = true
+							break
+						}
+					}
+					assert.True(t, foundError,
+						"Expected error message containing %v in result, but got: %s", tt.errorContains, content)
 				}
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if result == nil {
-				t.Error("Expected result but got nil")
-			}
+			assert.NoError(t, err, "unexpected error")
+			assert.NotNil(t, result, "expected result but got nil")
 		})
 	}
 }
@@ -845,21 +825,16 @@ func TestContextCancellation(t *testing.T) {
 				config, _ := loadConfig("")
 				result, err = handleFetchRemoteCert(ctx, req, config)
 			default:
-				t.Fatalf("Unknown tool name: %s", tt.toolName)
+				require.Fail(t, "Unknown tool name: %s", tt.toolName)
 			}
 
 			if tt.expectError {
-				if err == nil && result == nil {
-					t.Error("Expected error or result with error message, but got neither")
-				}
+				assert.True(t, err != nil || result != nil,
+					"Expected error or result with error message, but got neither")
 				// Either err != nil or result contains error message
 			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if result == nil {
-					t.Error("Expected result but got nil")
-				}
+				assert.NoError(t, err, "unexpected error")
+				assert.NotNil(t, result, "expected result but got nil")
 			}
 		})
 	}
@@ -961,20 +936,15 @@ func TestEdgeCases(t *testing.T) {
 				config, _ := loadConfig("")
 				result, err = handleFetchRemoteCert(t.Context(), req, config)
 			default:
-				t.Fatalf("Unknown tool name: %s", tt.toolName)
+				require.Fail(t, "Unknown tool name: %s", tt.toolName)
 			}
 
 			if tt.expectError {
-				if err == nil && result == nil {
-					t.Errorf("Expected error for %s, but got neither error nor result", tt.description)
-				}
+				assert.True(t, err != nil || result != nil,
+					"Expected error for %s, but got neither error nor result", tt.description)
 			} else {
-				if err != nil {
-					t.Errorf("Unexpected error for %s: %v", tt.description, err)
-				}
-				if result == nil {
-					t.Errorf("Expected result for %s, but got nil", tt.description)
-				}
+				assert.NoError(t, err, "unexpected error for %s", tt.description)
+				assert.NotNil(t, result, "expected result for %s, but got nil", tt.description)
 			}
 		})
 	}
@@ -999,20 +969,11 @@ func TestServerBuilder_BuildWithPrompts(t *testing.T) {
 		})
 
 	server, err := builder.Build()
-	if err != nil {
-		t.Fatalf("Failed to build server with prompts: %v", err)
-	}
-
-	if server == nil {
-		t.Fatal("Expected server to be created")
-	}
+	require.NoError(t, err, "Failed to build server with prompts")
+	assert.NotNil(t, server, "Expected server to be created")
 
 	// The important thing is that Build succeeded, which means populatePromptMetadataCache was called
 	// during the build process without panicking
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || strings.Contains(s, substr)))
 }
 
 func TestResourceHandlers(t *testing.T) {
@@ -1020,12 +981,8 @@ func TestResourceHandlers(t *testing.T) {
 	resources, resourcesWithEmbed := createResources()
 
 	// Verify counts
-	if len(resources) != 3 {
-		t.Errorf("Expected 3 regular resources, got %d", len(resources))
-	}
-	if len(resourcesWithEmbed) != 1 {
-		t.Errorf("Expected 1 embed resource, got %d", len(resourcesWithEmbed))
-	}
+	assert.Len(t, resources, 3, "Expected 3 regular resources")
+	assert.Len(t, resourcesWithEmbed, 1, "Expected 1 embed resource")
 
 	// Create MCP resources that call the real handlers with embed where needed
 	mcpResources := []server.ServerResource{
@@ -1072,9 +1029,7 @@ func TestResourceHandlers(t *testing.T) {
 	srv.AddResources(mcpResources...)
 
 	// Start the server
-	if err := srv.Start(t.Context()); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, srv.Start(t.Context()), "Failed to start server")
 	defer srv.Close()
 
 	client := srv.Client()
@@ -1133,41 +1088,27 @@ func TestResourceHandlers(t *testing.T) {
 
 			result, err := client.ReadResource(t.Context(), req)
 			if tt.expectError {
-				if err == nil {
-					t.Errorf("expected error for URI %s, but got none", tt.uri)
-				}
+				assert.Error(t, err, "expected error for URI %s", tt.uri)
 				return
 			}
 
-			if err != nil {
-				t.Errorf("unexpected error for URI %s: %v", tt.uri, err)
-				return
-			}
-
-			if result == nil {
-				t.Errorf("expected result for URI %s, but got nil", tt.uri)
-				return
-			}
-
-			if len(result.Contents) == 0 {
-				t.Errorf("expected contents for URI %s, but got empty", tt.uri)
-				return
-			}
+			require.NoError(t, err, "unexpected error for URI %s", tt.uri)
+			require.NotNil(t, result, "expected result for URI %s, but got nil", tt.uri)
+			require.NotEmpty(t, result.Contents, "expected contents for URI %s, but got empty", tt.uri)
 
 			// Check the first content item
 			content := result.Contents[0]
 			if textContent, ok := content.(mcp.TextResourceContents); ok {
-				if textContent.MIMEType != tt.expectMIMEType {
-					t.Errorf("expected MIME type %s for URI %s, but got %s", tt.expectMIMEType, tt.uri, textContent.MIMEType)
-				}
+				assert.Equal(t, tt.expectMIMEType, textContent.MIMEType,
+					"expected MIME type %s for URI %s", tt.expectMIMEType, tt.uri)
 
 				for _, expected := range tt.expectContains {
-					if !contains(textContent.Text, expected) {
-						t.Errorf("expected content to contain %q for URI %s, but it didn't. Content: %s", expected, tt.uri, textContent.Text[:min(200, len(textContent.Text))])
-					}
+					assert.Contains(t, textContent.Text, expected,
+						"expected content to contain %q for URI %s", expected, tt.uri)
 				}
 			} else {
-				t.Errorf("expected TextResourceContents for URI %s, but got %T", tt.uri, content)
+				assert.IsType(t, mcp.TextResourceContents{}, content,
+					"expected TextResourceContents for URI %s, but got %T", tt.uri, content)
 			}
 		})
 	}
@@ -1210,20 +1151,12 @@ func TestGetParams(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			params, err := getParams(tt.req, tt.method)
 			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
+				assert.Error(t, err, "Expected error")
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if params == nil {
-				t.Error("Expected params but got nil")
-			}
+			assert.NoError(t, err, "Unexpected error")
+			assert.NotNil(t, params, "Expected params but got nil")
 		})
 	}
 }
@@ -1271,20 +1204,12 @@ func TestGetStringParam(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := getStringParam(tt.params, tt.method, tt.key)
 			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
+				assert.Error(t, err, "Expected error")
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if result != tt.expected {
-				t.Errorf("Expected %q, got %q", tt.expected, result)
-			}
+			assert.NoError(t, err, "Unexpected error")
+			assert.Equal(t, tt.expected, result, "Expected %q, got %q", tt.expected, result)
 		})
 	}
 }
@@ -1333,20 +1258,12 @@ func TestGetOptionalStringParam(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := getOptionalStringParam(tt.params, tt.method, tt.key)
 			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
+				assert.Error(t, err, "Expected error")
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if result != tt.expected {
-				t.Errorf("Expected %q, got %q", tt.expected, result)
-			}
+			assert.NoError(t, err, "Unexpected error")
+			assert.Equal(t, tt.expected, result, "Expected %q, got %q", tt.expected, result)
 		})
 	}
 }
@@ -1361,12 +1278,8 @@ func TestPipeReader_Read(t *testing.T) {
 	transport.cancel()
 	buf := make([]byte, 100)
 	n, err := reader.Read(buf)
-	if err != io.EOF {
-		t.Errorf("Expected EOF when context cancelled, got %v", err)
-	}
-	if n != 0 {
-		t.Errorf("Expected 0 bytes read, got %d", n)
-	}
+	assert.Equal(t, io.EOF, err, "Expected EOF when context cancelled")
+	assert.Equal(t, 0, n, "Expected 0 bytes read")
 }
 
 func TestPipeWriter_Write(t *testing.T) {
@@ -1380,22 +1293,14 @@ func TestPipeWriter_Write(t *testing.T) {
 	data := []byte(message)
 
 	n, err := writer.Write(data)
-	if err != nil {
-		t.Errorf("Write failed: %v", err)
-	}
-	if n != len(data) {
-		t.Errorf("Expected to write %d bytes, wrote %d", len(data), n)
-	}
+	assert.NoError(t, err, "Write should not fail")
+	assert.Equal(t, len(data), n, "Expected to write %d bytes", len(data))
 
 	// Test writing partial message (should buffer)
 	partial := `{"jsonrpc":"2.0","method":"partial"`
 	n, err = writer.Write([]byte(partial))
-	if err != nil {
-		t.Errorf("Partial write failed: %v", err)
-	}
-	if n != len(partial) {
-		t.Errorf("Expected to write %d bytes, wrote %d", len(partial), n)
-	}
+	assert.NoError(t, err, "Partial write should not fail")
+	assert.Equal(t, len(partial), n, "Expected to write %d bytes", len(partial))
 }
 
 func TestPipeWriter_Write_SamplingRequest(t *testing.T) {
@@ -1412,12 +1317,8 @@ func TestPipeWriter_Write_SamplingRequest(t *testing.T) {
 	data := []byte(samplingRequest)
 
 	n, err := writer.Write(data)
-	if err != nil {
-		t.Errorf("Write failed: %v", err)
-	}
-	if n != len(data) {
-		t.Errorf("Expected to write %d bytes, wrote %d", len(data), n)
-	}
+	assert.NoError(t, err, "Write should not fail")
+	assert.Equal(t, len(data), n, "Expected to write %d bytes", len(data))
 
 	// Wait for the sampling goroutine to complete
 	transport.Close()
@@ -1433,11 +1334,9 @@ func TestTransportInternalFunctions(t *testing.T) {
 
 	select {
 	case received := <-transport.recvCh:
-		if string(received) != string(testMsg) {
-			t.Errorf("sendToRecv failed: expected %q, got %q", testMsg, received)
-		}
+		assert.Equal(t, string(testMsg), string(received), "sendToRecv should send correct message")
 	case <-time.After(100 * time.Millisecond):
-		t.Error("sendToRecv did not send message to recvCh")
+		assert.Fail(t, "sendToRecv did not send message to recvCh")
 	}
 
 	// Test sendErrorResponse
@@ -1446,17 +1345,14 @@ func TestTransportInternalFunctions(t *testing.T) {
 	select {
 	case response := <-transport.recvCh:
 		var resp jsonRPCResponse
-		if err := json.Unmarshal(response, &resp); err != nil {
-			t.Errorf("sendErrorResponse produced invalid JSON: %v", err)
-		}
-		if resp.ID != 123.0 { // JSON unmarshals numbers as float64
-			t.Errorf("sendErrorResponse wrong ID: expected 123, got %v", resp.ID)
-		}
-		if resp.Error == nil || resp.Error.Code != 400 {
-			t.Errorf("sendErrorResponse wrong error code: expected 400, got %v", resp.Error)
-		}
+		err := json.Unmarshal(response, &resp)
+		assert.NoError(t, err, "sendErrorResponse should produce valid JSON")
+
+		assert.Equal(t, 123.0, resp.ID, "sendErrorResponse should set correct ID")
+		require.NotNil(t, resp.Error, "sendErrorResponse should include error")
+		assert.Equal(t, 400, resp.Error.Code, "sendErrorResponse should set correct error code")
 	case <-time.After(100 * time.Millisecond):
-		t.Error("sendErrorResponse did not send response")
+		assert.Fail(t, "sendErrorResponse did not send response")
 	}
 
 	// Test sendResponse
@@ -1466,55 +1362,33 @@ func TestTransportInternalFunctions(t *testing.T) {
 	select {
 	case response := <-transport.recvCh:
 		var resp jsonRPCResponse
-		if err := json.Unmarshal(response, &resp); err != nil {
-			t.Errorf("sendResponse produced invalid JSON: %v", err)
-		}
-		if resp.Result == nil {
-			t.Error("sendResponse did not include result")
-		}
+		err := json.Unmarshal(response, &resp)
+		assert.NoError(t, err, "sendResponse should produce valid JSON")
+		assert.NotNil(t, resp.Result, "sendResponse should include result")
 	case <-time.After(100 * time.Millisecond):
-		t.Error("sendResponse did not send response")
+		assert.Fail(t, "sendResponse did not send response")
 	}
 }
 
 func TestCollectResourceUsage(t *testing.T) {
 	data := CollectResourceUsage(false)
-	if data == nil {
-		t.Fatal("CollectResourceUsage returned nil")
-	}
+	require.NotNil(t, data, "CollectResourceUsage should not return nil")
 
-	if data.Timestamp == "" {
-		t.Error("Timestamp should not be empty")
-	}
-
-	if data.MemoryUsage == nil {
-		t.Error("MemoryUsage should not be nil")
-	}
-
-	if data.SystemInfo == nil {
-		t.Error("SystemInfo should not be nil")
-	}
+	assert.NotEmpty(t, data.Timestamp, "Timestamp should not be empty")
+	assert.NotNil(t, data.MemoryUsage, "MemoryUsage should not be nil")
+	assert.NotNil(t, data.SystemInfo, "SystemInfo should not be nil")
 
 	// Test with detailed=true
 	dataDetailed := CollectResourceUsage(true)
-	if dataDetailed == nil {
-		t.Fatal("CollectResourceUsage with detailed=true returned nil")
-	}
+	require.NotNil(t, dataDetailed, "CollectResourceUsage with detailed=true should not return nil")
 
-	if dataDetailed.DetailedMemory == nil {
-		t.Error("DetailedMemory should not be nil when detailed=true")
-	}
-
-	if dataDetailed.CRLCache == nil {
-		t.Error("CRLCache should not be nil when detailed=true")
-	}
+	assert.NotNil(t, dataDetailed.DetailedMemory, "DetailedMemory should not be nil when detailed=true")
+	assert.NotNil(t, dataDetailed.CRLCache, "CRLCache should not be nil when detailed=true")
 }
 
 func TestNewTransportBuilder(t *testing.T) {
 	builder := NewTransportBuilder()
-	if builder == nil {
-		t.Error("NewTransportBuilder returned nil")
-	}
+	assert.NotNil(t, builder, "NewTransportBuilder should not return nil")
 
 	// Test builder methods
 	builder = builder.WithConfig(&Config{})
@@ -1523,19 +1397,13 @@ func TestNewTransportBuilder(t *testing.T) {
 
 	// Should not panic
 	transport, err := builder.BuildInMemoryTransport(t.Context())
-	if err != nil {
-		t.Errorf("BuildInMemoryTransport failed: %v", err)
-	}
-	if transport == nil {
-		t.Error("BuildInMemoryTransport returned nil transport")
-	}
+	assert.NoError(t, err, "BuildInMemoryTransport should not fail")
+	assert.NotNil(t, transport, "BuildInMemoryTransport should not return nil transport")
 }
 
 func TestNewADKTransportBuilder(t *testing.T) {
 	builder := NewADKTransportBuilder()
-	if builder == nil {
-		t.Error("NewADKTransportBuilder returned nil")
-	}
+	assert.NotNil(t, builder, "NewADKTransportBuilder should not return nil")
 
 	// Test builder methods
 	builder = builder.WithVersion("1.0.0")
@@ -1570,21 +1438,12 @@ func TestLoadConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			config, err := loadConfig(tt.configPath)
 			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
+				assert.Error(t, err, "Expected error")
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if config == nil {
-				t.Error("Expected config but got nil")
-				return
-			}
+			assert.NoError(t, err, "Unexpected error")
+			assert.NotNil(t, config, "Expected config but got nil")
 
 			// Verify default values
 			// Format, WarnDays, IncludeSystemRoot, IntermediateOnly removed from config
@@ -1596,12 +1455,8 @@ func TestCreateTools(t *testing.T) {
 	tools, toolsWithConfig := createTools()
 
 	// Verify we get the expected number of tools
-	if len(tools) != 4 {
-		t.Errorf("Expected 4 regular tools, got %d", len(tools))
-	}
-	if len(toolsWithConfig) != 4 {
-		t.Errorf("Expected 4 config tools, got %d", len(toolsWithConfig))
-	}
+	assert.Len(t, tools, 4, "Expected 4 regular tools")
+	assert.Len(t, toolsWithConfig, 4, "Expected 4 config tools")
 
 	// Verify tool names
 	expectedToolNames := []string{
@@ -1624,9 +1479,7 @@ func TestCreateTools(t *testing.T) {
 	}
 
 	for _, expectedName := range expectedToolNames {
-		if !foundTools[expectedName] {
-			t.Errorf("Expected tool %s not found", expectedName)
-		}
+		assert.True(t, foundTools[expectedName], "Expected tool %s not found", expectedName)
 	}
 }
 
@@ -1634,12 +1487,8 @@ func TestCreatePrompts(t *testing.T) {
 	prompts, promptsWithEmbed := createPrompts()
 
 	// Verify we get the expected number of prompts
-	if len(prompts) != 0 {
-		t.Errorf("Expected 0 regular prompts, got %d", len(prompts))
-	}
-	if len(promptsWithEmbed) != 5 {
-		t.Errorf("Expected 5 embed prompts, got %d", len(promptsWithEmbed))
-	}
+	assert.Len(t, prompts, 0, "Expected 0 regular prompts")
+	assert.Len(t, promptsWithEmbed, 5, "Expected 5 embed prompts")
 
 	// Verify prompt names for embed prompts
 	expectedPromptNames := []string{
@@ -1656,9 +1505,7 @@ func TestCreatePrompts(t *testing.T) {
 	}
 
 	for _, expectedName := range expectedPromptNames {
-		if !foundEmbedPrompts[expectedName] {
-			t.Errorf("Expected prompt %s not found in embed prompts", expectedName)
-		}
+		assert.True(t, foundEmbedPrompts[expectedName], "Expected prompt %s not found in embed prompts", expectedName)
 	}
 }
 
@@ -1670,36 +1517,22 @@ func TestHandleConfigResource(t *testing.T) {
 	}
 
 	result, err := handleConfigResource(t.Context(), req)
-	if err != nil {
-		t.Fatalf("handleConfigResource failed: %v", err)
-	}
+	require.NoError(t, err, "handleConfigResource should not fail")
 
-	if len(result) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(result))
-	}
+	assert.Len(t, result, 1, "Expected 1 result")
 
 	content, ok := result[0].(mcp.TextResourceContents)
-	if !ok {
-		t.Errorf("Expected TextResourceContents, got %T", result[0])
-	}
+	require.True(t, ok, "Expected TextResourceContents, got %T", result[0])
 
-	if content.URI != "config://template" {
-		t.Errorf("Expected URI 'config://template', got %s", content.URI)
-	}
-
-	if content.MIMEType != "application/json" {
-		t.Errorf("Expected MIME type 'application/json', got %s", content.MIMEType)
-	}
+	assert.Equal(t, "config://template", content.URI, "Expected URI 'config://template'")
+	assert.Equal(t, "application/json", content.MIMEType, "Expected MIME type 'application/json'")
 
 	// Verify JSON structure
 	var config map[string]any
-	if err := json.Unmarshal([]byte(content.Text), &config); err != nil {
-		t.Errorf("Failed to unmarshal config JSON: %v", err)
-	}
+	err = json.Unmarshal([]byte(content.Text), &config)
+	assert.NoError(t, err, "Failed to unmarshal config JSON")
 
-	if _, ok := config["defaults"]; !ok {
-		t.Error("Config should contain 'defaults' key")
-	}
+	assert.Contains(t, config, "defaults", "Config should contain 'defaults' key")
 }
 
 func TestHandleVersionResource(t *testing.T) {
@@ -1710,38 +1543,24 @@ func TestHandleVersionResource(t *testing.T) {
 	}
 
 	result, err := handleVersionResource(t.Context(), req)
-	if err != nil {
-		t.Fatalf("handleVersionResource failed: %v", err)
-	}
+	require.NoError(t, err, "handleVersionResource should not fail")
 
-	if len(result) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(result))
-	}
+	assert.Len(t, result, 1, "Expected 1 result")
 
 	content, ok := result[0].(mcp.TextResourceContents)
-	if !ok {
-		t.Errorf("Expected TextResourceContents, got %T", result[0])
-	}
+	require.True(t, ok, "Expected TextResourceContents, got %T", result[0])
 
-	if content.URI != "info://version" {
-		t.Errorf("Expected URI 'info://version', got %s", content.URI)
-	}
-
-	if content.MIMEType != "application/json" {
-		t.Errorf("Expected MIME type 'application/json', got %s", content.MIMEType)
-	}
+	assert.Equal(t, "info://version", content.URI, "Expected URI 'info://version'")
+	assert.Equal(t, "application/json", content.MIMEType, "Expected MIME type 'application/json'")
 
 	// Verify JSON structure contains expected fields
 	var versionInfo map[string]any
-	if err := json.Unmarshal([]byte(content.Text), &versionInfo); err != nil {
-		t.Errorf("Failed to unmarshal version JSON: %v", err)
-	}
+	err = json.Unmarshal([]byte(content.Text), &versionInfo)
+	assert.NoError(t, err, "Failed to unmarshal version JSON")
 
 	expectedFields := []string{"name", "version", "type", "capabilities", "supportedFormats"}
 	for _, field := range expectedFields {
-		if _, ok := versionInfo[field]; !ok {
-			t.Errorf("Version info should contain '%s' key", field)
-		}
+		assert.Contains(t, versionInfo, field, "Version info should contain '%s' key", field)
 	}
 }
 
@@ -1753,31 +1572,18 @@ func TestHandleFormatsResource(t *testing.T) {
 	}
 
 	result, err := handleCertificateFormatsResource(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleCertificateFormatsResource failed: %v", err)
-	}
+	require.NoError(t, err, "handleCertificateFormatsResource should not fail")
 
-	if len(result) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(result))
-	}
+	assert.Len(t, result, 1, "Expected 1 result")
 
 	content, ok := result[0].(mcp.TextResourceContents)
-	if !ok {
-		t.Errorf("Expected TextResourceContents, got %T", result[0])
-	}
+	require.True(t, ok, "Expected TextResourceContents, got %T", result[0])
 
-	if content.URI != "docs://certificate-formats" {
-		t.Errorf("Expected URI 'docs://certificate-formats', got %s", content.URI)
-	}
-
-	if content.MIMEType != "text/markdown" {
-		t.Errorf("Expected MIME type 'text/markdown', got %s", content.MIMEType)
-	}
+	assert.Equal(t, "docs://certificate-formats", content.URI, "Expected URI 'docs://certificate-formats'")
+	assert.Equal(t, "text/markdown", content.MIMEType, "Expected MIME type 'text/markdown'")
 
 	// Content should contain markdown
-	if !strings.Contains(content.Text, "#") {
-		t.Error("Expected markdown content with headers")
-	}
+	assert.Contains(t, content.Text, "#", "Expected markdown content with headers")
 }
 
 func TestHandleStatusResource(t *testing.T) {
@@ -1788,43 +1594,27 @@ func TestHandleStatusResource(t *testing.T) {
 	}
 
 	result, err := handleStatusResource(t.Context(), req)
-	if err != nil {
-		t.Fatalf("handleStatusResource failed: %v", err)
-	}
+	require.NoError(t, err, "handleStatusResource should not fail")
 
-	if len(result) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(result))
-	}
+	assert.Len(t, result, 1, "Expected 1 result")
 
 	content, ok := result[0].(mcp.TextResourceContents)
-	if !ok {
-		t.Errorf("Expected TextResourceContents, got %T", result[0])
-	}
+	require.True(t, ok, "Expected TextResourceContents, got %T", result[0])
 
-	if content.URI != "status://server-status" {
-		t.Errorf("Expected URI 'status://server-status', got %s", content.URI)
-	}
-
-	if content.MIMEType != "application/json" {
-		t.Errorf("Expected MIME type 'application/json', got %s", content.MIMEType)
-	}
+	assert.Equal(t, "status://server-status", content.URI, "Expected URI 'status://server-status'")
+	assert.Equal(t, "application/json", content.MIMEType, "Expected MIME type 'application/json'")
 
 	// Verify JSON structure contains expected fields
 	var statusInfo map[string]any
-	if err := json.Unmarshal([]byte(content.Text), &statusInfo); err != nil {
-		t.Errorf("Failed to unmarshal status JSON: %v", err)
-	}
+	err = json.Unmarshal([]byte(content.Text), &statusInfo)
+	assert.NoError(t, err, "Failed to unmarshal status JSON")
 
 	expectedFields := []string{"status", "timestamp", "server", "version", "capabilities", "supportedFormats"}
 	for _, field := range expectedFields {
-		if _, ok := statusInfo[field]; !ok {
-			t.Errorf("Status info should contain '%s' key", field)
-		}
+		assert.Contains(t, statusInfo, field, "Status info should contain '%s' key", field)
 	}
 
-	if statusInfo["status"] != "healthy" {
-		t.Errorf("Expected status 'healthy', got %v", statusInfo["status"])
-	}
+	assert.Equal(t, "healthy", statusInfo["status"], "Expected status 'healthy'")
 }
 
 func TestHandleCertificateAnalysisPrompt(t *testing.T) {
@@ -1838,21 +1628,13 @@ func TestHandleCertificateAnalysisPrompt(t *testing.T) {
 	}
 
 	result, err := handleCertificateAnalysisPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleCertificateAnalysisPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleCertificateAnalysisPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) != 7 {
-		t.Errorf("Expected 7 messages, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Certificate Chain Analysis Workflow" {
-		t.Errorf("Expected description 'Certificate Chain Analysis Workflow', got %s", result.Description)
-	}
+	assert.Len(t, result.Messages, 7, "Expected 7 messages")
+	assert.Equal(t, "Certificate Chain Analysis Workflow", result.Description,
+		"Expected description 'Certificate Chain Analysis Workflow'")
 }
 
 func TestHandleExpiryMonitoringPrompt(t *testing.T) {
@@ -1867,21 +1649,13 @@ func TestHandleExpiryMonitoringPrompt(t *testing.T) {
 	}
 
 	result, err := handleExpiryMonitoringPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleExpiryMonitoringPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleExpiryMonitoringPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) != 8 {
-		t.Errorf("Expected 8 messages, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Certificate Expiry Monitoring" {
-		t.Errorf("Expected description 'Certificate Expiry Monitoring', got %s", result.Description)
-	}
+	assert.Len(t, result.Messages, 8, "Expected 8 messages")
+	assert.Equal(t, "Certificate Expiry Monitoring", result.Description,
+		"Expected description 'Certificate Expiry Monitoring'")
 }
 
 func TestHandleSecurityAuditPrompt(t *testing.T) {
@@ -1896,21 +1670,13 @@ func TestHandleSecurityAuditPrompt(t *testing.T) {
 	}
 
 	result, err := handleSecurityAuditPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleSecurityAuditPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleSecurityAuditPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) < 8 {
-		t.Errorf("Expected at least 8 messages, got %d", len(result.Messages))
-	}
-
-	if result.Description != "SSL/TLS Security Audit" {
-		t.Errorf("Expected description 'SSL/TLS Security Audit', got %s", result.Description)
-	}
+	assert.GreaterOrEqual(t, len(result.Messages), 8, "Expected at least 8 messages")
+	assert.Equal(t, "SSL/TLS Security Audit", result.Description,
+		"Expected description 'SSL/TLS Security Audit'")
 }
 
 func TestHandleTroubleshootingPrompt_ChainIssue(t *testing.T) {
@@ -1925,21 +1691,13 @@ func TestHandleTroubleshootingPrompt_ChainIssue(t *testing.T) {
 	}
 
 	result, err := handleTroubleshootingPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleTroubleshootingPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) < 3 {
-		t.Errorf("Expected at least 3 messages for chain issue, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Certificate Troubleshooting Guide" {
-		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
-	}
+	assert.GreaterOrEqual(t, len(result.Messages), 3, "Expected at least 3 messages for chain issue")
+	assert.Equal(t, "Certificate Troubleshooting Guide", result.Description,
+		"Expected description 'Certificate Troubleshooting Guide'")
 }
 
 func TestHandleTroubleshootingPrompt_ValidationIssue(t *testing.T) {
@@ -1954,21 +1712,13 @@ func TestHandleTroubleshootingPrompt_ValidationIssue(t *testing.T) {
 	}
 
 	result, err := handleTroubleshootingPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleTroubleshootingPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) < 2 {
-		t.Errorf("Expected at least 2 messages for validation issue, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Certificate Troubleshooting Guide" {
-		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
-	}
+	assert.GreaterOrEqual(t, len(result.Messages), 2, "Expected at least 2 messages for validation issue")
+	assert.Equal(t, "Certificate Troubleshooting Guide", result.Description,
+		"Expected description 'Certificate Troubleshooting Guide'")
 }
 
 func TestHandleTroubleshootingPrompt_ExpiryIssue(t *testing.T) {
@@ -1983,21 +1733,13 @@ func TestHandleTroubleshootingPrompt_ExpiryIssue(t *testing.T) {
 	}
 
 	result, err := handleTroubleshootingPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleTroubleshootingPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) < 2 {
-		t.Errorf("Expected at least 2 messages for expiry issue, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Certificate Troubleshooting Guide" {
-		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
-	}
+	assert.GreaterOrEqual(t, len(result.Messages), 2, "Expected at least 2 messages for expiry issue")
+	assert.Equal(t, "Certificate Troubleshooting Guide", result.Description,
+		"Expected description 'Certificate Troubleshooting Guide'")
 }
 
 func TestHandleTroubleshootingPrompt_ConnectionIssue(t *testing.T) {
@@ -2012,21 +1754,13 @@ func TestHandleTroubleshootingPrompt_ConnectionIssue(t *testing.T) {
 	}
 
 	result, err := handleTroubleshootingPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleTroubleshootingPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) < 2 {
-		t.Errorf("Expected at least 2 messages for connection issue, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Certificate Troubleshooting Guide" {
-		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
-	}
+	assert.GreaterOrEqual(t, len(result.Messages), 2, "Expected at least 2 messages for connection issue")
+	assert.Equal(t, "Certificate Troubleshooting Guide", result.Description,
+		"Expected description 'Certificate Troubleshooting Guide'")
 }
 
 func TestHandleTroubleshootingPrompt_InvalidIssueType(t *testing.T) {
@@ -2040,21 +1774,13 @@ func TestHandleTroubleshootingPrompt_InvalidIssueType(t *testing.T) {
 	}
 
 	result, err := handleTroubleshootingPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleTroubleshootingPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleTroubleshootingPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) != 4 {
-		t.Errorf("Expected 4 messages for invalid issue type, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Certificate Troubleshooting Guide" {
-		t.Errorf("Expected description 'Certificate Troubleshooting Guide', got %s", result.Description)
-	}
+	assert.Len(t, result.Messages, 4, "Expected 4 messages for invalid issue type")
+	assert.Equal(t, "Certificate Troubleshooting Guide", result.Description,
+		"Expected description 'Certificate Troubleshooting Guide'")
 }
 
 func TestHandleResourceMonitoringPrompt_Debugging(t *testing.T) {
@@ -2069,21 +1795,13 @@ func TestHandleResourceMonitoringPrompt_Debugging(t *testing.T) {
 	}
 
 	result, err := handleResourceMonitoringPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleResourceMonitoringPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) < 5 {
-		t.Errorf("Expected at least 5 messages for debugging context, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Resource Monitoring and Performance Analysis" {
-		t.Errorf("Expected description 'Resource Monitoring and Performance Analysis', got %s", result.Description)
-	}
+	assert.GreaterOrEqual(t, len(result.Messages), 5, "Expected at least 5 messages for debugging context")
+	assert.Equal(t, "Resource Monitoring and Performance Analysis", result.Description,
+		"Expected description 'Resource Monitoring and Performance Analysis'")
 }
 
 func TestHandleResourceMonitoringPrompt_Optimization(t *testing.T) {
@@ -2097,21 +1815,13 @@ func TestHandleResourceMonitoringPrompt_Optimization(t *testing.T) {
 	}
 
 	result, err := handleResourceMonitoringPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleResourceMonitoringPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) < 5 {
-		t.Errorf("Expected at least 5 messages for optimization context, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Resource Monitoring and Performance Analysis" {
-		t.Errorf("Expected description 'Resource Monitoring and Performance Analysis', got %s", result.Description)
-	}
+	assert.GreaterOrEqual(t, len(result.Messages), 5, "Expected at least 5 messages for optimization context")
+	assert.Equal(t, "Resource Monitoring and Performance Analysis", result.Description,
+		"Expected description 'Resource Monitoring and Performance Analysis'")
 }
 
 func TestHandleResourceMonitoringPrompt_Routine(t *testing.T) {
@@ -2126,21 +1836,13 @@ func TestHandleResourceMonitoringPrompt_Routine(t *testing.T) {
 	}
 
 	result, err := handleResourceMonitoringPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleResourceMonitoringPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) < 5 {
-		t.Errorf("Expected at least 5 messages for routine context, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Resource Monitoring and Performance Analysis" {
-		t.Errorf("Expected description 'Resource Monitoring and Performance Analysis', got %s", result.Description)
-	}
+	assert.GreaterOrEqual(t, len(result.Messages), 5, "Expected at least 5 messages for routine context")
+	assert.Equal(t, "Resource Monitoring and Performance Analysis", result.Description,
+		"Expected description 'Resource Monitoring and Performance Analysis'")
 }
 
 func TestHandleResourceMonitoringPrompt_Defaults(t *testing.T) {
@@ -2152,21 +1854,13 @@ func TestHandleResourceMonitoringPrompt_Defaults(t *testing.T) {
 	}
 
 	result, err := handleResourceMonitoringPrompt(t.Context(), req, templates.MagicEmbed)
-	if err != nil {
-		t.Fatalf("handleResourceMonitoringPrompt failed: %v", err)
-	}
+	require.NoError(t, err, "handleResourceMonitoringPrompt should not fail")
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
+	require.NotNil(t, result, "Expected result, got nil")
 
-	if len(result.Messages) < 5 {
-		t.Errorf("Expected at least 5 messages for default context, got %d", len(result.Messages))
-	}
-
-	if result.Description != "Resource Monitoring and Performance Analysis" {
-		t.Errorf("Expected description 'Resource Monitoring and Performance Analysis', got %s", result.Description)
-	}
+	assert.GreaterOrEqual(t, len(result.Messages), 5, "Expected at least 5 messages for default context")
+	assert.Equal(t, "Resource Monitoring and Performance Analysis", result.Description,
+		"Expected description 'Resource Monitoring and Performance Analysis'")
 }
 
 func TestFormatJSON(t *testing.T) {
@@ -2189,18 +1883,11 @@ func TestFormatJSON(t *testing.T) {
 
 	// Should be valid JSON
 	var jsonResult map[string]any
-	if err := json.Unmarshal([]byte(result), &jsonResult); err != nil {
-		t.Fatalf("formatJSON should return valid JSON: %v", err)
-	}
+	require.NoError(t, json.Unmarshal([]byte(result), &jsonResult), "formatJSON should return valid JSON")
 
 	// Check structure
-	if jsonResult["title"] != "X.509 Certificate Chain" {
-		t.Errorf("Expected title 'X.509 Certificate Chain', got %v", jsonResult["title"])
-	}
-
-	if jsonResult["totalChained"].(float64) != 1 {
-		t.Errorf("Expected totalChained 1, got %v", jsonResult["totalChained"])
-	}
+	assert.Equal(t, "X.509 Certificate Chain", jsonResult["title"], "Expected title 'X.509 Certificate Chain'")
+	assert.Equal(t, float64(1), jsonResult["totalChained"], "Expected totalChained 1")
 }
 
 func TestServerBuilder_Build_WithoutTools(t *testing.T) {
@@ -2209,13 +1896,9 @@ func TestServerBuilder_Build_WithoutTools(t *testing.T) {
 		WithVersion("1.0.0")
 
 	server, err := builder.Build()
-	if err != nil {
-		t.Fatalf("Build should succeed without tools: %v", err)
-	}
+	require.NoError(t, err, "Build should succeed without tools")
 
-	if server == nil {
-		t.Error("Expected server, got nil")
-	}
+	assert.NotNil(t, server, "Expected server, got nil")
 }
 
 func TestDefaultChainResolver_New(t *testing.T) {
@@ -2231,18 +1914,13 @@ func TestDefaultChainResolver_New(t *testing.T) {
 	resolver := DefaultChainResolver{}
 	chain := resolver.New(cert, "1.0.0")
 
-	if chain == nil {
-		t.Fatal("Expected chain, got nil")
-	}
+	require.NotNil(t, chain, "Expected chain, got nil")
 
 	// The chain should contain the certificate
-	if len(chain.Certs) == 0 {
-		t.Error("Expected chain to contain at least one certificate")
-	}
+	assert.NotEmpty(t, chain.Certs, "Expected chain to contain at least one certificate")
 
-	if chain.Certs[0].Subject.CommonName != "test.example.com" {
-		t.Errorf("Expected certificate CN 'test.example.com', got %s", chain.Certs[0].Subject.CommonName)
-	}
+	assert.Equal(t, "test.example.com", chain.Certs[0].Subject.CommonName,
+		"Expected certificate CN 'test.example.com'")
 }
 
 func TestGetAnalysisInstruction(t *testing.T) {
@@ -2276,14 +1954,11 @@ func TestGetAnalysisInstruction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := getAnalysisInstruction(tt.analysisType)
-			if result == "" {
-				t.Error("Expected non-empty analysis instruction")
-			}
+			assert.NotEmpty(t, result, "Expected non-empty analysis instruction")
 
 			for _, expected := range tt.expectContains {
-				if !strings.Contains(result, expected) {
-					t.Errorf("Expected analysis instruction to contain '%s', got: %s", expected, result)
-				}
+				assert.Contains(t, result, expected,
+					"Expected analysis instruction to contain '%s'", expected)
 			}
 		})
 	}
@@ -2332,9 +2007,7 @@ func TestGetCertificateRole(t *testing.T) {
 			}
 
 			result := chain.GetCertificateRole(tt.index)
-			if result != tt.expected {
-				t.Errorf("GetCertificateRole(%d) = %q, expected %q", tt.index, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, fmt.Sprintf("GetCertificateRole(%d) should return %q", tt.index, tt.expected))
 		})
 	}
 }
@@ -2342,15 +2015,11 @@ func TestGetCertificateRole(t *testing.T) {
 func TestGetKeySize(t *testing.T) {
 	// Test RSA key
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("Failed to generate RSA key: %v", err)
-	}
+	require.NoError(t, err, "Failed to generate RSA key")
 
 	// Test ECDSA key
 	ecdsaKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatalf("Failed to generate ECDSA key: %v", err)
-	}
+	require.NoError(t, err, "Failed to generate ECDSA key")
 
 	tests := []struct {
 		name     string
@@ -2389,9 +2058,7 @@ func TestGetKeySize(t *testing.T) {
 			result := chain.KeySize(tt.cert)
 			// Debug: print what type the PublicKey is
 			t.Logf("PublicKey type: %T, value: %+v", tt.cert.PublicKey, tt.cert.PublicKey)
-			if result != tt.expected {
-				t.Errorf("KeySize() = %d, expected %d", result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "KeySize() should return expected value")
 		})
 	}
 }
@@ -2436,9 +2103,7 @@ func TestFormatKeyUsage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := formatKeyUsage(tt.usage)
-			if result != tt.expected {
-				t.Errorf("formatKeyUsage(%d) = %q, expected %q", tt.usage, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "formatKeyUsage(%d) should return expected result", tt.usage)
 		})
 	}
 }
@@ -2499,9 +2164,7 @@ func TestFormatExtKeyUsage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := formatExtKeyUsage(tt.usage)
-			if result != tt.expected {
-				t.Errorf("formatExtKeyUsage(%v) = %q, expected %q", tt.usage, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "formatExtKeyUsage(%v) should return expected result", tt.usage)
 		})
 	}
 }
@@ -2580,29 +2243,22 @@ func TestDefaultSamplingHandler_CreateMessage(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if tt.apiKey == "" {
 					// Should not reach here for fallback case
-					t.Errorf("HTTP server called when API key is empty")
+					assert.Fail(t, "HTTP server called when API key is empty")
 					return
 				}
 
 				// Verify request headers
-				if auth := r.Header.Get("Authorization"); auth != "Bearer "+tt.apiKey {
-					t.Errorf("Expected Authorization header 'Bearer %s', got '%s'", tt.apiKey, auth)
-				}
+				auth := r.Header.Get("Authorization")
+				assert.Equal(t, "Bearer "+tt.apiKey, auth, "Authorization header should be 'Bearer <key>'")
 
-				if userAgent := r.Header.Get("User-Agent"); !strings.Contains(userAgent, "X.509-Certificate-Chain-Resolver-MCP") {
-					t.Errorf("Expected User-Agent to contain 'X.509-Certificate-Chain-Resolver-MCP', got '%s'", userAgent)
-				}
+				userAgent := r.Header.Get("User-Agent")
+				assert.Contains(t, userAgent, "X.509-Certificate-Chain-Resolver-MCP", "User-Agent should contain app name")
 
 				// Verify request body
 				var payload map[string]any
-				if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-					t.Errorf("Failed to decode request body: %v", err)
-					return
-				}
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&payload), "Should decode request body")
 
-				if payload["model"] != tt.model {
-					t.Errorf("Expected model '%s', got '%v'", tt.model, payload["model"])
-				}
+				assert.Equal(t, tt.model, payload["model"], "Model should match expected")
 
 				// Send streaming response
 				w.Header().Set("Content-Type", "text/event-stream")
@@ -2630,24 +2286,19 @@ func TestDefaultSamplingHandler_CreateMessage(t *testing.T) {
 			result, err := handler.CreateMessage(t.Context(), tt.request)
 
 			if tt.expectFallback {
-				if err != nil {
-					t.Errorf("Expected no error for fallback, got: %v", err)
-				}
-				if result == nil {
-					t.Error("Expected result for fallback, got nil")
-				}
-				if result != nil && !strings.Contains(result.SamplingMessage.Content.(mcp.TextContent).Text, "AI API key not configured") {
-					t.Errorf("Expected fallback message about API key, got: %s", result.SamplingMessage.Content.(mcp.TextContent).Text)
+				assert.NoError(t, err, "Should not have error for fallback")
+				assert.NotNil(t, result, "Should have result for fallback")
+				if result != nil {
+					content := result.SamplingMessage.Content.(mcp.TextContent).Text
+					assert.Contains(t, content, "AI API key not configured",
+						"Expected fallback message about API key")
 				}
 			} else {
-				if err != nil {
-					t.Errorf("Expected no error, got: %v", err)
-				}
-				if result == nil {
-					t.Error("Expected result, got nil")
-				}
-				if result != nil && result.SamplingMessage.Content.(mcp.TextContent).Text != "Hello world" {
-					t.Errorf("Expected 'Hello world', got: %s", result.SamplingMessage.Content.(mcp.TextContent).Text)
+				assert.NoError(t, err, "Should not have error")
+				assert.NotNil(t, result, "Should have result")
+				if result != nil {
+					content := result.SamplingMessage.Content.(mcp.TextContent).Text
+					assert.Equal(t, "Hello world", content, "Should return 'Hello world'")
 				}
 			}
 		})
@@ -2662,34 +2313,19 @@ func TestDefaultSamplingHandler_handleNoAPIKey(t *testing.T) {
 
 	result, err := handler.handleNoAPIKey()
 
-	if err != nil {
-		t.Errorf("Expected no error, got: %v", err)
-	}
+	assert.NoError(t, err, "Should not have error")
 
-	if result == nil {
-		t.Error("Expected result, got nil")
-	}
+	assert.NotNil(t, result, "Should have result")
 
-	if result.Model != "not-configured" {
-		t.Errorf("Expected model 'not-configured', got '%s'", result.Model)
-	}
-
-	if result.StopReason != "end" {
-		t.Errorf("Expected stop reason 'end', got '%s'", result.StopReason)
-	}
+	assert.Equal(t, "not-configured", result.Model, "Model should be 'not-configured'")
+	assert.Equal(t, "end", result.StopReason, "Stop reason should be 'end'")
 
 	content, ok := result.SamplingMessage.Content.(mcp.TextContent)
-	if !ok {
-		t.Error("Expected TextContent, got different type")
-	}
+	assert.True(t, ok, "Content should be TextContent")
 
-	if !strings.Contains(content.Text, "AI API key not configured") {
-		t.Errorf("Expected message about API key not configured, got: %s", content.Text)
-	}
+	assert.Contains(t, content.Text, "AI API key not configured", "Should contain API key message")
 
-	if !strings.Contains(content.Text, "X509_AI_APIKEY") {
-		t.Errorf("Expected message to mention X509_AI_APIKEY, got: %s", content.Text)
-	}
+	assert.Contains(t, content.Text, "X509_AI_APIKEY", "Should mention X509_AI_APIKEY")
 }
 
 // TestDefaultSamplingHandler_convertMessages tests convertMessages method
@@ -2768,19 +2404,12 @@ func TestDefaultSamplingHandler_convertMessages(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := handler.convertMessages(tt.messages)
 
-			if len(result) != len(tt.expected) {
-				t.Errorf("Expected %d messages, got %d", len(tt.expected), len(result))
-				return
-			}
+			require.Len(t, result, len(tt.expected), "Should have expected number of messages")
 
 			for i, expectedMsg := range tt.expected {
-				if result[i]["role"] != expectedMsg["role"] {
-					t.Errorf("Message %d: expected role '%s', got '%s'", i, expectedMsg["role"], result[i]["role"])
-				}
+				assert.Equal(t, expectedMsg["role"], result[i]["role"], fmt.Sprintf("Message %d role should match", i))
 
-				if result[i]["content"] != expectedMsg["content"] {
-					t.Errorf("Message %d: expected content '%s', got '%s'", i, expectedMsg["content"], result[i]["content"])
-				}
+				assert.Equal(t, expectedMsg["content"], result[i]["content"], fmt.Sprintf("Message %d content should match", i))
 			}
 		})
 	}
@@ -2842,25 +2471,16 @@ data: [DONE]`,
 			reader := strings.NewReader(tt.response)
 			content, model, stopReason, err := handler.parseStreamingResponse(reader, "")
 
-			if tt.expectError && err == nil {
-				t.Error("Expected error, got nil")
+			if tt.expectError {
+				assert.Error(t, err, "Should have error")
+			} else {
+				assert.NoError(t, err, "Should not have error")
 			}
 
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error, got: %v", err)
-			}
+			assert.Equal(t, tt.expectedContent, content, "Content should match expected")
 
-			if content != tt.expectedContent {
-				t.Errorf("Expected content '%s', got '%s'", tt.expectedContent, content)
-			}
-
-			if model != tt.expectedModel {
-				t.Errorf("Expected model '%s', got '%s'", tt.expectedModel, model)
-			}
-
-			if stopReason != tt.expectedStop {
-				t.Errorf("Expected stop reason '%s', got '%s'", tt.expectedStop, stopReason)
-			}
+			assert.Equal(t, tt.expectedModel, model, "Expected model '%s'", tt.expectedModel)
+			assert.Equal(t, tt.expectedStop, stopReason, "Expected stop reason '%s'", tt.expectedStop)
 		})
 	}
 }
@@ -2880,10 +2500,7 @@ func TestServerBuilder(t *testing.T) {
 				return sb
 			},
 			validate: func(t *testing.T, server *server.MCPServer) {
-				if server == nil {
-					t.Error("Expected server, got nil")
-					return
-				}
+				assert.NotNil(t, server, "Expected server, got nil")
 			},
 		},
 		{
@@ -2895,10 +2512,7 @@ func TestServerBuilder(t *testing.T) {
 				return sb.WithConfig(config)
 			},
 			validate: func(t *testing.T, server *server.MCPServer) {
-				if server == nil {
-					t.Error("Expected server, got nil")
-					return
-				}
+				assert.NotNil(t, server, "Expected server, got nil")
 			},
 		},
 		{
@@ -2908,10 +2522,7 @@ func TestServerBuilder(t *testing.T) {
 				return sb.WithDefaultTools()
 			},
 			validate: func(t *testing.T, server *server.MCPServer) {
-				if server == nil {
-					t.Error("Expected server, got nil")
-					return
-				}
+				assert.NotNil(t, server, "Expected server, got nil")
 				// Server built successfully with tools is sufficient validation
 			},
 		},
@@ -2927,10 +2538,7 @@ func TestServerBuilder(t *testing.T) {
 				return sb.WithConfig(config).WithSampling(handler)
 			},
 			validate: func(t *testing.T, server *server.MCPServer) {
-				if server == nil {
-					t.Error("Expected server, got nil")
-					return
-				}
+				assert.NotNil(t, server, "Expected server, got nil")
 				// Sampling is enabled internally, we can't directly check it
 				// but we can verify server was built successfully
 			},
@@ -2948,10 +2556,7 @@ func TestServerBuilder(t *testing.T) {
 				return sb.WithConfig(config).WithDefaultTools().WithSampling(handler)
 			},
 			validate: func(t *testing.T, server *server.MCPServer) {
-				if server == nil {
-					t.Error("Expected server, got nil")
-					return
-				}
+				assert.NotNil(t, server, "Expected server, got nil")
 				// Server built successfully with all options is sufficient validation
 			},
 		},
@@ -2960,10 +2565,7 @@ func TestServerBuilder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server, err := tt.setup(tt.builder).Build()
-			if err != nil {
-				t.Errorf("Expected no error building server, got: %v", err)
-				return
-			}
+			require.NoError(t, err, "Expected no error building server")
 			tt.validate(t, server)
 		})
 	}
@@ -3004,12 +2606,8 @@ func TestDefaultSamplingHandler_bufferPooling(t *testing.T) {
 	// Call CreateMessage multiple times to test buffer pooling
 	for i := range 10 {
 		result, err := handler.CreateMessage(t.Context(), request)
-		if err != nil {
-			t.Errorf("Iteration %d: Expected no error, got: %v", i, err)
-		}
-		if result == nil {
-			t.Errorf("Iteration %d: Expected result, got nil", i)
-		}
+		assert.NoError(t, err, fmt.Sprintf("Iteration %d: Should not have error", i))
+		assert.NotNil(t, result, fmt.Sprintf("Iteration %d: Should have result", i))
 	}
 }
 
@@ -3072,17 +2670,11 @@ func TestDefaultSamplingHandler_errorHandling(t *testing.T) {
 
 			result, err := handler.CreateMessage(t.Context(), request)
 
-			if err == nil {
-				t.Error("Expected error, got nil")
-			}
+			assert.Error(t, err, "Should have error")
 
-			if !strings.Contains(err.Error(), tt.expectedError) {
-				t.Errorf("Expected error to contain '%s', got '%s'", tt.expectedError, err.Error())
-			}
+			assert.Contains(t, err.Error(), tt.expectedError, "Error should contain expected message")
 
-			if result != nil {
-				t.Error("Expected nil result on error, got result")
-			}
+			assert.Nil(t, result, "Should have nil result on error")
 		})
 	}
 }
@@ -3096,25 +2688,15 @@ func TestNewDefaultSamplingHandler(t *testing.T) {
 	config.AI.Timeout = 30
 
 	handler := NewDefaultSamplingHandler(config, "test-version")
-	if handler == nil {
-		t.Error("Expected handler, got nil")
-	}
+	assert.NotNil(t, handler, "Should have handler")
 
-	if handler.apiKey != "test-key" {
-		t.Errorf("Expected API key 'test-key', got '%s'", handler.apiKey)
-	}
+	assert.Equal(t, "test-key", handler.apiKey, "API key should be 'test-key'")
 
-	if handler.endpoint != "https://api.test.com" {
-		t.Errorf("Expected endpoint 'https://api.test.com', got '%s'", handler.endpoint)
-	}
+	assert.Equal(t, "https://api.test.com", handler.endpoint, "Endpoint should be 'https://api.test.com'")
 
-	if handler.model != "test-model" {
-		t.Errorf("Expected model 'test-model', got '%s'", handler.model)
-	}
+	assert.Equal(t, "test-model", handler.model, "Model should be 'test-model'")
 
-	if handler.version != "test-version" {
-		t.Errorf("Expected version 'test-version', got '%s'", handler.version)
-	}
+	assert.Equal(t, "test-version", handler.version, "Version should be 'test-version'")
 }
 
 // TestDefaultSamplingHandler_helperMethods tests helper methods
@@ -3127,18 +2709,14 @@ func TestDefaultSamplingHandler_helperMethods(t *testing.T) {
 	t.Run("selectModel", func(t *testing.T) {
 		// Test with no preferences
 		model := handler.selectModel(nil)
-		if model != "default-model" {
-			t.Errorf("Expected default model, got '%s'", model)
-		}
+		assert.Equal(t, "default-model", model, "Expected default model")
 
 		// Test with preferences
 		preferences := &mcp.ModelPreferences{
 			Hints: []mcp.ModelHint{{Name: "preferred-model"}},
 		}
 		model = handler.selectModel(preferences)
-		if model != "preferred-model" {
-			t.Errorf("Expected preferred model, got '%s'", model)
-		}
+		assert.Equal(t, "preferred-model", model, "Should return preferred model")
 	})
 
 	// Test prepareMessages
@@ -3149,23 +2727,15 @@ func TestDefaultSamplingHandler_helperMethods(t *testing.T) {
 
 		// Test without system prompt
 		result := handler.prepareMessages(messages, "")
-		if len(result) != 1 {
-			t.Errorf("Expected 1 message without system prompt, got %d", len(result))
-		}
+		assert.Len(t, result, 1, "Should have 1 message without system prompt")
 
 		// Test with system prompt
 		result = handler.prepareMessages(messages, "You are helpful")
-		if len(result) != 2 {
-			t.Errorf("Expected 2 messages with system prompt, got %d", len(result))
-		}
+		assert.Len(t, result, 2, "Should have 2 messages with system prompt")
 
-		if result[0]["role"] != "system" {
-			t.Errorf("Expected first message to be system, got '%s'", result[0]["role"])
-		}
+		assert.Equal(t, "system", result[0]["role"], "First message should be system")
 
-		if result[0]["content"] != "You are helpful" {
-			t.Errorf("Expected system prompt 'You are helpful', got '%s'", result[0]["content"])
-		}
+		assert.Equal(t, "You are helpful", result[0]["content"], "System prompt should be 'You are helpful'")
 	})
 
 	// Test buildAPIRequest
@@ -3184,56 +2754,36 @@ func TestDefaultSamplingHandler_helperMethods(t *testing.T) {
 
 		result := handler.buildAPIRequest("test-model", messages, request)
 
-		if result["model"] != "test-model" {
-			t.Errorf("Expected model 'test-model', got '%v'", result["model"])
-		}
+		assert.Equal(t, "test-model", result["model"], "Model should be 'test-model'")
 
-		if result["max_tokens"] != 100 {
-			t.Errorf("Expected max_tokens 100, got %v", result["max_tokens"])
-		}
+		assert.Equal(t, 100, result["max_tokens"], "Max tokens should be 100")
 
-		if result["temperature"] != 0.7 {
-			t.Errorf("Expected temperature 0.7, got %v", result["temperature"])
-		}
+		assert.Equal(t, 0.7, result["temperature"], "Temperature should be 0.7")
 
-		if result["stream"] != true {
-			t.Errorf("Expected stream true, got %v", result["stream"])
-		}
+		assert.True(t, result["stream"].(bool), "Stream should be true")
 
 		stopSequences, ok := result["stop"].([]string)
-		if !ok {
-			t.Errorf("Expected stop sequences to be []string, got %T", result["stop"])
-		}
+		require.True(t, ok, "Stop should be []string")
 
-		if len(stopSequences) != 1 || stopSequences[0] != "\n" {
-			t.Errorf("Expected stop sequences ['\\n'], got %v", result["stop"])
-		}
+		assert.Len(t, stopSequences, 1, "Should have 1 stop sequence")
+
+		assert.Equal(t, "\n", stopSequences[0], "Stop sequence should be '\\n'")
 	})
 
 	// Test buildSamplingResult
 	t.Run("buildSamplingResult", func(t *testing.T) {
 		result := handler.buildSamplingResult("Hello world", "test-model", "stop")
 
-		if result.SamplingMessage.Role != mcp.RoleAssistant {
-			t.Errorf("Expected assistant role, got '%s'", result.SamplingMessage.Role)
-		}
+		assert.Equal(t, mcp.RoleAssistant, result.SamplingMessage.Role, "Role should be assistant")
 
 		content, ok := result.SamplingMessage.Content.(mcp.TextContent)
-		if !ok {
-			t.Error("Expected TextContent, got different type")
-		}
+		require.True(t, ok, "Content should be TextContent")
 
-		if content.Text != "Hello world" {
-			t.Errorf("Expected content 'Hello world', got '%s'", content.Text)
-		}
+		assert.Equal(t, "Hello world", content.Text, "Content should be 'Hello world'")
 
-		if result.Model != "test-model" {
-			t.Errorf("Expected model 'test-model', got '%s'", result.Model)
-		}
+		assert.Equal(t, "test-model", result.Model, "Model should be 'test-model'")
 
-		if result.StopReason != "stop" {
-			t.Errorf("Expected stop reason 'stop', got '%s'", result.StopReason)
-		}
+		assert.Equal(t, "stop", result.StopReason, "Stop reason should be 'stop'")
 	})
 }
 
@@ -3241,14 +2791,10 @@ func TestDefaultSamplingHandler_helperMethods(t *testing.T) {
 func TestBuildCertificateContextWithRevocation(t *testing.T) {
 	// Create a test certificate
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	tests := []struct {
 		name             string
@@ -3283,27 +2829,19 @@ func TestBuildCertificateContextWithRevocation(t *testing.T) {
 
 			// Check that expected fields are present
 			for _, field := range tt.expectedFields {
-				if !strings.Contains(result, field) {
-					t.Errorf("Expected field '%s' not found in result", field)
-				}
+				assert.Contains(t, result, field, "Expected field '%s' not found in result", field)
 			}
 
 			// Check that revocation status is included
-			if !strings.Contains(result, tt.revocationStatus) {
-				t.Errorf("Expected revocation status '%s' not found in result", tt.revocationStatus)
-			}
+			assert.Contains(t, result, tt.revocationStatus, "Result should contain revocation status")
 
 			// Check that analysis type is included
-			if !strings.Contains(result, tt.analysisType) {
-				t.Errorf("Expected analysis type '%s' not found in result", tt.analysisType)
-			}
+			assert.Contains(t, result, tt.analysisType, "Result should contain analysis type")
 
 			// Check for certificate information
 			expectedCertFields := []string{"SUBJECT", "ISSUER", "VALIDITY", "CRYPTOGRAPHY"}
 			for _, field := range expectedCertFields {
-				if !strings.Contains(result, field) {
-					t.Errorf("Expected certificate field '%s' not found in result", field)
-				}
+				assert.Contains(t, result, field, fmt.Sprintf("Result should contain certificate field '%s'", field))
 			}
 		})
 	}
@@ -3313,14 +2851,10 @@ func TestBuildCertificateContextWithRevocation(t *testing.T) {
 func TestAppendSubjectInfo(t *testing.T) {
 	// Create a test certificate with known subject
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	var context strings.Builder
 	appendSubjectInfo(&context, cert)
@@ -3335,9 +2869,7 @@ func TestAppendSubjectInfo(t *testing.T) {
 	}
 
 	for _, field := range expectedFields {
-		if !strings.Contains(result, field) {
-			t.Errorf("Expected subject field '%s' not found in result", field)
-		}
+		assert.Contains(t, result, field, fmt.Sprintf("Result should contain subject field '%s'", field))
 	}
 }
 
@@ -3345,14 +2877,10 @@ func TestAppendSubjectInfo(t *testing.T) {
 func TestAppendIssuerInfo(t *testing.T) {
 	// Create a test certificate
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	var context strings.Builder
 	appendIssuerInfo(&context, cert)
@@ -3367,9 +2895,7 @@ func TestAppendIssuerInfo(t *testing.T) {
 	}
 
 	for _, field := range expectedFields {
-		if !strings.Contains(result, field) {
-			t.Errorf("Expected issuer field '%s' not found in result", field)
-		}
+		assert.Contains(t, result, field, fmt.Sprintf("Result should contain issuer field '%s'", field))
 	}
 }
 
@@ -3377,14 +2903,10 @@ func TestAppendIssuerInfo(t *testing.T) {
 func TestAppendValidityInfo(t *testing.T) {
 	// Create a test certificate
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	var context strings.Builder
 	appendValidityInfo(&context, cert)
@@ -3400,9 +2922,7 @@ func TestAppendValidityInfo(t *testing.T) {
 	}
 
 	for _, field := range expectedFields {
-		if !strings.Contains(result, field) {
-			t.Errorf("Expected validity field '%s' not found in result", field)
-		}
+		assert.Contains(t, result, field, fmt.Sprintf("Result should contain validity field '%s'", field))
 	}
 }
 
@@ -3410,14 +2930,10 @@ func TestAppendValidityInfo(t *testing.T) {
 func TestAppendCryptoInfo(t *testing.T) {
 	// Create a test certificate
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	chain := x509chain.New(cert, version.Version)
 	var context strings.Builder
@@ -3434,9 +2950,7 @@ func TestAppendCryptoInfo(t *testing.T) {
 	}
 
 	for _, field := range expectedFields {
-		if !strings.Contains(result, field) {
-			t.Errorf("Expected crypto field '%s' not found in result", field)
-		}
+		assert.Contains(t, result, field, fmt.Sprintf("Result should contain crypto field '%s'", field))
 	}
 }
 
@@ -3444,14 +2958,10 @@ func TestAppendCryptoInfo(t *testing.T) {
 func TestAppendCertProperties(t *testing.T) {
 	// Create a test certificate
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	var context strings.Builder
 	appendCertProperties(&context, cert)
@@ -3467,9 +2977,7 @@ func TestAppendCertProperties(t *testing.T) {
 	}
 
 	for _, field := range expectedFields {
-		if !strings.Contains(result, field) {
-			t.Errorf("Expected properties field '%s' not found in result", field)
-		}
+		assert.Contains(t, result, field, fmt.Sprintf("Result should contain properties field '%s'", field))
 	}
 }
 
@@ -3477,14 +2985,10 @@ func TestAppendCertProperties(t *testing.T) {
 func TestAppendCertExtensions(t *testing.T) {
 	// Create a test certificate
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	var context strings.Builder
 	appendCertExtensions(&context, cert)
@@ -3499,9 +3003,7 @@ func TestAppendCertExtensions(t *testing.T) {
 	}
 
 	for _, field := range expectedFields {
-		if !strings.Contains(result, field) {
-			t.Errorf("Expected extensions field '%s' not found in result", field)
-		}
+		assert.Contains(t, result, field, fmt.Sprintf("Result should contain extensions field '%s'", field))
 	}
 }
 
@@ -3509,14 +3011,10 @@ func TestAppendCertExtensions(t *testing.T) {
 func TestAppendCAInfo(t *testing.T) {
 	// Create a test certificate
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	var context strings.Builder
 	appendCAInfo(&context, cert)
@@ -3532,9 +3030,7 @@ func TestAppendCAInfo(t *testing.T) {
 	}
 
 	for _, field := range expectedFields {
-		if !strings.Contains(result, field) {
-			t.Errorf("Expected CA info field '%s' not found in result", field)
-		}
+		assert.Contains(t, result, field, fmt.Sprintf("Result should contain CA info field '%s'", field))
 	}
 }
 
@@ -3542,14 +3038,10 @@ func TestAppendCAInfo(t *testing.T) {
 func TestAppendChainValidationContext(t *testing.T) {
 	// Create a test certificate
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	var context strings.Builder
 	appendChainValidationContext(&context, []*x509.Certificate{cert})
@@ -3562,9 +3054,7 @@ func TestAppendChainValidationContext(t *testing.T) {
 	}
 
 	for _, field := range expectedFields {
-		if !strings.Contains(result, field) {
-			t.Errorf("Expected chain validation field '%s' not found in result", field)
-		}
+		assert.Contains(t, result, field, fmt.Sprintf("Result should contain chain validation field '%s'", field))
 	}
 }
 
@@ -3582,9 +3072,7 @@ func TestAppendSecurityContext(t *testing.T) {
 	}
 
 	for _, field := range expectedFields {
-		if !strings.Contains(result, field) {
-			t.Errorf("Expected security context field '%s' not found in result", field)
-		}
+		assert.Contains(t, result, field, fmt.Sprintf("Result should contain security context field '%s'", field))
 	}
 }
 
@@ -3617,13 +3105,9 @@ func TestHandleAnalyzeCertificateWithAI(t *testing.T) {
 	}
 
 	result, err := handleAnalyzeCertificateWithAI(t.Context(), request, config)
-	if err != nil {
-		t.Fatalf("handleAnalyzeCertificateWithAI failed: %v", err)
-	}
+	require.NoError(t, err, "handleAnalyzeCertificateWithAI should not fail")
 
-	if result == nil {
-		t.Fatal("Expected non-nil result")
-	}
+	require.NotNil(t, result, "Should have result")
 
 	// Check that result contains expected content
 	resultText := string(result.Content[0].(mcp.TextContent).Text)
@@ -3637,9 +3121,7 @@ func TestHandleAnalyzeCertificateWithAI(t *testing.T) {
 	}
 
 	for _, field := range expectedFields {
-		if !strings.Contains(resultText, field) {
-			t.Errorf("Expected field '%s' not found in result", field)
-		}
+		assert.Contains(t, resultText, field, fmt.Sprintf("Result should contain field '%s'", field))
 	}
 }
 
@@ -3647,14 +3129,10 @@ func TestHandleAnalyzeCertificateWithAI(t *testing.T) {
 func TestBufferPoolIntegration(t *testing.T) {
 	// Create a test certificate
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	// Test multiple concurrent context building
 	const numGoroutines = 10
@@ -3672,9 +3150,7 @@ func TestBufferPoolIntegration(t *testing.T) {
 				)
 
 				// Verify result contains expected content
-				if !strings.Contains(result, "Chain Length") {
-					t.Errorf("Expected 'Chain Length' not found in result")
-				}
+				assert.Contains(t, result, "Chain Length", "Expected 'Chain Length' not found in result")
 			}
 		}()
 	}
@@ -3718,21 +3194,16 @@ func TestConcurrentCertificateAnalysis(t *testing.T) {
 				}
 
 				result, err := handleAnalyzeCertificateWithAI(t.Context(), request, config)
+				assert.NoError(t, err, "Concurrent analysis failed")
 				if err != nil {
-					t.Errorf("Concurrent analysis failed: %v", err)
 					continue
 				}
 
-				if result == nil {
-					t.Error("Expected non-nil result in concurrent analysis")
-					continue
-				}
+				require.NotNil(t, result, "Expected non-nil result in concurrent analysis")
 
 				// Verify result contains expected content
 				resultText := string(result.Content[0].(mcp.TextContent).Text)
-				if !strings.Contains(resultText, "Chain Length") {
-					t.Errorf("Expected 'Chain Length' not found in concurrent result")
-				}
+				assert.Contains(t, resultText, "Chain Length", "Expected 'Chain Length' not found in concurrent result")
 			}
 		}(i)
 	}
@@ -3745,14 +3216,10 @@ func TestConcurrentCertificateAnalysis(t *testing.T) {
 func TestMemoryUsageInContextBuilding(t *testing.T) {
 	// Create a test certificate
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	// Test memory usage with multiple context builds
 	const numIterations = 1000
@@ -3777,9 +3244,7 @@ func TestMemoryUsageInContextBuilding(t *testing.T) {
 		buf.WriteString(result)
 
 		// Verify buffer has content
-		if buf.Len() == 0 {
-			t.Error("Expected non-empty buffer")
-		}
+		assert.NotZero(t, buf.Len(), "Buffer should not be empty")
 	}
 }
 
@@ -3789,37 +3254,29 @@ func TestErrorHandlingInContextBuilding(t *testing.T) {
 	t.Run("Nil Certificate", func(t *testing.T) {
 		defer func() {
 			if r := recover(); r != nil {
-				t.Errorf("buildCertificateContextWithRevocation panicked with nil certificate: %v", r)
+				assert.Fail(t, fmt.Sprintf("buildCertificateContextWithRevocation should not panic with nil certificate: %v", r))
 			}
 		}()
 
 		result := buildCertificateContextWithRevocation(nil, "Unknown", "general")
 
 		// Should handle gracefully
-		if !strings.Contains(result, "Chain Length: 0") {
-			t.Errorf("Expected 'Chain Length: 0' for nil certificate, got: %s", result)
-		}
+		assert.Contains(t, result, "Chain Length: 0", "Result should contain 'Chain Length: 0' for nil certificate")
 	})
 
 	// Test with empty revocation status
 	t.Run("Empty Revocation Status", func(t *testing.T) {
 		block, _ := pem.Decode([]byte(testCertPEM))
-		if block == nil {
-			t.Fatal("Failed to decode test certificate")
-		}
+		require.NotNil(t, block, "Failed to decode test certificate")
 
 		cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			t.Fatalf("Failed to parse certificate: %v", err)
-		}
+		require.NoError(t, err, "Should parse certificate")
 
 		chain := x509chain.New(cert, version.Version)
 		result := buildCertificateContextWithRevocation(chain, "", "security")
 
 		// Should handle empty status gracefully
-		if !strings.Contains(result, "REVOCATION STATUS") {
-			t.Errorf("Expected 'REVOCATION STATUS' even with empty status")
-		}
+		assert.Contains(t, result, "REVOCATION STATUS", "Expected 'REVOCATION STATUS' even with empty status")
 	})
 }
 
@@ -3827,14 +3284,10 @@ func TestErrorHandlingInContextBuilding(t *testing.T) {
 func TestURLHandlingInExtensions(t *testing.T) {
 	// Create a test certificate with various URL types in extensions
 	block, _ := pem.Decode([]byte(testCertPEM))
-	if block == nil {
-		t.Fatal("Failed to decode test certificate")
-	}
+	require.NotNil(t, block, "Should decode test certificate")
 
 	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("Failed to parse certificate: %v", err)
-	}
+	require.NoError(t, err, "Should parse certificate")
 
 	var context strings.Builder
 	appendCertExtensions(&context, cert)
@@ -3858,9 +3311,7 @@ func TestURLHandlingInExtensions(t *testing.T) {
 				urlContext := result[start:end]
 
 				// Basic URL validation - should contain valid characters
-				if !isValidURLContext(urlContext) {
-					t.Errorf("Potentially invalid URL found in context: %s", urlContext)
-				}
+				assert.True(t, isValidURLContext(urlContext), fmt.Sprintf("URL context should be valid: %s", urlContext))
 			}
 		}
 	}
@@ -3881,14 +3332,10 @@ func isValidURLContext(context string) bool {
 
 func TestInMemoryTransport_SetSamplingHandler(t *testing.T) {
 	transport := NewInMemoryTransport(t.Context())
-	if transport == nil {
-		t.Fatal("NewInMemoryTransport returned nil")
-	}
+	require.NotNil(t, transport, "NewInMemoryTransport returned nil")
 
 	// Initially should be nil
-	if transport.samplingHandler != nil {
-		t.Error("Expected samplingHandler to be nil initially")
-	}
+	assert.Nil(t, transport.samplingHandler, "Expected samplingHandler to be nil initially")
 
 	// Create a mock sampling handler
 	mockHandler := &mockSamplingHandler{}
@@ -3897,16 +3344,12 @@ func TestInMemoryTransport_SetSamplingHandler(t *testing.T) {
 	transport.SetSamplingHandler(mockHandler)
 
 	// Verify it was set
-	if transport.samplingHandler != mockHandler {
-		t.Error("Expected samplingHandler to be set to mock handler")
-	}
+	assert.Equal(t, mockHandler, transport.samplingHandler, "Expected samplingHandler to be set to mock handler")
 }
 
 func TestInMemoryTransport_handleSampling(t *testing.T) {
 	transport := NewInMemoryTransport(t.Context())
-	if transport == nil {
-		t.Fatal("NewInMemoryTransport returned nil")
-	}
+	require.NotNil(t, transport, "NewInMemoryTransport returned nil")
 
 	// Set up a mock sampling handler
 	mockHandler := &mockSamplingHandler{}
@@ -3932,14 +3375,11 @@ func TestInMemoryTransport_handleSampling(t *testing.T) {
 	select {
 	case data := <-transport.internalRespCh:
 		var resp map[string]any
-		if err := json.Unmarshal(data, &resp); err != nil {
-			t.Fatalf("Failed to unmarshal response: %v", err)
-		}
-		if resp["error"].(map[string]any)["code"].(float64) != -32601 {
-			t.Errorf("Expected error code -32601, got %v", resp["error"])
-		}
+		require.NoError(t, json.Unmarshal(data, &resp), "Failed to unmarshal response")
+		errorCode := resp["error"].(map[string]any)["code"].(float64)
+		assert.Equal(t, float64(-32601), errorCode, "Expected error code -32601")
 	default:
-		t.Error("Expected error response to be sent")
+		assert.Fail(t, "Expected error response to be sent")
 	}
 
 	// Test with handler but invalid params
@@ -3957,14 +3397,11 @@ func TestInMemoryTransport_handleSampling(t *testing.T) {
 	select {
 	case data := <-transport.internalRespCh:
 		var resp map[string]any
-		if err := json.Unmarshal(data, &resp); err != nil {
-			t.Fatalf("Failed to unmarshal response: %v", err)
-		}
-		if resp["error"].(map[string]any)["code"].(float64) != -32602 {
-			t.Errorf("Expected error code -32602, got %v", resp["error"])
-		}
+		require.NoError(t, json.Unmarshal(data, &resp), "Failed to unmarshal response")
+		errorCode := resp["error"].(map[string]any)["code"].(float64)
+		assert.Equal(t, float64(-32602), errorCode, "Expected error code -32602")
 	default:
-		t.Error("Expected error response to be sent")
+		assert.Fail(t, "Expected error response to be sent")
 	}
 }
 
@@ -4034,13 +3471,9 @@ func TestLoadInstructions(t *testing.T) {
 
 	// Call loadInstructions with mock data
 	instructions, err := loadInstructions(mockTools, mockToolsWithConfig, "mcp-server", "0.0.0")
-	if err != nil {
-		t.Fatalf("loadInstructions failed: %v", err)
-	}
+	require.NoError(t, err, "loadInstructions failed")
 
-	if instructions == "" {
-		t.Error("Expected non-empty instructions, got empty string")
-	}
+	assert.NotEmpty(t, instructions, "Expected non-empty instructions, got empty string")
 
 	// Log comprehensive information about the rendered template
 	t.Logf("Instructions length: %d", len(instructions))
@@ -4086,16 +3519,14 @@ func TestLoadInstructions(t *testing.T) {
 	}
 
 	for _, expected := range expectedContents {
-		if !strings.Contains(instructions, expected) {
-			t.Errorf("Expected instructions to contain %q, but it didn't", expected)
-		}
+		assert.Contains(t, instructions, expected, "Expected instructions to contain %q, but it didn't", expected)
 	}
 
 	// Verify template variables are working by checking for tool role substitutions
 	// The template should have replaced {{.ToolRoles.chainResolver}} with actual tool names
-	if !strings.Contains(instructions, "test_tool_1") || !strings.Contains(instructions, "test_tool_2") {
-		t.Error("Template variables were not properly substituted with tool names")
-	}
+	assert.True(t,
+		strings.Contains(instructions, "test_tool_1") && strings.Contains(instructions, "test_tool_2"),
+		"Template variables were not properly substituted with tool names")
 
 	// Count occurrences of tool names in the entire document
 	toolCount := 0
@@ -4103,16 +3534,12 @@ func TestLoadInstructions(t *testing.T) {
 	toolCount += strings.Count(instructions, "test_tool_2")
 	toolCount += strings.Count(instructions, "test_config_tool")
 
-	if toolCount < 3 {
-		t.Errorf("Expected at least 3 tool name references in instructions, found %d", toolCount)
-	}
+	assert.GreaterOrEqual(t, toolCount, 3, "Expected at least 3 tool name references in instructions, found %d", toolCount)
 
 	// Verify that workflow sections contain tool references
 	workflows := []string{"Basic Analysis Workflow", "Security Audit Workflow", "Batch Processing Workflow"}
 	for _, workflow := range workflows {
-		if !strings.Contains(instructions, workflow) {
-			t.Errorf("Expected instructions to contain workflow section %q", workflow)
-		}
+		assert.Contains(t, instructions, workflow, "Expected instructions to contain workflow section %q", workflow)
 	}
 
 	// Log summary of what was verified
@@ -4164,16 +3591,11 @@ func TestGetMapParam(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := getMapParam(tt.params, tt.method, tt.key)
-
-			if tt.expectError && err == nil {
-				t.Error("Expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error but got: %v", err)
-			}
-
-			if !tt.expectError && !reflect.DeepEqual(result, tt.expectValue) {
-				t.Errorf("Expected %v, got %v", tt.expectValue, result)
+			if tt.expectError {
+				assert.Error(t, err, "Expected error but got none")
+			} else {
+				assert.NoError(t, err, "Expected no error")
+				assert.Equal(t, tt.expectValue, result, "Expected %v, got %v", tt.expectValue, result)
 			}
 		})
 	}
@@ -4215,18 +3637,14 @@ func TestFormatDefaultValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := formatDefaultValue(tt.input)
-			if result != tt.expected {
-				t.Errorf("Expected %q, got %q", tt.expected, result)
-			}
+			assert.Equal(t, tt.expected, result, "Expected %q, got %q", tt.expected, result)
 		})
 	}
 }
 
 func TestGetVersion(t *testing.T) {
 	version := GetVersion()
-	if version == "" {
-		t.Error("Expected non-empty version string")
-	}
+	assert.NotEmpty(t, version, "Expected non-empty version string")
 	// Version should match the appVersion variable, but we can't easily test the exact value
 	// without exposing it, so we just check it's not empty
 }
@@ -4244,16 +3662,10 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 		}
 
 		result, err := handleVisualizeCertChain(ctx, request)
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
+		assert.NoError(t, err, "Expected no error")
+		assert.NotNil(t, result, "Expected result, got nil")
 		// Should be an error result due to missing certificate
-		if len(result.Content) == 0 {
-			t.Error("Expected error content in result")
-		}
+		assert.NotEmpty(t, result.Content, "Expected error content in result")
 	})
 
 	// Test invalid certificate format
@@ -4268,16 +3680,10 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 		}
 
 		result, err := handleVisualizeCertChain(ctx, request)
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
+		assert.NoError(t, err, "Expected no error")
+		assert.NotNil(t, result, "Expected result, got nil")
 		// Should be an error result due to invalid certificate
-		if len(result.Content) == 0 {
-			t.Error("Expected error content in result")
-		}
+		assert.NotEmpty(t, result.Content, "Expected error content in result")
 	})
 
 	// Test unsupported format
@@ -4293,16 +3699,10 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 		}
 
 		result, err := handleVisualizeCertChain(ctx, request)
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
+		assert.NoError(t, err, "Expected no error")
+		assert.NotNil(t, result, "Expected result, got nil")
 		// Should be an error result due to unsupported format
-		if len(result.Content) == 0 {
-			t.Error("Expected error content in result")
-		}
+		assert.NotEmpty(t, result.Content, "Expected error content in result")
 	})
 
 	// Test successful ASCII visualization
@@ -4318,34 +3718,24 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 		}
 
 		result, err := handleVisualizeCertChain(ctx, request)
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if result == nil {
-			t.Fatal("Expected result, got nil")
-		}
+		assert.NoError(t, err, "Expected no error")
+		require.NotNil(t, result, "Expected result, got nil")
 
 		// Should contain visualization content
-		if len(result.Content) == 0 {
-			t.Error("Expected visualization content in result")
-		}
+		assert.NotEmpty(t, result.Content, "Expected visualization content in result")
 
 		// Check that it contains text content
 		content := result.Content[0]
 		textContent, ok := content.(mcp.TextContent)
-		if !ok {
-			t.Errorf("Expected TextContent, got %T", content)
-		}
+		assert.True(t, ok, "Expected TextContent, got %T", content)
 
 		// Verify ASCII tree structure contains tree characters
-		if !strings.Contains(textContent.Text, "├──") && !strings.Contains(textContent.Text, "└──") {
-			t.Error("Expected ASCII tree to contain tree structure characters")
-		}
+		assert.True(t,
+			strings.Contains(textContent.Text, "├──") || strings.Contains(textContent.Text, "└──"),
+			"Expected ASCII tree to contain tree structure characters")
 
 		// Should contain certificate information
-		if !strings.Contains(textContent.Text, "www.google.com") {
-			t.Error("Expected visualization to contain certificate subject")
-		}
+		assert.Contains(t, textContent.Text, "www.google.com", "Expected visualization to contain certificate subject")
 	})
 
 	// Test successful table visualization
@@ -4361,34 +3751,22 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 		}
 
 		result, err := handleVisualizeCertChain(ctx, request)
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if result == nil {
-			t.Fatal("Expected result, got nil")
-		}
+		assert.NoError(t, err, "Expected no error")
+		require.NotNil(t, result, "Expected result, got nil")
 
 		// Should contain visualization content
-		if len(result.Content) == 0 {
-			t.Error("Expected visualization content in result")
-		}
+		assert.NotEmpty(t, result.Content, "Expected visualization content in result")
 
 		// Check that it contains text content
 		content := result.Content[0]
 		textContent, ok := content.(mcp.TextContent)
-		if !ok {
-			t.Errorf("Expected TextContent, got %T", content)
-		}
+		assert.True(t, ok, "Expected TextContent, got %T", content)
 
 		// Verify table structure (should contain | characters for markdown table format)
-		if !strings.Contains(textContent.Text, "|") {
-			t.Error("Expected table visualization to contain table separators")
-		}
+		assert.Contains(t, textContent.Text, "|", "Expected table visualization to contain table separators")
 
 		// Should contain certificate data (more reliable than headers)
-		if !strings.Contains(textContent.Text, "www.google.com") {
-			t.Error("Expected table to contain certificate data")
-		}
+		assert.Contains(t, textContent.Text, "www.google.com", "Expected table to contain certificate data")
 	})
 
 	// Test successful JSON visualization
@@ -4404,50 +3782,34 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 		}
 
 		result, err := handleVisualizeCertChain(ctx, request)
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if result == nil {
-			t.Fatal("Expected result, got nil")
-		}
+		assert.NoError(t, err, "Expected no error")
+		require.NotNil(t, result, "Expected result, got nil")
 
 		// Should contain visualization content
-		if len(result.Content) == 0 {
-			t.Error("Expected visualization content in result")
-		}
+		assert.NotEmpty(t, result.Content, "Expected visualization content in result")
 
 		// Check that it contains text content
 		content := result.Content[0]
 		textContent, ok := content.(mcp.TextContent)
-		if !ok {
-			t.Errorf("Expected TextContent, got %T", content)
-		}
+		assert.True(t, ok, "Expected TextContent, got %T", content)
 
 		// Should be valid JSON - try to find JSON content
 		jsonStr := textContent.Text
 		// Find the first '{' character
 		startIdx := strings.Index(jsonStr, "{")
-		if startIdx == -1 {
-			t.Error("Expected JSON visualization to contain JSON object")
-		} else {
-			jsonStr = jsonStr[startIdx:]
-			// Find the last '}' character
-			endIdx := strings.LastIndex(jsonStr, "}")
-			if endIdx != -1 {
-				jsonStr = jsonStr[:endIdx+1]
-			}
-
-			// Should be valid JSON
-			var jsonData map[string]any
-			if err := json.Unmarshal([]byte(jsonStr), &jsonData); err != nil {
-				t.Errorf("Expected valid JSON, got parse error: %v", err)
-			} else {
-				// Should contain certificates array
-				if _, ok := jsonData["certificates"]; !ok {
-					t.Error("Expected JSON to contain 'certificates' field")
-				}
-			}
+		assert.NotEqual(t, -1, startIdx, "Expected JSON visualization to contain JSON object")
+		jsonStr = jsonStr[startIdx:]
+		// Find the last '}' character
+		endIdx := strings.LastIndex(jsonStr, "}")
+		if endIdx != -1 {
+			jsonStr = jsonStr[:endIdx+1]
 		}
+
+		// Should be valid JSON
+		var jsonData map[string]any
+		assert.NoError(t, json.Unmarshal([]byte(jsonStr), &jsonData), "Expected valid JSON, got parse error")
+		// Should contain certificates array
+		assert.Contains(t, jsonData, "certificates", "Expected JSON to contain 'certificates' field")
 	})
 
 	// Test default format (ascii)
@@ -4463,29 +3825,21 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 		}
 
 		result, err := handleVisualizeCertChain(ctx, request)
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if result == nil {
-			t.Fatal("Expected result, got nil")
-		}
+		assert.NoError(t, err, "Expected no error")
+		require.NotNil(t, result, "Expected result, got nil")
 
 		// Should contain visualization content
-		if len(result.Content) == 0 {
-			t.Error("Expected visualization content in result")
-		}
+		assert.NotEmpty(t, result.Content, "Expected visualization content in result")
 
 		// Check that it contains text content
 		content := result.Content[0]
 		textContent, ok := content.(mcp.TextContent)
-		if !ok {
-			t.Errorf("Expected TextContent, got %T", content)
-		}
+		assert.True(t, ok, "Expected TextContent, got %T", content)
 
 		// Should default to ASCII format with tree structure
-		if !strings.Contains(textContent.Text, "├──") || !strings.Contains(textContent.Text, "└──") {
-			t.Error("Expected default format to be ASCII tree with structure characters")
-		}
+		assert.True(t,
+			strings.Contains(textContent.Text, "├──") && strings.Contains(textContent.Text, "└──"),
+			"Expected default format to be ASCII tree with structure characters")
 	})
 
 	// Test base64 encoded certificate input
@@ -4504,17 +3858,11 @@ func TestHandleVisualizeCertChain(t *testing.T) {
 		}
 
 		result, err := handleVisualizeCertChain(ctx, request)
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if result == nil {
-			t.Fatal("Expected result, got nil")
-		}
+		assert.NoError(t, err, "Expected no error")
+		require.NotNil(t, result, "Expected result, got nil")
 
 		// Should successfully process base64 input
-		if len(result.Content) == 0 {
-			t.Error("Expected visualization content in result")
-		}
+		assert.NotEmpty(t, result.Content, "Expected visualization content in result")
 	})
 }
 
@@ -4639,9 +3987,7 @@ func TestGetExecutableName(t *testing.T) {
 
 			result := posix.GetExecutableName()
 			t.Logf("Input: %q → Output: %q (Expected: %q)", tt.args, result, tt.expected)
-			if result != tt.expected {
-				t.Errorf("posix.GetExecutableName() = %q, want %q", result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "posix.GetExecutableName() = %q, want %q", result, tt.expected)
 		})
 	}
 }
@@ -4692,14 +4038,13 @@ func TestCLIFramework_BuildRootCommand_Coverage(t *testing.T) {
 			if pt.expectPanic {
 				// Test that BuildRootCommand panics
 				defer func() {
-					if r := recover(); r == nil {
-						t.Errorf("Expected panic for %s, but no panic occurred", pt.description)
-					} else {
+					r := recover()
+					assert.NotNil(t, r, "Expected panic for %s, but no panic occurred", pt.description)
+					if r != nil {
 						// Verify the panic message contains expected content
 						panicMsg := fmt.Sprintf("%v", r)
-						if !strings.Contains(panicMsg, "CLIFramework embed filesystem not initialized") {
-							t.Errorf("Expected panic message to contain 'CLIFramework embed filesystem not initialized', got: %s", panicMsg)
-						}
+						assert.Contains(t, panicMsg, "CLIFramework embed filesystem not initialized",
+							"Expected panic message to contain 'CLIFramework embed filesystem not initialized', got: %s", panicMsg)
 					}
 				}()
 			}
@@ -4710,28 +4055,19 @@ func TestCLIFramework_BuildRootCommand_Coverage(t *testing.T) {
 				// Verify that BuildRootCommand looked up the help flag and built the example
 				// This covers: helpFlagName := "--help" and if helpFlag != nil { helpFlagName = "--" + helpFlag.Name }
 				helpFlag := rootCmd.Flags().Lookup("help")
-				if helpFlag == nil {
-					t.Error("Expected help flag to be found")
-				} else {
+				assert.NotNil(t, helpFlag, "Expected help flag to be found")
+				if helpFlag != nil {
 					// Verify the flag name is used in the example construction
 					expectedFlagName := "--" + helpFlag.Name
-					if !strings.Contains(rootCmd.Example, expectedFlagName) {
-						t.Errorf("Expected Example to contain flag name %q", expectedFlagName)
-					}
+					assert.Contains(t, rootCmd.Example, expectedFlagName, "Expected Example to contain flag name %q", expectedFlagName)
 				}
 
-				if rootCmd.Example == "" {
-					t.Error("Expected Example to be set")
-				}
+				assert.NotEmpty(t, rootCmd.Example, "Expected Example to be set")
 
 				// Test normal operation - embedded templates should always work
-				if rootCmd.Long == "" {
-					t.Error("Expected Long description to be set from template")
-				}
+				assert.NotEmpty(t, rootCmd.Long, "Expected Long description to be set from template")
 
-				if !strings.Contains(rootCmd.Long, "certificate chain resolver") {
-					t.Error("Expected Long description to contain expected content")
-				}
+				assert.Contains(t, rootCmd.Long, "certificate chain resolver", "Expected Long description to contain expected content")
 
 				tests := []struct {
 					name        string
@@ -4771,20 +4107,14 @@ func TestCLIFramework_BuildRootCommand_Coverage(t *testing.T) {
 				for _, tt := range tests {
 					t.Run(tt.name, func(t *testing.T) {
 						// Setup flags for this test case
-						if err := tt.setup(); err != nil {
-							t.Fatalf("Setup failed: %v", err)
-						}
+						require.NoError(t, tt.setup(), "Setup failed")
 
 						// Call RunE with the specified args
 						err := rootCmd.RunE(rootCmd, tt.args)
 						if tt.expectError {
-							if err == nil {
-								t.Errorf("Expected error for %s, but got none", tt.description)
-							}
+							assert.Error(t, err, "Expected error for %s, but got none", tt.description)
 						} else {
-							if err != nil {
-								t.Errorf("Expected no error for %s, but got: %v", tt.description, err)
-							}
+							assert.NoError(t, err, "Expected no error for %s, but got: %v", tt.description, err)
 						}
 					})
 				}
@@ -4859,9 +4189,7 @@ func TestDetectConfigFormat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := detectConfigFormat(tt.path)
-			if result != tt.expected {
-				t.Errorf("detectConfigFormat(%q) = %v, expected %v", tt.path, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, "detectConfigFormat(%q) = %v, expected %v", tt.path, result, tt.expected)
 		})
 	}
 }
@@ -4885,28 +4213,16 @@ func TestUnmarshalConfig_JSON(t *testing.T) {
 
 	config := &Config{}
 	err := unmarshalConfig(jsonData, config, configFormatJSON)
-	if err != nil {
-		t.Fatalf("unmarshalConfig failed for JSON: %v", err)
-	}
+	require.NoError(t, err, "unmarshalConfig failed for JSON")
 
 	// Verify defaults
-	if config.Defaults.Timeout != 45 {
-		t.Errorf("Expected timeout 45, got %d", config.Defaults.Timeout)
-	}
+	assert.Equal(t, 45, config.Defaults.Timeout, "Expected timeout 45, got %d", config.Defaults.Timeout)
 
 	// Verify AI settings
-	if config.AI.APIKey != "test-key" {
-		t.Errorf("Expected apiKey 'test-key', got %s", config.AI.APIKey)
-	}
-	if config.AI.Endpoint != "https://api.test.com" {
-		t.Errorf("Expected endpoint 'https://api.test.com', got %s", config.AI.Endpoint)
-	}
-	if config.AI.Model != "test-model" {
-		t.Errorf("Expected model 'test-model', got %s", config.AI.Model)
-	}
-	if config.AI.Timeout != 120 {
-		t.Errorf("Expected AI timeout 120, got %d", config.AI.Timeout)
-	}
+	assert.Equal(t, "test-key", config.AI.APIKey, "Expected apiKey 'test-key', got %s", config.AI.APIKey)
+	assert.Equal(t, "https://api.test.com", config.AI.Endpoint, "Expected endpoint 'https://api.test.com', got %s", config.AI.Endpoint)
+	assert.Equal(t, "test-model", config.AI.Model, "Expected model 'test-model', got %s", config.AI.Model)
+	assert.Equal(t, 120, config.AI.Timeout, "Expected AI timeout 120, got %d", config.AI.Timeout)
 }
 
 func TestUnmarshalConfig_YAML(t *testing.T) {
@@ -4927,28 +4243,16 @@ ai:
 
 	config := &Config{}
 	err := unmarshalConfig(yamlData, config, configFormatYAML)
-	if err != nil {
-		t.Fatalf("unmarshalConfig failed for YAML: %v", err)
-	}
+	require.NoError(t, err, "unmarshalConfig failed for YAML")
 
 	// Verify defaults
-	if config.Defaults.Timeout != 45 {
-		t.Errorf("Expected timeout 45, got %d", config.Defaults.Timeout)
-	}
+	assert.Equal(t, 45, config.Defaults.Timeout, "Expected timeout 45, got %d", config.Defaults.Timeout)
 
 	// Verify AI settings
-	if config.AI.APIKey != "test-key" {
-		t.Errorf("Expected apiKey 'test-key', got %s", config.AI.APIKey)
-	}
-	if config.AI.Endpoint != "https://api.test.com" {
-		t.Errorf("Expected endpoint 'https://api.test.com', got %s", config.AI.Endpoint)
-	}
-	if config.AI.Model != "test-model" {
-		t.Errorf("Expected model 'test-model', got %s", config.AI.Model)
-	}
-	if config.AI.Timeout != 120 {
-		t.Errorf("Expected AI timeout 120, got %d", config.AI.Timeout)
-	}
+	assert.Equal(t, "test-key", config.AI.APIKey, "Expected apiKey 'test-key', got %s", config.AI.APIKey)
+	assert.Equal(t, "https://api.test.com", config.AI.Endpoint, "Expected endpoint 'https://api.test.com', got %s", config.AI.Endpoint)
+	assert.Equal(t, "test-model", config.AI.Model, "Expected model 'test-model', got %s", config.AI.Model)
+	assert.Equal(t, 120, config.AI.Timeout, "Expected AI timeout 120, got %d", config.AI.Timeout)
 }
 
 func TestUnmarshalConfig_InvalidJSON(t *testing.T) {
@@ -4956,9 +4260,7 @@ func TestUnmarshalConfig_InvalidJSON(t *testing.T) {
 
 	config := &Config{}
 	err := unmarshalConfig(invalidJSON, config, configFormatJSON)
-	if err == nil {
-		t.Error("Expected error for invalid JSON, got nil")
-	}
+	assert.Error(t, err, "Expected error for invalid JSON, got nil")
 }
 
 func TestUnmarshalConfig_InvalidYAML(t *testing.T) {
@@ -4969,9 +4271,7 @@ defaults:
 
 	config := &Config{}
 	err := unmarshalConfig(invalidYAML, config, configFormatYAML)
-	if err == nil {
-		t.Error("Expected error for invalid YAML, got nil")
-	}
+	assert.Error(t, err, "Expected error for invalid YAML, got nil")
 }
 
 func TestLoadConfig_JSONFile(t *testing.T) {
@@ -4994,25 +4294,15 @@ func TestLoadConfig_JSONFile(t *testing.T) {
 		}
 	}`)
 
-	if err := os.WriteFile(configPath, jsonContent, 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, jsonContent, 0644), "Failed to write test config file")
 
 	config, err := loadConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig failed")
 
 	// Verify loaded values
-	if config.Defaults.Timeout != 60 {
-		t.Errorf("Expected timeout 60, got %d", config.Defaults.Timeout)
-	}
-	if config.AI.Endpoint != "https://custom.api.com" {
-		t.Errorf("Expected endpoint 'https://custom.api.com', got %s", config.AI.Endpoint)
-	}
-	if config.AI.Model != "custom-model" {
-		t.Errorf("Expected model 'custom-model', got %s", config.AI.Model)
-	}
+	assert.Equal(t, 60, config.Defaults.Timeout, "Expected timeout 60, got %d", config.Defaults.Timeout)
+	assert.Equal(t, "https://custom.api.com", config.AI.Endpoint, "Expected endpoint 'https://custom.api.com', got %s", config.AI.Endpoint)
+	assert.Equal(t, "custom-model", config.AI.Model, "Expected model 'custom-model', got %s", config.AI.Model)
 }
 
 func TestLoadConfig_YAMLFile(t *testing.T) {
@@ -5034,28 +4324,16 @@ ai:
   timeout: 90
 `)
 
-	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, yamlContent, 0644), "Failed to write test config file")
 
 	config, err := loadConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig failed")
 
 	// Verify loaded values
-	if config.Defaults.WarnDays != 90 {
-		t.Errorf("Expected warnDays 90, got %d", config.Defaults.WarnDays)
-	}
-	if config.Defaults.Timeout != 60 {
-		t.Errorf("Expected timeout 60, got %d", config.Defaults.Timeout)
-	}
-	if config.AI.Endpoint != "https://custom.api.com" {
-		t.Errorf("Expected endpoint 'https://custom.api.com', got %s", config.AI.Endpoint)
-	}
-	if config.AI.Model != "custom-model" {
-		t.Errorf("Expected model 'custom-model', got %s", config.AI.Model)
-	}
+	assert.Equal(t, 90, config.Defaults.WarnDays, "Expected warnDays 90, got %d", config.Defaults.WarnDays)
+	assert.Equal(t, 60, config.Defaults.Timeout, "Expected timeout 60, got %d", config.Defaults.Timeout)
+	assert.Equal(t, "https://custom.api.com", config.AI.Endpoint, "Expected endpoint 'https://custom.api.com', got %s", config.AI.Endpoint)
+	assert.Equal(t, "custom-model", config.AI.Model, "Expected model 'custom-model', got %s", config.AI.Model)
 }
 
 func TestLoadConfig_YMLExtension(t *testing.T) {
@@ -5067,80 +4345,52 @@ func TestLoadConfig_YMLExtension(t *testing.T) {
   warnDays: 45
 `)
 
-	if err := os.WriteFile(configPath, ymlContent, 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, ymlContent, 0644), "Failed to write test config file")
 
 	config, err := loadConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig failed")
 
-	if config.Defaults.WarnDays != 45 {
-		t.Errorf("Expected warnDays 45, got %d", config.Defaults.WarnDays)
-	}
+	assert.Equal(t, 45, config.Defaults.WarnDays, "Expected warnDays 45, got %d", config.Defaults.WarnDays)
 }
 
 func TestLoadConfig_Defaults(t *testing.T) {
 	// Test with empty path to verify defaults
 	config, err := loadConfig("")
-	if err != nil {
-		t.Fatalf("loadConfig with empty path failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig with empty path failed")
 
 	// Verify default values
-	if config.Defaults.WarnDays != 30 {
-		t.Errorf("Expected default warnDays 30, got %d", config.Defaults.WarnDays)
-	}
-	if config.Defaults.Timeout != 30 {
-		t.Errorf("Expected default timeout 30, got %d", config.Defaults.Timeout)
-	}
+	assert.Equal(t, 30, config.Defaults.WarnDays, "Expected default warnDays 30, got %d", config.Defaults.WarnDays)
+	assert.Equal(t, 30, config.Defaults.Timeout, "Expected default timeout 30, got %d", config.Defaults.Timeout)
 
 	// Verify AI defaults
-	if config.AI.Endpoint != "https://api.x.ai" {
-		t.Errorf("Expected default AI endpoint 'https://api.x.ai', got %s", config.AI.Endpoint)
-	}
-	if config.AI.Model != "grok-4-1-fast-non-reasoning" {
-		t.Errorf("Expected default AI model 'grok-4-1-fast-non-reasoning', got %s", config.AI.Model)
-	}
-	if config.AI.Timeout != 30 {
-		t.Errorf("Expected default AI timeout 30, got %d", config.AI.Timeout)
-	}
+	assert.Equal(t, "https://api.x.ai", config.AI.Endpoint, "Expected default AI endpoint 'https://api.x.ai', got %s", config.AI.Endpoint)
+	assert.Equal(t, "grok-4-1-fast-non-reasoning", config.AI.Model, "Expected default AI model 'grok-4-1-fast-non-reasoning', got %s", config.AI.Model)
+	assert.Equal(t, 30, config.AI.Timeout, "Expected default AI timeout 30, got %d", config.AI.Timeout)
 }
 
 func TestLoadConfig_NonexistentFile(t *testing.T) {
 	_, err := loadConfig("/nonexistent/path/config.json")
-	if err == nil {
-		t.Error("Expected error for nonexistent file, got nil")
-	}
+	assert.Error(t, err, "Expected error for nonexistent file, got nil")
 }
 
 func TestLoadConfig_InvalidJSONFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "invalid.json")
 
-	if err := os.WriteFile(configPath, []byte(`{invalid`), 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, []byte(`{invalid`), 0644), "Failed to write test config file")
 
 	_, err := loadConfig(configPath)
-	if err == nil {
-		t.Error("Expected error for invalid JSON file, got nil")
-	}
+	assert.Error(t, err, "Expected error for invalid JSON file, got nil")
 }
 
 func TestLoadConfig_InvalidYAMLFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "invalid.yaml")
 
-	if err := os.WriteFile(configPath, []byte("invalid: yaml: content: ["), 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, []byte("invalid: yaml: content: ["), 0644), "Failed to write test config file")
 
 	_, err := loadConfig(configPath)
-	if err == nil {
-		t.Error("Expected error for invalid YAML file, got nil")
-	}
+	assert.Error(t, err, "Expected error for invalid YAML file, got nil")
 }
 
 func TestLoadConfig_EnvironmentVariable(t *testing.T) {
@@ -5153,9 +4403,7 @@ func TestLoadConfig_EnvironmentVariable(t *testing.T) {
   warnDays: 100
 `)
 
-	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, yamlContent, 0644), "Failed to write test config file")
 
 	// Set environment variable
 	oldEnv := os.Getenv("MCP_X509_CONFIG_FILE")
@@ -5165,13 +4413,9 @@ func TestLoadConfig_EnvironmentVariable(t *testing.T) {
 
 	// Load with empty path - should use env var
 	config, err := loadConfig("")
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig failed")
 
-	if config.Defaults.WarnDays != 100 {
-		t.Errorf("Expected warnDays 100 from env config, got %d", config.Defaults.WarnDays)
-	}
+	assert.Equal(t, 100, config.Defaults.WarnDays, "Expected warnDays 100 from env config, got %d", config.Defaults.WarnDays)
 }
 
 func TestLoadConfig_APIKeyFromEnvironment(t *testing.T) {
@@ -5185,9 +4429,7 @@ ai:
   endpoint: https://api.test.com
 `)
 
-	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, yamlContent, 0644), "Failed to write test config file")
 
 	// Set API key environment variable
 	oldEnv := os.Getenv("X509_AI_APIKEY")
@@ -5196,13 +4438,9 @@ ai:
 	os.Setenv("X509_AI_APIKEY", "env-api-key")
 
 	config, err := loadConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig failed")
 
-	if config.AI.APIKey != "env-api-key" {
-		t.Errorf("Expected API key 'env-api-key' from env, got %s", config.AI.APIKey)
-	}
+	assert.Equal(t, "env-api-key", config.AI.APIKey, "Expected API key 'env-api-key' from env, got %s", config.AI.APIKey)
 }
 
 func TestLoadConfig_ConfigAPIKeyOverridesDefault(t *testing.T) {
@@ -5217,9 +4455,7 @@ ai:
   endpoint: https://api.test.com
 `)
 
-	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, yamlContent, 0644), "Failed to write test config file")
 
 	// Ensure env var is not set
 	oldEnv := os.Getenv("X509_AI_APIKEY")
@@ -5227,13 +4463,9 @@ ai:
 	os.Unsetenv("X509_AI_APIKEY")
 
 	config, err := loadConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig failed")
 
-	if config.AI.APIKey != "config-api-key" {
-		t.Errorf("Expected API key 'config-api-key' from config, got %s", config.AI.APIKey)
-	}
+	assert.Equal(t, "config-api-key", config.AI.APIKey, "Expected API key 'config-api-key' from config, got %s", config.AI.APIKey)
 }
 
 func TestLoadConfig_PartialYAML(t *testing.T) {
@@ -5245,19 +4477,13 @@ func TestLoadConfig_PartialYAML(t *testing.T) {
   warnDays: 60
 `)
 
-	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, yamlContent, 0644), "Failed to write test config file")
 
 	config, err := loadConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig failed")
 
 	// Specified value should be used
-	if config.Defaults.WarnDays != 60 {
-		t.Errorf("Expected warnDays 60, got %d", config.Defaults.WarnDays)
-	}
+	assert.Equal(t, 60, config.Defaults.WarnDays, "Expected warnDays 60, got %d", config.Defaults.WarnDays)
 }
 
 func TestLoadConfig_EmptyYAML(t *testing.T) {
@@ -5265,19 +4491,13 @@ func TestLoadConfig_EmptyYAML(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "empty.yaml")
 
-	if err := os.WriteFile(configPath, []byte(""), 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, []byte(""), 0644), "Failed to write test config file")
 
 	config, err := loadConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig failed")
 
 	// Defaults should be preserved
-	if config.Defaults.WarnDays != 30 {
-		t.Errorf("Expected default warnDays 30, got %d", config.Defaults.WarnDays)
-	}
+	assert.Equal(t, 30, config.Defaults.WarnDays, "Expected default warnDays 30, got %d", config.Defaults.WarnDays)
 }
 
 func TestLoadConfig_YAMLWithComments(t *testing.T) {
@@ -5298,21 +4518,13 @@ ai:
   endpoint: https://api.example.com
 `)
 
-	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, yamlContent, 0644), "Failed to write test config file")
 
 	config, err := loadConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig failed")
 
-	if config.Defaults.WarnDays != 45 {
-		t.Errorf("Expected warnDays 45, got %d", config.Defaults.WarnDays)
-	}
-	if config.AI.Endpoint != "https://api.example.com" {
-		t.Errorf("Expected endpoint 'https://api.example.com', got %s", config.AI.Endpoint)
-	}
+	assert.Equal(t, 45, config.Defaults.WarnDays, "Expected warnDays 45, got %d", config.Defaults.WarnDays)
+	assert.Equal(t, "https://api.example.com", config.AI.Endpoint, "Expected endpoint 'https://api.example.com', got %s", config.AI.Endpoint)
 }
 
 func TestLoadConfig_ExampleFiles(t *testing.T) {
@@ -5334,20 +4546,12 @@ func TestLoadConfig_ExampleFiles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config, err := loadConfig(tt.path)
-			if err != nil {
-				t.Fatalf("Failed to load %s: %v", tt.path, err)
-			}
+			require.NoError(t, err, "Failed to load %s", tt.path)
 
 			// Verify basic structure
-			if config.Defaults.Timeout == 0 {
-				t.Error("Expected timeout to be set")
-			}
-			if config.AI.Endpoint == "" {
-				t.Error("Expected AI endpoint to be set")
-			}
-			if config.AI.Model == "" {
-				t.Error("Expected AI model to be set")
-			}
+			assert.NotZero(t, config.Defaults.Timeout, "Expected timeout to be set")
+			assert.NotEmpty(t, config.AI.Endpoint, "Expected AI endpoint to be set")
+			assert.NotEmpty(t, config.AI.Model, "Expected AI model to be set")
 		})
 	}
 }
@@ -5364,38 +4568,24 @@ ai:
   timeout: -5
 `)
 
-	if err := os.WriteFile(configPath, yamlContent, 0644); err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
+	require.NoError(t, os.WriteFile(configPath, yamlContent, 0644), "Failed to write test config file")
 
 	config, err := loadConfig(configPath)
-	if err != nil {
-		t.Fatalf("loadConfig failed: %v", err)
-	}
+	require.NoError(t, err, "loadConfig failed")
 
 	// Verify invalid values were corrected to defaults
-	if config.Defaults.WarnDays != 30 {
-		t.Errorf("Expected warnDays to be corrected to 30, got %d", config.Defaults.WarnDays)
-	}
-	if config.Defaults.Timeout != 30 {
-		t.Errorf("Expected timeout to be corrected to 30, got %d", config.Defaults.Timeout)
-	}
-	if config.AI.Timeout != 30 {
-		t.Errorf("Expected AI timeout to be corrected to 30, got %d", config.AI.Timeout)
-	}
+	assert.Equal(t, 30, config.Defaults.WarnDays, "Expected warnDays to be corrected to 30, got %d", config.Defaults.WarnDays)
+	assert.Equal(t, 30, config.Defaults.Timeout, "Expected timeout to be corrected to 30, got %d", config.Defaults.Timeout)
+	assert.Equal(t, 30, config.AI.Timeout, "Expected AI timeout to be corrected to 30, got %d", config.AI.Timeout)
 }
 
 func TestConfigFormat_Constants(t *testing.T) {
 	// Verify config format constants are distinct
-	if configFormatJSON == configFormatYAML {
-		t.Error("configFormatJSON and configFormatYAML should be different")
-	}
+	assert.NotEqual(t, configFormatJSON, configFormatYAML, "configFormatJSON and configFormatYAML should be different")
 
 	// Verify JSON is the default (0 value)
 	var defaultFormat configFormat
-	if defaultFormat != configFormatJSON {
-		t.Error("Default configFormat should be JSON")
-	}
+	assert.Equal(t, configFormatJSON, defaultFormat, "Default configFormat should be JSON")
 }
 
 func TestBatchConcurrencyLimit(t *testing.T) {
@@ -5419,14 +4609,10 @@ func TestBatchConcurrencyLimit(t *testing.T) {
 	results := processBatchCertificates(ctx, certInputs, opts, maxConcurrent)
 
 	// Verify we got results for all certificates
-	if len(results) != len(certInputs) {
-		t.Fatalf("Expected %d results, got %d", len(certInputs), len(results))
-	}
+	assert.Len(t, results, len(certInputs), "Expected %d results, got %d", len(certInputs), len(results))
 
 	// Verify all results have the expected format
 	for i, result := range results {
-		if !strings.Contains(result, fmt.Sprintf("Certificate %d:", i+1)) {
-			t.Errorf("Result %d missing expected format: %s", i, result)
-		}
+		assert.Contains(t, result, fmt.Sprintf("Certificate %d:", i+1), "Result %d missing expected format", i)
 	}
 }
