@@ -77,7 +77,7 @@
 - `github.com/mark3labs/mcp-go` v0.43.2 - MCP server implementation with enhanced bidirectional AI sampling support
 - `github.com/modelcontextprotocol/go-sdk` v1.2.0 - Official MCP SDK for transport implementations
 - `google.golang.org/adk` v0.3.0 - Google ADK integration for MCP transport creation
-- `google.golang.org/genai` v1.41.0 - Google GenAI integration for AI model interactions
+- `google.golang.org/genai` v1.41.1 - Google GenAI integration for AI model interactions
 - `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
 - `github.com/xeipuuv/gojsonschema` v1.2.0 - JSON schema validation for code generation
 - `gopkg.in/yaml.v3` v3.0.1 - YAML configuration file support for MCP server
@@ -479,7 +479,7 @@ gopls_go_search("MyFunction")  # ✅ Returns results
    - External API research → DeepWiki MCP
    - Certificate chain operations → X509 Certificate Chain Resolver MCP
    - Complex multi-step tasks → Task management tools (todowrite/task)
-   - File operations → Built-in read/write/edit/list tools
+   - File operations → Built-in read/write/edit tools
    - Code search → Built-in grep/glob tools
    - Build/test/git → Built-in bash tool
 
@@ -731,7 +731,7 @@ edit("tools/codegen/templates/resources.go.tmpl", ...)
 bash("go generate ./src/mcp-server")
 ```
 
-**Summary**: Always prefer composable tools that follow [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy) (`glob`, `grep`, `read`, `list`) over `bash` for file operations and code search. These tools respect `.ignore` configuration (see `.ignore` file for pattern organization), provide structured output, and compose efficiently. Reserve `bash` for builds, tests, git, and package management.
+**Summary**: Always prefer composable tools that follow [Unix Philosophy](https://grokipedia.com/page/Unix_philosophy) (`glob`, `grep`, `read`) over `bash` for file operations and code search. These tools respect `.ignore` configuration (see `.ignore` file for pattern organization), provide structured output, and compose efficiently. Reserve `bash` for builds, tests, git, and package management.
 
 ## Testing Guidelines
 
