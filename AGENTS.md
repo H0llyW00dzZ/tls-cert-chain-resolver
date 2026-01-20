@@ -78,7 +78,7 @@
 - `github.com/modelcontextprotocol/go-sdk` v1.2.0 - Official MCP SDK for transport implementations
 - `google.golang.org/adk` v0.3.0 - Google ADK integration for MCP transport creation
 - `google.golang.org/genai` v1.42.0 - Google GenAI integration for AI model interactions
-- `github.com/olekukonko/tablewriter` v1.1.2 - Enhanced markdown table formatting with emoji headers
+- `github.com/olekukonko/tablewriter` v1.1.3 - Enhanced markdown table formatting with emoji headers
 - `github.com/xeipuuv/gojsonschema` v1.2.0 - JSON schema validation for code generation
 - `gopkg.in/yaml.v3` v3.0.1 - YAML configuration file support for MCP server
 - `golang.org/x/text` v0.33.0 - Text processing utilities for proper casing and internationalization

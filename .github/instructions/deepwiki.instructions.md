@@ -474,7 +474,7 @@ Solutions:
 - `modelcontextprotocol/go-sdk` v1.2.0 - For official MCP transport implementations
 - `google.golang.org/adk` v0.3.0 - For Google ADK integration for MCP transport creation
 - `google.golang.org/genai` v1.42.0 - For Google GenAI integration for AI model interactions
-- `github.com/olekukonko/tablewriter` v1.1.2 - For enhanced markdown table formatting with emoji headers
+- `github.com/olekukonko/tablewriter` v1.1.3 - For enhanced markdown table formatting with emoji headers
 - `gopkg.in/yaml.v3` v3.0.1 - For YAML configuration file support (GitHub: go-yaml/yaml)
 - `golang.org/x/crypto` v0.47.0 - For supplementary cryptography libraries leveraged in recent releases
 - `golang.org/x/text` v0.33.0 - For text processing utilities for proper casing and internationalization (GitHub: golang/text)
