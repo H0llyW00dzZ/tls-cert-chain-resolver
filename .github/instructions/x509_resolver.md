@@ -208,7 +208,7 @@ x509_resolver_get_resource_usage(detailed=true, format="markdown")
 - Integrates with CRL cache metrics from `src/internal/x509/chain/cache.go`
 - Provides hit rate calculations and memory usage in MB for readability
 - Thread-safe data collection using atomic operations for cache metrics
-- Enhanced markdown formatting using `github.com/olekukonko/tablewriter` v1.1.1 with emoji headers and structured tables
+- Enhanced markdown formatting using `github.com/olekukonko/tablewriter` v1.1.3 with emoji headers and structured tables
 - Human-readable timestamp formatting for better user experience
 
 ### x509_resolver_visualize_cert_chain(certificate, format?)
